@@ -1,0 +1,23 @@
+{
+  "listen": "127.0.0.1:8787",
+  "refresh_seconds": 60,
+  "cache_path": "validators_clock_cache.json",
+  "chains": [
+    {
+      "id": "everscale",
+      "name": "Everscale",
+      "rpc": "https://jrpc.everwallet.net",
+      "color": "#38bdf8",
+      "token_symbol": "EVER",
+      "rpc_label": "jrpc.everwallet.net"
+    },
+    {
+      "id": "tycho-testnet",
+      "name": "Tycho Testnet",
+      "rpc": "https://rpc-testnet.tychoprotocol.com",
+      "color": "#35d07f",
+      "token_symbol": "TYCHO",
+      "rpc_label": "rpc-testnet.tychoprotocol.com"
+    }
+  ]
+}

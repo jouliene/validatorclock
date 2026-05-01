@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validators Clock</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="titlebar">
+      <h1>Validators Clock</h1>
+    </header>
+
+    <main class="top-grid">
+      <section class="info-panel election-panel" aria-label="Election details">
+        <h2>Election</h2>
+        <div class="status-display">
+          <span id="metricStatus">-</span>
+          <strong id="metricNextChange">-</strong>
+        </div>
+        <dl>
+          <div><dt>Round window</dt><dd id="metricRound" class="date-stack">-</dd></div>
+          <div><dt>Start before</dt><dd id="metricStartBefore">-</dd></div>
+          <div><dt>End before</dt><dd id="metricEndBefore">-</dd></div>
+          <div><dt>Fetched</dt><dd id="metricFetched">-</dd></div>
+        </dl>
+      </section>
+
+      <section class="clock-stage" aria-label="Validator election clock">
+        <svg id="clockSvg" viewBox="0 0 512 512" role="img" aria-labelledby="clockTitle">
+          <title id="clockTitle">Validator election clock</title>
+        </svg>
+      </section>
+
+      <section class="info-panel network-panel" aria-label="Network selector">
+        <h2>Network</h2>
+        <nav id="chainTabs" class="chain-tabs" aria-label="Chains"></nav>
+        <dl>
+          <div><dt>Chain</dt><dd id="metricChain">-</dd></div>
+          <div><dt>RPC</dt><dd id="metricRpc">-</dd></div>
+          <div><dt>Global ID</dt><dd id="metricGlobalId">-</dd></div>
+          <div><dt>Seqno</dt><dd id="metricSeqno">-</dd></div>
+        </dl>
+      </section>
+    </main>
+
+    <section class="rounds-grid" aria-label="Validator rounds">
+      <section class="round-panel round-blue">
+        <div class="round-heading">
+          <div>
+            <h2>Blue Round</h2>
+            <p id="blueRoundMeta">-</p>
+          </div>
+          <span id="blueRoundBadge" class="round-badge">-</span>
+        </div>
+        <div id="blueRoundStats" class="round-stats"></div>
+        <div id="blueValidators" class="validator-list"></div>
+      </section>
+
+      <section class="round-panel round-green">
+        <div class="round-heading">
+          <div>
+            <h2>Green Round</h2>
+            <p id="greenRoundMeta">-</p>
+          </div>
+          <span id="greenRoundBadge" class="round-badge">-</span>
+        </div>
+        <div id="greenRoundStats" class="round-stats"></div>
+        <div id="greenValidators" class="validator-list"></div>
+      </section>
+    </section>
+
+    <p id="errorBanner" class="error-banner" hidden></p>
+  </div>
+</body>
+</html>

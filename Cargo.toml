@@ -1,0 +1,12 @@
+[package]
+name = "validators_clock"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+minik2 = { git = "https://github.com/jouliene/minik2", rev = "3cf2fc733805343c918525ec080b189e2cccfe42" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tycho-types = { version = "0.3.4", features = ["abi"] }
