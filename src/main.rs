@@ -1,4 +1,5 @@
 use anyhow::{Context, Result, anyhow, bail};
+use instant_acme::LetsEncrypt;
 use minik2::{
     Config, CurrentElectionData, Elector, FpTokens, HashBytes, JrpcTransport, Ref, Transport,
     ValidatorSet, apply_price_factor,
@@ -11,8 +12,6 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::RwLock;
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
@@ -20,15 +19,18 @@ use tycho_types::models::account::AccountState;
 use tycho_types::models::{IntAddr, MsgInfo, Transaction};
 use tycho_types::num::Tokens;
 
-const INDEX_HTML: &str = include_str!("../public/index.html");
-const STYLES_CSS: &str = include_str!("../public/styles.css");
-const APP_JS: &str = include_str!("../public/app.js");
+mod server;
+mod tls;
+
 const DEFAULT_CONFIG: &str = include_str!("../validators_clock.json");
 const ELECTOR_TX_SCAN_LIMIT: u8 = 100;
 const ONE_TOKEN: u128 = 1_000_000_000;
+const DEFAULT_MAX_CONNECTIONS: usize = 128;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    tls::install_rustls_crypto_provider();
+
     let cli = Cli::parse()?;
     let config = Arc::new(load_config(cli.config_path.as_ref())?);
     config.validate()?;
@@ -52,21 +54,13 @@ async fn main() -> Result<()> {
                 HashMap::new()
             }),
         ),
+        acme_challenges: RwLock::new(HashMap::new()),
     });
 
-    let listener = TcpListener::bind(&config.listen)
-        .await
-        .with_context(|| format!("failed to bind {}", config.listen))?;
-    println!("validators_clock listening on http://{}", config.listen);
-
-    loop {
-        let (stream, _) = listener.accept().await?;
-        let state = Arc::clone(&state);
-        tokio::spawn(async move {
-            if let Err(error) = handle_connection(stream, state).await {
-                eprintln!("request failed: {error:#}");
-            }
-        });
+    if config.tls.enabled {
+        server::run_tls_server(state).await
+    } else {
+        server::run_plain_http_server(state).await
     }
 }
 
@@ -121,6 +115,10 @@ struct AppConfig {
     refresh_seconds: u64,
     #[serde(default = "default_cache_path")]
     cache_path: PathBuf,
+    #[serde(default)]
+    security: SecurityConfig,
+    #[serde(default)]
+    tls: TlsConfig,
     chains: Vec<ChainConfig>,
 }
 
@@ -142,11 +140,182 @@ impl AppConfig {
             }
         }
 
+        self.security.validate()?;
+        self.tls.validate()?;
         Ok(())
     }
 
     fn chain(&self, id: &str) -> Option<&ChainConfig> {
         self.chains.iter().find(|chain| chain.id == id)
+    }
+
+    fn effective_allowed_hosts(&self) -> Vec<String> {
+        let mut hosts = self.security.allowed_hosts.clone();
+        if self.tls.enabled
+            && let Some(host) = server::public_url_host(&self.tls.public_url)
+            && !hosts.iter().any(|item| item == &host)
+        {
+            hosts.push(host);
+        }
+        hosts
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+struct SecurityConfig {
+    allowed_hosts: Vec<String>,
+    allow_force_refresh: bool,
+    max_connections: usize,
+}
+
+impl Default for SecurityConfig {
+    fn default() -> Self {
+        Self {
+            allowed_hosts: Vec::new(),
+            allow_force_refresh: false,
+            max_connections: DEFAULT_MAX_CONNECTIONS,
+        }
+    }
+}
+
+impl SecurityConfig {
+    fn validate(&self) -> Result<()> {
+        if self.max_connections == 0 {
+            bail!("security.max_connections must be greater than zero");
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+struct TlsConfig {
+    enabled: bool,
+    http_listen: String,
+    https_listen: String,
+    public_url: String,
+    cert_path: PathBuf,
+    key_path: PathBuf,
+    acme: AcmeConfig,
+}
+
+impl Default for TlsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            http_listen: "0.0.0.0:80".to_owned(),
+            https_listen: "0.0.0.0:443".to_owned(),
+            public_url: String::new(),
+            cert_path: PathBuf::from("validators_clock_fullchain.pem"),
+            key_path: PathBuf::from("validators_clock_privkey.pem"),
+            acme: AcmeConfig::default(),
+        }
+    }
+}
+
+impl TlsConfig {
+    fn validate(&self) -> Result<()> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        if !self.public_url.starts_with("https://") {
+            bail!("tls.public_url must start with https:// when tls.enabled is true");
+        }
+
+        if self.cert_path.as_os_str().is_empty() {
+            bail!("tls.cert_path cannot be empty");
+        }
+
+        if self.key_path.as_os_str().is_empty() {
+            bail!("tls.key_path cannot be empty");
+        }
+
+        self.acme.validate()?;
+        if self.acme.enabled {
+            let public_host = server::public_url_host(&self.public_url)
+                .context("tls.public_url must include a host")?;
+            let acme_host = server::normalize_host(&self.acme.identifier)
+                .context("tls.acme.identifier must be a valid host or IP address")?;
+            if public_host != acme_host {
+                bail!(
+                    "tls.public_url host `{public_host}` must match tls.acme.identifier `{acme_host}`"
+                );
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+struct AcmeConfig {
+    enabled: bool,
+    staging: bool,
+    directory_url: Option<String>,
+    identifier: String,
+    contact: Vec<String>,
+    account_path: PathBuf,
+    profile: String,
+    renew_after_seconds: u64,
+    retry_timeout_seconds: u64,
+}
+
+impl Default for AcmeConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            staging: false,
+            directory_url: None,
+            identifier: String::new(),
+            contact: Vec::new(),
+            account_path: PathBuf::from("validators_clock_acme_account.json"),
+            profile: "shortlived".to_owned(),
+            renew_after_seconds: 2 * 24 * 60 * 60,
+            retry_timeout_seconds: 60,
+        }
+    }
+}
+
+impl AcmeConfig {
+    fn validate(&self) -> Result<()> {
+        if !self.enabled {
+            return Ok(());
+        }
+
+        if self.identifier.trim().is_empty() {
+            bail!("tls.acme.identifier cannot be empty when ACME is enabled");
+        }
+
+        if self.account_path.as_os_str().is_empty() {
+            bail!("tls.acme.account_path cannot be empty");
+        }
+
+        if self.profile.trim().is_empty() {
+            bail!("tls.acme.profile cannot be empty");
+        }
+
+        if self.renew_after_seconds == 0 {
+            bail!("tls.acme.renew_after_seconds must be greater than zero");
+        }
+
+        if self.retry_timeout_seconds == 0 {
+            bail!("tls.acme.retry_timeout_seconds must be greater than zero");
+        }
+
+        tls::acme_identifier(&self.identifier)?;
+        Ok(())
+    }
+
+    fn directory_url(&self) -> String {
+        self.directory_url.clone().unwrap_or_else(|| {
+            if self.staging {
+                LetsEncrypt::Staging.url().to_owned()
+            } else {
+                LetsEncrypt::Production.url().to_owned()
+            }
+        })
     }
 }
 
@@ -338,109 +507,7 @@ struct AppState {
     cache: RwLock<HashMap<String, CacheEntry>>,
     validator_round_cache_path: PathBuf,
     validator_round_cache: ValidatorRoundCache,
-}
-
-async fn handle_connection(mut stream: TcpStream, state: Arc<AppState>) -> Result<()> {
-    let request = read_request(&mut stream).await?;
-    let response = route_request(&request, state).await;
-    write_response(&mut stream, response).await?;
-    Ok(())
-}
-
-async fn read_request(stream: &mut TcpStream) -> Result<HttpRequest> {
-    let mut buffer = vec![0_u8; 8192];
-    let mut read = 0;
-
-    loop {
-        let n = stream.read(&mut buffer[read..]).await?;
-        if n == 0 {
-            break;
-        }
-        read += n;
-
-        if buffer[..read]
-            .windows(4)
-            .any(|window| window == b"\r\n\r\n")
-            || read == buffer.len()
-        {
-            break;
-        }
-    }
-
-    let text = std::str::from_utf8(&buffer[..read]).context("request is not valid UTF-8")?;
-    let request_line = text
-        .lines()
-        .next()
-        .ok_or_else(|| anyhow!("missing request line"))?;
-    let mut parts = request_line.split_whitespace();
-    let method = parts
-        .next()
-        .ok_or_else(|| anyhow!("missing request method"))?
-        .to_owned();
-    let target = parts
-        .next()
-        .ok_or_else(|| anyhow!("missing request target"))?
-        .to_owned();
-
-    Ok(HttpRequest { method, target })
-}
-
-#[derive(Debug)]
-struct HttpRequest {
-    method: String,
-    target: String,
-}
-
-async fn route_request(request: &HttpRequest, state: Arc<AppState>) -> HttpResponse {
-    if request.method == "OPTIONS" {
-        return HttpResponse::empty(204);
-    }
-
-    if request.method != "GET" && request.method != "HEAD" {
-        return json_error(405, "method not allowed");
-    }
-
-    let (path, query) = split_target(&request.target);
-    let force_refresh = query.map(query_forces_refresh).unwrap_or(false);
-    let response = match path {
-        "/" | "/index.html" => HttpResponse::ok("text/html; charset=utf-8", INDEX_HTML.as_bytes()),
-        "/styles.css" => HttpResponse::ok("text/css; charset=utf-8", STYLES_CSS.as_bytes()),
-        "/app.js" => HttpResponse::ok("application/javascript; charset=utf-8", APP_JS.as_bytes()),
-        "/api/chains" => json_response(&chains_response(&state.config)),
-        "/api/health" => json_response(&serde_json::json!({ "status": "ok" })),
-        _ => match chain_clock_id(path) {
-            Some(chain_id) => match get_chain_snapshot(&state, chain_id, force_refresh).await {
-                Ok(snapshot) => json_response(&snapshot),
-                Err(error) => json_error(500, &error.to_string()),
-            },
-            None => json_error(404, "not found"),
-        },
-    };
-
-    if request.method == "HEAD" {
-        response.without_body()
-    } else {
-        response
-    }
-}
-
-fn chain_clock_id(path: &str) -> Option<&str> {
-    let prefix = "/api/chains/";
-    let suffix = "/clock";
-    path.strip_prefix(prefix)?.strip_suffix(suffix)
-}
-
-fn split_target(target: &str) -> (&str, Option<&str>) {
-    target
-        .split_once('?')
-        .map_or((target, None), |(path, query)| (path, Some(query)))
-}
-
-fn query_forces_refresh(query: &str) -> bool {
-    query.split('&').any(|part| {
-        let (key, value) = part.split_once('=').unwrap_or((part, "1"));
-        key == "refresh" && matches!(value, "1" | "true" | "yes")
-    })
+    acme_challenges: RwLock<HashMap<String, String>>,
 }
 
 fn chains_response(config: &AppConfig) -> ChainsResponse {
@@ -1142,75 +1209,4 @@ fn now_sec() -> Result<u64> {
         .duration_since(UNIX_EPOCH)
         .context("system time is before UNIX epoch")?
         .as_secs())
-}
-
-fn json_response<T: Serialize>(value: &T) -> HttpResponse {
-    match serde_json::to_vec(value) {
-        Ok(body) => HttpResponse::owned(200, "application/json; charset=utf-8", body),
-        Err(error) => json_error(500, &error.to_string()),
-    }
-}
-
-fn json_error(status: u16, message: &str) -> HttpResponse {
-    let body = serde_json::json!({ "error": message });
-    HttpResponse::owned(
-        status,
-        "application/json; charset=utf-8",
-        serde_json::to_vec(&body).unwrap_or_else(|_| b"{\"error\":\"internal error\"}".to_vec()),
-    )
-}
-
-struct HttpResponse {
-    status: u16,
-    content_type: &'static str,
-    body: Vec<u8>,
-}
-
-impl HttpResponse {
-    fn ok(content_type: &'static str, body: &[u8]) -> Self {
-        Self::owned(200, content_type, body.to_vec())
-    }
-
-    fn owned(status: u16, content_type: &'static str, body: Vec<u8>) -> Self {
-        Self {
-            status,
-            content_type,
-            body,
-        }
-    }
-
-    fn empty(status: u16) -> Self {
-        Self::owned(status, "text/plain; charset=utf-8", Vec::new())
-    }
-
-    fn without_body(mut self) -> Self {
-        self.body.clear();
-        self
-    }
-}
-
-async fn write_response(stream: &mut TcpStream, response: HttpResponse) -> Result<()> {
-    let reason = reason_phrase(response.status);
-    let headers = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n",
-        response.status,
-        reason,
-        response.content_type,
-        response.body.len()
-    );
-    stream.write_all(headers.as_bytes()).await?;
-    stream.write_all(&response.body).await?;
-    stream.shutdown().await?;
-    Ok(())
-}
-
-fn reason_phrase(status: u16) -> &'static str {
-    match status {
-        200 => "OK",
-        204 => "No Content",
-        404 => "Not Found",
-        405 => "Method Not Allowed",
-        500 => "Internal Server Error",
-        _ => "OK",
-    }
 }
