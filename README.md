@@ -14,6 +14,8 @@ total round stake, total rewards, and per-validator rewards from on-chain state.
 If a chain/RPC cannot expose that frozen data, the server falls back to scanning
 elector `participate_in_elections` messages and saves that fallback mapping to
 `cache_path` so restarts do not repeat the full scan.
+Configured chains are refreshed in the background, so normal browser requests
+usually read a warm in-memory snapshot instead of waiting for an RPC round trip.
 
 Run:
 
@@ -96,6 +98,12 @@ the git checkout:
 First run with `"staging": true`; after issuance works, switch it to `false` for
 a trusted production certificate.
 
+On startup and during the renewal loop, the app reuses an existing certificate
+only if the key loads, the certificate is valid outside the renewal window, and
+the certificate covers every configured ACME identifier. This means adding a
+name such as `www.validatorsclock.xyz` to `tls.acme.extra_identifiers` will cause
+the next start or renewal check to request a replacement certificate.
+
 Ports 80 and 443 must be reachable from the public internet for ACME validation
 and HTTPS traffic. If `ufw` is enabled:
 
@@ -177,7 +185,11 @@ Basic checks:
 curl -I http://104.238.222.200
 curl -I https://104.238.222.200
 curl https://104.238.222.200/api/health
+curl https://104.238.222.200/api/status
 ```
+
+`/api/status` reports the app version, uptime, configured refresh interval, and
+per-chain cache freshness or last refresh error.
 
 ## Logs
 

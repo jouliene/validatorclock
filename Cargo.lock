@@ -2633,6 +2633,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tycho-types",
+ "x509-parser",
 ]
 
 [[package]]

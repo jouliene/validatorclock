@@ -33,6 +33,7 @@ async fn main() -> Result<()> {
     }
 
     let state = Arc::new(AppState::new(Arc::clone(&config)));
+    chain::spawn_background_refresh(Arc::clone(&state));
 
     if config.tls.enabled {
         server::run_tls_server(state).await

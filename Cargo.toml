@@ -20,3 +20,4 @@ tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tycho-types = { version = "0.3.4", features = ["abi"] }
+x509-parser = "0.18"

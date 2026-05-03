@@ -2,7 +2,7 @@ use super::security::{
     add_security_headers, enforce_allowed_host, handle_options, json_error, query_forces_refresh,
     redirect_response,
 };
-use crate::chain::{chains_response, get_chain_snapshot};
+use crate::chain::{chains_response, get_chain_snapshot, runtime_status};
 use crate::state::AppState;
 use axum::extract::{Path, Query, State};
 use axum::http::header::{self, HeaderValue};
@@ -40,6 +40,7 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/brands/everscale.svg", get(everscale_logo))
         .route("/brands/tycho.svg", get(tycho_logo))
         .route("/api/health", get(health))
+        .route("/api/status", get(status))
         .route("/api/chains", get(list_chains))
         .route("/api/chains/{chain_id}/clock", get(chain_clock))
         .fallback(not_found)
@@ -105,6 +106,20 @@ async fn tycho_logo() -> impl IntoResponse {
 
 async fn health() -> impl IntoResponse {
     Json(json!({ "status": "ok" }))
+}
+
+async fn status(State(state): State<Arc<AppState>>) -> Response {
+    match runtime_status(&state).await {
+        Ok(status) => Json(status).into_response(),
+        Err(error) => {
+            error!(error = ?error, "status request failed");
+            json_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "status_failed",
+                "failed to build runtime status",
+            )
+        }
+    }
 }
 
 async fn list_chains(State(state): State<Arc<AppState>>) -> impl IntoResponse {

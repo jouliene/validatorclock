@@ -12,10 +12,11 @@ use std::env;
 use std::fs;
 use std::io::ErrorKind;
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
-use tracing::{debug, warn};
+use tokio::time::{Duration, sleep};
+use tracing::{debug, info, warn};
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
 use tycho_types::models::account::AccountState;
@@ -32,12 +33,35 @@ pub(crate) struct ChainsResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub(crate) struct RuntimeStatusResponse {
+    status: &'static str,
+    version: &'static str,
+    started_at: Option<u64>,
+    uptime_seconds: u64,
+    refresh_seconds: u64,
+    chains: Vec<ChainRuntimeStatusDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct ChainMeta {
     id: String,
     name: String,
     color: String,
     token_symbol: String,
     rpc_label: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct ChainRuntimeStatusDto {
+    id: String,
+    name: String,
+    cached: bool,
+    fetched_at: Option<u64>,
+    age_seconds: Option<u64>,
+    stale: bool,
+    last_attempt_at: Option<u64>,
+    last_success_at: Option<u64>,
+    last_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -207,6 +231,111 @@ pub(crate) fn chains_response(config: &AppConfig) -> ChainsResponse {
     }
 }
 
+pub(crate) async fn runtime_status(state: &AppState) -> Result<RuntimeStatusResponse> {
+    let now = now_sec()?;
+    let refresh_seconds = state.config.refresh_seconds.max(10);
+    let cache = state.cache.read().await;
+    let chain_status = state.chain_status.read().await;
+    let mut any_missing = false;
+    let mut any_stale_error = false;
+
+    let chains = state
+        .config
+        .chains
+        .iter()
+        .map(|chain| {
+            let cached = cache.get(&chain.id);
+            let fetched_at = cached.map(|entry| entry.snapshot.fetched_at);
+            let age_seconds = fetched_at.map(|fetched_at| now.saturating_sub(fetched_at));
+            let stale = age_seconds.is_none_or(|age| age > refresh_seconds.saturating_mul(2));
+            let status = chain_status.get(&chain.id);
+
+            if cached.is_none() {
+                any_missing = true;
+            }
+            if stale
+                && status
+                    .and_then(|status| status.last_error.as_ref())
+                    .is_some()
+            {
+                any_stale_error = true;
+            }
+
+            ChainRuntimeStatusDto {
+                id: chain.id.clone(),
+                name: chain.name.clone(),
+                cached: cached.is_some(),
+                fetched_at,
+                age_seconds,
+                stale,
+                last_attempt_at: status.and_then(|status| status.last_attempt_at),
+                last_success_at: status.and_then(|status| status.last_success_at),
+                last_error: status.and_then(|status| status.last_error.clone()),
+            }
+        })
+        .collect();
+
+    let status = if any_stale_error {
+        "degraded"
+    } else if any_missing {
+        "starting"
+    } else {
+        "ok"
+    };
+
+    Ok(RuntimeStatusResponse {
+        status,
+        version: env!("CARGO_PKG_VERSION"),
+        started_at: state.started_at_seconds(),
+        uptime_seconds: state.uptime_seconds(),
+        refresh_seconds,
+        chains,
+    })
+}
+
+pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
+    tokio::spawn(async move {
+        background_refresh_loop(state).await;
+    });
+}
+
+async fn background_refresh_loop(state: Arc<AppState>) {
+    let refresh_seconds = state.config.refresh_seconds.max(10);
+    info!(refresh_seconds, "background chain refresh started");
+
+    loop {
+        refresh_configured_chains(&state).await;
+        sleep(Duration::from_secs(refresh_seconds)).await;
+    }
+}
+
+async fn refresh_configured_chains(state: &AppState) {
+    let chain_ids = state
+        .config
+        .chains
+        .iter()
+        .map(|chain| chain.id.clone())
+        .collect::<Vec<_>>();
+
+    for chain_id in chain_ids {
+        match get_chain_snapshot(state, &chain_id, true).await {
+            Ok(snapshot) if snapshot.warning.is_some() => {
+                debug!(chain_id, warning = ?snapshot.warning, "background refresh used cached data");
+            }
+            Ok(snapshot) => {
+                debug!(
+                    chain_id,
+                    fetched_at = snapshot.fetched_at,
+                    "background refresh completed"
+                );
+            }
+            Err(error) => {
+                warn!(chain_id, error = ?error, "background refresh failed");
+            }
+        }
+    }
+}
+
 pub(crate) async fn get_chain_snapshot(
     state: &AppState,
     chain_id: &str,
@@ -226,6 +355,7 @@ pub(crate) async fn get_chain_snapshot(
         .config
         .chain(chain_id)
         .ok_or_else(|| anyhow!("unknown chain id `{chain_id}`"))?;
+    state.record_refresh_attempt(chain_id, now).await;
 
     match fetch_chain_snapshot_cached(
         chain,
@@ -235,6 +365,7 @@ pub(crate) async fn get_chain_snapshot(
     .await
     {
         Ok(snapshot) => {
+            let fetched_at = snapshot.fetched_at;
             state.cache.write().await.insert(
                 chain_id.to_owned(),
                 CacheEntry {
@@ -242,9 +373,14 @@ pub(crate) async fn get_chain_snapshot(
                     snapshot: snapshot.clone(),
                 },
             );
+            state.record_refresh_success(chain_id, fetched_at).await;
             Ok(snapshot)
         }
         Err(error) => {
+            let error_message = error.to_string();
+            state
+                .record_refresh_failure(chain_id, now, error_message)
+                .await;
             if let Some(entry) = state.cache.read().await.get(chain_id) {
                 let mut snapshot = entry.snapshot.clone();
                 snapshot.warning = Some(format!(

@@ -128,6 +128,32 @@ async fn app_router_serves_health_with_security_headers() {
 }
 
 #[tokio::test]
+async fn app_router_serves_runtime_status() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    state
+        .record_refresh_failure("test", 123, "rpc down".to_owned())
+        .await;
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/status")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(body["status"], "degraded");
+    assert_eq!(body["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(body["chains"][0]["id"], "test");
+    assert_eq!(body["chains"][0]["cached"], false);
+    assert_eq!(body["chains"][0]["last_error"], "rpc down");
+}
+
+#[tokio::test]
 async fn app_router_rejects_bad_host() {
     let state = Arc::new(AppState::new(Arc::new(test_config(vec![
         "allowed.example".to_owned(),
