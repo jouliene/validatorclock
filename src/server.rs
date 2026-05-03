@@ -2,23 +2,33 @@ use crate::chain::{chains_response, get_chain_snapshot};
 use crate::config::AppConfig;
 use crate::state::AppState;
 use crate::tls;
-use anyhow::{Context, Result, anyhow, bail};
-use serde::Serialize;
+use anyhow::{Context, Result, bail};
+use axum::extract::{Path, Query, Request, State};
+use axum::http::header::{self, HeaderName, HeaderValue};
+use axum::http::{HeaderMap, Method, StatusCode, Uri};
+use axum::middleware::{self, Next};
+use axum::response::{Html, IntoResponse, Response};
+use axum::routing::get;
+use axum::{Json, Router};
+use hyper::body::Incoming;
+use hyper::server::conn::http1;
+use hyper::service::service_fn;
+use hyper_util::rt::TokioIo;
+use serde_json::json;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::TcpListener;
 use tokio::sync::{RwLock, Semaphore};
 use tokio::time::{Duration, timeout};
 use tokio_rustls::TlsAcceptor;
+use tower::{ServiceBuilder, ServiceExt};
 
 const INDEX_HTML: &str = include_str!("../public/index.html");
 const STYLES_CSS: &str = include_str!("../public/styles.css");
 const APP_JS: &str = include_str!("../public/app.js");
-const REQUEST_HEADER_LIMIT: usize = 8192;
 const REQUEST_TIMEOUT_SECS: u64 = 10;
-const ACME_CHALLENGE_PREFIX: &str = "/.well-known/acme-challenge/";
 
 pub(crate) async fn run_plain_http_server(state: Arc<AppState>) -> Result<()> {
     let listener = TcpListener::bind(&state.config.listen)
@@ -29,7 +39,13 @@ pub(crate) async fn run_plain_http_server(state: Arc<AppState>) -> Result<()> {
         state.config.listen
     );
 
-    accept_plain_connections(listener, state, ConnectionMode::PlainApp).await
+    serve_plain_connections(
+        listener,
+        app_router(Arc::clone(&state)),
+        state.config.security.max_connections,
+        "HTTP",
+    )
+    .await
 }
 
 pub(crate) async fn run_tls_server(state: Arc<AppState>) -> Result<()> {
@@ -42,10 +58,15 @@ pub(crate) async fn run_tls_server(state: Arc<AppState>) -> Result<()> {
         .with_context(|| format!("failed to bind {}", tls_config.https_listen))?;
 
     let http_state = Arc::clone(&state);
+    let max_connections = state.config.security.max_connections;
     tokio::spawn(async move {
-        if let Err(error) =
-            accept_plain_connections(http_listener, http_state, ConnectionMode::ChallengeRedirect)
-                .await
+        if let Err(error) = serve_plain_connections(
+            http_listener,
+            challenge_redirect_router(http_state),
+            max_connections,
+            "HTTP challenge/redirect",
+        )
+        .await
         {
             eprintln!("HTTP challenge/redirect listener failed: {error:#}");
         }
@@ -71,262 +92,272 @@ pub(crate) async fn run_tls_server(state: Arc<AppState>) -> Result<()> {
         "validators_clock listening on https://{}",
         tls_config.https_listen
     );
-    accept_tls_connections(https_listener, state, acceptor).await
+    serve_tls_connections(
+        https_listener,
+        app_router(Arc::clone(&state)),
+        acceptor,
+        state.config.security.max_connections,
+    )
+    .await
 }
 
-#[derive(Clone, Copy)]
-enum ConnectionMode {
-    PlainApp,
-    ChallengeRedirect,
+fn app_router(state: Arc<AppState>) -> Router {
+    let layers = ServiceBuilder::new()
+        .layer(middleware::from_fn(add_security_headers))
+        .layer(middleware::from_fn_with_state(
+            Arc::clone(&state),
+            enforce_allowed_host,
+        ))
+        .layer(middleware::from_fn(handle_options));
+
+    Router::new()
+        .route("/", get(index))
+        .route("/index.html", get(index))
+        .route("/styles.css", get(styles))
+        .route("/app.js", get(app_js))
+        .route("/api/health", get(health))
+        .route("/api/chains", get(list_chains))
+        .route("/api/chains/{chain_id}/clock", get(chain_clock))
+        .fallback(not_found)
+        .with_state(state)
+        .layer(layers)
 }
 
-async fn accept_plain_connections(
+fn challenge_redirect_router(state: Arc<AppState>) -> Router {
+    let layers = ServiceBuilder::new()
+        .layer(middleware::from_fn(add_security_headers))
+        .layer(middleware::from_fn(handle_options));
+
+    Router::new()
+        .route("/.well-known/acme-challenge/{token}", get(acme_challenge))
+        .fallback(redirect_to_https)
+        .with_state(state)
+        .layer(layers)
+}
+
+async fn serve_plain_connections(
     listener: TcpListener,
-    state: Arc<AppState>,
-    mode: ConnectionMode,
+    app: Router,
+    max_connections: usize,
+    label: &'static str,
 ) -> Result<()> {
-    let permits = Arc::new(Semaphore::new(state.config.security.max_connections));
+    let permits = Arc::new(Semaphore::new(max_connections));
 
     loop {
         let (stream, _) = listener.accept().await?;
-        let state = Arc::clone(&state);
         let permit = Arc::clone(&permits).acquire_owned().await?;
+        let app = app.clone();
         tokio::spawn(async move {
             let _permit = permit;
-            let result = match mode {
-                ConnectionMode::PlainApp => handle_connection(stream, state).await,
-                ConnectionMode::ChallengeRedirect => {
-                    handle_http_challenge_or_redirect(stream, state).await
-                }
-            };
-            if let Err(error) = result {
-                eprintln!("request failed: {error:#}");
-            }
+            serve_connection(stream, app, label).await;
         });
     }
 }
 
-async fn accept_tls_connections(
+async fn serve_tls_connections(
     listener: TcpListener,
-    state: Arc<AppState>,
+    app: Router,
     acceptor: Arc<RwLock<TlsAcceptor>>,
+    max_connections: usize,
 ) -> Result<()> {
-    let permits = Arc::new(Semaphore::new(state.config.security.max_connections));
+    let permits = Arc::new(Semaphore::new(max_connections));
 
     loop {
         let (stream, _) = listener.accept().await?;
-        let state = Arc::clone(&state);
         let acceptor = acceptor.read().await.clone();
         let permit = Arc::clone(&permits).acquire_owned().await?;
+        let app = app.clone();
         tokio::spawn(async move {
             let _permit = permit;
             match acceptor.accept(stream).await {
-                Ok(tls_stream) => {
-                    if let Err(error) = handle_connection(tls_stream, state).await {
-                        eprintln!("HTTPS request failed: {error:#}");
-                    }
-                }
+                Ok(tls_stream) => serve_connection(tls_stream, app, "HTTPS").await,
                 Err(error) => eprintln!("TLS handshake failed: {error:#}"),
             }
         });
     }
 }
 
-async fn handle_connection<S>(mut stream: S, state: Arc<AppState>) -> Result<()>
+async fn serve_connection<S>(stream: S, app: Router, label: &'static str)
 where
-    S: AsyncRead + AsyncWrite + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin + Send + 'static,
 {
-    let request = timeout(
-        Duration::from_secs(REQUEST_TIMEOUT_SECS),
-        read_request(&mut stream),
+    let service = service_fn(move |request: hyper::Request<Incoming>| {
+        let app = app.clone();
+        async move { app.oneshot(request).await }
+    });
+    let io = TokioIo::new(stream);
+    let mut builder = http1::Builder::new();
+    builder.keep_alive(false);
+    let connection = builder.serve_connection(io, service);
+
+    match timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS), connection).await {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => eprintln!("{label} request failed: {error:#}"),
+        Err(_) => eprintln!("{label} request timed out"),
+    }
+}
+
+async fn index() -> Html<&'static str> {
+    Html(INDEX_HTML)
+}
+
+async fn styles() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("text/css; charset=utf-8"),
+        )],
+        STYLES_CSS,
     )
-    .await
-    .context("request timed out")??;
-    let response = route_request(&request, state).await;
-    write_response(&mut stream, response).await?;
-    Ok(())
 }
 
-async fn handle_http_challenge_or_redirect(
-    mut stream: TcpStream,
-    state: Arc<AppState>,
-) -> Result<()> {
-    let request = timeout(
-        Duration::from_secs(REQUEST_TIMEOUT_SECS),
-        read_request(&mut stream),
+async fn app_js() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("application/javascript; charset=utf-8"),
+        )],
+        APP_JS,
     )
-    .await
-    .context("request timed out")??;
-
-    let response = route_http_challenge_or_redirect(&request, &state).await;
-    write_response(&mut stream, response).await?;
-    Ok(())
 }
 
-async fn read_request<S>(stream: &mut S) -> Result<HttpRequest>
-where
-    S: AsyncRead + Unpin,
-{
-    let mut buffer = vec![0_u8; REQUEST_HEADER_LIMIT];
-    let mut read = 0;
-    let mut headers_complete = false;
-
-    loop {
-        let n = stream.read(&mut buffer[read..]).await?;
-        if n == 0 {
-            break;
-        }
-        read += n;
-
-        headers_complete = buffer[..read]
-            .windows(4)
-            .any(|window| window == b"\r\n\r\n");
-        if headers_complete || read == buffer.len() {
-            break;
-        }
-    }
-
-    if !headers_complete {
-        bail!("request headers too large or incomplete");
-    }
-
-    let text = std::str::from_utf8(&buffer[..read]).context("request is not valid UTF-8")?;
-    let mut lines = text.split("\r\n");
-    let request_line = lines
-        .next()
-        .ok_or_else(|| anyhow!("missing request line"))?;
-    let mut parts = request_line.split_whitespace();
-    let method = parts
-        .next()
-        .ok_or_else(|| anyhow!("missing request method"))?
-        .to_owned();
-    let target = parts
-        .next()
-        .ok_or_else(|| anyhow!("missing request target"))?
-        .to_owned();
-
-    let mut headers = HashMap::new();
-    for line in lines {
-        if line.is_empty() {
-            break;
-        }
-
-        if let Some((name, value)) = line.split_once(':') {
-            headers.insert(name.trim().to_ascii_lowercase(), value.trim().to_owned());
-        }
-    }
-
-    Ok(HttpRequest {
-        method,
-        target,
-        headers,
-    })
+async fn health() -> impl IntoResponse {
+    Json(json!({ "status": "ok" }))
 }
 
-#[derive(Debug)]
-struct HttpRequest {
-    method: String,
-    target: String,
-    headers: HashMap<String, String>,
+async fn list_chains(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    Json(chains_response(&state.config))
 }
 
-impl HttpRequest {
-    fn header(&self, name: &str) -> Option<&str> {
-        self.headers
-            .get(&name.to_ascii_lowercase())
-            .map(String::as_str)
+async fn chain_clock(
+    State(state): State<Arc<AppState>>,
+    Path(chain_id): Path<String>,
+    Query(query): Query<HashMap<String, String>>,
+) -> Response {
+    let force_refresh = state.config.security.allow_force_refresh && query_forces_refresh(&query);
+    match get_chain_snapshot(&state, &chain_id, force_refresh).await {
+        Ok(snapshot) => Json(snapshot).into_response(),
+        Err(error) => {
+            eprintln!("snapshot request failed for {chain_id}: {error:#}");
+            json_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "failed to fetch chain snapshot",
+            )
+        }
     }
 }
 
-async fn route_request(request: &HttpRequest, state: Arc<AppState>) -> HttpResponse {
-    if !request_host_allowed(request, &state.config) {
-        return security_headers(json_error(400, "bad host"));
+async fn acme_challenge(
+    State(state): State<Arc<AppState>>,
+    Path(token): Path<String>,
+    headers: HeaderMap,
+    uri: Uri,
+) -> Response {
+    if let Some(value) = state.acme_challenges.read().await.get(&token).cloned() {
+        return (
+            [(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("text/plain; charset=utf-8"),
+            )],
+            value,
+        )
+            .into_response();
     }
 
-    if request.method == "OPTIONS" {
-        return security_headers(HttpResponse::empty(204));
+    redirect_response(&state, &headers, &uri)
+}
+
+async fn redirect_to_https(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    uri: Uri,
+) -> Response {
+    redirect_response(&state, &headers, &uri)
+}
+
+async fn not_found() -> Response {
+    json_error(StatusCode::NOT_FOUND, "not found")
+}
+
+async fn handle_options(request: Request, next: Next) -> Response {
+    if request.method() == Method::OPTIONS {
+        StatusCode::NO_CONTENT.into_response()
+    } else {
+        next.run(request).await
+    }
+}
+
+async fn enforce_allowed_host(
+    State(state): State<Arc<AppState>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    if !request_host_allowed(request.headers(), &state.config) {
+        return json_error(StatusCode::BAD_REQUEST, "bad host");
     }
 
-    if request.method != "GET" && request.method != "HEAD" {
-        return security_headers(json_error(405, "method not allowed"));
+    next.run(request).await
+}
+
+async fn add_security_headers(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    add_common_headers(response.headers_mut());
+    response
+}
+
+fn redirect_response(state: &AppState, headers: &HeaderMap, uri: &Uri) -> Response {
+    if !request_host_allowed(headers, &state.config) {
+        return json_error(StatusCode::BAD_REQUEST, "bad host");
     }
 
-    let (path, query) = split_target(&request.target);
-    let force_refresh = state.config.security.allow_force_refresh
-        && query.map(query_forces_refresh).unwrap_or(false);
-    let response = match path {
-        "/" | "/index.html" => HttpResponse::ok("text/html; charset=utf-8", INDEX_HTML.as_bytes()),
-        "/styles.css" => HttpResponse::ok("text/css; charset=utf-8", STYLES_CSS.as_bytes()),
-        "/app.js" => HttpResponse::ok("application/javascript; charset=utf-8", APP_JS.as_bytes()),
-        "/api/chains" => json_response(&chains_response(&state.config)),
-        "/api/health" => json_response(&serde_json::json!({ "status": "ok" })),
-        _ => match chain_clock_id(path) {
-            Some(chain_id) => match get_chain_snapshot(&state, chain_id, force_refresh).await {
-                Ok(snapshot) => json_response(&snapshot),
-                Err(error) => {
-                    eprintln!("snapshot request failed for {chain_id}: {error:#}");
-                    json_error(500, "failed to fetch chain snapshot")
-                }
-            },
-            None => json_error(404, "not found"),
-        },
+    let location = redirect_location(
+        &state.config.tls.public_url,
+        uri.path_and_query()
+            .map(|value| value.as_str())
+            .unwrap_or("/"),
+    );
+    let Ok(location) = HeaderValue::from_str(&location) else {
+        return json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "invalid redirect location",
+        );
     };
 
-    let response = if request.method == "HEAD" {
-        response.without_body()
-    } else {
-        response
-    };
-
-    security_headers(response)
+    (
+        StatusCode::PERMANENT_REDIRECT,
+        [(header::LOCATION, location)],
+    )
+        .into_response()
 }
 
-async fn route_http_challenge_or_redirect(request: &HttpRequest, state: &AppState) -> HttpResponse {
-    if request.method != "GET" && request.method != "HEAD" {
-        return security_headers(json_error(405, "method not allowed"));
-    }
-    let is_head = request.method == "HEAD";
-
-    if let Some(token) = challenge_token(&request.target)
-        && let Some(value) = state.acme_challenges.read().await.get(token)
-    {
-        let response = HttpResponse::ok("text/plain; charset=utf-8", value.as_bytes());
-        return security_headers(if is_head {
-            response.without_body()
-        } else {
-            response
-        });
-    }
-
-    if !request_host_allowed(request, &state.config) {
-        return security_headers(json_error(400, "bad host"));
-    }
-
-    let location = redirect_location(&state.config.tls.public_url, &request.target);
-    let response = HttpResponse::empty(308).with_header("Location", location);
-    security_headers(if is_head {
-        response.without_body()
-    } else {
-        response
-    })
+fn add_common_headers(headers: &mut HeaderMap) {
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(
+        HeaderName::from_static("x-frame-options"),
+        HeaderValue::from_static("DENY"),
+    );
+    headers.insert(
+        HeaderName::from_static("referrer-policy"),
+        HeaderValue::from_static("no-referrer"),
+    );
+    headers.insert(
+        HeaderName::from_static("content-security-policy"),
+        HeaderValue::from_static(
+            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
+        ),
+    );
+    headers.insert(
+        header::STRICT_TRANSPORT_SECURITY,
+        HeaderValue::from_static("max-age=31536000"),
+    );
 }
 
-fn chain_clock_id(path: &str) -> Option<&str> {
-    let prefix = "/api/chains/";
-    let suffix = "/clock";
-    path.strip_prefix(prefix)?.strip_suffix(suffix)
-}
-
-fn challenge_token(target: &str) -> Option<&str> {
-    let (path, _) = split_target(target);
-    let token = path.strip_prefix(ACME_CHALLENGE_PREFIX)?;
-    (!token.is_empty() && !token.contains('/')).then_some(token)
-}
-
-fn split_target(target: &str) -> (&str, Option<&str>) {
-    target
-        .split_once('?')
-        .map_or((target, None), |(path, query)| (path, Some(query)))
+fn json_error(status: StatusCode, message: &str) -> Response {
+    (status, Json(json!({ "error": message }))).into_response()
 }
 
 fn redirect_location(public_url: &str, target: &str) -> String {
@@ -370,13 +401,17 @@ pub(crate) fn normalize_host(host: &str) -> Option<String> {
     Some(host_without_port.trim_end_matches('.').to_ascii_lowercase())
 }
 
-fn request_host_allowed(request: &HttpRequest, config: &AppConfig) -> bool {
+fn request_host_allowed(headers: &HeaderMap, config: &AppConfig) -> bool {
     let allowed_hosts = config.effective_allowed_hosts();
     if allowed_hosts.is_empty() {
         return true;
     }
 
-    let Some(host) = request.header("host").and_then(normalize_host) else {
+    let Some(host) = headers
+        .get(header::HOST)
+        .and_then(|value| value.to_str().ok())
+        .and_then(normalize_host)
+    else {
         return false;
     };
 
@@ -386,121 +421,18 @@ fn request_host_allowed(request: &HttpRequest, config: &AppConfig) -> bool {
         .any(|allowed| allowed == host)
 }
 
-fn query_forces_refresh(query: &str) -> bool {
-    query.split('&').any(|part| {
-        let (key, value) = part.split_once('=').unwrap_or((part, "1"));
-        key == "refresh" && matches!(value, "1" | "true" | "yes")
-    })
-}
-
-fn json_response<T: Serialize>(value: &T) -> HttpResponse {
-    match serde_json::to_vec(value) {
-        Ok(body) => HttpResponse::owned(200, "application/json; charset=utf-8", body),
-        Err(error) => json_error(500, &error.to_string()),
-    }
-}
-
-fn json_error(status: u16, message: &str) -> HttpResponse {
-    let body = serde_json::json!({ "error": message });
-    HttpResponse::owned(
-        status,
-        "application/json; charset=utf-8",
-        serde_json::to_vec(&body).unwrap_or_else(|_| b"{\"error\":\"internal error\"}".to_vec()),
-    )
-}
-
-struct HttpResponse {
-    status: u16,
-    content_type: &'static str,
-    body: Vec<u8>,
-    headers: Vec<(&'static str, String)>,
-}
-
-impl HttpResponse {
-    fn ok(content_type: &'static str, body: &[u8]) -> Self {
-        Self::owned(200, content_type, body.to_vec())
-    }
-
-    fn owned(status: u16, content_type: &'static str, body: Vec<u8>) -> Self {
-        Self {
-            status,
-            content_type,
-            body,
-            headers: Vec::new(),
-        }
-    }
-
-    fn empty(status: u16) -> Self {
-        Self::owned(status, "text/plain; charset=utf-8", Vec::new())
-    }
-
-    fn without_body(mut self) -> Self {
-        self.body.clear();
-        self
-    }
-
-    fn with_header(mut self, name: &'static str, value: impl Into<String>) -> Self {
-        self.headers.push((name, value.into()));
-        self
-    }
-}
-
-fn security_headers(response: HttpResponse) -> HttpResponse {
-    response
-        .with_header("X-Content-Type-Options", "nosniff")
-        .with_header("X-Frame-Options", "DENY")
-        .with_header("Referrer-Policy", "no-referrer")
-        .with_header(
-            "Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'",
-        )
-        .with_header("Strict-Transport-Security", "max-age=31536000")
-}
-
-async fn write_response<S>(stream: &mut S, response: HttpResponse) -> Result<()>
-where
-    S: AsyncWrite + Unpin,
-{
-    let reason = reason_phrase(response.status);
-    let mut headers = format!(
-        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n",
-        response.status,
-        reason,
-        response.content_type,
-        response.body.len()
-    );
-
-    for (name, value) in response.headers {
-        headers.push_str(name);
-        headers.push_str(": ");
-        headers.push_str(&value);
-        headers.push_str("\r\n");
-    }
-    headers.push_str("\r\n");
-
-    stream.write_all(headers.as_bytes()).await?;
-    stream.write_all(&response.body).await?;
-    stream.shutdown().await?;
-    Ok(())
-}
-
-fn reason_phrase(status: u16) -> &'static str {
-    match status {
-        200 => "OK",
-        204 => "No Content",
-        308 => "Permanent Redirect",
-        400 => "Bad Request",
-        404 => "Not Found",
-        405 => "Method Not Allowed",
-        500 => "Internal Server Error",
-        _ => "OK",
-    }
+fn query_forces_refresh(query: &HashMap<String, String>) -> bool {
+    query
+        .get("refresh")
+        .is_some_and(|value| matches!(value.as_str(), "1" | "true" | "yes"))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::{ChainConfig, SecurityConfig, TlsConfig};
+    use axum::body::{Body, to_bytes};
+    use axum::http::Request;
     use std::path::PathBuf;
 
     #[test]
@@ -525,13 +457,11 @@ mod tests {
     }
 
     #[test]
-    fn extracts_challenge_tokens_from_request_target() {
+    fn builds_redirect_location_with_path_and_query() {
         assert_eq!(
-            challenge_token("/.well-known/acme-challenge/token123?unused=1"),
-            Some("token123")
+            redirect_location("https://104.238.222.200/", "/api/health?x=1"),
+            "https://104.238.222.200/api/health?x=1"
         );
-        assert_eq!(challenge_token("/.well-known/acme-challenge/a/b"), None);
-        assert_eq!(challenge_token("/api/health"), None);
     }
 
     #[test]
@@ -545,15 +475,107 @@ mod tests {
 
     #[test]
     fn checks_allowed_hosts_with_ports() {
-        let config = AppConfig {
+        let config = test_config(vec!["104.238.222.200".to_owned()]);
+
+        let mut allowed = HeaderMap::new();
+        allowed.insert(
+            header::HOST,
+            HeaderValue::from_static("104.238.222.200:443"),
+        );
+        let mut rejected = HeaderMap::new();
+        rejected.insert(header::HOST, HeaderValue::from_static("example.com"));
+
+        assert!(request_host_allowed(&allowed, &config));
+        assert!(!request_host_allowed(&rejected, &config));
+    }
+
+    #[tokio::test]
+    async fn app_router_serves_health_with_security_headers() {
+        let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+        let response = app_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/health")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::X_CONTENT_TYPE_OPTIONS)
+                .and_then(|value| value.to_str().ok()),
+            Some("nosniff")
+        );
+
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert_eq!(&body[..], br#"{"status":"ok"}"#);
+    }
+
+    #[tokio::test]
+    async fn app_router_rejects_bad_host() {
+        let state = Arc::new(AppState::new(Arc::new(test_config(vec![
+            "allowed.example".to_owned(),
+        ]))));
+        let response = app_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/health")
+                    .header(header::HOST, "blocked.example")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert_eq!(&body[..], br#"{"error":"bad host"}"#);
+    }
+
+    #[tokio::test]
+    async fn challenge_route_is_available_before_host_check() {
+        let state = Arc::new(AppState::new(Arc::new(test_config(vec![
+            "allowed.example".to_owned(),
+        ]))));
+        state
+            .acme_challenges
+            .write()
+            .await
+            .insert("token123".to_owned(), "challenge-value".to_owned());
+
+        let response = challenge_redirect_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.well-known/acme-challenge/token123")
+                    .header(header::HOST, "blocked.example")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        assert_eq!(&body[..], b"challenge-value");
+    }
+
+    fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
+        AppConfig {
             listen: "127.0.0.1:8787".to_owned(),
             refresh_seconds: 60,
             cache_path: PathBuf::from("cache.json"),
             security: SecurityConfig {
-                allowed_hosts: vec!["104.238.222.200".to_owned()],
+                allowed_hosts,
                 ..SecurityConfig::default()
             },
-            tls: TlsConfig::default(),
+            tls: TlsConfig {
+                public_url: "https://allowed.example".to_owned(),
+                ..TlsConfig::default()
+            },
             chains: vec![ChainConfig {
                 id: "test".to_owned(),
                 name: "Test".to_owned(),
@@ -562,20 +584,6 @@ mod tests {
                 token_symbol: "TEST".to_owned(),
                 rpc_label: None,
             }],
-        };
-
-        let allowed = HttpRequest {
-            method: "GET".to_owned(),
-            target: "/".to_owned(),
-            headers: HashMap::from([("host".to_owned(), "104.238.222.200:443".to_owned())]),
-        };
-        let rejected = HttpRequest {
-            method: "GET".to_owned(),
-            target: "/".to_owned(),
-            headers: HashMap::from([("host".to_owned(), "example.com".to_owned())]),
-        };
-
-        assert!(request_host_allowed(&allowed, &config));
-        assert!(!request_host_allowed(&rejected, &config));
+        }
     }
 }
