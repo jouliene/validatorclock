@@ -48,6 +48,7 @@ pub(crate) struct ClockSnapshot {
     seqno: u32,
     params15: ElectionTimingsDto,
     current_set: ValidatorSetDto,
+    previous_set: Option<ValidatorSetDto>,
     next_set: Option<ValidatorSetDto>,
     election: ElectionDto,
     warning: Option<String>,
@@ -115,6 +116,8 @@ struct ValidatorElectionHistory {
     stake: String,
     #[serde(default)]
     reward: Option<String>,
+    #[serde(default)]
+    weight: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -129,6 +132,8 @@ pub(crate) struct ValidatorRoundData {
     total_reward: Option<String>,
     #[serde(default)]
     total_reward_raw: Option<String>,
+    #[serde(default)]
+    total_weight_raw: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -322,6 +327,11 @@ async fn fetch_chain_snapshot_inner(
             timings.validators_elected_for,
             validator_round_data.get(&current_set.utime_since),
         ),
+        previous_set: previous_validator_set(
+            &current_set,
+            timings.validators_elected_for,
+            &validator_round_data,
+        ),
         next_set: next_set.as_ref().map(|set| {
             ValidatorSetDto::from_set(
                 set,
@@ -399,6 +409,81 @@ impl ValidatorSetDto {
                 .collect(),
         }
     }
+
+    fn from_round_data(
+        stake_at: u32,
+        validators_elected_for: u32,
+        round_data: &ValidatorRoundData,
+    ) -> Option<Self> {
+        if round_data.validators.is_empty() {
+            return None;
+        }
+
+        let total_weight_raw = round_data
+            .total_weight_raw
+            .as_deref()
+            .and_then(|value| value.parse::<u128>().ok())
+            .unwrap_or_else(|| {
+                round_data
+                    .validators
+                    .values()
+                    .filter_map(|validator| validator.weight.as_deref())
+                    .filter_map(|weight| weight.parse::<u128>().ok())
+                    .sum()
+            });
+        let total_weight = total_weight_raw.max(1);
+        let mut validators: Vec<_> = round_data
+            .validators
+            .iter()
+            .map(|(public_key, history)| {
+                let weight = history.weight.clone().unwrap_or_else(|| "0".to_owned());
+                let weight_raw = weight.parse::<u128>().unwrap_or(0);
+                ValidatorDto {
+                    public_key: public_key.clone(),
+                    adnl_addr: None,
+                    wallet: Some(history.wallet.clone()),
+                    stake: Some(history.stake.clone()),
+                    reward: history.reward.clone(),
+                    weight,
+                    weight_percent: weight_raw as f64 * 100.0 / total_weight as f64,
+                }
+            })
+            .collect();
+        validators.sort_by(|a, b| {
+            b.weight
+                .parse::<u128>()
+                .unwrap_or(0)
+                .cmp(&a.weight.parse::<u128>().unwrap_or(0))
+                .then_with(|| a.public_key.cmp(&b.public_key))
+        });
+
+        let total = validators.len();
+        let round_id = stake_at / validators_elected_for.max(1);
+        Some(Self {
+            utime_since: stake_at,
+            utime_until: stake_at.saturating_add(validators_elected_for),
+            round_id,
+            round_color: round_color(round_id),
+            total,
+            main: total.min(u16::MAX as usize) as u16,
+            total_weight: total_weight_raw.to_string(),
+            total_stake: round_data.total_stake.clone(),
+            total_reward: round_data.total_reward.clone(),
+            validators,
+        })
+    }
+}
+
+fn previous_validator_set(
+    current_set: &ValidatorSet,
+    validators_elected_for: u32,
+    validator_round_data: &HashMap<u32, ValidatorRoundData>,
+) -> Option<ValidatorSetDto> {
+    let previous_stake_at = current_set
+        .utime_since
+        .checked_sub(validators_elected_for)?;
+    let round_data = validator_round_data.get(&previous_stake_at)?;
+    ValidatorSetDto::from_round_data(previous_stake_at, validators_elected_for, round_data)
 }
 
 async fn fetch_election(transport: &Transport, config: &Config) -> Result<ElectionDto> {
@@ -480,6 +565,7 @@ fn validator_round_data_from_frozen(election: &FullPastElectionData) -> Validato
                     wallet: masterchain_hash_address(&validator.addr.0),
                     stake: validator.stake.to_string(),
                     reward: Some(FpTokens(reward).to_string()),
+                    weight: Some(validator.weight.to_string()),
                 },
             )
         })
@@ -491,6 +577,7 @@ fn validator_round_data_from_frozen(election: &FullPastElectionData) -> Validato
         total_stake_raw: Some(election.total_stake.0.to_string()),
         total_reward: Some(election.bonuses.to_string()),
         total_reward_raw: Some(election.bonuses.0.to_string()),
+        total_weight_raw: Some(total_weight.to_string()),
     }
 }
 
@@ -594,6 +681,9 @@ fn merge_validator_round_data(target: &mut ValidatorRoundData, source: Validator
     if target.total_reward_raw.is_none() {
         target.total_reward_raw = source.total_reward_raw;
     }
+    if target.total_weight_raw.is_none() {
+        target.total_weight_raw = source.total_weight_raw;
+    }
 }
 
 async fn scan_validator_election_round_history(
@@ -663,6 +753,7 @@ async fn scan_validator_election_round_history(
                     wallet: submission.wallet,
                     stake: submission.stake,
                     reward: None,
+                    weight: None,
                 });
         }
 
@@ -691,6 +782,7 @@ async fn scan_validator_election_round_history(
         total_stake_raw: None,
         total_reward: None,
         total_reward_raw: None,
+        total_weight_raw: None,
     })
 }
 
@@ -900,6 +992,46 @@ mod tests {
         let loaded = load_validator_round_disk_cache(&path).unwrap();
         assert_eq!(loaded["test-round"].total_stake.as_deref(), Some("100"));
         assert!(!path.with_extension("tmp").exists());
+    }
+
+    #[test]
+    fn frozen_round_data_builds_previous_validator_set() {
+        let mut validators = HashMap::new();
+        validators.insert(
+            "aa".to_owned(),
+            ValidatorElectionHistory {
+                wallet: "-1:aa".to_owned(),
+                stake: "10".to_owned(),
+                reward: Some("1".to_owned()),
+                weight: Some("100".to_owned()),
+            },
+        );
+        validators.insert(
+            "bb".to_owned(),
+            ValidatorElectionHistory {
+                wallet: "-1:bb".to_owned(),
+                stake: "20".to_owned(),
+                reward: Some("2".to_owned()),
+                weight: Some("200".to_owned()),
+            },
+        );
+        let round = ValidatorRoundData {
+            validators,
+            total_stake: Some("30".to_owned()),
+            total_reward: Some("3".to_owned()),
+            total_weight_raw: Some("300".to_owned()),
+            ..ValidatorRoundData::default()
+        };
+
+        let set = ValidatorSetDto::from_round_data(200, 100, &round).unwrap();
+
+        assert_eq!(set.round_id, 2);
+        assert!(matches!(set.round_color, RoundColor::Blue));
+        assert_eq!(set.utime_until, 300);
+        assert_eq!(set.total, 2);
+        assert_eq!(set.total_weight, "300");
+        assert_eq!(set.validators[0].public_key, "bb");
+        assert!((set.validators[0].weight_percent - 66.666_666).abs() < 0.001);
     }
 
     fn test_dir(label: &str) -> std::path::PathBuf {

@@ -10,7 +10,11 @@
 <body>
   <div class="app-shell">
     <header class="titlebar">
-      <h1>Validators Clock</h1>
+      <h1>VALIDATORS CLOCK</h1>
+      <div class="header-updated">
+        <span>Info updated</span>
+        <strong id="metricFetched">-</strong>
+      </div>
     </header>
 
     <main class="top-grid">
@@ -18,14 +22,30 @@
         <h2>Election</h2>
         <div class="status-display">
           <span id="metricStatus">-</span>
-          <strong id="metricNextChange">-</strong>
         </div>
-        <dl>
-          <div><dt>Round window</dt><dd id="metricRound" class="date-stack">-</dd></div>
-          <div><dt>Start before</dt><dd id="metricStartBefore">-</dd></div>
-          <div><dt>End before</dt><dd id="metricEndBefore">-</dd></div>
-          <div><dt>Fetched</dt><dd id="metricFetched">-</dd></div>
-        </dl>
+        <div class="election-timing-groups">
+          <section class="election-time-card is-active-round">
+            <div class="election-time-card-header">
+              <h3>Active round window</h3>
+              <div class="countdown-block">
+                <span>Round ends in</span>
+                <strong id="metricRoundEndsIn" class="election-countdown">-</strong>
+              </div>
+            </div>
+            <div id="metricRound" class="date-stack election-date-stack">-</div>
+          </section>
+
+          <section class="election-time-card is-elections">
+            <div class="election-time-card-header">
+              <h3>Elections window</h3>
+              <div class="countdown-block">
+                <span>Elections start in</span>
+                <strong id="metricElectionsStartIn" class="election-countdown">-</strong>
+              </div>
+            </div>
+            <div id="metricElections" class="date-stack election-date-stack">-</div>
+          </section>
+        </div>
       </section>
 
       <section class="clock-stage" aria-label="Validator election clock">
@@ -49,9 +69,9 @@
     <section class="rounds-grid" aria-label="Validator rounds">
       <section class="round-panel round-blue">
         <div class="round-heading">
-          <div>
-            <h2>Blue Round</h2>
-            <p id="blueRoundMeta">-</p>
+          <div class="round-title-block">
+            <h2>Blue (Even) Round</h2>
+            <p id="blueRoundMeta" class="round-meta">-</p>
           </div>
           <span id="blueRoundBadge" class="round-badge">-</span>
         </div>
@@ -61,9 +81,9 @@
 
       <section class="round-panel round-green">
         <div class="round-heading">
-          <div>
-            <h2>Green Round</h2>
-            <p id="greenRoundMeta">-</p>
+          <div class="round-title-block">
+            <h2>Green (Odd) Round</h2>
+            <p id="greenRoundMeta" class="round-meta">-</p>
           </div>
           <span id="greenRoundBadge" class="round-badge">-</span>
         </div>

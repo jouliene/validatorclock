@@ -311,20 +311,23 @@ function renderMetrics(snapshot, model, now) {
   $("metricRpc").textContent = snapshot.chain.rpc_label;
   $("metricGlobalId").textContent = snapshot.global_id;
   $("metricSeqno").textContent = snapshot.seqno;
-  $("metricFetched").textContent = formatDateTime(snapshot.fetched_at);
   $("metricStatus").textContent = model.status;
-  $("metricNextChange").textContent = `${formatDurationPrecise(Math.max(0, model.nextChangeAt - now))} to ${formatDateTime(model.nextChangeAt)}`;
   renderDateStack($("metricRound"), snapshot.current_set.utime_since, snapshot.current_set.utime_until);
-  $("metricStartBefore").textContent = formatDurationClock(snapshot.params15.elections_start_before);
-  $("metricEndBefore").textContent = formatDurationClock(snapshot.params15.elections_end_before);
+  $("metricRoundEndsIn").textContent = formatDurationPrecise(Math.max(0, snapshot.current_set.utime_until - now));
+  renderDateStack($("metricElections"), model.electionsStart, model.electionsEnd);
+  $("metricElectionsStartIn").textContent = model.inElections
+    ? "open now"
+    : formatDurationPrecise(Math.max(0, model.electionsStart - now));
+  renderInfoUpdated($("metricFetched"), snapshot.fetched_at, now);
 }
 
 function renderRoundPanelsIfNeeded(snapshot, model) {
   const key = [
     snapshot.chain.id,
     snapshot.fetched_at,
-    snapshot.current_set.round_id,
-    snapshot.next_set?.round_id || "",
+    snapshot.current_set.utime_since,
+    snapshot.previous_set?.utime_since || "",
+    snapshot.next_set?.utime_since || "",
     model.inElections ? "election" : "closed",
   ].join("|");
   if (state.roundRenderKey === key) {
@@ -342,6 +345,7 @@ function renderRoundPanels(snapshot, model) {
 function renderRoundPanel(color, snapshot, model) {
   const current = snapshot.current_set.round_color === color ? snapshot.current_set : null;
   const next = snapshot.next_set?.round_color === color ? snapshot.next_set : null;
+  const previous = model.beforeElections && snapshot.previous_set?.round_color === color ? snapshot.previous_set : null;
   const candidates = model.inElections ? snapshot.election.candidates : [];
   const isActive = Boolean(current);
   const isNext = Boolean(next);
@@ -351,56 +355,102 @@ function renderRoundPanel(color, snapshot, model) {
   const stats = $(`${color}RoundStats`);
   list.replaceChildren();
   stats.replaceChildren();
+  meta.replaceChildren();
   badge.className = "round-badge";
 
   if (isActive) {
-    meta.textContent = `Active round ${current.round_id} - ${current.total} validators`;
+    renderRoundMeta(meta, current, snapshot);
     badge.textContent = "active";
     badge.classList.add("is-active");
-    renderRoundStats(stats, current, snapshot.chain.token_symbol);
+    renderRoundStats(stats, current);
     renderValidators(list, current.validators, { rewards: true });
     return;
   }
 
   if (isNext) {
-    meta.textContent = `Elected round ${next.round_id} - ${next.total} validators`;
+    renderRoundMeta(meta, next, snapshot);
     badge.textContent = "elected";
-    renderRoundStats(stats, next, snapshot.chain.token_symbol);
+    renderRoundStats(stats, next);
     renderValidators(list, next.validators, { rewards: true });
     return;
   }
 
   if (model.inElections && candidates.length > 0) {
-    meta.textContent = `${candidates.length} election candidates`;
+    renderStatusMeta(meta, "Elections open");
     badge.textContent = "election";
-    renderCandidateStats(stats, candidates, snapshot.chain.token_symbol);
+    renderCandidateStats(stats, candidates);
     renderValidators(list, candidates, { rewards: false });
     return;
   }
 
-  meta.textContent = color === "blue" ? "Even validator rounds" : "Odd validator rounds";
+  if (previous) {
+    renderRoundMeta(meta, previous, snapshot);
+    badge.textContent = "previous";
+    badge.classList.add("is-previous");
+    renderRoundStats(stats, previous);
+    renderValidators(list, previous.validators, { rewards: true });
+    return;
+  }
+
+  renderWaitingMeta(meta, color);
   badge.textContent = "waiting";
   renderEmptyStats(stats);
   list.appendChild(emptyState("No validators announced for this round yet."));
 }
 
-function renderRoundStats(container, round, tokenSymbol) {
+function renderRoundMeta(container, round, snapshot) {
+  container.replaceChildren(
+    roundMetaItem("Round_Id", String(round.utime_since)),
+    roundMetaItem("Round", String(calculatedRoundNumber(round, snapshot)))
+  );
+}
+
+function calculatedRoundNumber(round, snapshot) {
+  const period = Math.max(1, Number(snapshot.params15.validators_elected_for || 1));
+  return Math.floor(Number(round.utime_since) / period);
+}
+
+function renderStatusMeta(container, status) {
+  container.replaceChildren(roundMetaItem(status, null, true));
+}
+
+function renderWaitingMeta(container, color) {
+  container.replaceChildren(roundMetaItem("Status", "Waiting"));
+}
+
+function roundMetaItem(label, value, strong = false) {
+  const item = document.createElement("span");
+  item.className = `round-meta-item${strong ? " round-meta-strong" : ""}`;
+  if (value == null) {
+    item.textContent = label;
+    return item;
+  }
+
+  const labelNode = document.createElement("span");
+  labelNode.className = "round-meta-label";
+  labelNode.textContent = label;
+  const valueNode = document.createElement("span");
+  valueNode.textContent = value;
+  item.append(labelNode, valueNode);
+  return item;
+}
+
+function renderRoundStats(container, round) {
   const totalStake = round.total_stake || sumTokenValues(round.validators, "stake");
   const totalReward = round.total_reward || sumTokenValues(round.validators, "reward");
   const stats = [
     ["Validators", String(round.total)],
-    [`Total stake ${tokenSymbol}`, formatStakeAmount(totalStake)],
-    [`Total rewards ${tokenSymbol}`, totalReward ? formatRewardAmount(totalReward) : "-"],
-    ["Weight", formatWeight(round.total_weight)],
+    ["Total stake", formatStakeAmount(totalStake)],
+    ["Total rewards", totalReward ? formatRewardAmount(totalReward) : "-"],
   ];
   renderStats(container, stats);
 }
 
-function renderCandidateStats(container, candidates, tokenSymbol) {
+function renderCandidateStats(container, candidates) {
   const stats = [
     ["Candidates", String(candidates.length)],
-    [`Total stake ${tokenSymbol}`, formatStakeAmount(sumTokenValues(candidates, "stake"))],
-    [`Total rewards ${tokenSymbol}`, "-"],
+    ["Total stake", formatStakeAmount(sumTokenValues(candidates, "stake"))],
+    ["Total rewards", "-"],
     ["Status", "Elections open"],
   ];
   renderStats(container, stats);
@@ -411,7 +461,6 @@ function renderEmptyStats(container) {
     ["Validators", "-"],
     ["Total stake", "-"],
     ["Total rewards", "-"],
-    ["Weight", "-"],
   ]);
 }
 
@@ -562,11 +611,25 @@ function emptyState(text) {
 
 function renderDateStack(container, start, end) {
   container.replaceChildren();
-  for (const value of [start, end]) {
-    const line = document.createElement("span");
-    line.textContent = formatDateTime(value);
-    container.appendChild(line);
-  }
+  container.append(dateRow("Start", start), dateRow("End", end));
+}
+
+function dateRow(label, unixSeconds) {
+  const row = document.createElement("div");
+  row.className = "date-row";
+  const labelNode = document.createElement("span");
+  labelNode.className = "date-label";
+  labelNode.textContent = label;
+  const valueNode = document.createElement("span");
+  valueNode.className = "date-value";
+  valueNode.textContent = formatDateTime(unixSeconds);
+  row.append(labelNode, valueNode);
+  return row;
+}
+
+function renderInfoUpdated(container, fetchedAt, now) {
+  const ageSeconds = Math.max(0, now - fetchedAt);
+  container.textContent = `${ageSeconds}s ago`;
 }
 
 function validatorWalletAddress(validator) {
@@ -651,7 +714,13 @@ function formatDateTime(unixSeconds) {
   if (!unixSeconds) {
     return "-";
   }
-  return new Date(unixSeconds * 1000).toLocaleString();
+  const date = new Date(unixSeconds * 1000);
+  const pad = (value) => String(value).padStart(2, "0");
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-") + ` ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 function formatDuration(totalSeconds) {
