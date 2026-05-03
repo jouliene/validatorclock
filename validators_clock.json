@@ -1,6 +1,7 @@
 {
   "listen": "127.0.0.1:8787",
   "refresh_seconds": 60,
+  "refresh_timeout_seconds": 90,
   "cache_path": "validators_clock_cache.json",
   "chains": [
     {

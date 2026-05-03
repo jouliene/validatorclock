@@ -86,6 +86,43 @@ fn tls_public_url_must_match_one_acme_identifier() {
 }
 
 #[test]
+fn acme_profile_is_optional_for_domain_certificates() {
+    let mut config = test_config(Vec::new());
+    config.tls = TlsConfig {
+        enabled: true,
+        public_url: "https://example.com".to_owned(),
+        acme: AcmeConfig {
+            enabled: true,
+            identifier: "example.com".to_owned(),
+            ..AcmeConfig::default()
+        },
+        ..TlsConfig::default()
+    };
+
+    assert!(config.validate().is_ok());
+    assert_eq!(config.tls.acme.profile_value(), None);
+    assert_eq!(config.tls.acme.renew_before_seconds(), 30 * 24 * 60 * 60);
+}
+
+#[test]
+fn shortlived_profile_uses_short_default_renewal_window() {
+    let acme = AcmeConfig {
+        profile: Some("shortlived".to_owned()),
+        ..AcmeConfig::default()
+    };
+
+    assert_eq!(acme.renew_before_seconds(), 2 * 24 * 60 * 60);
+}
+
+#[test]
+fn refresh_timeout_must_be_positive() {
+    let mut config = test_config(Vec::new());
+    config.refresh_timeout_seconds = 0;
+
+    assert!(config.validate().is_err());
+}
+
+#[test]
 fn checks_allowed_hosts_with_ports() {
     let config = test_config(vec!["203.0.113.10".to_owned()]);
 
@@ -145,6 +182,7 @@ async fn app_router_serves_runtime_status() {
     let body = response_json(response).await;
     assert_eq!(body["status"], "degraded");
     assert_eq!(body["version"], env!("CARGO_PKG_VERSION"));
+    assert_eq!(body["refresh_timeout_seconds"], 90);
     assert_eq!(body["chains"][0]["id"], "test");
     assert_eq!(body["chains"][0]["cached"], false);
     assert_eq!(body["chains"][0]["last_error"], "rpc down");
@@ -246,6 +284,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
     AppConfig {
         listen: "127.0.0.1:8787".to_owned(),
         refresh_seconds: 60,
+        refresh_timeout_seconds: 90,
         cache_path: PathBuf::from("cache.json"),
         security: SecurityConfig {
             allowed_hosts,

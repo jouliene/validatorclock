@@ -15,7 +15,7 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
-use tokio::time::{Duration, sleep};
+use tokio::time::{Duration, sleep, timeout};
 use tracing::{debug, info, warn};
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
@@ -39,6 +39,7 @@ pub(crate) struct RuntimeStatusResponse {
     started_at: Option<u64>,
     uptime_seconds: u64,
     refresh_seconds: u64,
+    refresh_timeout_seconds: u64,
     chains: Vec<ChainRuntimeStatusDto>,
 }
 
@@ -289,6 +290,7 @@ pub(crate) async fn runtime_status(state: &AppState) -> Result<RuntimeStatusResp
         started_at: state.started_at_seconds(),
         uptime_seconds: state.uptime_seconds(),
         refresh_seconds,
+        refresh_timeout_seconds: state.config.refresh_timeout_seconds,
         chains,
     })
 }
@@ -357,13 +359,19 @@ pub(crate) async fn get_chain_snapshot(
         .ok_or_else(|| anyhow!("unknown chain id `{chain_id}`"))?;
     state.record_refresh_attempt(chain_id, now).await;
 
-    match fetch_chain_snapshot_cached(
-        chain,
-        &state.validator_round_cache,
-        &state.validator_round_cache_path,
+    let timeout_seconds = state.config.refresh_timeout_seconds;
+    let refresh_result = timeout(
+        Duration::from_secs(timeout_seconds),
+        fetch_chain_snapshot_cached(
+            chain,
+            &state.validator_round_cache,
+            &state.validator_round_cache_path,
+        ),
     )
     .await
-    {
+    .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {timeout_seconds}s")));
+
+    match refresh_result {
         Ok(snapshot) => {
             let fetched_at = snapshot.fetched_at;
             state.cache.write().await.insert(

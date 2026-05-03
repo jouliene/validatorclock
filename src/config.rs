@@ -14,6 +14,8 @@ pub(crate) struct AppConfig {
     pub(crate) listen: String,
     #[serde(default = "default_refresh_seconds")]
     pub(crate) refresh_seconds: u64,
+    #[serde(default = "default_refresh_timeout_seconds")]
+    pub(crate) refresh_timeout_seconds: u64,
     #[serde(default = "default_cache_path")]
     pub(crate) cache_path: PathBuf,
     #[serde(default)]
@@ -27,6 +29,12 @@ impl AppConfig {
     pub(crate) fn validate(&self) -> Result<()> {
         if self.chains.is_empty() {
             bail!("config must contain at least one chain");
+        }
+        if self.refresh_seconds == 0 {
+            bail!("refresh_seconds must be greater than zero");
+        }
+        if self.refresh_timeout_seconds == 0 {
+            bail!("refresh_timeout_seconds must be greater than zero");
         }
 
         for chain in &self.chains {
@@ -167,8 +175,8 @@ pub(crate) struct AcmeConfig {
     pub(crate) extra_identifiers: Vec<String>,
     pub(crate) contact: Vec<String>,
     pub(crate) account_path: PathBuf,
-    pub(crate) profile: String,
-    pub(crate) renew_after_seconds: u64,
+    pub(crate) profile: Option<String>,
+    pub(crate) renew_after_seconds: Option<u64>,
     pub(crate) retry_timeout_seconds: u64,
 }
 
@@ -182,8 +190,8 @@ impl Default for AcmeConfig {
             extra_identifiers: Vec::new(),
             contact: Vec::new(),
             account_path: PathBuf::from("validators_clock_acme_account.json"),
-            profile: "shortlived".to_owned(),
-            renew_after_seconds: 2 * 24 * 60 * 60,
+            profile: None,
+            renew_after_seconds: None,
             retry_timeout_seconds: 60,
         }
     }
@@ -203,11 +211,15 @@ impl AcmeConfig {
             bail!("tls.acme.account_path cannot be empty");
         }
 
-        if self.profile.trim().is_empty() {
-            bail!("tls.acme.profile cannot be empty");
+        if self
+            .profile
+            .as_deref()
+            .is_some_and(|profile| profile.trim().is_empty())
+        {
+            bail!("tls.acme.profile cannot be empty when set");
         }
 
-        if self.renew_after_seconds == 0 {
+        if self.renew_after_seconds == Some(0) {
             bail!("tls.acme.renew_after_seconds must be greater than zero");
         }
 
@@ -228,6 +240,26 @@ impl AcmeConfig {
     pub(crate) fn identifier_values(&self) -> impl Iterator<Item = &str> {
         std::iter::once(self.identifier.as_str())
             .chain(self.extra_identifiers.iter().map(String::as_str))
+    }
+
+    pub(crate) fn profile_value(&self) -> Option<&str> {
+        self.profile
+            .as_deref()
+            .map(str::trim)
+            .filter(|profile| !profile.is_empty())
+    }
+
+    pub(crate) fn renew_before_seconds(&self) -> u64 {
+        self.renew_after_seconds.unwrap_or_else(|| {
+            if self
+                .profile_value()
+                .is_some_and(|profile| profile.eq_ignore_ascii_case("shortlived"))
+            {
+                2 * 24 * 60 * 60
+            } else {
+                30 * 24 * 60 * 60
+            }
+        })
     }
 
     pub(crate) fn directory_url(&self) -> String {
@@ -272,6 +304,10 @@ fn default_listen() -> String {
 
 fn default_refresh_seconds() -> u64 {
     60
+}
+
+fn default_refresh_timeout_seconds() -> u64 {
+    90
 }
 
 fn default_cache_path() -> PathBuf {

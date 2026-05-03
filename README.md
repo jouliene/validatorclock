@@ -41,7 +41,8 @@ cargo run -- --config validators_clock.json
 The server can terminate TLS itself and request Let's Encrypt certificates through
 ACME HTTP-01. This works with a bare IP address when Let's Encrypt IP
 certificates are available, but the certificate must use the `shortlived`
-profile.
+profile. Domain certificates do not need a profile; when `tls.acme.profile` is
+omitted, Let's Encrypt chooses its default profile.
 
 Example production settings for `validatorsclock.xyz`, keeping runtime state outside
 the git checkout:
@@ -50,6 +51,7 @@ the git checkout:
 {
   "listen": "127.0.0.1:8787",
   "refresh_seconds": 60,
+  "refresh_timeout_seconds": 90,
   "cache_path": "/home/admin/validators_clock_state/validators_clock_cache.json",
   "security": {
     "allowed_hosts": ["validatorsclock.xyz", "www.validatorsclock.xyz"],
@@ -69,8 +71,7 @@ the git checkout:
       "identifier": "validatorsclock.xyz",
       "extra_identifiers": ["www.validatorsclock.xyz"],
       "account_path": "/home/admin/validators_clock_state/acme/account.json",
-      "profile": "shortlived",
-      "renew_after_seconds": 172800,
+      "renew_after_seconds": 2592000,
       "retry_timeout_seconds": 60
     }
   },
@@ -100,9 +101,12 @@ a trusted production certificate.
 
 On startup and during the renewal loop, the app reuses an existing certificate
 only if the key loads, the certificate is valid outside the renewal window, and
-the certificate covers every configured ACME identifier. This means adding a
-name such as `www.validatorsclock.xyz` to `tls.acme.extra_identifiers` will cause
-the next start or renewal check to request a replacement certificate.
+the certificate covers every configured ACME identifier. For normal 90-day domain
+certificates, `renew_after_seconds: 2592000` renews when less than 30 days remain.
+For direct IP certificates, set `"profile": "shortlived"` and use a short renewal
+window such as `172800`. Adding a name such as `www.validatorsclock.xyz` to
+`tls.acme.extra_identifiers` will cause the next start or renewal check to
+request a replacement certificate.
 
 Ports 80 and 443 must be reachable from the public internet for ACME validation
 and HTTPS traffic. If `ufw` is enabled:
@@ -208,8 +212,10 @@ curl https://validatorsclock.xyz/api/health
 curl https://validatorsclock.xyz/api/status
 ```
 
-`/api/status` reports the app version, uptime, configured refresh interval, and
-per-chain cache freshness or last refresh error.
+`/api/status` reports the app version, uptime, configured refresh interval,
+refresh timeout, and per-chain cache freshness or last refresh error. If a chain
+RPC stalls longer than `refresh_timeout_seconds`, the app records the timeout and
+continues serving the last good cached snapshot when one exists.
 
 ## Logs
 

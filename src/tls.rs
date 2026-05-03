@@ -85,7 +85,14 @@ pub(crate) async fn ensure_acme_certificate(state: &AppState) -> Result<()> {
 }
 
 pub(crate) async fn acme_renewal_loop(state: Arc<AppState>, acceptor: Arc<RwLock<TlsAcceptor>>) {
-    let interval = Duration::from_secs(state.config.tls.acme.renew_after_seconds.min(24 * 60 * 60));
+    let interval = Duration::from_secs(
+        state
+            .config
+            .tls
+            .acme
+            .renew_before_seconds()
+            .min(24 * 60 * 60),
+    );
 
     loop {
         sleep(interval).await;
@@ -155,7 +162,7 @@ fn certificate_needs_renewal(tls: &TlsConfig) -> Result<bool> {
         .not_after
         .timestamp()
         .saturating_sub(now_timestamp);
-    let renew_before_expiry = tls.acme.renew_after_seconds as i64;
+    let renew_before_expiry = tls.acme.renew_before_seconds() as i64;
     if seconds_until_expiry <= renew_before_expiry {
         info!(
             seconds_until_expiry,
@@ -259,7 +266,10 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
         .iter()
         .map(|identifier| acme_identifier(identifier))
         .collect::<Result<Vec<_>>>()?;
-    let order_request = NewOrder::new(&identifiers).profile(&acme.profile);
+    let mut order_request = NewOrder::new(&identifiers);
+    if let Some(profile) = acme.profile_value() {
+        order_request = order_request.profile(profile);
+    }
     let mut order = account
         .new_order(&order_request)
         .await
@@ -320,7 +330,7 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
     write_file_atomic(&tls.key_path, private_key_pem.as_bytes(), 0o600)?;
     info!(
         identifiers = %identifier_names.join(","),
-        profile = %acme.profile,
+        profile = %acme.profile_value().unwrap_or("default"),
         "issued ACME certificate"
     );
     Ok(())

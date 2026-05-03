@@ -85,6 +85,59 @@ h1 {
   font-size: 12px;
 }
 
+.runtime-status {
+  position: absolute;
+  top: 1px;
+  left: 0;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 28px;
+  max-width: 240px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.runtime-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--muted-2);
+  box-shadow: 0 0 0 3px rgba(111, 123, 140, 0.12);
+}
+
+.runtime-status strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 720;
+}
+
+#runtimeFreshness {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.runtime-status.is-ok .runtime-dot {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(50, 175, 104, 0.14);
+}
+
+.runtime-status.is-warn .runtime-dot {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(202, 168, 92, 0.14);
+}
+
+.runtime-status.is-bad .runtime-dot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(220, 63, 77, 0.16);
+}
+
 .header-updated strong {
   color: var(--text);
   font-size: 13px;
@@ -774,6 +827,10 @@ dd {
   }
 
   .header-updated {
+    position: static;
+  }
+
+  .runtime-status {
     position: static;
   }
 }
