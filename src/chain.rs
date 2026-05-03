@@ -1,4 +1,5 @@
 use crate::config::{AppConfig, ChainConfig};
+use crate::fsutil::write_file_atomic;
 use crate::state::AppState;
 use anyhow::{Context, Result, anyhow, bail};
 use minik2::{
@@ -9,9 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
 use std::fs;
-use std::fs::OpenOptions;
 use std::io::ErrorKind;
-use std::io::Write;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -849,49 +848,6 @@ fn save_validator_round_disk_cache(
     };
     let content = serde_json::to_string_pretty(&cache)?;
     write_file_atomic(path, content.as_bytes(), 0o644)
-}
-
-fn ensure_parent_dir(path: &Path) -> Result<()> {
-    if let Some(parent) = path.parent()
-        && !parent.as_os_str().is_empty()
-    {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create {}", parent.display()))?;
-    }
-    Ok(())
-}
-
-fn write_file_atomic(path: &Path, data: &[u8], mode: u32) -> Result<()> {
-    ensure_parent_dir(path)?;
-    let mut tmp = path.to_path_buf();
-    tmp.set_extension("tmp");
-
-    let mut options = OpenOptions::new();
-    options.create(true).truncate(true).write(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(mode);
-    }
-
-    let mut file = options
-        .open(&tmp)
-        .with_context(|| format!("failed to open {}", tmp.display()))?;
-    file.write_all(data)
-        .with_context(|| format!("failed to write {}", tmp.display()))?;
-    file.sync_all()
-        .with_context(|| format!("failed to sync {}", tmp.display()))?;
-    fs::rename(&tmp, path)
-        .with_context(|| format!("failed to move {} to {}", tmp.display(), path.display()))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(mode))
-            .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-    }
-
-    Ok(())
 }
 
 fn endpoint_label(endpoint: &str) -> String {

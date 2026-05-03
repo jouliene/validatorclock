@@ -1,4 +1,5 @@
 use crate::config::{AcmeConfig, TlsConfig};
+use crate::fsutil::write_file_atomic;
 use crate::state::AppState;
 use anyhow::{Context, Result, anyhow, bail};
 use instant_acme::{
@@ -9,8 +10,7 @@ use rustls::ServerConfig;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use std::fs;
 use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::{BufReader, Write};
+use std::io::BufReader;
 use std::net::IpAddr;
 use std::path::Path;
 use std::sync::Arc;
@@ -111,9 +111,6 @@ fn certificate_needs_renewal(tls: &TlsConfig) -> Result<bool> {
 async fn issue_acme_certificate(state: &AppState) -> Result<()> {
     let tls = &state.config.tls;
     let acme = &tls.acme;
-    ensure_parent_dir(&tls.cert_path)?;
-    ensure_parent_dir(&tls.key_path)?;
-    ensure_parent_dir(&acme.account_path)?;
 
     let account = load_or_create_acme_account(acme).await?;
     let identifiers = vec![acme_identifier(&acme.identifier)?];
@@ -238,47 +235,4 @@ pub(crate) fn acme_identifier(value: &str) -> Result<Identifier> {
         bail!("ACME identifier must not include a port");
     }
     Ok(Identifier::Dns(name.to_owned()))
-}
-
-fn ensure_parent_dir(path: &Path) -> Result<()> {
-    if let Some(parent) = path.parent()
-        && !parent.as_os_str().is_empty()
-    {
-        fs::create_dir_all(parent)
-            .with_context(|| format!("failed to create {}", parent.display()))?;
-    }
-    Ok(())
-}
-
-fn write_file_atomic(path: &Path, data: &[u8], mode: u32) -> Result<()> {
-    ensure_parent_dir(path)?;
-    let mut tmp = path.to_path_buf();
-    tmp.set_extension("tmp");
-
-    let mut options = OpenOptions::new();
-    options.create(true).truncate(true).write(true);
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        options.mode(mode);
-    }
-
-    let mut file = options
-        .open(&tmp)
-        .with_context(|| format!("failed to open {}", tmp.display()))?;
-    file.write_all(data)
-        .with_context(|| format!("failed to write {}", tmp.display()))?;
-    file.sync_all()
-        .with_context(|| format!("failed to sync {}", tmp.display()))?;
-    fs::rename(&tmp, path)
-        .with_context(|| format!("failed to move {} to {}", tmp.display(), path.display()))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        fs::set_permissions(path, fs::Permissions::from_mode(mode))
-            .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-    }
-
-    Ok(())
 }

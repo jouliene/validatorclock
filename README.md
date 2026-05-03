@@ -41,13 +41,14 @@ ACME HTTP-01. This works with a bare IP address when Let's Encrypt IP
 certificates are available, but the certificate must use the `shortlived`
 profile.
 
-Example production settings for `104.238.222.200`:
+Example production settings for `104.238.222.200`, keeping runtime state outside
+the git checkout:
 
 ```json
 {
   "listen": "127.0.0.1:8787",
   "refresh_seconds": 60,
-  "cache_path": "/var/lib/validators_clock/validators_clock_cache.json",
+  "cache_path": "/home/admin/validators_clock_state/validators_clock_cache.json",
   "security": {
     "allowed_hosts": ["104.238.222.200"],
     "allow_force_refresh": false,
@@ -58,13 +59,13 @@ Example production settings for `104.238.222.200`:
     "http_listen": "0.0.0.0:80",
     "https_listen": "0.0.0.0:443",
     "public_url": "https://104.238.222.200",
-    "cert_path": "/var/lib/validators_clock/acme/fullchain.pem",
-    "key_path": "/var/lib/validators_clock/acme/privkey.pem",
+    "cert_path": "/home/admin/validators_clock_state/acme/fullchain.pem",
+    "key_path": "/home/admin/validators_clock_state/acme/privkey.pem",
     "acme": {
       "enabled": true,
       "staging": true,
       "identifier": "104.238.222.200",
-      "account_path": "/var/lib/validators_clock/acme/account.json",
+      "account_path": "/home/admin/validators_clock_state/acme/account.json",
       "profile": "shortlived",
       "renew_after_seconds": 172800,
       "retry_timeout_seconds": 60
@@ -95,15 +96,109 @@ First run with `"staging": true`; after issuance works, switch it to `false` for
 a trusted production certificate.
 
 Ports 80 and 443 must be reachable from the public internet for ACME validation
-and HTTPS traffic. If systemd runs the service as a non-root user, add:
+and HTTPS traffic. If `ufw` is enabled:
+
+```bash
+sudo ufw allow 80/tcp comment 'validators-clock HTTP ACME'
+sudo ufw allow 443/tcp comment 'validators-clock HTTPS'
+```
+
+Create the state directory once:
+
+```bash
+mkdir -p /home/admin/validators_clock_state/acme
+```
+
+## Production systemd service
+
+Example service file at `/etc/systemd/system/validators-clock.service`:
 
 ```ini
+[Unit]
+Description=Validators Clock
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=admin
+Group=admin
+WorkingDirectory=/home/admin/validators_clock
+ExecStart=/home/admin/validators_clock/target/release/validators_clock --config /home/admin/validators_clock/validators_clock.production.json
+Restart=always
+RestartSec=5
+
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
-ReadWritePaths=/var/lib/validators_clock
+LimitNOFILE=1048576
+
+# Optional. The default is equivalent to warn,validators_clock=info.
+# Environment=RUST_LOG=validators_clock=info
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Reload and start:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable validators-clock.service
+sudo systemctl restart validators-clock.service
+sudo systemctl status validators-clock.service --no-pager
 ```
 
 The HTTP listener only serves ACME challenges and redirects all other requests to
 `tls.public_url`. HTTPS responses include basic browser security headers, and
 `security.allowed_hosts` rejects unexpected Host headers when configured.
+
+## Production updates
+
+From the server checkout:
+
+```bash
+cd /home/admin/validators_clock
+git pull --ff-only origin main
+cargo build --release
+sudo systemctl restart validators-clock.service
+sudo systemctl status validators-clock.service --no-pager
+```
+
+Basic checks:
+
+```bash
+curl -I http://104.238.222.200
+curl -I https://104.238.222.200
+curl https://104.238.222.200/api/health
+```
+
+## Logs
+
+Show recent service logs:
+
+```bash
+sudo journalctl -u validators-clock.service -n 100 --no-pager
+```
+
+Follow live logs:
+
+```bash
+sudo journalctl -u validators-clock.service -f
+```
+
+Show logs since a recent restart:
+
+```bash
+sudo journalctl -u validators-clock.service --since "10 minutes ago" --no-pager
+```
+
+The default log filter is `warn,validators_clock=info`. TLS handshakes from
+internet scanners are logged at `debug`, so normal logs stay quiet. To inspect
+debug details temporarily, add or override:
+
+```ini
+Environment=RUST_LOG=validators_clock=debug
+```
+
+then run `sudo systemctl daemon-reload` and restart the service.
