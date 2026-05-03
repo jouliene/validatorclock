@@ -530,8 +530,9 @@ function renderRoundPanel(color, snapshot, model) {
   }
 
   if (model.inElections && candidates.length > 0) {
-    renderStatusMeta(meta, "Elections open");
-    badge.textContent = "election";
+    renderRoundMeta(meta, electionRoundMeta(snapshot), snapshot);
+    badge.textContent = "elections open";
+    badge.classList.add("is-election");
     renderCandidateStats(stats, candidates);
     renderValidators(list, candidates, { rewards: false });
     return;
@@ -557,6 +558,12 @@ function renderRoundMeta(container, round, snapshot) {
     roundMetaItem("Round_Id", String(round.utime_since)),
     roundMetaItem("Round", String(calculatedRoundNumber(round, snapshot)))
   );
+}
+
+function electionRoundMeta(snapshot) {
+  return {
+    utime_since: snapshot.current_set.utime_until,
+  };
 }
 
 function calculatedRoundNumber(round, snapshot) {
@@ -605,7 +612,6 @@ function renderCandidateStats(container, candidates) {
     ["Candidates", String(candidates.length)],
     ["Total stake", formatStakeAmount(sumTokenValues(candidates, "stake"))],
     ["Total rewards", "-"],
-    ["Status", "Elections open"],
   ];
   renderStats(container, stats);
 }

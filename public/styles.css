@@ -536,6 +536,12 @@ dd {
   color: var(--muted);
 }
 
+.round-badge.is-election {
+  border-color: rgba(234, 208, 106, 0.48);
+  background: rgba(234, 208, 106, 0.08);
+  color: var(--yellow);
+}
+
 .round-stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
