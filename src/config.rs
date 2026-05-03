@@ -19,6 +19,8 @@ pub(crate) struct AppConfig {
     #[serde(default = "default_cache_path")]
     pub(crate) cache_path: PathBuf,
     #[serde(default)]
+    pub(crate) history_path: Option<PathBuf>,
+    #[serde(default)]
     pub(crate) security: SecurityConfig,
     #[serde(default)]
     pub(crate) tls: TlsConfig,
@@ -35,6 +37,13 @@ impl AppConfig {
         }
         if self.refresh_timeout_seconds == 0 {
             bail!("refresh_timeout_seconds must be greater than zero");
+        }
+        if self
+            .history_path
+            .as_ref()
+            .is_some_and(|path| path.as_os_str().is_empty())
+        {
+            bail!("history_path cannot be empty when set");
         }
 
         for chain in &self.chains {
@@ -67,6 +76,14 @@ impl AppConfig {
             hosts.push(host);
         }
         hosts
+    }
+
+    pub(crate) fn effective_history_path(&self) -> PathBuf {
+        self.history_path.clone().unwrap_or_else(|| {
+            let mut path = self.cache_path.clone();
+            path.set_file_name("validators_clock_history.json");
+            path
+        })
     }
 }
 

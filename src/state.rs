@@ -1,5 +1,6 @@
 use crate::chain::{CacheEntry, ValidatorRoundCache, load_validator_round_disk_cache};
 use crate::config::AppConfig;
+use crate::history::{RoundHistoryStore, load_round_history};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -22,11 +23,14 @@ pub(crate) struct AppState {
     pub(crate) chain_status: RwLock<HashMap<String, ChainRuntimeStatus>>,
     pub(crate) validator_round_cache_path: PathBuf,
     pub(crate) validator_round_cache: ValidatorRoundCache,
+    pub(crate) round_history_path: PathBuf,
+    pub(crate) round_history: RwLock<RoundHistoryStore>,
     pub(crate) acme_challenges: RwLock<HashMap<String, String>>,
 }
 
 impl AppState {
     pub(crate) fn new(config: Arc<AppConfig>) -> Self {
+        let round_history_path = config.effective_history_path();
         Self {
             config: Arc::clone(&config),
             started_at: SystemTime::now(),
@@ -39,6 +43,13 @@ impl AppState {
                     HashMap::new()
                 }),
             ),
+            round_history: RwLock::new(
+                load_round_history(&round_history_path).unwrap_or_else(|error| {
+                    warn!(path = %round_history_path.display(), error = ?error, "failed to load round history");
+                    RoundHistoryStore::default()
+                }),
+            ),
+            round_history_path,
             acme_challenges: RwLock::new(HashMap::new()),
         }
     }

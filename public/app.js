@@ -648,7 +648,7 @@ function renderValidators(container, validators, options) {
 
   const header = document.createElement("div");
   header.className = "validator-header";
-  for (const label of ["#", "Validator", "Public key", "Stake", "Rewards", "Weight"]) {
+  for (const label of ["#", "Validator", "History", "Stake", "Rewards", "Weight"]) {
     const cell = document.createElement("div");
     cell.className = `validator-cell${["Stake", "Rewards", "Weight"].includes(label) ? " validator-number" : ""}`;
     cell.textContent = label;
@@ -663,7 +663,7 @@ function renderValidators(container, validators, options) {
     row.append(
       validatorCell(String(index + 1)),
       validatorIdentityCell(validatorWalletAddress(validator), validator.public_key),
-      validatorCopyCell(shortenHash(validator.public_key, 5, 5), validator.public_key, "validator-pubkey", "validator public key"),
+      validatorHistoryCell(validator.history),
       validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number", validator.stake || ""),
       validatorCell(options.rewards && validator.reward ? formatRewardAmount(validator.reward) : "-", "validator-number", validator.reward || ""),
       validatorCell(validator.weight_percent == null ? "-" : `${formatPercent(validator.weight_percent)}`, "validator-number", validator.weight || "")
@@ -672,6 +672,39 @@ function renderValidators(container, validators, options) {
   });
 
   container.appendChild(table);
+}
+
+function validatorHistoryCell(history) {
+  const cell = document.createElement("div");
+  cell.className = "validator-cell validator-history";
+  const dots = document.createElement("span");
+  dots.className = "validator-history-dots";
+  const points = Array.isArray(history) && history.length > 0
+    ? history
+    : Array.from({ length: 5 }, () => ({ status: "unknown" }));
+
+  for (const point of points.slice(0, 5)) {
+    const dot = document.createElement("span");
+    const status = point.status || "unknown";
+    dot.className = `validator-history-dot is-${status}`;
+    dot.title = point.round == null
+      ? "Round unknown"
+      : `Round ${point.round}: ${historyStatusLabel(status)}`;
+    dots.appendChild(dot);
+  }
+
+  cell.appendChild(dots);
+  return cell;
+}
+
+function historyStatusLabel(status) {
+  if (status === "participated") {
+    return "participated";
+  }
+  if (status === "missed") {
+    return "missed";
+  }
+  return "unknown";
 }
 
 function validatorCell(text, className = "", title = text) {

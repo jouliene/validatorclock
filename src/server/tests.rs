@@ -328,6 +328,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         refresh_seconds: 60,
         refresh_timeout_seconds: 90,
         cache_path: PathBuf::from("cache.json"),
+        history_path: None,
         security: SecurityConfig {
             allowed_hosts,
             ..SecurityConfig::default()

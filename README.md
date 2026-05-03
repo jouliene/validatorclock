@@ -16,6 +16,8 @@ elector `participate_in_elections` messages and saves that fallback mapping to
 `cache_path` so restarts do not repeat the full scan.
 Configured chains are refreshed in the background, so normal browser requests
 usually read a warm in-memory snapshot instead of waiting for an RPC round trip.
+The UI also keeps a small local round history file and uses it to mark whether a
+validator appeared in the previous same-color rounds.
 
 Run:
 
@@ -53,6 +55,7 @@ the git checkout:
   "refresh_seconds": 60,
   "refresh_timeout_seconds": 90,
   "cache_path": "/home/admin/validators_clock_state/validators_clock_cache.json",
+  "history_path": "/home/admin/validators_clock_state/validators_clock_history.json",
   "security": {
     "allowed_hosts": ["validatorsclock.xyz", "www.validatorsclock.xyz"],
     "allow_force_refresh": false,
@@ -170,8 +173,9 @@ WantedBy=multi-user.target
 ```
 
 The hardening assumes production state is outside the git checkout, for example
-`/home/admin/validators_clock_state`. If `cache_path`, ACME account, or TLS keys
-are placed elsewhere, add that directory to `ReadWritePaths`.
+`/home/admin/validators_clock_state`. If `cache_path`, `history_path`, ACME
+account, or TLS keys are placed elsewhere, add that directory to
+`ReadWritePaths`.
 
 Reload and start:
 

@@ -656,6 +656,38 @@ dd {
   color: rgba(245, 247, 251, 0.88);
 }
 
+.validator-history {
+  display: flex;
+  align-items: center;
+}
+
+.validator-history-dots {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.validator-history-dot {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  border: 1px solid rgba(154, 166, 184, 0.62);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.validator-history-dot.is-participated {
+  border-color: rgba(50, 175, 104, 0.82);
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(50, 175, 104, 0.1);
+}
+
+.validator-history-dot.is-missed {
+  border-color: rgba(220, 63, 77, 0.82);
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(220, 63, 77, 0.1);
+}
+
 .validator-copy {
   position: relative;
   display: inline-flex;
@@ -1023,7 +1055,7 @@ dd {
   }
 
   .validator-row .validator-cell:nth-child(3)::before {
-    content: "Public key";
+    content: "History";
   }
 
   .validator-row .validator-cell:nth-child(4)::before {

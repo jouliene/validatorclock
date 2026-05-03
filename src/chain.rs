@@ -1,5 +1,6 @@
 use crate::config::{AppConfig, ChainConfig};
 use crate::fsutil::write_file_atomic;
+use crate::history::{ValidatorParticipationDto, save_round_history};
 use crate::state::AppState;
 use anyhow::{Context, Result, anyhow, bail};
 use minik2::{
@@ -44,7 +45,7 @@ pub(crate) struct RuntimeStatusResponse {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ChainMeta {
+pub(crate) struct ChainMeta {
     id: String,
     name: String,
     color: String,
@@ -67,20 +68,20 @@ struct ChainRuntimeStatusDto {
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ClockSnapshot {
-    chain: ChainMeta,
-    fetched_at: u64,
-    global_id: i32,
-    seqno: u32,
-    params15: ElectionTimingsDto,
-    current_set: ValidatorSetDto,
-    previous_set: Option<ValidatorSetDto>,
-    next_set: Option<ValidatorSetDto>,
-    election: ElectionDto,
-    warning: Option<String>,
+    pub(crate) chain: ChainMeta,
+    pub(crate) fetched_at: u64,
+    pub(crate) global_id: i32,
+    pub(crate) seqno: u32,
+    pub(crate) params15: ElectionTimingsDto,
+    pub(crate) current_set: ValidatorSetDto,
+    pub(crate) previous_set: Option<ValidatorSetDto>,
+    pub(crate) next_set: Option<ValidatorSetDto>,
+    pub(crate) election: ElectionDto,
+    pub(crate) warning: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ElectionTimingsDto {
+pub(crate) struct ElectionTimingsDto {
     validators_elected_for: u32,
     elections_start_before: u32,
     elections_end_before: u32,
@@ -88,44 +89,45 @@ struct ElectionTimingsDto {
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ValidatorSetDto {
-    utime_since: u32,
-    utime_until: u32,
-    round_id: u32,
-    round_color: RoundColor,
-    total: usize,
-    main: u16,
-    total_weight: String,
-    total_stake: Option<String>,
-    total_reward: Option<String>,
-    validators: Vec<ValidatorDto>,
+pub(crate) struct ValidatorSetDto {
+    pub(crate) utime_since: u32,
+    pub(crate) utime_until: u32,
+    pub(crate) round_id: u32,
+    pub(crate) round_color: RoundColor,
+    pub(crate) total: usize,
+    pub(crate) main: u16,
+    pub(crate) total_weight: String,
+    pub(crate) total_stake: Option<String>,
+    pub(crate) total_reward: Option<String>,
+    pub(crate) validators: Vec<ValidatorDto>,
 }
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-enum RoundColor {
+pub(crate) enum RoundColor {
     Blue,
     Green,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ValidatorDto {
-    public_key: String,
-    adnl_addr: Option<String>,
-    wallet: Option<String>,
-    stake: Option<String>,
-    reward: Option<String>,
-    weight: String,
-    weight_percent: f64,
+pub(crate) struct ValidatorDto {
+    pub(crate) public_key: String,
+    pub(crate) adnl_addr: Option<String>,
+    pub(crate) wallet: Option<String>,
+    pub(crate) stake: Option<String>,
+    pub(crate) reward: Option<String>,
+    pub(crate) weight: String,
+    pub(crate) weight_percent: f64,
+    pub(crate) history: Vec<ValidatorParticipationDto>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
-struct ElectionDto {
+pub(crate) struct ElectionDto {
     candidates: Vec<ElectionCandidateDto>,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ElectionCandidateDto {
+pub(crate) struct ElectionCandidateDto {
     public_key: String,
     stake: String,
     stake_raw: String,
@@ -352,7 +354,13 @@ pub(crate) async fn get_chain_snapshot(
         && let Some(entry) = state.cache.read().await.get(chain_id)
         && now.saturating_sub(entry.fetched_at) < refresh_seconds
     {
-        return Ok(entry.snapshot.clone());
+        let mut snapshot = entry.snapshot.clone();
+        state
+            .round_history
+            .read()
+            .await
+            .annotate_snapshot(chain_id, &mut snapshot);
+        return Ok(snapshot);
     }
 
     let chain = state
@@ -374,8 +382,9 @@ pub(crate) async fn get_chain_snapshot(
     .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {timeout_seconds}s")));
 
     match refresh_result {
-        Ok(snapshot) => {
+        Ok(mut snapshot) => {
             let fetched_at = snapshot.fetched_at;
+            update_round_history(state, &mut snapshot).await;
             state.cache.write().await.insert(
                 chain_id.to_owned(),
                 CacheEntry {
@@ -393,6 +402,11 @@ pub(crate) async fn get_chain_snapshot(
                 .await;
             if let Some(entry) = state.cache.read().await.get(chain_id) {
                 let mut snapshot = entry.snapshot.clone();
+                state
+                    .round_history
+                    .read()
+                    .await
+                    .annotate_snapshot(chain_id, &mut snapshot);
                 snapshot.warning = Some(format!(
                     "using cached data from {}; refresh failed: {error}",
                     snapshot.fetched_at
@@ -401,6 +415,21 @@ pub(crate) async fn get_chain_snapshot(
             }
             Err(error)
         }
+    }
+}
+
+async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
+    let chain_id = snapshot.chain.id.clone();
+    let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
+    let mut history = state.round_history.write().await;
+    history.record_snapshot(&chain_id, snapshot, observed_at);
+    history.annotate_snapshot(&chain_id, snapshot);
+    if let Err(error) = save_round_history(&state.round_history_path, &history) {
+        warn!(
+            path = %state.round_history_path.display(),
+            error = ?error,
+            "failed to save round history"
+        );
     }
 }
 
@@ -550,6 +579,7 @@ impl ValidatorSetDto {
                             .or_else(|| history.and_then(|history| history.reward.clone())),
                         weight: validator.weight.to_string(),
                         weight_percent: validator.weight as f64 * 100.0 / total_weight as f64,
+                        history: Vec::new(),
                     }
                 })
                 .collect(),
@@ -592,6 +622,7 @@ impl ValidatorSetDto {
                     reward: history.reward.clone(),
                     weight,
                     weight_percent: weight_raw as f64 * 100.0 / total_weight as f64,
+                    history: Vec::new(),
                 }
             })
             .collect();
