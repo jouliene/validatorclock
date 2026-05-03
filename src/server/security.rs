@@ -64,7 +64,9 @@ pub(super) fn redirect_response(state: &AppState, headers: &HeaderMap, uri: &Uri
 }
 
 fn add_common_headers(headers: &mut HeaderMap) {
-    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    if !headers.contains_key(header::CACHE_CONTROL) {
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    }
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),

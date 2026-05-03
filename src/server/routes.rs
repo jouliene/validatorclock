@@ -22,6 +22,8 @@ const STYLES_CSS: &str = include_str!("../../public/styles.css");
 const APP_JS: &str = include_str!("../../public/app.js");
 const EVERSCALE_LOGO_SVG: &str = include_str!("../../public/brands/everscale.svg");
 const TYCHO_LOGO_SVG: &str = include_str!("../../public/brands/tycho.svg");
+const ASSET_CACHE_CONTROL: HeaderValue =
+    HeaderValue::from_static("public, max-age=31536000, immutable");
 
 pub(super) fn app_router(state: Arc<AppState>) -> Router {
     let layers = ServiceBuilder::new()
@@ -60,46 +62,58 @@ pub(super) fn challenge_redirect_router(state: Arc<AppState>) -> Router {
         .layer(layers)
 }
 
-async fn index() -> Html<&'static str> {
-    Html(INDEX_HTML)
+async fn index() -> Html<String> {
+    Html(INDEX_HTML.replace("__APP_VERSION__", env!("CARGO_PKG_VERSION")))
 }
 
 async fn styles() -> impl IntoResponse {
     (
-        [(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("text/css; charset=utf-8"),
-        )],
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("text/css; charset=utf-8"),
+            ),
+            (header::CACHE_CONTROL, ASSET_CACHE_CONTROL),
+        ],
         STYLES_CSS,
     )
 }
 
 async fn app_js() -> impl IntoResponse {
     (
-        [(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("application/javascript; charset=utf-8"),
-        )],
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/javascript; charset=utf-8"),
+            ),
+            (header::CACHE_CONTROL, ASSET_CACHE_CONTROL),
+        ],
         APP_JS,
     )
 }
 
 async fn everscale_logo() -> impl IntoResponse {
     (
-        [(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("image/svg+xml; charset=utf-8"),
-        )],
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("image/svg+xml; charset=utf-8"),
+            ),
+            (header::CACHE_CONTROL, ASSET_CACHE_CONTROL),
+        ],
         EVERSCALE_LOGO_SVG,
     )
 }
 
 async fn tycho_logo() -> impl IntoResponse {
     (
-        [(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("image/svg+xml; charset=utf-8"),
-        )],
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("image/svg+xml; charset=utf-8"),
+            ),
+            (header::CACHE_CONTROL, ASSET_CACHE_CONTROL),
+        ],
         TYCHO_LOGO_SVG,
     )
 }

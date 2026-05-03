@@ -162,6 +162,47 @@ async fn app_router_serves_health_with_security_headers() {
 }
 
 #[tokio::test]
+async fn app_router_versions_and_caches_static_assets() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let response = app_router(Arc::clone(&state))
+        .oneshot(Request::builder().uri("/").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("no-store")
+    );
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = String::from_utf8(body.to_vec()).unwrap();
+    assert!(body.contains(&format!("/styles.css?v={}", env!("CARGO_PKG_VERSION"))));
+    assert!(body.contains(&format!("/app.js?v={}", env!("CARGO_PKG_VERSION"))));
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri(format!("/styles.css?v={}", env!("CARGO_PKG_VERSION")))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("public, max-age=31536000, immutable")
+    );
+}
+
+#[tokio::test]
 async fn app_router_serves_runtime_status() {
     let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
     state
