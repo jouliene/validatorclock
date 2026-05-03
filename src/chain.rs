@@ -14,6 +14,7 @@ use std::path::Path;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
+use tracing::{debug, warn};
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
 use tycho_types::models::account::AccountState;
@@ -298,7 +299,7 @@ async fn fetch_chain_snapshot_inner(
         Ok(round_data) => round_data,
         Err(error) => {
             if env::var_os("VALIDATORS_CLOCK_DEBUG_HISTORY").is_some() {
-                eprintln!("validator round data failed: {error:#}");
+                debug!(error = ?error, "validator round data failed");
             }
             HashMap::new()
         }
@@ -505,7 +506,7 @@ async fn fetch_validator_round_data(
         .await
         .unwrap_or_else(|error| {
             if env::var_os("VALIDATORS_CLOCK_DEBUG_HISTORY").is_some() {
-                eprintln!("frozen validator round data unavailable: {error:#}");
+                debug!(error = ?error, "frozen validator round data unavailable");
             }
             HashMap::new()
         });
@@ -569,7 +570,7 @@ async fn fetch_validator_round_data(
             if let Some(path) = validator_round_cache_path
                 && let Err(error) = save_validator_round_disk_cache(path, &snapshot)
             {
-                eprintln!("failed to save validator round cache: {error:#}");
+                warn!(path = %path.display(), error = ?error, "failed to save validator round cache");
             }
         }
         merge_validator_round_data(rounds.entry(stake_at).or_default(), round_data);
@@ -638,15 +639,15 @@ async fn scan_validator_election_round_history(
                 continue;
             };
             if scan.debug_history {
-                eprintln!(
-                    "election tx: round={} page={} now={} stake_at={} pubkey={} wallet={} stake={}",
-                    scan.stake_at,
+                debug!(
+                    round = scan.stake_at,
                     page,
-                    transaction.now,
-                    submission.stake_at,
-                    submission.public_key,
-                    submission.wallet,
-                    submission.stake
+                    now = transaction.now,
+                    stake_at = submission.stake_at,
+                    public_key = %submission.public_key,
+                    wallet = %submission.wallet,
+                    stake = %submission.stake,
+                    "election transaction"
                 );
             }
             if submission.stake_at != scan.stake_at
@@ -665,13 +666,13 @@ async fn scan_validator_election_round_history(
         }
 
         if scan.debug_history {
-            eprintln!(
-                "history scan round={} page={} mapped={}/{} continuation={:?}",
-                scan.stake_at,
+            debug!(
+                round = scan.stake_at,
                 page,
-                history.len(),
-                scan.target_keys.len(),
-                next_continuation
+                mapped = history.len(),
+                targets = scan.target_keys.len(),
+                continuation = ?next_continuation,
+                "history scan progress"
             );
         }
         if history.len() >= scan.target_keys.len() || reached_stop {

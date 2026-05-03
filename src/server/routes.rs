@@ -15,6 +15,7 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tower::ServiceBuilder;
+use tracing::error;
 
 const INDEX_HTML: &str = include_str!("../../public/index.html");
 const STYLES_CSS: &str = include_str!("../../public/styles.css");
@@ -95,7 +96,7 @@ async fn chain_clock(
     match get_chain_snapshot(&state, &chain_id, force_refresh).await {
         Ok(snapshot) => Json(snapshot).into_response(),
         Err(error) => {
-            eprintln!("snapshot request failed for {chain_id}: {error:#}");
+            error!(chain_id, error = ?error, "snapshot request failed");
             json_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "failed to fetch chain snapshot",

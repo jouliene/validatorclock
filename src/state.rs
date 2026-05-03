@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+use tracing::warn;
 
 pub(crate) struct AppState {
     pub(crate) config: Arc<AppConfig>,
@@ -21,7 +22,7 @@ impl AppState {
             validator_round_cache_path: config.cache_path.clone(),
             validator_round_cache: RwLock::new(
                 load_validator_round_disk_cache(&config.cache_path).unwrap_or_else(|error| {
-                    eprintln!("failed to load validator round cache: {error:#}");
+                    warn!(error = ?error, "failed to load validator round cache");
                     HashMap::new()
                 }),
             ),

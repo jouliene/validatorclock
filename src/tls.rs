@@ -18,6 +18,7 @@ use std::time::{Duration as StdDuration, SystemTime};
 use tokio::sync::RwLock;
 use tokio::time::{Duration, sleep};
 use tokio_rustls::TlsAcceptor;
+use tracing::{error, info};
 
 pub(crate) fn install_rustls_crypto_provider() {
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -79,11 +80,11 @@ pub(crate) async fn acme_renewal_loop(state: Arc<AppState>, acceptor: Arc<RwLock
             Ok(()) => match load_tls_acceptor(&state.config.tls) {
                 Ok(updated) => {
                     *acceptor.write().await = updated;
-                    println!("reloaded TLS certificate");
+                    info!("reloaded TLS certificate");
                 }
-                Err(error) => eprintln!("failed to reload TLS certificate: {error:#}"),
+                Err(error) => error!(error = ?error, "failed to reload TLS certificate"),
             },
-            Err(error) => eprintln!("ACME renewal failed: {error:#}"),
+            Err(error) => error!(error = ?error, "ACME renewal failed"),
         }
     }
 }
@@ -175,9 +176,10 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
 
     write_file_atomic(&tls.cert_path, cert_chain_pem.as_bytes(), 0o644)?;
     write_file_atomic(&tls.key_path, private_key_pem.as_bytes(), 0o600)?;
-    println!(
-        "issued ACME certificate identifier={} profile={}",
-        acme.identifier, acme.profile
+    info!(
+        identifier = %acme.identifier,
+        profile = %acme.profile,
+        "issued ACME certificate"
     );
     Ok(())
 }

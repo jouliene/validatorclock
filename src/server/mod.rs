@@ -13,6 +13,7 @@ use tokio::sync::{RwLock, Semaphore};
 use tokio::time::{Duration, timeout};
 use tokio_rustls::TlsAcceptor;
 use tower::ServiceExt;
+use tracing::{error, info, warn};
 
 mod routes;
 mod security;
@@ -28,10 +29,7 @@ pub(crate) async fn run_plain_http_server(state: Arc<AppState>) -> Result<()> {
     let listener = TcpListener::bind(&state.config.listen)
         .await
         .with_context(|| format!("failed to bind {}", state.config.listen))?;
-    println!(
-        "validators_clock listening on http://{}",
-        state.config.listen
-    );
+    info!(listen = %state.config.listen, "validators_clock listening on HTTP");
 
     serve_plain_connections(
         listener,
@@ -62,7 +60,7 @@ pub(crate) async fn run_tls_server(state: Arc<AppState>) -> Result<()> {
         )
         .await
         {
-            eprintln!("HTTP challenge/redirect listener failed: {error:#}");
+            error!(error = ?error, "HTTP challenge/redirect listener failed");
         }
     });
 
@@ -82,10 +80,7 @@ pub(crate) async fn run_tls_server(state: Arc<AppState>) -> Result<()> {
         });
     }
 
-    println!(
-        "validators_clock listening on https://{}",
-        tls_config.https_listen
-    );
+    info!(listen = %tls_config.https_listen, "validators_clock listening on HTTPS");
     serve_tls_connections(
         https_listener,
         routes::app_router(Arc::clone(&state)),
@@ -131,7 +126,7 @@ async fn serve_tls_connections(
             let _permit = permit;
             match acceptor.accept(stream).await {
                 Ok(tls_stream) => serve_connection(tls_stream, app, "HTTPS").await,
-                Err(error) => eprintln!("TLS handshake failed: {error:#}"),
+                Err(error) => warn!(error = ?error, "TLS handshake failed"),
             }
         });
     }
@@ -152,7 +147,7 @@ where
 
     match timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS), connection).await {
         Ok(Ok(())) => {}
-        Ok(Err(error)) => eprintln!("{label} request failed: {error:#}"),
-        Err(_) => eprintln!("{label} request timed out"),
+        Ok(Err(error)) => warn!(label, error = ?error, "request failed"),
+        Err(_) => warn!(label, "request timed out"),
     }
 }

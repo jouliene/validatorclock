@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 mod chain;
 mod config;
+mod logging;
 mod server;
 mod state;
 mod tls;
@@ -14,6 +15,7 @@ use state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    logging::init();
     tls::install_rustls_crypto_provider();
 
     let cli = Cli::parse()?;
