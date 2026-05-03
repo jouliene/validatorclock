@@ -841,7 +841,7 @@ dd {
   }
 
   .network-panel {
-    order: 3;
+    order: 2;
   }
 
   .clock-stage {
@@ -855,7 +855,7 @@ dd {
   }
 
   .election-panel {
-    order: 2;
+    order: 3;
   }
 
   .info-panel,
