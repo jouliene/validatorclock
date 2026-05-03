@@ -112,10 +112,11 @@ h1 {
   box-shadow: 0 0 0 3px rgba(111, 123, 140, 0.12);
 }
 
+.header-updated span,
 .runtime-status strong {
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 720;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 560;
 }
 
 #runtimeFreshness {
@@ -138,9 +139,11 @@ h1 {
   box-shadow: 0 0 0 3px rgba(220, 63, 77, 0.16);
 }
 
-.header-updated strong {
+.header-updated strong,
+#runtimeFreshness {
   color: var(--text);
   font-size: 13px;
+  font-weight: 720;
   font-variant-numeric: tabular-nums;
 }
 
