@@ -498,6 +498,7 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
 function renderRoundPanels(snapshot, model) {
   renderRoundPanel("blue", snapshot, model);
   renderRoundPanel("green", snapshot, model);
+  renderRecentRoundPanels(snapshot, model);
 }
 
 function renderRoundPanel(color, snapshot, model) {
@@ -642,6 +643,63 @@ function renderStats(container, stats) {
   }
 }
 
+function renderRecentRoundPanels(snapshot, model) {
+  const grid = $("recentRoundsGrid");
+  grid.replaceChildren();
+
+  for (const color of ["blue", "green"]) {
+    const round = displayedRoundForColor(color, snapshot, model);
+    const validators = round?.recent_absent_validators || [];
+    grid.appendChild(recentRoundPanel(color, validators));
+  }
+
+  grid.hidden = false;
+}
+
+function displayedRoundForColor(color, snapshot, model) {
+  if (snapshot.current_set.round_color === color) {
+    return snapshot.current_set;
+  }
+  if (snapshot.next_set?.round_color === color) {
+    return snapshot.next_set;
+  }
+  if (model.beforeElections && snapshot.previous_set?.round_color === color) {
+    return snapshot.previous_set;
+  }
+  return null;
+}
+
+function recentRoundPanel(color, validators) {
+  const section = document.createElement("section");
+  section.className = `recent-round-panel recent-${color}`;
+  if (validators.length === 0) {
+    section.classList.add("is-empty");
+  }
+
+  const heading = document.createElement("div");
+  heading.className = "recent-round-heading";
+  const title = document.createElement("h2");
+  title.textContent = `Seen in recent ${color} rounds`;
+  const count = document.createElement("span");
+  count.textContent = validators.length === 0 ? "empty" : `${validators.length} absent now`;
+  heading.append(title, count);
+  section.appendChild(heading);
+
+  const list = document.createElement("div");
+  list.className = "validator-list";
+  if (validators.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "recent-round-empty";
+    empty.textContent = "No absent validators";
+    list.appendChild(empty);
+  } else {
+    renderRecentAbsentValidators(list, validators);
+  }
+  section.appendChild(list);
+
+  return section;
+}
+
 function renderValidators(container, validators, options) {
   const table = document.createElement("div");
   table.className = "validator-table";
@@ -649,10 +707,7 @@ function renderValidators(container, validators, options) {
   const header = document.createElement("div");
   header.className = "validator-header";
   for (const label of ["#", "Validator", "History", "Stake", "Rewards", "Weight"]) {
-    const cell = document.createElement("div");
-    cell.className = `validator-cell${["Stake", "Rewards", "Weight"].includes(label) ? " validator-number" : ""}`;
-    cell.textContent = label;
-    header.appendChild(cell);
+    header.appendChild(validatorHeaderCell(label));
   }
   table.appendChild(header);
 
@@ -672,6 +727,55 @@ function renderValidators(container, validators, options) {
   });
 
   container.appendChild(table);
+}
+
+function renderRecentAbsentValidators(container, validators) {
+  if (!Array.isArray(validators) || validators.length === 0) {
+    return;
+  }
+
+  const table = document.createElement("div");
+  table.className = "validator-table is-absent";
+
+  const header = document.createElement("div");
+  header.className = "validator-header";
+  for (const label of ["N", "Validator", "History", "Last seen"]) {
+    header.appendChild(validatorHeaderCell(label));
+  }
+  table.appendChild(header);
+
+  validators.forEach((validator, index) => {
+    const row = document.createElement("div");
+    row.className = "validator-row";
+    row.append(
+      validatorCell(String(index + 1)),
+      validatorIdentityCell(validator.wallet || validator.public_key, validator.public_key),
+      validatorHistoryCell(validator.history),
+      validatorCell(`Round ${validator.last_seen_round}`, "validator-number", String(validator.last_seen_round))
+    );
+    table.appendChild(row);
+  });
+
+  container.appendChild(table);
+}
+
+function validatorHeaderCell(label) {
+  const cell = document.createElement("div");
+  cell.className = `validator-cell${["Stake", "Rewards", "Weight", "Last seen"].includes(label) ? " validator-number" : ""}`;
+
+  if (label !== "History") {
+    cell.textContent = label;
+    return cell;
+  }
+
+  cell.classList.add("validator-history-heading");
+  const name = document.createElement("span");
+  name.textContent = "History";
+  const direction = document.createElement("span");
+  direction.className = "history-direction";
+  direction.textContent = "Older -> Latest";
+  cell.append(name, direction);
+  return cell;
 }
 
 function validatorHistoryCell(history) {

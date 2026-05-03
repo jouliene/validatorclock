@@ -1,6 +1,9 @@
 use crate::config::{AppConfig, ChainConfig};
 use crate::fsutil::write_file_atomic;
-use crate::history::{ValidatorParticipationDto, save_round_history};
+use crate::history::{
+    RecentAbsentValidatorDto, ValidatorParticipationDto, load_round_history,
+    save_round_history_merged,
+};
 use crate::state::AppState;
 use anyhow::{Context, Result, anyhow, bail};
 use minik2::{
@@ -42,6 +45,30 @@ pub(crate) struct RuntimeStatusResponse {
     refresh_seconds: u64,
     refresh_timeout_seconds: u64,
     chains: Vec<ChainRuntimeStatusDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct HistoryBackfillReport {
+    chain_id: String,
+    history_path: String,
+    rounds_requested: usize,
+    max_pages_per_round: usize,
+    total_pages_scanned: usize,
+    all_windows_reached_stop: bool,
+    rounds_scanned: usize,
+    rounds_recorded: usize,
+    scanned_rounds: Vec<HistoryBackfillRoundReport>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct HistoryBackfillRoundReport {
+    stake_at: u32,
+    round_id: u32,
+    round_color: RoundColor,
+    pages_scanned: usize,
+    reached_stop: bool,
+    validators_found: usize,
+    recorded: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -100,6 +127,7 @@ pub(crate) struct ValidatorSetDto {
     pub(crate) total_stake: Option<String>,
     pub(crate) total_reward: Option<String>,
     pub(crate) validators: Vec<ValidatorDto>,
+    pub(crate) recent_absent_validators: Vec<RecentAbsentValidatorDto>,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]
@@ -123,18 +151,19 @@ pub(crate) struct ValidatorDto {
 
 #[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct ElectionDto {
-    candidates: Vec<ElectionCandidateDto>,
+    pub(crate) candidates: Vec<ElectionCandidateDto>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ElectionCandidateDto {
-    public_key: String,
+    pub(crate) public_key: String,
     stake: String,
     stake_raw: String,
     created_at: u32,
     stake_factor: u32,
-    wallet: String,
+    pub(crate) wallet: String,
     adnl_addr: String,
+    pub(crate) history: Vec<ValidatorParticipationDto>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -220,11 +249,21 @@ pub(crate) type ValidatorRoundCache = RwLock<HashMap<String, ValidatorRoundData>
 
 struct ValidatorRoundHistoryScan<'a> {
     stake_at: u32,
-    target_keys: &'a HashSet<String>,
+    target_keys: Option<&'a HashSet<String>>,
     elections_start_before: u32,
     elections_end_before: u32,
+    max_pages: usize,
     election_fee: u128,
     debug_history: bool,
+    progress: bool,
+    align_to_window: bool,
+}
+
+#[derive(Debug)]
+struct ValidatorRoundHistoryScanResult {
+    round_data: ValidatorRoundData,
+    pages_scanned: usize,
+    reached_stop: bool,
 }
 
 pub(crate) fn chains_response(config: &AppConfig) -> ChainsResponse {
@@ -424,7 +463,7 @@ async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
     let mut history = state.round_history.write().await;
     history.record_snapshot(&chain_id, snapshot, observed_at);
     history.annotate_snapshot(&chain_id, snapshot);
-    if let Err(error) = save_round_history(&state.round_history_path, &history) {
+    if let Err(error) = save_round_history_merged(&state.round_history_path, &mut history) {
         warn!(
             path = %state.round_history_path.display(),
             error = ?error,
@@ -435,6 +474,117 @@ async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
 
 pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSnapshot> {
     fetch_chain_snapshot_inner(chain, None, None).await
+}
+
+pub(crate) async fn backfill_round_history(
+    config: &AppConfig,
+    chain_id: &str,
+    rounds: usize,
+    max_pages: usize,
+) -> Result<HistoryBackfillReport> {
+    if rounds == 0 {
+        bail!("rounds must be greater than zero");
+    }
+    if max_pages == 0 {
+        bail!("max_pages must be greater than zero");
+    }
+
+    let chain = config
+        .chain(chain_id)
+        .ok_or_else(|| anyhow!("unknown chain id `{chain_id}`"))?;
+    let transport = Transport::jrpc(&chain.rpc)
+        .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
+    let network_config = Config::fetch(&transport)
+        .await
+        .with_context(|| format!("failed to fetch config from `{}`", chain.id))?;
+    let timings = network_config.election_timings()?;
+    let current_set = network_config.current_validator_set()?;
+    let capabilities = transport.get_capabilities().await.unwrap_or_default();
+    if !capabilities
+        .iter()
+        .any(|capability| capability == "getTransactionsList")
+    {
+        bail!("RPC endpoint for `{chain_id}` does not support getTransactionsList");
+    }
+
+    let elector = Elector::from_config(&transport, &network_config)?;
+    let rpc = JrpcTransport::new(&chain.rpc)?;
+    let account = elector.address().to_string();
+    let election_fee = apply_price_factor(ONE_TOKEN, network_config.compute_price_factor(true)?);
+    let debug_history = env::var_os("VALIDATORS_CLOCK_DEBUG_HISTORY").is_some();
+    let history_path = config.effective_history_path();
+    let mut history = load_round_history(&history_path)?;
+    let observed_at = now_sec()?;
+
+    let mut targets = Vec::new();
+    for offset in 1..=rounds {
+        let Some(round_offset) = (offset as u32).checked_mul(timings.validators_elected_for) else {
+            break;
+        };
+        let Some(stake_at) = current_set.utime_since.checked_sub(round_offset) else {
+            break;
+        };
+        targets.push(stake_at);
+    }
+
+    let mut scanned_rounds = Vec::new();
+    for stake_at in targets {
+        let scan_result = scan_validator_election_round_history(
+            &rpc,
+            &account,
+            ValidatorRoundHistoryScan {
+                stake_at,
+                target_keys: None,
+                elections_start_before: timings.elections_start_before,
+                elections_end_before: timings.elections_end_before,
+                max_pages,
+                election_fee,
+                debug_history,
+                progress: true,
+                align_to_window: true,
+            },
+        )
+        .await?;
+        let round_data = scan_result.round_data;
+        let round_id = stake_at / timings.validators_elected_for.max(1);
+        let validators_found = round_data.validators.len();
+        let set =
+            ValidatorSetDto::from_round_data(stake_at, timings.validators_elected_for, &round_data);
+        let recorded = if scan_result.reached_stop
+            && let Some(set) = set
+        {
+            history.record_validator_set(chain_id, &set, observed_at, false);
+            save_round_history_merged(&history_path, &mut history)?;
+            true
+        } else {
+            false
+        };
+
+        scanned_rounds.push(HistoryBackfillRoundReport {
+            stake_at,
+            round_id,
+            round_color: round_color(round_id),
+            pages_scanned: scan_result.pages_scanned,
+            reached_stop: scan_result.reached_stop,
+            validators_found,
+            recorded,
+        });
+    }
+
+    let rounds_recorded = scanned_rounds.iter().filter(|round| round.recorded).count();
+    save_round_history_merged(&history_path, &mut history)?;
+
+    Ok(HistoryBackfillReport {
+        chain_id: chain_id.to_owned(),
+        history_path: history_path.display().to_string(),
+        rounds_requested: rounds,
+        max_pages_per_round: max_pages,
+        total_pages_scanned: scanned_rounds.iter().map(|round| round.pages_scanned).sum(),
+        all_windows_reached_stop: scanned_rounds.iter().all(|round| round.reached_stop),
+        rounds_scanned: scanned_rounds.len(),
+        rounds_recorded,
+        scanned_rounds,
+    })
 }
 
 async fn fetch_chain_snapshot_cached(
@@ -583,6 +733,7 @@ impl ValidatorSetDto {
                     }
                 })
                 .collect(),
+            recent_absent_validators: Vec::new(),
         }
     }
 
@@ -647,6 +798,7 @@ impl ValidatorSetDto {
             total_stake: round_data.total_stake.clone(),
             total_reward: round_data.total_reward.clone(),
             validators,
+            recent_absent_validators: Vec::new(),
         })
     }
 }
@@ -682,6 +834,7 @@ async fn fetch_election(transport: &Transport, config: &Config) -> Result<Electi
                 stake_factor: member.stake_factor,
                 wallet: masterchain_hash_address(&member.src_addr.0),
                 adnl_addr: hex_lower(&member.adnl_addr.0),
+                history: Vec::new(),
             })
             .collect(),
     })
@@ -817,14 +970,18 @@ async fn fetch_validator_round_data(
             &account,
             ValidatorRoundHistoryScan {
                 stake_at,
-                target_keys: &target_keys,
+                target_keys: Some(&target_keys),
                 elections_start_before: timings.elections_start_before,
                 elections_end_before: timings.elections_end_before,
+                max_pages: 700,
                 election_fee,
                 debug_history,
+                progress: false,
+                align_to_window: false,
             },
         )
         .await?;
+        let round_data = round_data.round_data;
 
         if let Some(cache) = validator_round_cache {
             let snapshot = {
@@ -867,19 +1024,19 @@ async fn scan_validator_election_round_history(
     rpc: &JrpcTransport,
     account: &str,
     scan: ValidatorRoundHistoryScan<'_>,
-) -> Result<ValidatorRoundData> {
-    let scan_start_at = scan
-        .stake_at
-        .saturating_sub(scan.elections_end_before)
-        .saturating_add(60);
-    let scan_stop_before = scan
-        .stake_at
-        .saturating_sub(scan.elections_start_before)
-        .saturating_sub(60);
-    let mut continuation = estimated_transaction_lt_at(rpc, account, scan_start_at).await?;
+) -> Result<ValidatorRoundHistoryScanResult> {
+    let election_end_at = scan.stake_at.saturating_sub(scan.elections_end_before);
+    let election_start_at = scan.stake_at.saturating_sub(scan.elections_start_before);
+    let mut continuation = if scan.align_to_window {
+        estimated_transaction_lt_in_window(rpc, account, election_end_at, election_start_at).await?
+    } else {
+        estimated_transaction_lt_at(rpc, account, election_end_at).await?
+    };
     let mut history = HashMap::new();
+    let mut pages_scanned = 0_usize;
+    let mut reached_stop = false;
 
-    for page in 0..700 {
+    for page in 0..scan.max_pages {
         let mut params = serde_json::json!({
             "account": account,
             "limit": ELECTOR_TX_SCAN_LIMIT,
@@ -892,14 +1049,26 @@ async fn scan_validator_election_round_history(
         if tx_bocs.is_empty() {
             break;
         }
+        pages_scanned += 1;
 
         let mut next_continuation = None;
-        let mut reached_stop = false;
+        let mut newest_now = None::<u32>;
+        let mut oldest_now = None::<u32>;
         for tx_boc in tx_bocs {
             let transaction: Transaction = BocRepr::decode_base64(tx_boc)?;
+            newest_now = Some(newest_now.map_or(transaction.now, |now| now.max(transaction.now)));
+            oldest_now = Some(oldest_now.map_or(transaction.now, |now| now.min(transaction.now)));
             next_continuation = Some(transaction.prev_trans_lt.to_string());
-            if transaction.now < scan_stop_before {
+            if transaction.now < election_start_at {
                 reached_stop = true;
+                continue;
+            }
+            if !transaction_is_inside_election_window(
+                transaction.now,
+                election_start_at,
+                election_end_at,
+            ) {
+                continue;
             }
 
             let Some(submission) = parse_election_submission(&transaction, scan.election_fee)?
@@ -918,8 +1087,11 @@ async fn scan_validator_election_round_history(
                     "election transaction"
                 );
             }
-            if submission.stake_at != scan.stake_at
-                || !scan.target_keys.contains(&submission.public_key)
+            if submission.stake_at != scan.stake_at {
+                continue;
+            }
+            if let Some(target_keys) = scan.target_keys
+                && !target_keys.contains(&submission.public_key)
             {
                 continue;
             }
@@ -934,17 +1106,36 @@ async fn scan_validator_election_round_history(
                 });
         }
 
+        if scan.progress && (pages_scanned == 1 || pages_scanned.is_multiple_of(10)) {
+            eprintln!(
+                "round {} scan progress: pages={} validators_found={} reached_stop={}",
+                scan.stake_at,
+                pages_scanned,
+                history.len(),
+                reached_stop
+            );
+            if let (Some(newest_now), Some(oldest_now)) = (newest_now, oldest_now) {
+                eprintln!(
+                    "round {} page time range: newest_now={} oldest_now={} election_end={} election_start={}",
+                    scan.stake_at, newest_now, oldest_now, election_end_at, election_start_at
+                );
+            }
+        }
         if scan.debug_history {
             debug!(
                 round = scan.stake_at,
                 page,
                 mapped = history.len(),
-                targets = scan.target_keys.len(),
+                targets = scan.target_keys.map(HashSet::len),
                 continuation = ?next_continuation,
                 "history scan progress"
             );
         }
-        if history.len() >= scan.target_keys.len() || reached_stop {
+        if scan
+            .target_keys
+            .is_some_and(|target_keys| history.len() >= target_keys.len())
+            || reached_stop
+        {
             break;
         }
         if next_continuation.as_deref() == Some("0") || next_continuation == continuation {
@@ -953,13 +1144,17 @@ async fn scan_validator_election_round_history(
         continuation = next_continuation;
     }
 
-    Ok(ValidatorRoundData {
-        validators: history,
-        total_stake: None,
-        total_stake_raw: None,
-        total_reward: None,
-        total_reward_raw: None,
-        total_weight_raw: None,
+    Ok(ValidatorRoundHistoryScanResult {
+        round_data: ValidatorRoundData {
+            validators: history,
+            total_stake: None,
+            total_stake_raw: None,
+            total_reward: None,
+            total_reward_raw: None,
+            total_weight_raw: None,
+        },
+        pages_scanned,
+        reached_stop,
     })
 }
 
@@ -1008,6 +1203,100 @@ async fn estimated_transaction_lt_at(
         .lt
         .saturating_sub(seconds_back.saturating_mul(2_000_000));
     Ok(Some(estimated_lt.to_string()))
+}
+
+async fn estimated_transaction_lt_in_window(
+    rpc: &JrpcTransport,
+    account: &str,
+    election_end_at: u32,
+    election_start_at: u32,
+) -> Result<Option<String>> {
+    let Some(latest) = fetch_transaction_before_lt(rpc, account, None).await? else {
+        return Ok(None);
+    };
+    let seconds_back = latest.now.saturating_sub(election_end_at) as u64;
+    if seconds_back == 0 {
+        return Ok(Some(latest.lt.saturating_add(1).to_string()));
+    }
+
+    let mut low = 0_u64;
+    let mut high = 4_000_000_u64;
+    let mut best = None::<(u32, u64)>;
+
+    for _ in 0..32 {
+        if low > high {
+            break;
+        }
+        let factor = low.saturating_add((high - low) / 2);
+        let lt = latest
+            .lt
+            .saturating_sub(seconds_back.saturating_mul(factor));
+        let Some(tx) = fetch_transaction_before_lt(rpc, account, Some(lt)).await? else {
+            high = factor.saturating_sub(1);
+            continue;
+        };
+
+        best = Some(match best {
+            Some((best_distance, best_lt)) => {
+                let distance = window_time_distance(tx.now, election_start_at, election_end_at);
+                if distance < best_distance {
+                    (distance, lt)
+                } else {
+                    (best_distance, best_lt)
+                }
+            }
+            None => {
+                let distance = window_time_distance(tx.now, election_start_at, election_end_at);
+                (distance, lt)
+            }
+        });
+
+        if tx.now > election_end_at {
+            low = factor.saturating_add(1);
+        } else if tx.now < election_start_at {
+            high = factor.saturating_sub(1);
+        } else {
+            return Ok(Some(lt.to_string()));
+        }
+    }
+
+    Ok(best.map(|(_, lt)| lt.to_string()))
+}
+
+fn transaction_is_inside_election_window(
+    now: u32,
+    election_start_at: u32,
+    election_end_at: u32,
+) -> bool {
+    now >= election_start_at && now <= election_end_at
+}
+
+fn window_time_distance(now: u32, election_start_at: u32, election_end_at: u32) -> u32 {
+    if now > election_end_at {
+        now - election_end_at
+    } else {
+        election_start_at.saturating_sub(now)
+    }
+}
+
+async fn fetch_transaction_before_lt(
+    rpc: &JrpcTransport,
+    account: &str,
+    last_transaction_lt: Option<u64>,
+) -> Result<Option<Transaction>> {
+    let mut params = serde_json::json!({
+        "account": account,
+        "limit": 1,
+    });
+    if let Some(lt) = last_transaction_lt {
+        params["lastTransactionLt"] = serde_json::json!(lt.to_string());
+    }
+
+    let tx_bocs: Vec<String> = rpc.call("getTransactionsList", params).await?;
+    tx_bocs
+        .first()
+        .map(|tx_boc| BocRepr::decode_base64(tx_boc).map_err(Into::into))
+        .transpose()
 }
 
 #[derive(Debug)]
@@ -1209,6 +1498,15 @@ mod tests {
         assert_eq!(set.total_weight, "300");
         assert_eq!(set.validators[0].public_key, "bb");
         assert!((set.validators[0].weight_percent - 66.666_666).abs() < 0.001);
+    }
+
+    #[test]
+    fn election_window_filter_is_inclusive() {
+        assert!(!transaction_is_inside_election_window(99, 100, 200));
+        assert!(transaction_is_inside_election_window(100, 100, 200));
+        assert!(transaction_is_inside_election_window(150, 100, 200));
+        assert!(transaction_is_inside_election_window(200, 100, 200));
+        assert!(!transaction_is_inside_election_window(201, 100, 200));
     }
 
     fn test_dir(label: &str) -> std::path::PathBuf {

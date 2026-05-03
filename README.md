@@ -38,6 +38,17 @@ cargo run -- --once everscale
 cargo run -- --config validators_clock.json
 ```
 
+Manual history backfill:
+
+```bash
+cargo run -- --backfill-history tycho-testnet --rounds 10 --max-pages 300
+```
+
+This scans elector election windows for the requested chain and writes recovered
+validator submissions into `history_path` so the history dots can be filled after
+downtime. Start with Tycho because the validator set is small and the scan is
+lighter.
+
 ## Built-in HTTPS
 
 The server can terminate TLS itself and request Let's Encrypt certificates through
