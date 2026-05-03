@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
 use std::fs;
+use std::fs::OpenOptions;
 use std::io::ErrorKind;
+use std::io::Write;
 use std::path::Path;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -846,7 +848,50 @@ fn save_validator_round_disk_cache(
         rounds: rounds.clone(),
     };
     let content = serde_json::to_string_pretty(&cache)?;
-    fs::write(path, content).with_context(|| format!("failed to write {}", path.display()))
+    write_file_atomic(path, content.as_bytes(), 0o644)
+}
+
+fn ensure_parent_dir(path: &Path) -> Result<()> {
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create {}", parent.display()))?;
+    }
+    Ok(())
+}
+
+fn write_file_atomic(path: &Path, data: &[u8], mode: u32) -> Result<()> {
+    ensure_parent_dir(path)?;
+    let mut tmp = path.to_path_buf();
+    tmp.set_extension("tmp");
+
+    let mut options = OpenOptions::new();
+    options.create(true).truncate(true).write(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(mode);
+    }
+
+    let mut file = options
+        .open(&tmp)
+        .with_context(|| format!("failed to open {}", tmp.display()))?;
+    file.write_all(data)
+        .with_context(|| format!("failed to write {}", tmp.display()))?;
+    file.sync_all()
+        .with_context(|| format!("failed to sync {}", tmp.display()))?;
+    fs::rename(&tmp, path)
+        .with_context(|| format!("failed to move {} to {}", tmp.display(), path.display()))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(path, fs::Permissions::from_mode(mode))
+            .with_context(|| format!("failed to set permissions on {}", path.display()))?;
+    }
+
+    Ok(())
 }
 
 fn endpoint_label(endpoint: &str) -> String {
@@ -863,4 +908,55 @@ fn now_sec() -> Result<u64> {
         .duration_since(UNIX_EPOCH)
         .context("system time is before UNIX epoch")?
         .as_secs())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn validator_round_disk_cache_loads_missing_file_as_empty() {
+        let dir = test_dir("missing");
+        let path = dir.join("nested").join("rounds.json");
+
+        let loaded = load_validator_round_disk_cache(&path).unwrap();
+
+        assert!(loaded.is_empty());
+    }
+
+    #[test]
+    fn validator_round_disk_cache_writes_atomically_and_creates_parent_dir() {
+        let dir = test_dir("write");
+        let path = dir.join("nested").join("rounds.json");
+        let mut rounds = HashMap::new();
+        rounds.insert(
+            "test-round".to_owned(),
+            ValidatorRoundData {
+                total_stake: Some("100".to_owned()),
+                total_stake_raw: Some("100000000000".to_owned()),
+                ..ValidatorRoundData::default()
+            },
+        );
+
+        save_validator_round_disk_cache(&path, &rounds).unwrap();
+
+        let loaded = load_validator_round_disk_cache(&path).unwrap();
+        assert_eq!(loaded["test-round"].total_stake.as_deref(), Some("100"));
+        assert!(!path.with_extension("tmp").exists());
+    }
+
+    fn test_dir(label: &str) -> std::path::PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let dir = env::temp_dir().join(format!(
+            "validators_clock_chain_test_{label}_{}_{}",
+            std::process::id(),
+            nanos
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
 }
