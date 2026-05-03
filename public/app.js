@@ -233,7 +233,9 @@ function renderRuntimeStatus(now) {
     return;
   }
 
-  const age = chain.fetched_at ? Math.max(0, now - chain.fetched_at) : null;
+  const displayedSnapshot = state.snapshot?.chain?.id === state.selectedChainId ? state.snapshot : null;
+  const freshnessAt = displayedSnapshot?.fetched_at || chain.fetched_at;
+  const age = freshnessAt ? Math.max(0, now - freshnessAt) : null;
   if (chain.stale) {
     container.className = "runtime-status is-bad";
     container.title = chain.last_error || "Cached data is stale";

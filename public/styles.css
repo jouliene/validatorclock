@@ -797,43 +797,309 @@ dd {
 @media (max-width: 760px) {
   .app-shell {
     width: min(100% - 24px, 720px);
-    padding-top: 16px;
-  }
-
-  .titlebar {
-    justify-content: flex-start;
-  }
-
-  .rounds-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .round-title-block {
-    padding-right: 0;
-  }
-
-  .round-badge {
-    position: static;
-    display: inline-flex;
-    margin-top: 10px;
-  }
-
-  .round-stats {
-    grid-template-columns: 1fr;
+    padding: 14px 0 28px;
   }
 
   .titlebar {
     display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-    justify-items: center;
+    justify-items: stretch;
     min-height: auto;
+    padding-bottom: 16px;
+    text-align: center;
   }
 
-  .header-updated {
-    position: static;
+  .titlebar h1 {
+    order: 1;
+    grid-column: 1 / -1;
+    font-size: 24px;
   }
 
   .runtime-status {
+    order: 2;
     position: static;
+    justify-content: center;
+    max-width: none;
+    width: 100%;
+  }
+
+  .header-updated {
+    order: 3;
+    position: static;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .top-grid {
+    gap: 14px;
+  }
+
+  .network-panel {
+    order: 3;
+  }
+
+  .clock-stage {
+    order: 1;
+    min-height: 250px;
+    padding: 2px 0;
+  }
+
+  #clockSvg {
+    width: min(100%, 264px);
+  }
+
+  .election-panel {
+    order: 2;
+  }
+
+  .info-panel,
+  .round-panel {
+    padding: 15px;
+  }
+
+  .network-panel dl div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    align-items: start;
+  }
+
+  .network-panel dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .network-panel dl div:nth-child(-n+2) {
+    grid-column: 1 / -1;
+  }
+
+  .network-panel dd {
+    text-align: left;
+  }
+
+  #metricStatus {
+    font-size: 23px;
+  }
+
+  .election-time-card {
+    padding: 12px;
+  }
+
+  .election-countdown {
+    font-size: 15px;
+  }
+
+  .chain-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .chain-tab {
+    justify-content: center;
+    min-height: 42px;
+    padding: 0 10px;
+  }
+
+  .chain-tab-main {
+    min-width: 0;
+  }
+
+  .rounds-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .round-panel {
+    min-height: 0;
+  }
+
+  .round-title-block {
+    padding-right: 128px;
+  }
+
+  .round-badge {
+    position: absolute;
+    display: inline-flex;
+    margin-top: 0;
+  }
+
+  .round-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .round-stat:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .validator-list {
+    overflow-x: visible;
+  }
+
+  .validator-table {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .validator-header {
+    display: none;
+  }
+
+  .validator-row {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "index identity identity"
+      "pubkey pubkey pubkey"
+      "stake stake reward"
+      "weight weight weight";
+    gap: 8px 10px;
+    min-height: 0;
+    padding: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: var(--radius-md);
+    background: var(--surface-soft);
+  }
+
+  .validator-row:last-child {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+  }
+
+  .validator-row .validator-cell {
+    font-size: 12px;
+  }
+
+  .validator-row .validator-cell:nth-child(1) {
+    grid-area: index;
+    color: var(--muted);
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .validator-row .validator-cell:nth-child(2) {
+    grid-area: identity;
+  }
+
+  .validator-row .validator-cell:nth-child(3) {
+    grid-area: pubkey;
+  }
+
+  .validator-row .validator-cell:nth-child(4) {
+    grid-area: stake;
+  }
+
+  .validator-row .validator-cell:nth-child(5) {
+    grid-area: reward;
+  }
+
+  .validator-row .validator-cell:nth-child(6) {
+    grid-area: weight;
+  }
+
+  .validator-row .validator-cell:nth-child(n+3) {
+    display: grid;
+    gap: 3px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.024);
+    text-align: left;
+  }
+
+  .validator-row .validator-cell:nth-child(n+3)::before {
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .validator-row .validator-cell:nth-child(3)::before {
+    content: "Public key";
+  }
+
+  .validator-row .validator-cell:nth-child(4)::before {
+    content: "Stake";
+  }
+
+  .validator-row .validator-cell:nth-child(5)::before {
+    content: "Rewards";
+  }
+
+  .validator-row .validator-cell:nth-child(6)::before {
+    content: "Weight";
+  }
+
+  .validator-row .validator-number {
+    text-align: left;
+  }
+}
+
+@media (max-width: 440px) {
+  .app-shell {
+    width: min(100% - 18px, 420px);
+    padding-top: 10px;
+  }
+
+  .titlebar {
+    grid-template-columns: 1fr;
+  }
+
+  .runtime-status,
+  .header-updated {
+    min-height: 30px;
+  }
+
+  .election-time-card-header {
+    display: grid;
+    gap: 8px;
+  }
+
+  .countdown-block {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .election-countdown {
+    text-align: left;
+  }
+
+  .date-row {
+    display: grid;
+    gap: 2px;
+  }
+
+  .date-value {
+    text-align: left;
+  }
+
+  .round-meta-item {
+    min-height: 28px;
+  }
+}
+
+@media (max-width: 360px) {
+  .chain-tabs,
+  .network-panel dl,
+  .round-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .network-panel dl div:nth-child(-n+2),
+  .round-stat:last-child {
+    grid-column: auto;
+  }
+
+  .validator-row {
+    grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-areas:
+      "index identity"
+      "pubkey pubkey"
+      "stake stake"
+      "reward reward"
+      "weight weight";
   }
 }
