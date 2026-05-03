@@ -15,7 +15,7 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
-use tokio::time::{Duration, sleep, timeout};
+use tokio::time::{Duration, MissedTickBehavior, interval, timeout};
 use tracing::{debug, info, warn};
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
@@ -304,10 +304,12 @@ pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
 async fn background_refresh_loop(state: Arc<AppState>) {
     let refresh_seconds = state.config.refresh_seconds.max(10);
     info!(refresh_seconds, "background chain refresh started");
+    let mut ticker = interval(Duration::from_secs(refresh_seconds));
+    ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);
 
     loop {
+        ticker.tick().await;
         refresh_configured_chains(&state).await;
-        sleep(Duration::from_secs(refresh_seconds)).await;
     }
 }
 

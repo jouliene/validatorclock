@@ -1,4 +1,4 @@
-use super::routes::{app_router, challenge_redirect_router};
+use super::routes::{app_router, asset_version, challenge_redirect_router};
 use super::security::{normalize_host, redirect_location, request_host_allowed};
 use crate::config::{AcmeConfig, AppConfig, ChainConfig, SecurityConfig, TlsConfig};
 use crate::state::AppState;
@@ -179,13 +179,14 @@ async fn app_router_versions_and_caches_static_assets() {
     );
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
-    assert!(body.contains(&format!("/styles.css?v={}", env!("CARGO_PKG_VERSION"))));
-    assert!(body.contains(&format!("/app.js?v={}", env!("CARGO_PKG_VERSION"))));
+    let asset_version = asset_version();
+    assert!(body.contains(&format!("/styles.css?v={asset_version}")));
+    assert!(body.contains(&format!("/app.js?v={asset_version}")));
 
     let response = app_router(state)
         .oneshot(
             Request::builder()
-                .uri(format!("/styles.css?v={}", env!("CARGO_PKG_VERSION")))
+                .uri(format!("/styles.css?v={asset_version}"))
                 .body(Body::empty())
                 .unwrap(),
         )

@@ -63,7 +63,37 @@ pub(super) fn challenge_redirect_router(state: Arc<AppState>) -> Router {
 }
 
 async fn index() -> Html<String> {
-    Html(INDEX_HTML.replace("__APP_VERSION__", env!("CARGO_PKG_VERSION")))
+    Html(INDEX_HTML.replace("__ASSET_VERSION__", &asset_version()))
+}
+
+pub(super) fn asset_version() -> String {
+    format!(
+        "{}-{:016x}",
+        env!("CARGO_PKG_VERSION"),
+        fnv1a64(&[
+            INDEX_HTML,
+            STYLES_CSS,
+            APP_JS,
+            EVERSCALE_LOGO_SVG,
+            TYCHO_LOGO_SVG,
+        ])
+    )
+}
+
+fn fnv1a64(parts: &[&str]) -> u64 {
+    const OFFSET: u64 = 0xcbf29ce484222325;
+    const PRIME: u64 = 0x100000001b3;
+
+    let mut hash = OFFSET;
+    for part in parts {
+        for byte in part.as_bytes() {
+            hash ^= u64::from(*byte);
+            hash = hash.wrapping_mul(PRIME);
+        }
+        hash ^= 0xff;
+        hash = hash.wrapping_mul(PRIME);
+    }
+    hash
 }
 
 async fn styles() -> impl IntoResponse {

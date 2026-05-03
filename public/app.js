@@ -7,6 +7,9 @@ const state = {
   pollTimer: null,
   statusTimer: null,
   drawTimer: null,
+  clockLoading: false,
+  clockRequestSeq: 0,
+  lastClockRefreshAttempt: 0,
   roundRenderKey: null,
 };
 
@@ -20,9 +23,13 @@ const palette = {
   center: "#080a0f",
 };
 
+const scriptUrl = document.currentScript?.src ? new URL(document.currentScript.src) : null;
+const assetVersion = scriptUrl?.searchParams.get("v") || "";
+const assetPath = (path) => assetVersion ? `${path}?v=${encodeURIComponent(assetVersion)}` : path;
+
 const chainLogos = {
-  everscale: "/brands/everscale.svg",
-  "tycho-testnet": "/brands/tycho.svg",
+  everscale: assetPath("/brands/everscale.svg"),
+  "tycho-testnet": assetPath("/brands/tycho.svg"),
 };
 
 const $ = (id) => document.getElementById(id);
@@ -113,16 +120,33 @@ async function selectChain(chainId) {
 }
 
 async function loadClock(force = false) {
-  if (!state.selectedChainId) {
+  const chainId = state.selectedChainId;
+  if (!chainId) {
+    return;
+  }
+  if (state.clockLoading && !force) {
     return;
   }
 
   const suffix = force ? "?refresh=1" : "";
-  const snapshot = await fetchJson(`/api/chains/${encodeURIComponent(state.selectedChainId)}/clock${suffix}`);
-  state.snapshot = snapshot;
-  state.roundRenderKey = null;
-  setError(snapshot.warning || "");
-  renderNow();
+  const requestSeq = state.clockRequestSeq + 1;
+  state.clockRequestSeq = requestSeq;
+  state.clockLoading = true;
+  state.lastClockRefreshAttempt = Math.trunc(Date.now() / 1000);
+  try {
+    const snapshot = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/clock${suffix}`);
+    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+      return;
+    }
+    state.snapshot = snapshot;
+    state.roundRenderKey = null;
+    setError(snapshot.warning || "");
+    renderNow();
+  } finally {
+    if (requestSeq === state.clockRequestSeq) {
+      state.clockLoading = false;
+    }
+  }
 }
 
 function startTimers() {
@@ -150,6 +174,7 @@ function refreshPollSeconds() {
 function renderNow() {
   const now = Math.trunc(Date.now() / 1000);
   renderRuntimeStatus(now);
+  refreshStaleSnapshot(now);
 
   if (!state.snapshot) {
     return;
@@ -159,6 +184,19 @@ function renderNow() {
   drawClock(model);
   renderMetrics(state.snapshot, model, now);
   renderRoundPanelsIfNeeded(state.snapshot, model);
+}
+
+function refreshStaleSnapshot(now) {
+  if (!state.snapshot || state.clockLoading) {
+    return;
+  }
+
+  const refreshSeconds = Math.max(10, state.refreshSeconds);
+  const age = now - state.snapshot.fetched_at;
+  const attemptAge = now - state.lastClockRefreshAttempt;
+  if (age >= refreshSeconds && attemptAge >= 5) {
+    loadClock(false).catch((error) => setError(error.message));
+  }
 }
 
 function renderRuntimeStatus(now) {
