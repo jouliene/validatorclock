@@ -130,15 +130,21 @@ function startTimers() {
   window.clearInterval(state.statusTimer);
   window.clearInterval(state.drawTimer);
 
+  const pollSeconds = refreshPollSeconds();
+
   state.pollTimer = window.setInterval(() => {
     loadClock(false).catch((error) => setError(error.message));
-  }, Math.max(10, state.refreshSeconds) * 1000);
+  }, pollSeconds * 1000);
 
   state.statusTimer = window.setInterval(() => {
     loadRuntimeStatus();
-  }, Math.max(10, state.refreshSeconds) * 1000);
+  }, pollSeconds * 1000);
 
   state.drawTimer = window.setInterval(renderNow, 1000);
+}
+
+function refreshPollSeconds() {
+  return Math.max(10, Math.floor(Math.max(10, state.refreshSeconds) / 2));
 }
 
 function renderNow() {
@@ -420,8 +426,9 @@ function renderMetrics(snapshot, model, now) {
   renderDateStack($("metricRound"), snapshot.current_set.utime_since, snapshot.current_set.utime_until);
   $("metricRoundEndsIn").textContent = formatDurationPrecise(Math.max(0, snapshot.current_set.utime_until - now));
   renderDateStack($("metricElections"), model.electionsStart, model.electionsEnd);
+  $("metricElectionsCountdownLabel").textContent = model.inElections ? "Elections end in" : "Elections start in";
   $("metricElectionsStartIn").textContent = model.inElections
-    ? "open now"
+    ? formatDurationPrecise(Math.max(0, model.electionsEnd - now))
     : formatDurationPrecise(Math.max(0, model.electionsStart - now));
   renderInfoUpdated($("metricFetched"), snapshot.fetched_at, now);
 }
