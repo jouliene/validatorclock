@@ -1,4 +1,5 @@
-use crate::{AppConfig, AppState, chains_response, get_chain_snapshot, tls};
+use crate::config::AppConfig;
+use crate::{AppState, chains_response, get_chain_snapshot, tls};
 use anyhow::{Context, Result, anyhow, bail};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -497,7 +498,7 @@ fn reason_phrase(status: u16) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ChainConfig, SecurityConfig, TlsConfig};
+    use crate::config::{ChainConfig, SecurityConfig, TlsConfig};
     use std::path::PathBuf;
 
     #[test]

@@ -1,4 +1,5 @@
-use crate::{AcmeConfig, AppState, TlsConfig};
+use crate::AppState;
+use crate::config::{AcmeConfig, TlsConfig};
 use anyhow::{Context, Result, anyhow, bail};
 use instant_acme::{
     Account as AcmeAccount, AccountCredentials, AuthorizationStatus, ChallengeType, Identifier,

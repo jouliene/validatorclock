@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, anyhow, bail};
-use instant_acme::LetsEncrypt;
+use config::{AppConfig, ChainConfig, load_config};
 use minik2::{
     Config, CurrentElectionData, Elector, FpTokens, HashBytes, JrpcTransport, Ref, Transport,
     ValidatorSet, apply_price_factor,
@@ -19,20 +19,22 @@ use tycho_types::models::account::AccountState;
 use tycho_types::models::{IntAddr, MsgInfo, Transaction};
 use tycho_types::num::Tokens;
 
+mod config;
 mod server;
+mod state;
 mod tls;
 
-const DEFAULT_CONFIG: &str = include_str!("../validators_clock.json");
+use state::AppState;
+
 const ELECTOR_TX_SCAN_LIMIT: u8 = 100;
 const ONE_TOKEN: u128 = 1_000_000_000;
-const DEFAULT_MAX_CONNECTIONS: usize = 128;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tls::install_rustls_crypto_provider();
 
     let cli = Cli::parse()?;
-    let config = Arc::new(load_config(cli.config_path.as_ref())?);
+    let config = Arc::new(load_config(cli.config_path.as_deref())?);
     config.validate()?;
 
     if let Some(chain_id) = cli.once {
@@ -44,18 +46,7 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    let state = Arc::new(AppState {
-        config: Arc::clone(&config),
-        cache: RwLock::new(HashMap::new()),
-        validator_round_cache_path: config.cache_path.clone(),
-        validator_round_cache: RwLock::new(
-            load_validator_round_disk_cache(&config.cache_path).unwrap_or_else(|error| {
-                eprintln!("failed to load validator round cache: {error:#}");
-                HashMap::new()
-            }),
-        ),
-        acme_challenges: RwLock::new(HashMap::new()),
-    });
+    let state = Arc::new(AppState::new(Arc::clone(&config)));
 
     if config.tls.enabled {
         server::run_tls_server(state).await
@@ -105,231 +96,6 @@ impl Cli {
 
         Ok(Self { config_path, once })
     }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct AppConfig {
-    #[serde(default = "default_listen")]
-    listen: String,
-    #[serde(default = "default_refresh_seconds")]
-    refresh_seconds: u64,
-    #[serde(default = "default_cache_path")]
-    cache_path: PathBuf,
-    #[serde(default)]
-    security: SecurityConfig,
-    #[serde(default)]
-    tls: TlsConfig,
-    chains: Vec<ChainConfig>,
-}
-
-impl AppConfig {
-    fn validate(&self) -> Result<()> {
-        if self.chains.is_empty() {
-            bail!("config must contain at least one chain");
-        }
-
-        for chain in &self.chains {
-            if chain.id.trim().is_empty() {
-                bail!("chain id cannot be empty");
-            }
-            if chain.name.trim().is_empty() {
-                bail!("chain `{}` has empty name", chain.id);
-            }
-            if chain.rpc.trim().is_empty() {
-                bail!("chain `{}` has empty rpc", chain.id);
-            }
-        }
-
-        self.security.validate()?;
-        self.tls.validate()?;
-        Ok(())
-    }
-
-    fn chain(&self, id: &str) -> Option<&ChainConfig> {
-        self.chains.iter().find(|chain| chain.id == id)
-    }
-
-    fn effective_allowed_hosts(&self) -> Vec<String> {
-        let mut hosts = self.security.allowed_hosts.clone();
-        if self.tls.enabled
-            && let Some(host) = server::public_url_host(&self.tls.public_url)
-            && !hosts.iter().any(|item| item == &host)
-        {
-            hosts.push(host);
-        }
-        hosts
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(default)]
-struct SecurityConfig {
-    allowed_hosts: Vec<String>,
-    allow_force_refresh: bool,
-    max_connections: usize,
-}
-
-impl Default for SecurityConfig {
-    fn default() -> Self {
-        Self {
-            allowed_hosts: Vec::new(),
-            allow_force_refresh: false,
-            max_connections: DEFAULT_MAX_CONNECTIONS,
-        }
-    }
-}
-
-impl SecurityConfig {
-    fn validate(&self) -> Result<()> {
-        if self.max_connections == 0 {
-            bail!("security.max_connections must be greater than zero");
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(default)]
-struct TlsConfig {
-    enabled: bool,
-    http_listen: String,
-    https_listen: String,
-    public_url: String,
-    cert_path: PathBuf,
-    key_path: PathBuf,
-    acme: AcmeConfig,
-}
-
-impl Default for TlsConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            http_listen: "0.0.0.0:80".to_owned(),
-            https_listen: "0.0.0.0:443".to_owned(),
-            public_url: String::new(),
-            cert_path: PathBuf::from("validators_clock_fullchain.pem"),
-            key_path: PathBuf::from("validators_clock_privkey.pem"),
-            acme: AcmeConfig::default(),
-        }
-    }
-}
-
-impl TlsConfig {
-    fn validate(&self) -> Result<()> {
-        if !self.enabled {
-            return Ok(());
-        }
-
-        if !self.public_url.starts_with("https://") {
-            bail!("tls.public_url must start with https:// when tls.enabled is true");
-        }
-
-        if self.cert_path.as_os_str().is_empty() {
-            bail!("tls.cert_path cannot be empty");
-        }
-
-        if self.key_path.as_os_str().is_empty() {
-            bail!("tls.key_path cannot be empty");
-        }
-
-        self.acme.validate()?;
-        if self.acme.enabled {
-            let public_host = server::public_url_host(&self.public_url)
-                .context("tls.public_url must include a host")?;
-            let acme_host = server::normalize_host(&self.acme.identifier)
-                .context("tls.acme.identifier must be a valid host or IP address")?;
-            if public_host != acme_host {
-                bail!(
-                    "tls.public_url host `{public_host}` must match tls.acme.identifier `{acme_host}`"
-                );
-            }
-        }
-        Ok(())
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(default)]
-struct AcmeConfig {
-    enabled: bool,
-    staging: bool,
-    directory_url: Option<String>,
-    identifier: String,
-    contact: Vec<String>,
-    account_path: PathBuf,
-    profile: String,
-    renew_after_seconds: u64,
-    retry_timeout_seconds: u64,
-}
-
-impl Default for AcmeConfig {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            staging: false,
-            directory_url: None,
-            identifier: String::new(),
-            contact: Vec::new(),
-            account_path: PathBuf::from("validators_clock_acme_account.json"),
-            profile: "shortlived".to_owned(),
-            renew_after_seconds: 2 * 24 * 60 * 60,
-            retry_timeout_seconds: 60,
-        }
-    }
-}
-
-impl AcmeConfig {
-    fn validate(&self) -> Result<()> {
-        if !self.enabled {
-            return Ok(());
-        }
-
-        if self.identifier.trim().is_empty() {
-            bail!("tls.acme.identifier cannot be empty when ACME is enabled");
-        }
-
-        if self.account_path.as_os_str().is_empty() {
-            bail!("tls.acme.account_path cannot be empty");
-        }
-
-        if self.profile.trim().is_empty() {
-            bail!("tls.acme.profile cannot be empty");
-        }
-
-        if self.renew_after_seconds == 0 {
-            bail!("tls.acme.renew_after_seconds must be greater than zero");
-        }
-
-        if self.retry_timeout_seconds == 0 {
-            bail!("tls.acme.retry_timeout_seconds must be greater than zero");
-        }
-
-        tls::acme_identifier(&self.identifier)?;
-        Ok(())
-    }
-
-    fn directory_url(&self) -> String {
-        self.directory_url.clone().unwrap_or_else(|| {
-            if self.staging {
-                LetsEncrypt::Staging.url().to_owned()
-            } else {
-                LetsEncrypt::Production.url().to_owned()
-            }
-        })
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-struct ChainConfig {
-    id: String,
-    name: String,
-    rpc: String,
-    #[serde(default = "default_chain_color")]
-    color: String,
-    #[serde(default = "default_token_symbol")]
-    token_symbol: String,
-    #[serde(default)]
-    rpc_label: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -485,13 +251,13 @@ struct FrozenValidator {
 }
 
 #[derive(Debug, Clone)]
-struct CacheEntry {
+pub(crate) struct CacheEntry {
     fetched_at: u64,
     snapshot: ClockSnapshot,
 }
 
 type ValidatorHistory = HashMap<String, ValidatorElectionHistory>;
-type ValidatorRoundCache = RwLock<HashMap<String, ValidatorRoundData>>;
+pub(crate) type ValidatorRoundCache = RwLock<HashMap<String, ValidatorRoundData>>;
 
 struct ValidatorRoundHistoryScan<'a> {
     stake_at: u32,
@@ -500,14 +266,6 @@ struct ValidatorRoundHistoryScan<'a> {
     elections_end_before: u32,
     election_fee: u128,
     debug_history: bool,
-}
-
-struct AppState {
-    config: Arc<AppConfig>,
-    cache: RwLock<HashMap<String, CacheEntry>>,
-    validator_round_cache_path: PathBuf,
-    validator_round_cache: ValidatorRoundCache,
-    acme_challenges: RwLock<HashMap<String, String>>,
 }
 
 fn chains_response(config: &AppConfig) -> ChainsResponse {
@@ -1138,7 +896,9 @@ fn masterchain_hash_address(bytes: &[u8]) -> String {
     format!("-1:{}", hex_lower(bytes))
 }
 
-fn load_validator_round_disk_cache(path: &Path) -> Result<HashMap<String, ValidatorRoundData>> {
+pub(crate) fn load_validator_round_disk_cache(
+    path: &Path,
+) -> Result<HashMap<String, ValidatorRoundData>> {
     let content = match fs::read_to_string(path) {
         Ok(content) => content,
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(HashMap::new()),
@@ -1163,18 +923,6 @@ fn save_validator_round_disk_cache(
     fs::write(path, content).with_context(|| format!("failed to write {}", path.display()))
 }
 
-fn load_config(path: Option<&PathBuf>) -> Result<AppConfig> {
-    let content = match path {
-        Some(path) => fs::read_to_string(path)
-            .with_context(|| format!("failed to read config {}", path.display()))?,
-        None => {
-            fs::read_to_string("validators_clock.json").unwrap_or_else(|_| DEFAULT_CONFIG.into())
-        }
-    };
-
-    serde_json::from_str(&content).context("failed to parse validators clock config")
-}
-
 fn endpoint_label(endpoint: &str) -> String {
     endpoint
         .trim()
@@ -1182,26 +930,6 @@ fn endpoint_label(endpoint: &str) -> String {
         .trim_start_matches("http://")
         .trim_end_matches('/')
         .to_owned()
-}
-
-fn default_listen() -> String {
-    "127.0.0.1:8787".to_owned()
-}
-
-fn default_refresh_seconds() -> u64 {
-    60
-}
-
-fn default_cache_path() -> PathBuf {
-    PathBuf::from("validators_clock_cache.json")
-}
-
-fn default_chain_color() -> String {
-    "#38bdf8".to_owned()
-}
-
-fn default_token_symbol() -> String {
-    "TOKENS".to_owned()
 }
 
 fn now_sec() -> Result<u64> {
