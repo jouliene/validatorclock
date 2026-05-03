@@ -13,7 +13,7 @@ use tokio::sync::{RwLock, Semaphore};
 use tokio::time::{Duration, timeout};
 use tokio_rustls::TlsAcceptor;
 use tower::ServiceExt;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 mod routes;
 mod security;
@@ -126,7 +126,7 @@ async fn serve_tls_connections(
             let _permit = permit;
             match acceptor.accept(stream).await {
                 Ok(tls_stream) => serve_connection(tls_stream, app, "HTTPS").await,
-                Err(error) => warn!(error = ?error, "TLS handshake failed"),
+                Err(error) => debug!(error = ?error, "TLS handshake failed"),
             }
         });
     }
