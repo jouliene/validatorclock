@@ -43,7 +43,7 @@ ACME HTTP-01. This works with a bare IP address when Let's Encrypt IP
 certificates are available, but the certificate must use the `shortlived`
 profile.
 
-Example production settings for `104.238.222.200`, keeping runtime state outside
+Example production settings for `validatorsclock.xyz`, keeping runtime state outside
 the git checkout:
 
 ```json
@@ -52,7 +52,7 @@ the git checkout:
   "refresh_seconds": 60,
   "cache_path": "/home/admin/validators_clock_state/validators_clock_cache.json",
   "security": {
-    "allowed_hosts": ["104.238.222.200"],
+    "allowed_hosts": ["validatorsclock.xyz", "www.validatorsclock.xyz"],
     "allow_force_refresh": false,
     "max_connections": 128
   },
@@ -60,14 +60,14 @@ the git checkout:
     "enabled": true,
     "http_listen": "0.0.0.0:80",
     "https_listen": "0.0.0.0:443",
-    "public_url": "https://104.238.222.200",
+    "public_url": "https://validatorsclock.xyz",
     "cert_path": "/home/admin/validators_clock_state/acme/fullchain.pem",
     "key_path": "/home/admin/validators_clock_state/acme/privkey.pem",
     "acme": {
       "enabled": true,
       "staging": true,
-      "identifier": "104.238.222.200",
-      "extra_identifiers": [],
+      "identifier": "validatorsclock.xyz",
+      "extra_identifiers": ["www.validatorsclock.xyz"],
       "account_path": "/home/admin/validators_clock_state/acme/account.json",
       "profile": "shortlived",
       "renew_after_seconds": 172800,
@@ -120,7 +120,8 @@ mkdir -p /home/admin/validators_clock_state/acme
 
 ## Production systemd service
 
-Example service file at `/etc/systemd/system/validators-clock.service`:
+Example service file at `/etc/systemd/system/validators-clock.service` is kept
+in `deploy/validators-clock.service`:
 
 ```ini
 [Unit]
@@ -141,6 +142,21 @@ AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
 LimitNOFILE=1048576
+UMask=0077
+
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ReadOnlyPaths=/home/admin/validators_clock
+ReadWritePaths=/home/admin/validators_clock_state
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
 
 # Optional. The default is equivalent to warn,validators_clock=info.
 # Environment=RUST_LOG=validators_clock=info
@@ -148,6 +164,10 @@ LimitNOFILE=1048576
 [Install]
 WantedBy=multi-user.target
 ```
+
+The hardening assumes production state is outside the git checkout, for example
+`/home/admin/validators_clock_state`. If `cache_path`, ACME account, or TLS keys
+are placed elsewhere, add that directory to `ReadWritePaths`.
 
 Reload and start:
 
@@ -182,10 +202,10 @@ sudo systemctl status validators-clock.service --no-pager
 Basic checks:
 
 ```bash
-curl -I http://104.238.222.200
-curl -I https://104.238.222.200
-curl https://104.238.222.200/api/health
-curl https://104.238.222.200/api/status
+curl -I http://validatorsclock.xyz
+curl -I https://validatorsclock.xyz
+curl https://validatorsclock.xyz/api/health
+curl https://validatorsclock.xyz/api/status
 ```
 
 `/api/status` reports the app version, uptime, configured refresh interval, and

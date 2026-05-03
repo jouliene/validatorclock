@@ -14,8 +14,8 @@ use tower::ServiceExt;
 #[test]
 fn normalizes_host_header_values() {
     assert_eq!(
-        normalize_host("104.238.222.200:443").as_deref(),
-        Some("104.238.222.200")
+        normalize_host("203.0.113.10:443").as_deref(),
+        Some("203.0.113.10")
     );
     assert_eq!(
         normalize_host("Example.COM.").as_deref(),
@@ -35,14 +35,14 @@ fn normalizes_host_header_values() {
 #[test]
 fn builds_redirect_location_with_path_and_query() {
     assert_eq!(
-        redirect_location("https://104.238.222.200/", "/api/health?x=1"),
-        "https://104.238.222.200/api/health?x=1"
+        redirect_location("https://203.0.113.10/", "/api/health?x=1"),
+        "https://203.0.113.10/api/health?x=1"
     );
 }
 
 #[test]
 fn rejects_acme_identifier_with_port() {
-    assert!(tls::acme_identifier("104.238.222.200").is_ok());
+    assert!(tls::acme_identifier("203.0.113.10").is_ok());
     assert!(tls::acme_identifier("example.com").is_ok());
     assert!(tls::acme_identifier("example.com:443").is_err());
     assert!(tls::acme_identifier("https://example.com").is_err());
@@ -87,13 +87,10 @@ fn tls_public_url_must_match_one_acme_identifier() {
 
 #[test]
 fn checks_allowed_hosts_with_ports() {
-    let config = test_config(vec!["104.238.222.200".to_owned()]);
+    let config = test_config(vec!["203.0.113.10".to_owned()]);
 
     let mut allowed = HeaderMap::new();
-    allowed.insert(
-        header::HOST,
-        HeaderValue::from_static("104.238.222.200:443"),
-    );
+    allowed.insert(header::HOST, HeaderValue::from_static("203.0.113.10:443"));
     let mut rejected = HeaderMap::new();
     rejected.insert(header::HOST, HeaderValue::from_static("example.com"));
 

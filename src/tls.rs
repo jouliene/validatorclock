@@ -393,8 +393,8 @@ mod tests {
             "example.com"
         );
         assert_eq!(
-            normalize_certificate_identifier("104.238.222.200").unwrap(),
-            "104.238.222.200"
+            normalize_certificate_identifier("203.0.113.10").unwrap(),
+            "203.0.113.10"
         );
     }
 
@@ -417,8 +417,8 @@ mod tests {
     #[test]
     fn parses_ip_subject_alternative_names() {
         assert_eq!(
-            ip_address_from_san(&[104, 238, 222, 200]).unwrap(),
-            "104.238.222.200".parse::<IpAddr>().unwrap()
+            ip_address_from_san(&[203, 0, 113, 10]).unwrap(),
+            "203.0.113.10".parse::<IpAddr>().unwrap()
         );
         assert_eq!(ip_address_from_san(&[0, 1, 2]).as_ref(), None::<&IpAddr>);
     }
