@@ -209,6 +209,7 @@ function renderRuntimeStatus(now) {
 
   const status = state.runtimeStatus;
   const chain = status?.chains?.find((item) => item.id === state.selectedChainId);
+  container.hidden = false;
   container.className = "runtime-status is-starting";
   container.title = "Runtime status";
 
@@ -253,9 +254,10 @@ function renderRuntimeStatus(now) {
   }
 
   if (chain.cached) {
-    container.className = "runtime-status is-ok";
-    label.textContent = "Data fresh";
-    detail.textContent = age == null ? "cached" : `${formatDuration(age)} old`;
+    container.hidden = true;
+    container.title = "Runtime status: data fresh";
+    label.textContent = "";
+    detail.textContent = "";
     return;
   }
 

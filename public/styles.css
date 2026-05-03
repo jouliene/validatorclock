@@ -103,6 +103,10 @@ h1 {
   white-space: nowrap;
 }
 
+.runtime-status[hidden] {
+  display: none;
+}
+
 .runtime-dot {
   width: 7px;
   height: 7px;
@@ -826,6 +830,7 @@ dd {
 
   .header-updated {
     order: 3;
+    grid-column: 1 / -1;
     position: static;
     justify-content: center;
     width: 100%;
