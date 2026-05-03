@@ -1,5 +1,5 @@
+use crate::chain::{CacheEntry, ValidatorRoundCache, load_validator_round_disk_cache};
 use crate::config::AppConfig;
-use crate::{CacheEntry, ValidatorRoundCache, load_validator_round_disk_cache};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
