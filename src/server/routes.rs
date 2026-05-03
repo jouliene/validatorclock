@@ -20,6 +20,8 @@ use tracing::error;
 const INDEX_HTML: &str = include_str!("../../public/index.html");
 const STYLES_CSS: &str = include_str!("../../public/styles.css");
 const APP_JS: &str = include_str!("../../public/app.js");
+const EVERSCALE_LOGO_SVG: &str = include_str!("../../public/brands/everscale.svg");
+const TYCHO_LOGO_SVG: &str = include_str!("../../public/brands/tycho.svg");
 
 pub(super) fn app_router(state: Arc<AppState>) -> Router {
     let layers = ServiceBuilder::new()
@@ -35,6 +37,8 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/index.html", get(index))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
+        .route("/brands/everscale.svg", get(everscale_logo))
+        .route("/brands/tycho.svg", get(tycho_logo))
         .route("/api/health", get(health))
         .route("/api/chains", get(list_chains))
         .route("/api/chains/{chain_id}/clock", get(chain_clock))
@@ -76,6 +80,26 @@ async fn app_js() -> impl IntoResponse {
             HeaderValue::from_static("application/javascript; charset=utf-8"),
         )],
         APP_JS,
+    )
+}
+
+async fn everscale_logo() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("image/svg+xml; charset=utf-8"),
+        )],
+        EVERSCALE_LOGO_SVG,
+    )
+}
+
+async fn tycho_logo() -> impl IntoResponse {
+    (
+        [(
+            header::CONTENT_TYPE,
+            HeaderValue::from_static("image/svg+xml; charset=utf-8"),
+        )],
+        TYCHO_LOGO_SVG,
     )
 }
 

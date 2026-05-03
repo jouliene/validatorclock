@@ -18,6 +18,11 @@ const palette = {
   center: "#080a0f",
 };
 
+const chainLogos = {
+  everscale: "/brands/everscale.svg",
+  "tycho-testnet": "/brands/tycho.svg",
+};
+
 const $ = (id) => document.getElementById(id);
 
 async function fetchJson(url) {
@@ -57,9 +62,21 @@ function renderChainTabs() {
 
     const main = document.createElement("span");
     main.className = "chain-tab-main";
-    const swatch = document.createElement("span");
-    swatch.className = "chain-swatch";
-    main.append(swatch, document.createTextNode(chain.name));
+    const mark = document.createElement("span");
+    mark.className = "chain-mark";
+
+    const logoSrc = chainLogos[chain.id];
+    if (logoSrc) {
+      const logo = document.createElement("img");
+      logo.src = logoSrc;
+      logo.alt = "";
+      logo.decoding = "async";
+      mark.append(logo);
+    } else {
+      mark.classList.add("chain-swatch");
+    }
+
+    main.append(mark, document.createTextNode(chain.name));
 
     button.append(main);
 
@@ -312,6 +329,7 @@ function renderMetrics(snapshot, model, now) {
   $("metricGlobalId").textContent = snapshot.global_id;
   $("metricSeqno").textContent = snapshot.seqno;
   $("metricStatus").textContent = model.status;
+  $("activeRoundWindowCard").style.setProperty("--card-accent", roundAccentColor(snapshot.current_set.round_color));
   renderDateStack($("metricRound"), snapshot.current_set.utime_since, snapshot.current_set.utime_until);
   $("metricRoundEndsIn").textContent = formatDurationPrecise(Math.max(0, snapshot.current_set.utime_until - now));
   renderDateStack($("metricElections"), model.electionsStart, model.electionsEnd);
@@ -319,6 +337,10 @@ function renderMetrics(snapshot, model, now) {
     ? "open now"
     : formatDurationPrecise(Math.max(0, model.electionsStart - now));
   renderInfoUpdated($("metricFetched"), snapshot.fetched_at, now);
+}
+
+function roundAccentColor(color) {
+  return color === "green" ? "rgba(50, 175, 104, 0.78)" : "rgba(47, 147, 220, 0.78)";
 }
 
 function renderRoundPanelsIfNeeded(snapshot, model) {
