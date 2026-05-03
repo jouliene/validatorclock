@@ -1,6 +1,6 @@
 use super::routes::{app_router, challenge_redirect_router};
 use super::security::{normalize_host, redirect_location, request_host_allowed};
-use crate::config::{AppConfig, ChainConfig, SecurityConfig, TlsConfig};
+use crate::config::{AcmeConfig, AppConfig, ChainConfig, SecurityConfig, TlsConfig};
 use crate::state::AppState;
 use crate::tls;
 use axum::body::{Body, to_bytes};
@@ -47,6 +47,42 @@ fn rejects_acme_identifier_with_port() {
     assert!(tls::acme_identifier("example.com:443").is_err());
     assert!(tls::acme_identifier("https://example.com").is_err());
     assert!(tls::acme_identifier("[2001:db8::1]").is_err());
+}
+
+#[test]
+fn tls_public_url_can_match_extra_acme_identifier() {
+    let mut config = test_config(Vec::new());
+    config.tls = TlsConfig {
+        enabled: true,
+        public_url: "https://www.example.com".to_owned(),
+        acme: AcmeConfig {
+            enabled: true,
+            identifier: "example.com".to_owned(),
+            extra_identifiers: vec!["www.example.com".to_owned()],
+            ..AcmeConfig::default()
+        },
+        ..TlsConfig::default()
+    };
+
+    assert!(config.validate().is_ok());
+}
+
+#[test]
+fn tls_public_url_must_match_one_acme_identifier() {
+    let mut config = test_config(Vec::new());
+    config.tls = TlsConfig {
+        enabled: true,
+        public_url: "https://other.example.com".to_owned(),
+        acme: AcmeConfig {
+            enabled: true,
+            identifier: "example.com".to_owned(),
+            extra_identifiers: vec!["www.example.com".to_owned()],
+            ..AcmeConfig::default()
+        },
+        ..TlsConfig::default()
+    };
+
+    assert!(config.validate().is_err());
 }
 
 #[test]

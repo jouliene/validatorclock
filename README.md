@@ -65,6 +65,7 @@ the git checkout:
       "enabled": true,
       "staging": true,
       "identifier": "104.238.222.200",
+      "extra_identifiers": [],
       "account_path": "/home/admin/validators_clock_state/acme/account.json",
       "profile": "shortlived",
       "renew_after_seconds": 172800,
@@ -152,6 +153,11 @@ sudo systemctl status validators-clock.service --no-pager
 The HTTP listener only serves ACME challenges and redirects all other requests to
 `tls.public_url`. HTTPS responses include basic browser security headers, and
 `security.allowed_hosts` rejects unexpected Host headers when configured.
+
+For a domain that should work with and without `www`, keep `public_url` on the
+canonical host and add the other names to `tls.acme.extra_identifiers`, for
+example `"identifier": "validatorsclock.xyz"` and
+`"extra_identifiers": ["www.validatorsclock.xyz"]`.
 
 ## Production updates
 

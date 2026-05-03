@@ -113,7 +113,11 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
     let acme = &tls.acme;
 
     let account = load_or_create_acme_account(acme).await?;
-    let identifiers = vec![acme_identifier(&acme.identifier)?];
+    let identifier_names = acme.identifier_values().collect::<Vec<_>>();
+    let identifiers = identifier_names
+        .iter()
+        .map(|identifier| acme_identifier(identifier))
+        .collect::<Result<Vec<_>>>()?;
     let order_request = NewOrder::new(&identifiers).profile(&acme.profile);
     let mut order = account
         .new_order(&order_request)
@@ -174,7 +178,7 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
     write_file_atomic(&tls.cert_path, cert_chain_pem.as_bytes(), 0o644)?;
     write_file_atomic(&tls.key_path, private_key_pem.as_bytes(), 0o600)?;
     info!(
-        identifier = %acme.identifier,
+        identifiers = %identifier_names.join(","),
         profile = %acme.profile,
         "issued ACME certificate"
     );

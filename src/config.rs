@@ -137,11 +137,19 @@ impl TlsConfig {
         if self.acme.enabled {
             let public_host = server::public_url_host(&self.public_url)
                 .context("tls.public_url must include a host")?;
-            let acme_host = server::normalize_host(&self.acme.identifier)
-                .context("tls.acme.identifier must be a valid host or IP address")?;
-            if public_host != acme_host {
+            let mut public_host_has_certificate = false;
+            for identifier in self.acme.identifier_values() {
+                let acme_host = server::normalize_host(identifier)
+                    .with_context(|| format!("tls.acme identifier `{identifier}` is invalid"))?;
+                if public_host == acme_host {
+                    public_host_has_certificate = true;
+                    break;
+                }
+            }
+
+            if !public_host_has_certificate {
                 bail!(
-                    "tls.public_url host `{public_host}` must match tls.acme.identifier `{acme_host}`"
+                    "tls.public_url host `{public_host}` must match tls.acme.identifier or one of tls.acme.extra_identifiers"
                 );
             }
         }
@@ -156,6 +164,7 @@ pub(crate) struct AcmeConfig {
     pub(crate) staging: bool,
     pub(crate) directory_url: Option<String>,
     pub(crate) identifier: String,
+    pub(crate) extra_identifiers: Vec<String>,
     pub(crate) contact: Vec<String>,
     pub(crate) account_path: PathBuf,
     pub(crate) profile: String,
@@ -170,6 +179,7 @@ impl Default for AcmeConfig {
             staging: false,
             directory_url: None,
             identifier: String::new(),
+            extra_identifiers: Vec::new(),
             contact: Vec::new(),
             account_path: PathBuf::from("validators_clock_acme_account.json"),
             profile: "shortlived".to_owned(),
@@ -206,7 +216,18 @@ impl AcmeConfig {
         }
 
         tls::acme_identifier(&self.identifier)?;
+        for identifier in &self.extra_identifiers {
+            if identifier.trim().is_empty() {
+                bail!("tls.acme.extra_identifiers cannot contain empty identifiers");
+            }
+            tls::acme_identifier(identifier)?;
+        }
         Ok(())
+    }
+
+    pub(crate) fn identifier_values(&self) -> impl Iterator<Item = &str> {
+        std::iter::once(self.identifier.as_str())
+            .chain(self.extra_identifiers.iter().map(String::as_str))
     }
 
     pub(crate) fn directory_url(&self) -> String {
