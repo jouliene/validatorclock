@@ -6,7 +6,7 @@ use axum::http::header::{self, HeaderName, HeaderValue};
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use serde_json::json;
+use serde::Serialize;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -25,7 +25,7 @@ pub(super) async fn enforce_allowed_host(
     next: Next,
 ) -> Response {
     if !request_host_allowed(request.headers(), &state.config) {
-        return json_error(StatusCode::BAD_REQUEST, "bad host");
+        return json_error(StatusCode::BAD_REQUEST, "bad_host", "bad host");
     }
 
     next.run(request).await
@@ -39,7 +39,7 @@ pub(super) async fn add_security_headers(request: Request, next: Next) -> Respon
 
 pub(super) fn redirect_response(state: &AppState, headers: &HeaderMap, uri: &Uri) -> Response {
     if !request_host_allowed(headers, &state.config) {
-        return json_error(StatusCode::BAD_REQUEST, "bad host");
+        return json_error(StatusCode::BAD_REQUEST, "bad_host", "bad host");
     }
 
     let location = redirect_location(
@@ -51,6 +51,7 @@ pub(super) fn redirect_response(state: &AppState, headers: &HeaderMap, uri: &Uri
     let Ok(location) = HeaderValue::from_str(&location) else {
         return json_error(
             StatusCode::INTERNAL_SERVER_ERROR,
+            "invalid_redirect_location",
             "invalid redirect location",
         );
     };
@@ -88,8 +89,21 @@ fn add_common_headers(headers: &mut HeaderMap) {
     );
 }
 
-pub(super) fn json_error(status: StatusCode, message: &str) -> Response {
-    (status, Json(json!({ "error": message }))).into_response()
+#[derive(Serialize)]
+struct ApiError<'a> {
+    error: &'a str,
+    code: &'a str,
+}
+
+pub(super) fn json_error(status: StatusCode, code: &str, message: &str) -> Response {
+    (
+        status,
+        Json(ApiError {
+            error: message,
+            code,
+        }),
+    )
+        .into_response()
 }
 
 pub(super) fn redirect_location(public_url: &str, target: &str) -> String {

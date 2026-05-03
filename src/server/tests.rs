@@ -6,6 +6,7 @@ use crate::tls;
 use axum::body::{Body, to_bytes};
 use axum::http::header;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
+use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -107,8 +108,47 @@ async fn app_router_rejects_bad_host() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
-    assert_eq!(&body[..], br#"{"error":"bad host"}"#);
+    let body = response_json(response).await;
+    assert_eq!(body["error"], "bad host");
+    assert_eq!(body["code"], "bad_host");
+}
+
+#[tokio::test]
+async fn app_router_reports_unknown_chain() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/missing/clock")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body = response_json(response).await;
+    assert_eq!(body["error"], "unknown chain id `missing`");
+    assert_eq!(body["code"], "unknown_chain");
+}
+
+#[tokio::test]
+async fn app_router_reports_not_found_code() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/missing")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body = response_json(response).await;
+    assert_eq!(body["error"], "not found");
+    assert_eq!(body["code"], "not_found");
 }
 
 #[tokio::test]
@@ -136,6 +176,11 @@ async fn challenge_route_is_available_before_host_check() {
     assert_eq!(response.status(), StatusCode::OK);
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     assert_eq!(&body[..], b"challenge-value");
+}
+
+async fn response_json(response: axum::response::Response) -> Value {
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    serde_json::from_slice(&body).unwrap()
 }
 
 fn test_config(allowed_hosts: Vec<String>) -> AppConfig {

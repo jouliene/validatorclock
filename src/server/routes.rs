@@ -93,12 +93,21 @@ async fn chain_clock(
     Query(query): Query<HashMap<String, String>>,
 ) -> Response {
     let force_refresh = state.config.security.allow_force_refresh && query_forces_refresh(&query);
+    if state.config.chain(&chain_id).is_none() {
+        return json_error(
+            StatusCode::NOT_FOUND,
+            "unknown_chain",
+            &format!("unknown chain id `{chain_id}`"),
+        );
+    }
+
     match get_chain_snapshot(&state, &chain_id, force_refresh).await {
         Ok(snapshot) => Json(snapshot).into_response(),
         Err(error) => {
             error!(chain_id, error = ?error, "snapshot request failed");
             json_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
+                "chain_snapshot_failed",
                 "failed to fetch chain snapshot",
             )
         }
@@ -134,5 +143,5 @@ async fn redirect_to_https(
 }
 
 async fn not_found() -> Response {
-    json_error(StatusCode::NOT_FOUND, "not found")
+    json_error(StatusCode::NOT_FOUND, "not_found", "not found")
 }
