@@ -648,7 +648,7 @@ function renderValidators(container, validators, options) {
 
   const header = document.createElement("div");
   header.className = "validator-header";
-  for (const label of ["No.", "Validator", "Public key", "Stake", "Rewards", "Weight"]) {
+  for (const label of ["#", "Validator", "Public key", "Stake", "Rewards", "Weight"]) {
     const cell = document.createElement("div");
     cell.className = `validator-cell${["Stake", "Rewards", "Weight"].includes(label) ? " validator-number" : ""}`;
     cell.textContent = label;
