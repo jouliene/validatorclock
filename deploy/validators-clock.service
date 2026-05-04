@@ -8,7 +8,7 @@ Type=simple
 User=admin
 Group=admin
 WorkingDirectory=/home/admin/validators_clock
-ExecStart=/home/admin/validators_clock/target/release/validators_clock --config /home/admin/validators_clock/validators_clock.production.json
+ExecStart=/home/admin/.cargo/bin/validators_clock --config /home/admin/.validators_clock/validators_clock.production.json
 Restart=always
 RestartSec=5
 
@@ -21,8 +21,8 @@ UMask=0077
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
-ReadOnlyPaths=/home/admin/validators_clock
-ReadWritePaths=/home/admin/validators_clock_state
+ReadOnlyPaths=/home/admin/validators_clock /home/admin/.cargo/bin
+ReadWritePaths=/home/admin/.validators_clock
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
@@ -32,8 +32,7 @@ RestrictSUIDSGID=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 SystemCallArchitectures=native
 
-# Optional. The default is equivalent to warn,validators_clock=info.
-# Environment=RUST_LOG=validators_clock=info
+Environment=RUST_LOG=warn,validators_clock=info
 
 [Install]
 WantedBy=multi-user.target

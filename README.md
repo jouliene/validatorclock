@@ -50,16 +50,53 @@ certificates are available, but the certificate must use the `shortlived`
 profile. Domain certificates do not need a profile; when `tls.acme.profile` is
 omitted, Let's Encrypt chooses its default profile.
 
-Example production settings for `validatorsclock.xyz`, keeping runtime state outside
-the git checkout:
+The recommended production layout keeps the git checkout at
+`~/validators_clock`, the installed binary at `~/.cargo/bin/validators_clock`,
+and runtime state in the hidden directory `~/.validators_clock`.
+
+Fresh install:
+
+```bash
+git clone https://github.com/jouliene/validators_clock.git ~/validators_clock
+cd ~/validators_clock
+./install.sh
+```
+
+Update an existing install without touching runtime data:
+
+```bash
+cd ~/validators_clock
+git pull --ff-only
+./install.sh
+```
+
+`install.sh` creates `~/.validators_clock` and `~/.validators_clock/acme`,
+copies any legacy `~/validators_clock_state` files into the hidden directory
+without overwriting existing files, creates
+`~/.validators_clock/validators_clock.production.json` only when it is missing,
+builds the release binary, installs it to `~/.cargo/bin`, installs the systemd
+unit, and restarts `validators-clock.service`.
+
+The script does not overwrite history, cache, validator type, ACME account, TLS
+certificate, TLS key, or an existing production config in `~/.validators_clock`.
+
+Environment overrides for install:
+
+```bash
+VALIDATORS_CLOCK_PUBLIC_URL=https://validatorsclock.xyz ./install.sh
+VALIDATORS_CLOCK_ACME_STAGING=true ./install.sh
+VALIDATORS_CLOCK_STATE_DIR=/home/admin/.validators_clock ./install.sh
+```
+
+Example generated production settings for `validatorsclock.xyz`:
 
 ```json
 {
   "listen": "127.0.0.1:8787",
   "refresh_seconds": 60,
   "refresh_timeout_seconds": 90,
-  "cache_path": "/home/admin/validators_clock_state/validators_clock_cache.json",
-  "history_path": "/home/admin/validators_clock_state/validators_clock_history.json",
+  "cache_path": "/home/admin/.validators_clock/validators_clock_cache.json",
+  "history_path": "/home/admin/.validators_clock/validators_clock_history.json",
   "security": {
     "allowed_hosts": ["validatorsclock.xyz", "www.validatorsclock.xyz"],
     "allow_force_refresh": false,
@@ -70,14 +107,14 @@ the git checkout:
     "http_listen": "0.0.0.0:80",
     "https_listen": "0.0.0.0:443",
     "public_url": "https://validatorsclock.xyz",
-    "cert_path": "/home/admin/validators_clock_state/acme/fullchain.pem",
-    "key_path": "/home/admin/validators_clock_state/acme/privkey.pem",
+    "cert_path": "/home/admin/.validators_clock/acme/fullchain.pem",
+    "key_path": "/home/admin/.validators_clock/acme/privkey.pem",
     "acme": {
       "enabled": true,
-      "staging": true,
+      "staging": false,
       "identifier": "validatorsclock.xyz",
       "extra_identifiers": ["www.validatorsclock.xyz"],
-      "account_path": "/home/admin/validators_clock_state/acme/account.json",
+      "account_path": "/home/admin/.validators_clock/acme/account.json",
       "renew_after_seconds": 2592000,
       "retry_timeout_seconds": 60
     }
@@ -103,8 +140,11 @@ the git checkout:
 }
 ```
 
-First run with `"staging": true`; after issuance works, switch it to `false` for
-a trusted production certificate.
+By default `install.sh` creates a production ACME config with `"staging": false`.
+To test issuance safely before requesting a trusted certificate, run the first
+install with `VALIDATORS_CLOCK_ACME_STAGING=true ./install.sh`, then edit
+`~/.validators_clock/validators_clock.production.json` and set `"staging": false`
+before restarting.
 
 `history_path` is a base path. Runtime history is written per chain by adding the
 chain id before the extension, for example
@@ -128,16 +168,11 @@ sudo ufw allow 80/tcp comment 'validators-clock HTTP ACME'
 sudo ufw allow 443/tcp comment 'validators-clock HTTPS'
 ```
 
-Create the state directory once:
-
-```bash
-mkdir -p /home/admin/validators_clock_state/acme
-```
-
 ## Production systemd service
 
-Example service file at `/etc/systemd/system/validators-clock.service` is kept
-in `deploy/validators-clock.service`:
+`install.sh` writes `/etc/systemd/system/validators-clock.service` for the
+current deployment user. An example service file is kept in
+`deploy/validators-clock.service`:
 
 ```ini
 [Unit]
@@ -150,7 +185,7 @@ Type=simple
 User=admin
 Group=admin
 WorkingDirectory=/home/admin/validators_clock
-ExecStart=/home/admin/validators_clock/target/release/validators_clock --config /home/admin/validators_clock/validators_clock.production.json
+ExecStart=/home/admin/.cargo/bin/validators_clock --config /home/admin/.validators_clock/validators_clock.production.json
 Restart=always
 RestartSec=5
 
@@ -163,8 +198,8 @@ UMask=0077
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
-ReadOnlyPaths=/home/admin/validators_clock
-ReadWritePaths=/home/admin/validators_clock_state
+ReadOnlyPaths=/home/admin/validators_clock /home/admin/.cargo/bin
+ReadWritePaths=/home/admin/.validators_clock
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
@@ -174,19 +209,17 @@ RestrictSUIDSGID=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 SystemCallArchitectures=native
 
-# Optional. The default is equivalent to warn,validators_clock=info.
-# Environment=RUST_LOG=validators_clock=info
+Environment=RUST_LOG=warn,validators_clock=info
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-The hardening assumes production state is outside the git checkout, for example
-`/home/admin/validators_clock_state`. If `cache_path`, `history_path`, ACME
-account, or TLS keys are placed elsewhere, add that directory to
-`ReadWritePaths`.
+The hardening assumes production state is outside the git checkout in
+`/home/admin/.validators_clock`. If `cache_path`, `history_path`, ACME account,
+or TLS keys are placed elsewhere, add that directory to `ReadWritePaths`.
 
-Reload and start:
+Manual reload and start if you are not using `install.sh`:
 
 ```bash
 sudo systemctl daemon-reload
@@ -211,9 +244,7 @@ From the server checkout:
 ```bash
 cd /home/admin/validators_clock
 git pull --ff-only origin main
-cargo build --release
-sudo systemctl restart validators-clock.service
-sudo systemctl status validators-clock.service --no-pager
+./install.sh
 ```
 
 Basic checks:
