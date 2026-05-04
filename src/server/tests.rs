@@ -1,6 +1,7 @@
 use super::assets::asset_version;
 use super::routes::{app_router, challenge_redirect_router};
 use super::security::{normalize_host, redirect_location, request_host_allowed};
+use crate::chain::{test_cache_entry, test_clock_snapshot};
 use crate::config::{AcmeConfig, AppConfig, ChainConfig, SecurityConfig, TlsConfig};
 use crate::state::AppState;
 use crate::tls;
@@ -10,6 +11,7 @@ use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tower::ServiceExt;
 
 #[test]
@@ -150,6 +152,7 @@ async fn app_router_serves_health_with_security_headers() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
     assert_eq!(
         response
             .headers()
@@ -184,7 +187,7 @@ async fn app_router_versions_and_caches_static_assets() {
     assert!(body.contains(&format!("/styles.css?v={asset_version}")));
     assert!(body.contains(&format!("/app.js?v={asset_version}")));
 
-    let response = app_router(state)
+    let response = app_router(Arc::clone(&state))
         .oneshot(
             Request::builder()
                 .uri(format!("/styles.css?v={asset_version}"))
@@ -195,6 +198,11 @@ async fn app_router_versions_and_caches_static_assets() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(
+        response.headers(),
+        header::CONTENT_TYPE,
+        "text/css; charset=utf-8",
+    );
     assert_eq!(
         response
             .headers()
@@ -202,6 +210,78 @@ async fn app_router_versions_and_caches_static_assets() {
             .and_then(|value| value.to_str().ok()),
         Some("public, max-age=31536000, immutable")
     );
+
+    let response = app_router(Arc::clone(&state))
+        .oneshot(
+            Request::builder()
+                .uri(format!("/app.js?v={asset_version}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(
+        response.headers(),
+        header::CONTENT_TYPE,
+        "application/javascript; charset=utf-8",
+    );
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("public, max-age=31536000, immutable")
+    );
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri(format!("/brands/everscale.svg?v={asset_version}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(
+        response.headers(),
+        header::CONTENT_TYPE,
+        "image/svg+xml; charset=utf-8",
+    );
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("public, max-age=31536000, immutable")
+    );
+}
+
+#[tokio::test]
+async fn app_router_lists_configured_chains() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
+    let body = response_json(response).await;
+    assert_eq!(body["refresh_seconds"], 60);
+    assert_eq!(body["chains"][0]["id"], "test");
+    assert_eq!(body["chains"][0]["name"], "Test");
+    assert_eq!(body["chains"][0]["color"], "#38bdf8");
+    assert_eq!(body["chains"][0]["token_symbol"], "TEST");
+    assert_eq!(body["chains"][0]["rpc_label"], "example.com");
 }
 
 #[tokio::test]
@@ -222,13 +302,81 @@ async fn app_router_serves_runtime_status() {
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
     let body = response_json(response).await;
     assert_eq!(body["status"], "degraded");
     assert_eq!(body["version"], env!("CARGO_PKG_VERSION"));
+    assert!(body["started_at"].is_number());
+    assert!(body["uptime_seconds"].is_number());
+    assert_eq!(body["refresh_seconds"], 60);
     assert_eq!(body["refresh_timeout_seconds"], 90);
     assert_eq!(body["chains"][0]["id"], "test");
+    assert_eq!(body["chains"][0]["name"], "Test");
     assert_eq!(body["chains"][0]["cached"], false);
+    assert_eq!(body["chains"][0]["fetched_at"], Value::Null);
+    assert_eq!(body["chains"][0]["age_seconds"], Value::Null);
+    assert_eq!(body["chains"][0]["stale"], true);
+    assert_eq!(body["chains"][0]["last_attempt_at"], 123);
+    assert_eq!(body["chains"][0]["last_success_at"], Value::Null);
     assert_eq!(body["chains"][0]["last_error"], "rpc down");
+}
+
+#[tokio::test]
+async fn app_router_serves_cached_clock_shape() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let snapshot = test_clock_snapshot("test");
+    state.cache.write().await.insert(
+        "test".to_owned(),
+        test_cache_entry(now_sec_for_test(), snapshot),
+    );
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/test/clock")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
+    let body = response_json(response).await;
+    assert_eq!(body["chain"]["id"], "test");
+    assert_eq!(body["chain"]["name"], "Test");
+    assert_eq!(body["fetched_at"], 123);
+    assert_eq!(body["global_id"], 42);
+    assert_eq!(body["seqno"], 7);
+    assert_eq!(body["params15"]["validators_elected_for"], 65536);
+    assert_eq!(body["current_set"]["round_id"], 10);
+    assert_eq!(body["current_set"]["round_color"], "blue");
+    assert_eq!(
+        body["current_set"]["validators"][0]["public_key"],
+        "validator-key"
+    );
+    assert_eq!(
+        body["current_set"]["validators"][0]["history"]
+            .as_array()
+            .unwrap()
+            .len(),
+        5
+    );
+    assert_eq!(
+        body["current_set"]["validators"][0]["history"][4]["status"],
+        "unknown"
+    );
+    assert_eq!(
+        body["current_set"]["recent_absent_validators"]
+            .as_array()
+            .unwrap()
+            .len(),
+        0
+    );
+    assert_eq!(body["previous_set"], Value::Null);
+    assert_eq!(body["next_set"], Value::Null);
+    assert_eq!(body["election"]["candidates"].as_array().unwrap().len(), 0);
+    assert_eq!(body["warning"], Value::Null);
 }
 
 #[tokio::test]
@@ -321,6 +469,24 @@ async fn challenge_route_is_available_before_host_check() {
 async fn response_json(response: axum::response::Response) -> Value {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     serde_json::from_slice(&body).unwrap()
+}
+
+fn assert_header_starts_with(headers: &HeaderMap, name: header::HeaderName, expected: &str) {
+    let value = headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+    assert!(
+        value.starts_with(expected),
+        "expected header to start with `{expected}`, got `{value}`"
+    );
+}
+
+fn now_sec_for_test() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
 }
 
 fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
