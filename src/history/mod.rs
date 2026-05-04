@@ -169,6 +169,69 @@ mod tests {
     }
 
     #[test]
+    fn recent_absent_validators_show_prior_participation_and_current_miss() {
+        let mut store = RoundHistoryStore::default();
+        let chain = store.chains.entry("test".to_owned()).or_default();
+        chain.record_set(&set(2, RoundColor::Blue, vec!["alice"]), 100);
+        chain.record_set(&set(4, RoundColor::Blue, vec!["bob"]), 100);
+        chain.record_set(&set(6, RoundColor::Blue, vec!["alice"]), 100);
+        chain.record_set(&set(8, RoundColor::Blue, vec!["bob"]), 100);
+        chain.record_set(&set(10, RoundColor::Blue, vec!["alice"]), 100);
+
+        let current_validators = ValidatorIdentitySet::from_validators(&[validator("alice")]);
+        let absent =
+            store.recent_absent_validators("test", 10, RoundColor::Blue, &current_validators);
+
+        assert_eq!(absent.len(), 1);
+        assert_eq!(absent[0].public_key, "bob");
+        assert_eq!(absent[0].last_seen_round, 8);
+        assert_eq!(
+            absent[0]
+                .history
+                .iter()
+                .map(|entry| entry.round)
+                .collect::<Vec<_>>(),
+            vec![2, 4, 6, 8, 10]
+        );
+        assert!(matches!(
+            absent[0].history[0].status,
+            ParticipationStatus::Missed
+        ));
+        assert!(matches!(
+            absent[0].history[1].status,
+            ParticipationStatus::Participated
+        ));
+        assert!(matches!(
+            absent[0].history[2].status,
+            ParticipationStatus::Missed
+        ));
+        assert!(matches!(
+            absent[0].history[3].status,
+            ParticipationStatus::Participated
+        ));
+        assert!(matches!(
+            absent[0].history[4].status,
+            ParticipationStatus::Missed
+        ));
+    }
+
+    #[test]
+    fn recent_absent_validators_exclude_full_window_misses() {
+        let mut store = RoundHistoryStore::default();
+        let chain = store.chains.entry("test".to_owned()).or_default();
+        chain.record_set(&set(0, RoundColor::Blue, vec!["bob"]), 100);
+        for round_id in [2_u32, 4, 6, 8, 10] {
+            chain.record_set(&set(round_id, RoundColor::Blue, vec!["alice"]), 100);
+        }
+
+        let current_validators = ValidatorIdentitySet::from_validators(&[validator("alice")]);
+        let absent =
+            store.recent_absent_validators("test", 10, RoundColor::Blue, &current_validators);
+
+        assert!(absent.is_empty());
+    }
+
+    #[test]
     fn legacy_incomplete_round_history_never_marks_missing_validators_as_missed() {
         let mut store = RoundHistoryStore::default();
         let chain = store.chains.entry("test".to_owned()).or_default();
