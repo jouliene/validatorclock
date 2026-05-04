@@ -1,4 +1,5 @@
-use super::routes::{app_router, asset_version, challenge_redirect_router};
+use super::assets::asset_version;
+use super::routes::{app_router, challenge_redirect_router};
 use super::security::{normalize_host, redirect_location, request_host_allowed};
 use crate::config::{AcmeConfig, AppConfig, ChainConfig, SecurityConfig, TlsConfig};
 use crate::state::AppState;
