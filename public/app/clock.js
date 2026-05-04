@@ -94,9 +94,11 @@ function drawClock(model) {
   drawCircle(svg, center, center, inner + 1, "url(#centerWell)", "rgba(255, 255, 255, 0.07)", 1);
   drawCircle(svg, center, center, inner - 13, "none", "rgba(90, 160, 185, 0.13)", 1);
   drawSeam(svg, center, inner, outer);
-  drawArcStroke(svg, center, center, electionRadius, model.electionArc.startAngle, model.electionArc.sweepAngle, "url(#electionArc)", 11, "url(#arcGlow)");
-  drawArcEndpoint(svg, center, center, electionRadius, model.electionArc.startAngle);
-  drawArcEndpoint(svg, center, center, electionRadius, model.electionArc.startAngle + model.electionArc.sweepAngle);
+  drawArcStroke(svg, center, center, electionRadius, model.electionArc.startAngle, model.electionArc.sweepAngle, "rgba(0, 4, 7, 0.72)", 17);
+  drawArcStroke(svg, center, center, electionRadius, model.electionArc.startAngle, model.electionArc.sweepAngle, "url(#electionArc)", 12, "url(#arcGlow)");
+  drawArcStroke(svg, center, center, electionRadius, model.electionArc.startAngle, model.electionArc.sweepAngle, "rgba(255, 250, 181, 0.62)", 2.4);
+  drawArcEndpoint(svg, center, center, electionRadius, model.electionArc.startAngle, model.inElections);
+  drawArcEndpoint(svg, center, center, electionRadius, model.electionArc.startAngle + model.electionArc.sweepAngle, model.inElections);
   drawNeedle(svg, center, center, electionRadius + 4, model.angle);
   drawCircle(svg, center, center, 21, "url(#hubRing)", "rgba(255, 255, 255, 0.14)", 1);
   drawCircle(svg, center, center, 13, "url(#hub)", "rgba(255, 255, 255, 0.3)", 1);
@@ -147,20 +149,22 @@ function drawDefs(svg) {
       <stop offset="0.82" stop-color="#03080d"/>
       <stop offset="1" stop-color="#000307"/>
     </linearGradient>
-    <linearGradient id="blueRound" x1="104" y1="82" x2="236" y2="430" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#7af0ff"/>
-      <stop offset="0.24" stop-color="#42c9f8"/>
-      <stop offset="0.56" stop-color="#2499dd"/>
-      <stop offset="0.83" stop-color="#176cae"/>
-      <stop offset="1" stop-color="#0f4a7f"/>
-    </linearGradient>
-    <linearGradient id="greenRound" x1="304" y1="80" x2="420" y2="430" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#8fffb0"/>
-      <stop offset="0.26" stop-color="#54dd85"/>
-      <stop offset="0.6" stop-color="#2eb36c"/>
-      <stop offset="0.84" stop-color="#1e8052"/>
-      <stop offset="1" stop-color="#14583d"/>
-    </linearGradient>
+    <radialGradient id="blueRound" cx="256" cy="256" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#02070c"/>
+      <stop offset="0.39" stop-color="#07121b"/>
+      <stop offset="0.47" stop-color="#0b3852"/>
+      <stop offset="0.64" stop-color="#1782c7"/>
+      <stop offset="0.83" stop-color="#35c5f8"/>
+      <stop offset="1" stop-color="#8cf3ff"/>
+    </radialGradient>
+    <radialGradient id="greenRound" cx="256" cy="256" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#02070c"/>
+      <stop offset="0.39" stop-color="#06151b"/>
+      <stop offset="0.47" stop-color="#0d3828"/>
+      <stop offset="0.64" stop-color="#24a861"/>
+      <stop offset="0.83" stop-color="#61ea91"/>
+      <stop offset="1" stop-color="#a4ffbd"/>
+    </radialGradient>
     <radialGradient id="dialGloss" cx="35%" cy="23%" r="76%">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
       <stop offset="0.16" stop-color="#ffffff" stop-opacity="0.1"/>
@@ -252,8 +256,8 @@ function drawGaugeTicks(svg, cx, cy, outerRadius, innerRadius) {
     const angle = -Math.PI / 2 + (index / 96) * Math.PI * 2;
     const isMajor = index % 12 === 0;
     const isHalf = index % 6 === 0;
-    const startRadius = innerRadius + (isMajor ? 18 : isHalf ? 25 : 32);
-    const endRadius = outerRadius - (isMajor ? 18 : isHalf ? 24 : 31);
+    const startRadius = innerRadius + (isMajor ? 17 : isHalf ? 22 : 27);
+    const endRadius = innerRadius + (isMajor ? 62 : isHalf ? 54 : 47);
     const start = polar(cx, cy, startRadius, angle);
     const end = polar(cx, cy, endRadius, angle);
     drawLine(svg, start, end, "rgba(0, 8, 12, 0.46)", isMajor ? 3.6 : isHalf ? 2.7 : 1.9);
@@ -277,10 +281,21 @@ function drawSeam(svg, center, innerRadius, outerRadius) {
   }
 }
 
-function drawArcEndpoint(svg, cx, cy, radius, angle) {
+function drawArcEndpoint(svg, cx, cy, radius, angle, active) {
   const point = polar(cx, cy, radius, angle);
-  drawCircle(svg, point.x, point.y, 6.2, "rgba(255, 214, 98, 0.24)", "none", 0);
-  drawCircle(svg, point.x, point.y, 3.8, "#ffe58a", "rgba(255, 255, 255, 0.9)", 1);
+  const glow = active ? 14 : 11;
+  const core = active ? 5.1 : 4.4;
+  drawCircle(svg, point.x, point.y, glow, "rgba(255, 214, 98, 0.24)", "none", 0);
+  drawCircle(svg, point.x, point.y, core, "#ffe58a", "rgba(255, 255, 255, 0.92)", 1);
+  drawSpark(svg, point.x, point.y, angle, active);
+}
+
+function drawSpark(svg, x, y, angle, active) {
+  const tangent = angle + Math.PI / 2;
+  const radialSize = active ? 13 : 9;
+  const tangentSize = active ? 10 : 7;
+  drawCenteredLine(svg, x, y, angle, radialSize, active ? "rgba(255, 244, 174, 0.88)" : "rgba(255, 232, 142, 0.5)", active ? 1.8 : 1.2);
+  drawCenteredLine(svg, x, y, tangent, tangentSize, active ? "rgba(255, 244, 174, 0.74)" : "rgba(255, 232, 142, 0.42)", active ? 1.5 : 1);
 }
 
 function drawNeedle(svg, cx, cy, radius, angle) {
@@ -311,6 +326,17 @@ function drawNeedlePolygon(svg, back, tip, angle, width, fill, filter = null) {
     needle.setAttribute("filter", filter);
   }
   svg.appendChild(needle);
+}
+
+function drawCenteredLine(svg, x, y, angle, length, stroke, strokeWidth) {
+  const half = length / 2;
+  drawLine(
+    svg,
+    { x: x - half * Math.cos(angle), y: y - half * Math.sin(angle) },
+    { x: x + half * Math.cos(angle), y: y + half * Math.sin(angle) },
+    stroke,
+    strokeWidth
+  );
 }
 
 function drawLine(svg, start, end, stroke, strokeWidth) {
