@@ -83,14 +83,14 @@ function drawClock(model) {
   }
 
   drawDonutSlice(svg, center, center, outer + 1, inner - 1, Math.PI / 2, Math.PI * 2 - 0.0001, "url(#dialGloss)", 0);
-  drawArcStroke(svg, center, center, outer - 12, Math.PI * 1.03, Math.PI * 0.42, "rgba(226, 253, 255, 0.28)", 7);
-  drawArcStroke(svg, center, center, outer - 12, Math.PI * 1.55, Math.PI * 0.32, "rgba(226, 255, 235, 0.18)", 6);
+  drawArcStroke(svg, center, center, outer - 13, Math.PI * 1.03, Math.PI * 0.42, "rgba(232, 253, 255, 0.22)", 6);
+  drawArcStroke(svg, center, center, outer - 13, Math.PI * 1.55, Math.PI * 0.32, "rgba(226, 255, 235, 0.15)", 5);
   drawCircle(svg, center, center, outer + 5, "none", "rgba(0, 7, 12, 0.72)", 5);
   drawCircle(svg, center, center, outer + 5, "none", "url(#bezelEdge)", 1.8);
   drawCircle(svg, center, center, outer - 2, "none", "rgba(255, 255, 255, 0.08)", 1);
   drawGaugeTicks(svg, center, center, outer, inner);
-  drawCircle(svg, center, center, inner + 11, "rgba(0, 3, 8, 0.76)", "rgba(255, 255, 255, 0.05)", 1);
-  drawCircle(svg, center, center, inner + 4, "none", "rgba(130, 210, 232, 0.2)", 2);
+  drawCircle(svg, center, center, inner + 14, "url(#centerLip)", "rgba(255, 255, 255, 0.06)", 1);
+  drawCircle(svg, center, center, inner + 6, "none", "rgba(147, 226, 244, 0.16)", 2);
   drawCircle(svg, center, center, inner + 1, "url(#centerWell)", "rgba(255, 255, 255, 0.07)", 1);
   drawCircle(svg, center, center, inner - 13, "none", "rgba(90, 160, 185, 0.13)", 1);
   drawSeam(svg, center, inner, outer);
@@ -153,17 +153,17 @@ function drawDefs(svg) {
       <stop offset="0" stop-color="#02070c"/>
       <stop offset="0.39" stop-color="#07121b"/>
       <stop offset="0.47" stop-color="#0b3852"/>
-      <stop offset="0.64" stop-color="#1782c7"/>
-      <stop offset="0.83" stop-color="#35c5f8"/>
-      <stop offset="1" stop-color="#8cf3ff"/>
+      <stop offset="0.65" stop-color="#167cc1"/>
+      <stop offset="0.86" stop-color="#37c7f8"/>
+      <stop offset="1" stop-color="#9cf4ff"/>
     </radialGradient>
     <radialGradient id="greenRound" cx="256" cy="256" r="210" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#02070c"/>
       <stop offset="0.39" stop-color="#06151b"/>
       <stop offset="0.47" stop-color="#0d3828"/>
-      <stop offset="0.64" stop-color="#24a861"/>
-      <stop offset="0.83" stop-color="#61ea91"/>
-      <stop offset="1" stop-color="#a4ffbd"/>
+      <stop offset="0.65" stop-color="#239d5d"/>
+      <stop offset="0.86" stop-color="#63e990"/>
+      <stop offset="1" stop-color="#b4ffc8"/>
     </radialGradient>
     <radialGradient id="dialGloss" cx="35%" cy="23%" r="76%">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
@@ -177,6 +177,12 @@ function drawDefs(svg) {
       <stop offset="0.44" stop-color="#07131c"/>
       <stop offset="0.78" stop-color="#02070c"/>
       <stop offset="1" stop-color="#000205"/>
+    </radialGradient>
+    <radialGradient id="centerLip" cx="50%" cy="45%" r="62%">
+      <stop offset="0" stop-color="#000307" stop-opacity="0.9"/>
+      <stop offset="0.7" stop-color="#02070c" stop-opacity="0.86"/>
+      <stop offset="0.86" stop-color="#11212a" stop-opacity="0.74"/>
+      <stop offset="1" stop-color="#5dc2d8" stop-opacity="0.2"/>
     </radialGradient>
     <radialGradient id="hubRing" cx="35%" cy="30%" r="72%">
       <stop offset="0" stop-color="#56636a"/>
@@ -256,12 +262,11 @@ function drawGaugeTicks(svg, cx, cy, outerRadius, innerRadius) {
     const angle = -Math.PI / 2 + (index / 96) * Math.PI * 2;
     const isMajor = index % 12 === 0;
     const isHalf = index % 6 === 0;
-    const startRadius = innerRadius + (isMajor ? 17 : isHalf ? 22 : 27);
-    const endRadius = innerRadius + (isMajor ? 62 : isHalf ? 54 : 47);
+    const startRadius = innerRadius + (isMajor ? 24 : isHalf ? 28 : 32);
+    const endRadius = innerRadius + (isMajor ? 56 : isHalf ? 51 : 46);
     const start = polar(cx, cy, startRadius, angle);
     const end = polar(cx, cy, endRadius, angle);
-    drawLine(svg, start, end, "rgba(0, 8, 12, 0.46)", isMajor ? 3.6 : isHalf ? 2.7 : 1.9);
-    drawLine(svg, start, end, isMajor ? "rgba(247, 253, 255, 0.78)" : "rgba(226, 249, 255, 0.38)", isMajor ? 1.8 : isHalf ? 1.15 : 0.72);
+    drawLine(svg, start, end, isMajor ? "rgba(238, 252, 255, 0.48)" : "rgba(226, 249, 255, 0.22)", isMajor ? 1.35 : isHalf ? 0.95 : 0.62);
   }
 }
 
