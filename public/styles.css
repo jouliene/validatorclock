@@ -179,7 +179,7 @@ h1::after {
 .top-grid {
   position: relative;
   display: grid;
-  min-height: 448px;
+  min-height: 488px;
   place-items: center;
   margin-top: -4px;
 }
@@ -188,8 +188,10 @@ h1::after {
   position: relative;
   isolation: isolate;
   display: grid;
+  width: 548px;
+  max-width: 100%;
   place-items: center;
-  min-height: 434px;
+  min-height: 482px;
   padding: 0;
 }
 
@@ -197,7 +199,7 @@ h1::after {
   content: "";
   position: absolute;
   z-index: -1;
-  width: min(54vw, 660px);
+  width: min(58vw, 720px);
   aspect-ratio: 1;
   border-radius: 50%;
   background:
@@ -207,7 +209,8 @@ h1::after {
 }
 
 #clockSvg {
-  width: min(100%, 456px);
+  width: 510px;
+  max-width: 100%;
   aspect-ratio: 1;
   height: auto;
   overflow: visible;
@@ -271,9 +274,11 @@ h1::after {
 }
 
 .network-panel {
+  top: 43%;
   right: 0;
   width: 414px;
-  min-height: 378px;
+  min-height: 0;
+  padding-bottom: 18px;
   display: grid;
   align-content: start;
   --panel-glow: rgba(47, 147, 220, 0.28);
@@ -281,6 +286,11 @@ h1::after {
 
 .network-panel dl div {
   grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+}
+
+.network-panel .chain-tabs {
+  margin-bottom: 10px;
 }
 
 h2 {
@@ -534,8 +544,9 @@ dd {
 }
 
 .network-panel dl div {
-  min-height: 44px;
+  min-height: 38px;
   padding: 0 14px;
+  align-items: center;
   border: 0;
   border-bottom: 1px solid rgba(150, 190, 216, 0.095);
   border-radius: 0;
@@ -549,15 +560,24 @@ dd {
 }
 
 .network-panel dt {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
   color: rgba(169, 204, 228, 0.8);
   font-size: 10.5px;
   font-weight: 760;
+  line-height: 1.2;
 }
 
 .network-panel dd {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: flex-end;
   color: rgba(245, 247, 251, 0.94);
   font-size: 13px;
   font-weight: 650;
+  line-height: 1.2;
 }
 
 .date-stack {
