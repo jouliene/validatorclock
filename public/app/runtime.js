@@ -1,0 +1,221 @@
+function setError(message) {
+  const banner = $("errorBanner");
+  banner.hidden = !message;
+  banner.textContent = message || "";
+}
+
+async function loadChains() {
+  const data = await fetchJson("/api/chains");
+  state.chains = data.chains;
+  state.refreshSeconds = data.refresh_seconds || 60;
+  state.selectedChainId = state.selectedChainId || state.chains[0]?.id;
+  renderChainTabs();
+}
+
+async function loadRuntimeStatus() {
+  try {
+    state.runtimeStatus = await fetchJson("/api/status");
+    renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+  } catch (error) {
+    state.runtimeStatus = {
+      status: "degraded",
+      chains: [],
+      error: error.message,
+    };
+    renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+  }
+}
+
+function renderChainTabs() {
+  const tabs = $("chainTabs");
+  tabs.replaceChildren();
+
+  for (const chain of state.chains) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "chain-tab";
+    button.setAttribute("role", "tab");
+    button.setAttribute("aria-selected", String(chain.id === state.selectedChainId));
+    button.style.setProperty("--chain-color", chain.color || palette.blue);
+
+    const main = document.createElement("span");
+    main.className = "chain-tab-main";
+    const mark = document.createElement("span");
+    mark.className = "chain-mark";
+
+    const logoSrc = chainLogos[chain.id];
+    if (logoSrc) {
+      const logo = document.createElement("img");
+      logo.src = logoSrc;
+      logo.alt = "";
+      logo.decoding = "async";
+      mark.append(logo);
+    } else {
+      mark.classList.add("chain-swatch");
+    }
+
+    main.append(mark, document.createTextNode(chain.name));
+
+    button.append(main);
+
+    button.addEventListener("click", () => selectChain(chain.id));
+    tabs.appendChild(button);
+  }
+}
+
+async function selectChain(chainId) {
+  state.selectedChainId = chainId;
+  state.snapshot = null;
+  state.roundRenderKey = null;
+  renderChainTabs();
+  clearClock();
+  renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+  await loadClock(true);
+  await loadRuntimeStatus();
+}
+
+async function loadClock(force = false) {
+  const chainId = state.selectedChainId;
+  if (!chainId) {
+    return;
+  }
+  if (state.clockLoading && !force) {
+    return;
+  }
+
+  const suffix = force ? "?refresh=1" : "";
+  const requestSeq = state.clockRequestSeq + 1;
+  state.clockRequestSeq = requestSeq;
+  state.clockLoading = true;
+  state.lastClockRefreshAttempt = Math.trunc(Date.now() / 1000);
+  try {
+    const snapshot = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/clock${suffix}`);
+    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+      return;
+    }
+    state.snapshot = snapshot;
+    state.roundRenderKey = null;
+    setError(snapshot.warning || "");
+    renderNow();
+  } finally {
+    if (requestSeq === state.clockRequestSeq) {
+      state.clockLoading = false;
+    }
+  }
+}
+
+function startTimers() {
+  window.clearInterval(state.pollTimer);
+  window.clearInterval(state.statusTimer);
+  window.clearInterval(state.drawTimer);
+
+  const pollSeconds = refreshPollSeconds();
+
+  state.pollTimer = window.setInterval(() => {
+    loadClock(false).catch((error) => setError(error.message));
+  }, pollSeconds * 1000);
+
+  state.statusTimer = window.setInterval(() => {
+    loadRuntimeStatus();
+  }, pollSeconds * 1000);
+
+  state.drawTimer = window.setInterval(renderNow, 1000);
+}
+
+function refreshPollSeconds() {
+  return Math.max(10, Math.floor(Math.max(10, state.refreshSeconds) / 2));
+}
+
+function renderNow() {
+  const now = Math.trunc(Date.now() / 1000);
+  renderRuntimeStatus(now);
+  refreshStaleSnapshot(now);
+
+  if (!state.snapshot) {
+    return;
+  }
+
+  const model = buildClockModel(state.snapshot, now);
+  drawClock(model);
+  renderMetrics(state.snapshot, model, now);
+  renderRoundPanelsIfNeeded(state.snapshot, model);
+}
+
+function refreshStaleSnapshot(now) {
+  if (!state.snapshot || state.clockLoading) {
+    return;
+  }
+
+  const refreshSeconds = Math.max(10, state.refreshSeconds);
+  const age = now - state.snapshot.fetched_at;
+  const attemptAge = now - state.lastClockRefreshAttempt;
+  if (age >= refreshSeconds && attemptAge >= 5) {
+    loadClock(false).catch((error) => setError(error.message));
+  }
+}
+
+function renderRuntimeStatus(now) {
+  const container = $("runtimeStatus");
+  const label = $("runtimeState");
+  const detail = $("runtimeFreshness");
+  if (!container || !label || !detail) {
+    return;
+  }
+
+  const status = state.runtimeStatus;
+  const chain = status?.chains?.find((item) => item.id === state.selectedChainId);
+  container.hidden = false;
+  container.className = "runtime-status is-starting";
+  container.title = "Runtime status";
+
+  if (!status) {
+    label.textContent = "Starting";
+    detail.textContent = "checking";
+    return;
+  }
+
+  if (status.error) {
+    container.className = "runtime-status is-bad";
+    container.title = status.error;
+    label.textContent = "Status error";
+    detail.textContent = "retrying";
+    return;
+  }
+
+  if (!chain) {
+    container.className = status.status === "degraded" ? "runtime-status is-warn" : "runtime-status is-starting";
+    label.textContent = status.status === "degraded" ? "Degraded" : "Starting";
+    detail.textContent = "warming cache";
+    return;
+  }
+
+  const displayedSnapshot = state.snapshot?.chain?.id === state.selectedChainId ? state.snapshot : null;
+  const freshnessAt = displayedSnapshot?.fetched_at || chain.fetched_at;
+  const age = freshnessAt ? Math.max(0, now - freshnessAt) : null;
+  if (chain.stale) {
+    container.className = "runtime-status is-bad";
+    container.title = chain.last_error || "Cached data is stale";
+    label.textContent = "Stale";
+    detail.textContent = age == null ? "no cache" : `${formatDuration(age)} old`;
+    return;
+  }
+
+  if (chain.last_error) {
+    container.className = "runtime-status is-warn";
+    container.title = chain.last_error;
+    label.textContent = "Retrying";
+    detail.textContent = age == null ? "no cache" : `${formatDuration(age)} old`;
+    return;
+  }
+
+  if (chain.cached) {
+    container.hidden = true;
+    container.title = "Runtime status: data fresh";
+    label.textContent = "";
+    detail.textContent = "";
+    return;
+  }
+
+  label.textContent = "Starting";
+  detail.textContent = "warming cache";
+}

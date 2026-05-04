@@ -234,6 +234,12 @@ async fn app_router_versions_and_caches_static_assets() {
             .and_then(|value| value.to_str().ok()),
         Some("public, max-age=31536000, immutable")
     );
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = String::from_utf8(body.to_vec()).unwrap();
+    assert!(body.contains("const state ="));
+    assert!(body.contains("function drawClock"));
+    assert!(body.contains("function renderValidators"));
+    assert!(body.contains("boot();"));
 
     let response = app_router(state)
         .oneshot(
