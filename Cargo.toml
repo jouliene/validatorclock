@@ -21,3 +21,11 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 tycho-types = { version = "0.3.4", features = ["abi"] }
 x509-parser = "0.18"
+
+[profile.release]
+lto = "fat"
+opt-level = 3
+codegen-units = 1
+panic = "abort"
+strip = true
+debug = false

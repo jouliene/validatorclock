@@ -25,6 +25,7 @@ Environment overrides:
   VALIDATORS_CLOCK_ACME_IDENTIFIER        default: host from public URL
   VALIDATORS_CLOCK_ACME_EXTRA_IDENTIFIERS default: www.<identifier>
   VALIDATORS_CLOCK_ACME_STAGING           default: false
+  VALIDATORS_CLOCK_RUSTFLAGS              default: -C target-cpu=native
   VALIDATORS_CLOCK_NO_RESTART             set to 1 to skip restart
 USAGE
 }
@@ -75,6 +76,8 @@ PUBLIC_HOST="${PUBLIC_HOST%%:*}"
 ACME_IDENTIFIER="${VALIDATORS_CLOCK_ACME_IDENTIFIER:-${PUBLIC_HOST}}"
 ACME_EXTRA_IDENTIFIERS="${VALIDATORS_CLOCK_ACME_EXTRA_IDENTIFIERS:-www.${ACME_IDENTIFIER}}"
 ACME_STAGING="${VALIDATORS_CLOCK_ACME_STAGING:-false}"
+PRODUCTION_RUSTFLAGS_DEFAULT="-C target-cpu=native"
+PRODUCTION_RUSTFLAGS="${VALIDATORS_CLOCK_RUSTFLAGS-$PRODUCTION_RUSTFLAGS_DEFAULT}"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
 case "$ACME_STAGING" in
@@ -147,6 +150,23 @@ ensure_cargo() {
   if ! command -v cargo >/dev/null 2>&1; then
     echo "cargo is still not available after rustup install" >&2
     exit 1
+  fi
+}
+
+build_release() {
+  local rustflags="$PRODUCTION_RUSTFLAGS"
+  if [[ -n "${RUSTFLAGS:-}" && -n "$rustflags" ]]; then
+    rustflags="${RUSTFLAGS} ${rustflags}"
+  elif [[ -z "$rustflags" ]]; then
+    rustflags="${RUSTFLAGS:-}"
+  fi
+
+  if [[ -n "$rustflags" ]]; then
+    echo "Production RUSTFLAGS: $rustflags"
+    RUSTFLAGS="$rustflags" cargo build --release --locked
+  else
+    echo "Production RUSTFLAGS: <none>"
+    cargo build --release --locked
   fi
 }
 
@@ -283,7 +303,7 @@ write_config_if_missing
 ensure_cargo
 
 echo "Building release binary"
-cargo build --release --locked
+build_release
 
 tmp_binary="${BIN_PATH}.new"
 install -m 0755 "${REPO_DIR}/target/release/${APP_NAME}" "$tmp_binary"
