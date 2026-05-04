@@ -69,7 +69,6 @@ RUN_GROUP="$(id -gn)"
 BIN_DIR="${HOME}/.cargo/bin"
 BIN_PATH="${BIN_DIR}/${APP_NAME}"
 STATE_DIR="${VALIDATORS_CLOCK_STATE_DIR:-${HOME}/.validators_clock}"
-LEGACY_STATE_DIR="${VALIDATORS_CLOCK_LEGACY_STATE_DIR:-${HOME}/validators_clock_state}"
 CONFIG_PATH="${VALIDATORS_CLOCK_CONFIG:-${STATE_DIR}/validators_clock.production.json}"
 ACME_DIR="${STATE_DIR}/acme"
 PUBLIC_URL="${VALIDATORS_CLOCK_PUBLIC_URL:-https://validatorsclock.xyz}"
@@ -250,11 +249,6 @@ echo "Config: $CONFIG_PATH"
 
 mkdir -p "$BIN_DIR" "$STATE_DIR" "$ACME_DIR"
 chmod 700 "$STATE_DIR" "$ACME_DIR"
-
-if [[ -d "$LEGACY_STATE_DIR" && "$LEGACY_STATE_DIR" != "$STATE_DIR" ]]; then
-  echo "Copying legacy state from $LEGACY_STATE_DIR into $STATE_DIR without overwriting existing files"
-  cp -an "$LEGACY_STATE_DIR"/. "$STATE_DIR"/
-fi
 
 write_config_if_missing
 

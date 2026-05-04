@@ -71,11 +71,9 @@ git pull --ff-only
 ```
 
 `install.sh` creates `~/.validators_clock` and `~/.validators_clock/acme`,
-copies any legacy `~/validators_clock_state` files into the hidden directory
-without overwriting existing files, creates
-`~/.validators_clock/validators_clock.production.json` only when it is missing,
-builds the release binary, installs it to `~/.cargo/bin`, installs the systemd
-unit, and restarts `validators-clock.service`.
+creates `~/.validators_clock/validators_clock.production.json` only when it is
+missing, builds the release binary, installs it to `~/.cargo/bin`, installs the
+systemd unit, and restarts `validators-clock.service`.
 
 The script does not overwrite history, cache, validator type, ACME account, TLS
 certificate, TLS key, or an existing production config in `~/.validators_clock`.
