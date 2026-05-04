@@ -116,33 +116,6 @@ h1::after {
   white-space: nowrap;
 }
 
-.header-updated::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  flex: 0 0 8px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #66ef9b, #2bc66d);
-  box-shadow:
-    0 0 0 3px rgba(65, 224, 126, 0.12),
-    0 0 14px rgba(65, 224, 126, 0.42);
-}
-
-.header-updated::after {
-  content: "";
-  width: 15px;
-  height: 15px;
-  flex: 0 0 15px;
-  margin-left: 2px;
-  opacity: 0.72;
-  border: 1.4px solid rgba(188, 218, 238, 0.78);
-  border-left-color: transparent;
-  border-radius: 50%;
-  background:
-    linear-gradient(135deg, rgba(188, 218, 238, 0.86) 0 49%, transparent 50%) 9px 0 / 6px 6px no-repeat;
-  filter: drop-shadow(0 0 5px rgba(102, 193, 239, 0.22));
-}
-
 .runtime-status {
   position: absolute;
   top: 0;
@@ -175,16 +148,41 @@ h1::after {
   box-shadow: 0 0 0 3px rgba(111, 123, 140, 0.12);
 }
 
-.header-updated span,
+.header-updated > span:not(.updated-dot),
 .runtime-status strong {
   color: var(--muted);
   font-size: 12px;
   font-weight: 560;
 }
 
-.header-updated span {
+.header-updated > span:not(.updated-dot) {
   color: rgba(198, 209, 224, 0.82);
   font-weight: 560;
+}
+
+.updated-dot {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 42% 38%, #77f4a8 0 3px, #37ca72 3.4px 100%);
+  box-shadow:
+    0 0 0 7px rgba(60, 212, 120, 0.08),
+    0 0 16px rgba(60, 212, 120, 0.5);
+}
+
+.updated-refresh {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  margin-left: 4px;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(182, 213, 235, 0.78);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(102, 193, 239, 0.2));
 }
 
 #runtimeFreshness {
@@ -348,76 +346,87 @@ h2 {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 30px;
+  min-height: 34px;
   color: rgba(235, 242, 252, 0.88);
 }
 
-.info-panel h2::before {
-  content: "";
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
-  border: 1px solid rgba(202, 168, 92, 0.46);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, rgba(202, 168, 92, 0.32), transparent 48%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
-  box-shadow: 0 0 18px rgba(202, 168, 92, 0.12), inset 0 0 0 4px rgba(0, 0, 0, 0.18);
-}
-
-.network-panel h2::before {
-  border-color: rgba(132, 205, 240, 0.42);
-  background:
-    radial-gradient(circle, rgba(132, 205, 240, 0.26), transparent 48%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
-  box-shadow: 0 0 18px rgba(47, 147, 220, 0.16), inset 0 0 0 4px rgba(0, 0, 0, 0.18);
-}
-
-.election-panel h2::after,
-.network-panel h2::after {
-  position: absolute;
-  pointer-events: none;
-}
-
-.election-panel h2::after {
-  content: "★";
-  left: 4px;
-  top: 4px;
+.panel-avatar {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
   place-items: center;
-  padding-bottom: 4px;
-  background:
-    linear-gradient(140deg, transparent 0 56%, #d7a646 57% 76%, transparent 77%) 6px 14px / 6px 8px no-repeat,
-    linear-gradient(220deg, transparent 0 56%, #8a6428 57% 76%, transparent 77%) 10px 14px / 6px 8px no-repeat,
-    radial-gradient(circle at 50% 39%, #070a10 0 4px, transparent 4.2px),
-    radial-gradient(circle at 50% 39%, #ffeaa0 0 7px, #c8923f 7.3px 8.5px, rgba(79, 55, 22, 0.92) 8.7px 9.8px, transparent 10.1px);
-  color: #f9de84;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 8px;
-  line-height: 1;
-  text-shadow: 0 0 5px rgba(255, 217, 119, 0.7);
-  filter: drop-shadow(0 0 5px rgba(221, 173, 76, 0.58));
+  border-radius: 50%;
 }
 
-.network-panel h2::after {
-  content: "";
-  left: 5px;
-  top: 5px;
-  width: 20px;
-  height: 20px;
-  border: 1.3px solid rgba(188, 230, 250, 0.78);
-  border-radius: 50%;
+.panel-avatar svg {
+  display: block;
+  overflow: visible;
+}
+
+.election-avatar {
+  border: 1px solid rgba(202, 168, 92, 0.58);
   background:
-    radial-gradient(ellipse at 34% 50%, transparent 0 5.6px, rgba(188, 230, 250, 0.42) 5.9px 6.4px, transparent 6.8px),
-    radial-gradient(ellipse at 66% 50%, transparent 0 5.6px, rgba(188, 230, 250, 0.42) 5.9px 6.4px, transparent 6.8px),
-    linear-gradient(0deg, transparent 30%, rgba(188, 230, 250, 0.36) 31.5%, rgba(188, 230, 250, 0.36) 33.5%, transparent 35% 48%, rgba(188, 230, 250, 0.56) 49.2%, rgba(188, 230, 250, 0.56) 50.8%, transparent 52% 65%, rgba(188, 230, 250, 0.34) 66.5%, rgba(188, 230, 250, 0.34) 68.5%, transparent 70%),
-    radial-gradient(circle at 34% 28%, rgba(97, 195, 239, 0.45), transparent 44%);
+    radial-gradient(circle at 48% 43%, rgba(255, 217, 119, 0.22), transparent 34%),
+    radial-gradient(circle, rgba(202, 168, 92, 0.14), transparent 61%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0));
   box-shadow:
-    0 0 9px rgba(91, 191, 239, 0.42),
-    inset 0 0 0 3px rgba(32, 126, 177, 0.08),
-    inset 0 0 10px rgba(33, 116, 160, 0.16);
+    0 0 20px rgba(202, 168, 92, 0.18),
+    inset 0 0 0 5px rgba(0, 0, 0, 0.18);
+}
+
+.election-medal {
+  width: 25px;
+  height: 25px;
+  filter: drop-shadow(0 0 5px rgba(221, 173, 76, 0.62));
+}
+
+.medal-ribbon {
+  fill: rgba(202, 168, 92, 0.9);
+  stroke: rgba(255, 219, 133, 0.72);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.medal-outer {
+  fill: #11110f;
+  stroke: #d6a64a;
+  stroke-width: 2.2;
+}
+
+.medal-inner {
+  fill: rgba(255, 218, 120, 0.16);
+  stroke: rgba(255, 232, 156, 0.8);
+  stroke-width: 1;
+}
+
+.medal-star {
+  fill: #ffe589;
+  stroke: #fff0b0;
+  stroke-width: 0.65;
+  stroke-linejoin: round;
+}
+
+.network-avatar {
+  border: 1px solid rgba(132, 205, 240, 0.54);
+  background:
+    radial-gradient(circle at 35% 25%, rgba(132, 205, 240, 0.24), transparent 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0));
+  box-shadow:
+    0 0 20px rgba(47, 147, 220, 0.2),
+    inset 0 0 0 5px rgba(0, 0, 0, 0.18);
+}
+
+.network-globe {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: rgba(190, 231, 250, 0.88);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 5px rgba(91, 191, 239, 0.38));
 }
 
 .status-display {

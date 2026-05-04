@@ -17,14 +17,31 @@
       </div>
       <h1>VALIDATORS CLOCK</h1>
       <div class="header-updated">
+        <span class="updated-dot" aria-hidden="true"></span>
         <span>Info updated</span>
         <strong id="metricFetched">-</strong>
+        <svg class="updated-refresh" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M21 12a9 9 0 0 1-15.74 5.96L3 16"></path>
+          <path d="M3 21v-5h5"></path>
+          <path d="M3 12A9 9 0 0 1 18.74 6.04L21 8"></path>
+          <path d="M21 3v5h-5"></path>
+        </svg>
       </div>
     </header>
 
     <main class="top-grid">
       <section class="info-panel election-panel" aria-label="Election details">
-        <h2>Election</h2>
+        <h2>
+          <span class="panel-avatar election-avatar" aria-hidden="true">
+            <svg class="election-medal" viewBox="0 0 32 32" focusable="false">
+              <path class="medal-ribbon medal-ribbon-left" d="M13.3 20.2 10.2 29l5.8-3.2 5.8 3.2-3.1-8.8"></path>
+              <circle class="medal-outer" cx="16" cy="13" r="8.2"></circle>
+              <circle class="medal-inner" cx="16" cy="13" r="5.6"></circle>
+              <path class="medal-star" d="m16 8.6 1.35 2.73 3.02.44-2.19 2.13.52 3.01L16 15.49l-2.7 1.42.52-3.01-2.19-2.13 3.02-.44Z"></path>
+            </svg>
+          </span>
+          Election
+        </h2>
         <div class="status-display">
           <span id="metricStatus">-</span>
         </div>
@@ -60,7 +77,17 @@
       </section>
 
       <section class="info-panel network-panel" aria-label="Network selector">
-        <h2>Network</h2>
+        <h2>
+          <span class="panel-avatar network-avatar" aria-hidden="true">
+            <svg class="network-globe" viewBox="0 0 24 24" focusable="false">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3a13.4 13.4 0 0 1 0 18"></path>
+              <path d="M12 3a13.4 13.4 0 0 0 0 18"></path>
+            </svg>
+          </span>
+          Network
+        </h2>
         <nav id="chainTabs" class="chain-tabs" aria-label="Chains"></nav>
         <dl>
           <div><dt>Chain</dt><dd id="metricChain">-</dd></div>
