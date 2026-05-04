@@ -254,6 +254,7 @@ h1::after {
 .network-panel {
   position: absolute;
   top: 50%;
+  min-height: 394px;
   transform: translateY(-50%);
 }
 
@@ -272,6 +273,8 @@ h1::after {
 .network-panel {
   right: 0;
   width: 430px;
+  display: grid;
+  align-content: start;
   --panel-glow: rgba(47, 147, 220, 0.28);
 }
 
@@ -290,9 +293,11 @@ h2 {
 }
 
 .info-panel h2 {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 30px;
   color: rgba(235, 242, 252, 0.88);
 }
 
@@ -317,17 +322,47 @@ h2 {
   box-shadow: 0 0 18px rgba(47, 147, 220, 0.16), inset 0 0 0 4px rgba(0, 0, 0, 0.18);
 }
 
+.election-panel h2::after,
+.network-panel h2::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  pointer-events: none;
+}
+
+.election-panel h2::after {
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(145deg, #fff2a8, #c99138 64%, #6c4b1d);
+  clip-path: polygon(50% 0, 61% 34%, 97% 34%, 68% 55%, 79% 91%, 50% 70%, 21% 91%, 32% 55%, 3% 34%, 39% 34%);
+  filter: drop-shadow(0 0 5px rgba(221, 173, 76, 0.72));
+}
+
+.network-panel h2::after {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(174, 224, 248, 0.72);
+  border-radius: 50%;
+  background:
+    linear-gradient(90deg, transparent 46%, rgba(174, 224, 248, 0.72) 47%, rgba(174, 224, 248, 0.72) 53%, transparent 54%),
+    linear-gradient(0deg, transparent 46%, rgba(174, 224, 248, 0.54) 47%, rgba(174, 224, 248, 0.54) 53%, transparent 54%);
+  box-shadow:
+    0 0 7px rgba(91, 191, 239, 0.38),
+    inset 0 0 0 3px rgba(32, 126, 177, 0.08);
+}
+
 .status-display {
   display: grid;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--divider);
 }
 
 #metricStatus {
   color: var(--gold);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 29px;
+  font-size: 28px;
   font-weight: 600;
   line-height: 1.05;
   text-shadow: 0 0 18px rgba(202, 168, 92, 0.2);
@@ -335,11 +370,11 @@ h2 {
 
 .election-timing-groups {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .election-time-card {
-  padding: 15px;
+  padding: 13px 15px;
   border: 1px solid rgba(255, 255, 255, 0.095);
   border-left: 4px solid var(--card-accent, rgba(202, 168, 92, 0.7));
   border-radius: var(--radius-md);
@@ -435,7 +470,7 @@ h2 {
 
 dl {
   display: grid;
-  gap: 11px;
+  gap: 12px;
   margin: 0;
 }
 
@@ -444,6 +479,7 @@ dl div {
   grid-template-columns: minmax(92px, 38%) minmax(0, 1fr);
   gap: 10px;
   align-items: baseline;
+  min-height: 43px;
   padding: 10px 11px;
   border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: var(--radius-sm);
