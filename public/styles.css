@@ -41,7 +41,7 @@ button {
 }
 
 .app-shell {
-  width: min(1420px, calc(100% - 48px));
+  width: min(1500px, calc(100% - 48px));
   margin: 0 auto;
   padding: 18px 0 34px;
 }
@@ -439,15 +439,21 @@ dd {
 
 .round-panel {
   min-height: 320px;
-  padding: 18px;
+  padding: 18px 20px 20px;
 }
 
 .round-blue {
-  border: 2px solid rgba(47, 147, 220, 0.52);
+  border-color: rgba(47, 147, 220, 0.36);
+  background:
+    linear-gradient(180deg, rgba(47, 147, 220, 0.055), rgba(47, 147, 220, 0) 180px),
+    linear-gradient(180deg, rgba(17, 21, 30, 0.94), rgba(8, 10, 15, 0.98));
 }
 
 .round-green {
-  border: 2px solid rgba(50, 175, 104, 0.52);
+  border-color: rgba(50, 175, 104, 0.36);
+  background:
+    linear-gradient(180deg, rgba(50, 175, 104, 0.055), rgba(50, 175, 104, 0) 180px),
+    linear-gradient(180deg, rgba(17, 21, 30, 0.94), rgba(8, 10, 15, 0.98));
 }
 
 .recent-rounds-grid {
@@ -651,12 +657,17 @@ dd {
 }
 
 .validator-list {
-  overflow-x: hidden;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-color: rgba(154, 166, 184, 0.34) transparent;
 }
 
 .validator-table {
   width: 100%;
-  min-width: 0;
+  min-width: 690px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.012);
 }
 
 .validator-table.is-absent {
@@ -666,8 +677,8 @@ dd {
 .validator-header,
 .validator-row {
   display: grid;
-  grid-template-columns: 24px 68px 114px 126px 82px 74px 64px 54px;
-  column-gap: 6px;
+  grid-template-columns: 28px 76px minmax(104px, 1.1fr) minmax(128px, 1.35fr) 82px minmax(76px, 0.8fr) minmax(60px, 0.7fr) minmax(58px, 0.7fr);
+  column-gap: 8px;
   justify-content: start;
   align-items: center;
 }
@@ -678,18 +689,18 @@ dd {
 }
 
 .validator-header {
-  padding: 8px 9px;
+  padding: 9px 11px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.11);
   color: var(--muted);
-  font-size: 10.5px;
-  font-weight: 500;
+  font-size: var(--label-size);
+  font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .validator-row {
-  min-height: 39px;
-  padding: 8px 9px;
+  min-height: 42px;
+  padding: 9px 11px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.075);
 }
 
@@ -705,7 +716,7 @@ dd {
   min-width: 0;
   overflow: visible;
   color: var(--text);
-  font-size: 12.5px;
+  font-size: var(--body-size);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -723,8 +734,8 @@ dd {
 
 .history-direction {
   color: var(--muted-2);
-  font-size: 9.5px;
-  font-weight: 400;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: none;
 }
 
@@ -733,6 +744,17 @@ dd {
   min-width: 0;
   max-width: 100%;
   align-items: center;
+  gap: 7px;
+}
+
+.validator-avatar {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1dd8ff 0%, #4357ff 52%, #c94d8c 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+  opacity: 0.82;
 }
 
 .validator-address,
@@ -742,8 +764,8 @@ dd {
 
 .validator-address {
   color: #8bdcff;
-  font-size: 12.5px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .validator-pubkey {
@@ -766,24 +788,24 @@ dd {
 }
 
 .validator-source-address {
-  color: #9fceb3;
+  color: rgba(159, 206, 179, 0.96);
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .validator-source-direct {
   color: var(--muted-2);
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .validator-source-unknown {
   color: #b7c0ce;
   font-family: var(--font-mono);
-  font-size: 12.5px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .validator-type {
@@ -794,19 +816,24 @@ dd {
 .validator-type-badge {
   display: inline-flex;
   min-width: 0;
-  height: 20px;
+  height: 22px;
   align-items: center;
   justify-content: center;
-  padding: 2px 6px 0;
+  padding: 0 7px;
   border: 1px solid rgba(154, 166, 184, 0.28);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   background: rgba(154, 166, 184, 0.08);
   color: #c7d0dc;
   font-family: var(--font-mono);
-  font-size: 9.5px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
+}
+
+.validator-type-badge-text {
+  display: block;
+  transform: translateY(1.5px);
 }
 
 .validator-type-badge.is-ever {
@@ -847,14 +874,14 @@ dd {
 
 .validator-history-dots {
   display: inline-flex;
-  gap: 5px;
+  gap: 6px;
   align-items: center;
 }
 
 .validator-history-dot {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 10px;
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
   border: 1px solid rgba(154, 166, 184, 0.62);
   border-radius: 50%;
   background: transparent;
@@ -955,6 +982,14 @@ dd {
   font-variant-numeric: tabular-nums;
   text-align: right;
   text-overflow: ellipsis;
+}
+
+.round-blue .validator-avatar {
+  background: linear-gradient(135deg, #24e0ff 0%, #2f93dc 58%, #7657ff 100%);
+}
+
+.round-green .validator-avatar {
+  background: linear-gradient(135deg, #7ee45f 0%, #32af68 58%, #19bdd6 100%);
 }
 
 .empty-state {

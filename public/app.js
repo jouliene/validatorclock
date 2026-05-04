@@ -821,7 +821,7 @@ function validatorTypeCell(typeName, hash) {
 
   const badge = document.createElement("span");
   badge.className = `validator-type-badge is-${validatorTypeClass(name)}`;
-  badge.textContent = validatorTypeLabel(name);
+  badge.appendChild(validatorBadgeText(validatorTypeLabel(name)));
   badge.title = value ? `${name || "Unknown"} · ${value}` : "Type unknown";
   cell.appendChild(badge);
   return cell;
@@ -836,7 +836,7 @@ function validatorSourceTypeCell(validator) {
 
   const badge = document.createElement("span");
   badge.className = `validator-type-badge is-${className}`;
-  badge.textContent = label;
+  badge.appendChild(validatorBadgeText(label));
   if (hash) {
     badge.title = `${label} · ${hash}`;
   } else if (validator && validator.contract_type_hash) {
@@ -846,6 +846,13 @@ function validatorSourceTypeCell(validator) {
   }
   cell.appendChild(badge);
   return cell;
+}
+
+function validatorBadgeText(label) {
+  const text = document.createElement("span");
+  text.className = "validator-type-badge-text";
+  text.textContent = label;
+  return text;
 }
 
 function validatorSourceTypeLabel(hash) {
@@ -949,8 +956,11 @@ function validatorCopyCell(text, value, className, label) {
 function validatorIdentityCell(wallet, publicKey) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-id";
+  const avatar = document.createElement("span");
+  avatar.className = "validator-avatar";
+  avatar.style.background = validatorGradient(publicKey || wallet);
   const address = copyableValue(shortenAddress(wallet), wallet, "validator-address", "validator wallet address");
-  cell.append(address);
+  cell.append(avatar, address);
   return cell;
 }
 
@@ -1078,6 +1088,23 @@ function shortenHash(value, head = 5, tail = 5) {
     return "-";
   }
   return value.length <= head + tail + 3 ? value : `${value.slice(0, head)}...${value.slice(-tail)}`;
+}
+
+function validatorGradient(seed) {
+  const value = String(seed || "");
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+  const gradients = [
+    "linear-gradient(135deg, #67b7c7 0%, #2e6f8f 100%)",
+    "linear-gradient(135deg, #75bd91 0%, #2f7655 100%)",
+    "linear-gradient(135deg, #caa85c 0%, #806a36 100%)",
+    "linear-gradient(135deg, #8f98c9 0%, #536093 100%)",
+    "linear-gradient(135deg, #9d80ae 0%, #654a73 100%)",
+    "linear-gradient(135deg, #c48771 0%, #81503f 100%)",
+  ];
+  return gradients[hash % gradients.length];
 }
 
 function sumTokenValues(items, key) {
