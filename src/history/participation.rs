@@ -1,6 +1,6 @@
 use super::{
-    ParticipationStatus, RecentAbsentValidatorDto, RoundHistoryStore, ValidatorParticipationDto,
-    opposite_round_color, same_color_rounds,
+    ParticipationStatus, RecentAbsentValidatorDto, RoundHistoryStore, RoundWindow,
+    ValidatorParticipationDto, opposite_round_color,
 };
 use crate::chain::{ClockSnapshot, RoundColor, ValidatorDto, ValidatorSetDto};
 use std::collections::{BTreeMap, BTreeSet};
@@ -65,8 +65,8 @@ impl RoundHistoryStore {
         wallet: Option<&str>,
     ) -> Vec<ValidatorParticipationDto> {
         let chain = self.chains.get(chain_id);
-        same_color_rounds(round_id)
-            .into_iter()
+        RoundWindow::ending_at(round_id)
+            .rounds()
             .map(|round| {
                 let status = chain
                     .and_then(|chain| chain.rounds.get(&round))
@@ -98,7 +98,7 @@ impl RoundHistoryStore {
         };
 
         let mut recent = BTreeMap::<String, RecentAbsentValidatorDto>::new();
-        for round in same_color_rounds(round_id) {
+        for round in RoundWindow::ending_at(round_id).rounds() {
             let Some(stored) = chain
                 .rounds
                 .get(&round)

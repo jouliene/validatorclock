@@ -1,12 +1,11 @@
 use crate::chain::RoundColor;
 
-const HISTORY_DEPTH: usize = 5;
-
 mod participation;
 mod retention;
 mod storage;
 mod store;
 mod types;
+mod window;
 
 pub(crate) use retention::RoundHistoryRetention;
 pub(crate) use storage::{
@@ -16,13 +15,7 @@ use types::{ChainRoundHistory, RoundHistoryDisk, StoredRound, StoredValidator};
 pub(crate) use types::{
     ParticipationStatus, RecentAbsentValidatorDto, RoundHistoryStore, ValidatorParticipationDto,
 };
-
-fn same_color_rounds(round_id: u32) -> Vec<u32> {
-    (0..HISTORY_DEPTH)
-        .rev()
-        .filter_map(|index| round_id.checked_sub((index * 2) as u32))
-        .collect()
-}
+use window::RoundWindow;
 
 fn opposite_round_color(round_color: RoundColor) -> RoundColor {
     match round_color {

@@ -1,4 +1,4 @@
-use super::{ChainRoundHistory, RoundHistoryStore, same_color_rounds};
+use super::{ChainRoundHistory, RoundHistoryStore, RoundWindow};
 use crate::chain::{ClockSnapshot, ValidatorSetDto};
 use std::collections::{BTreeSet, HashMap};
 
@@ -31,7 +31,7 @@ impl RoundHistoryRetention {
         self.chain_rounds
             .entry(chain_id.to_owned())
             .or_default()
-            .extend(same_color_rounds(round_id));
+            .extend(RoundWindow::ending_at(round_id).rounds());
     }
 }
 
