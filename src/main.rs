@@ -37,15 +37,6 @@ async fn main() -> Result<()> {
         info!(config_source = config_source.label(), "loaded config");
     }
 
-    if let Some(chain_id) = cli.once {
-        let chain = config
-            .chain(&chain_id)
-            .ok_or_else(|| anyhow!("unknown chain id `{chain_id}`"))?;
-        let snapshot = chain::fetch_chain_snapshot(chain).await?;
-        println!("{}", serde_json::to_string_pretty(&snapshot)?);
-        return Ok(());
-    }
-
     let state = Arc::new(AppState::new(Arc::clone(&config)));
     chain::spawn_background_refresh(Arc::clone(&state));
 
@@ -59,14 +50,16 @@ async fn main() -> Result<()> {
 #[derive(Debug)]
 struct Cli {
     config_path: Option<PathBuf>,
-    once: Option<String>,
 }
 
 impl Cli {
     fn parse() -> Result<Self> {
-        let mut args = env::args().skip(1);
+        Self::parse_args(env::args().skip(1))
+    }
+
+    fn parse_args(args: impl IntoIterator<Item = String>) -> Result<Self> {
+        let mut args = args.into_iter();
         let mut config_path = None;
-        let mut once = None;
 
         while let Some(arg) = args.next() {
             match arg.as_str() {
@@ -76,16 +69,8 @@ impl Cli {
                         .ok_or_else(|| anyhow!("--config requires a path"))?;
                     config_path = Some(PathBuf::from(value));
                 }
-                "--once" => {
-                    let value = args
-                        .next()
-                        .ok_or_else(|| anyhow!("--once requires a chain id"))?;
-                    once = Some(value);
-                }
                 "--help" | "-h" => {
-                    println!(
-                        "Usage: validators_clock [--config validators_clock.json] [--once chain_id]"
-                    );
+                    println!("Usage: validators_clock [--config validators_clock.json]");
                     std::process::exit(0);
                 }
                 value if !value.starts_with('-') && config_path.is_none() => {
@@ -95,6 +80,42 @@ impl Cli {
             }
         }
 
-        Ok(Self { config_path, once })
+        Ok(Self { config_path })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cli;
+    use std::path::PathBuf;
+
+    #[test]
+    fn cli_parses_explicit_config_path() {
+        let cli =
+            Cli::parse_args(["--config".to_owned(), "validators_clock.json".to_owned()]).unwrap();
+
+        assert_eq!(
+            cli.config_path,
+            Some(PathBuf::from("validators_clock.json"))
+        );
+    }
+
+    #[test]
+    fn cli_parses_positional_config_path() {
+        let cli = Cli::parse_args(["validators_clock.production.json".to_owned()]).unwrap();
+
+        assert_eq!(
+            cli.config_path,
+            Some(PathBuf::from("validators_clock.production.json"))
+        );
+    }
+
+    #[test]
+    fn cli_rejects_removed_once_flag() {
+        let error = Cli::parse_args(["--once".to_owned(), "everscale".to_owned()])
+            .unwrap_err()
+            .to_string();
+
+        assert!(error.contains("unknown argument `--once`"));
     }
 }
