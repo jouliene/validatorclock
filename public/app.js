@@ -706,7 +706,7 @@ function renderValidators(container, validators, options) {
 
   const header = document.createElement("div");
   header.className = "validator-header";
-  for (const label of ["#", "Validator", "History", "Stake", "Rewards", "Weight"]) {
+  for (const label of ["#", "Type", "Source", "Validator", "History", "Stake", "Rewards", "Weight"]) {
     header.appendChild(validatorHeaderCell(label));
   }
   table.appendChild(header);
@@ -717,10 +717,12 @@ function renderValidators(container, validators, options) {
 
     row.append(
       validatorCell(String(index + 1)),
+      validatorSourceTypeCell(validator),
+      validatorSourceCell(validator),
       validatorIdentityCell(validatorWalletAddress(validator), validator.public_key),
       validatorHistoryCell(validator.history),
       validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number", validator.stake || ""),
-      validatorCell(options.rewards && validator.reward ? formatRewardAmount(validator.reward) : "-", "validator-number", validator.reward || ""),
+      validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number", validator.reward || ""),
       validatorCell(validator.weight_percent == null ? "-" : `${formatPercent(validator.weight_percent)}`, "validator-number", validator.weight || "")
     );
     table.appendChild(row);
@@ -811,6 +813,124 @@ function historyStatusLabel(status) {
   return "unknown";
 }
 
+function validatorTypeCell(typeName, hash) {
+  const name = typeof typeName === "string" ? typeName : "";
+  const value = typeof hash === "string" ? hash : "";
+  const cell = document.createElement("div");
+  cell.className = "validator-cell validator-type";
+
+  const badge = document.createElement("span");
+  badge.className = `validator-type-badge is-${validatorTypeClass(name)}`;
+  badge.textContent = validatorTypeLabel(name);
+  badge.title = value ? `${name || "Unknown"} · ${value}` : "Type unknown";
+  cell.appendChild(badge);
+  return cell;
+}
+
+function validatorSourceTypeCell(validator) {
+  const cell = document.createElement("div");
+  cell.className = "validator-cell validator-source-type";
+  const hash = validator && validator.source && validator.source.contract_type_hash;
+  const label = hash ? validatorSourceTypeLabel(hash) : validatorTypeLabel(validator && validator.contract_type);
+  const className = hash ? validatorSourceTypeClass(hash) : validatorTypeClass(validator && validator.contract_type);
+
+  const badge = document.createElement("span");
+  badge.className = `validator-type-badge is-${className}`;
+  badge.textContent = label;
+  if (hash) {
+    badge.title = `${label} · ${hash}`;
+  } else if (validator && validator.contract_type_hash) {
+    badge.title = `${validator.contract_type || "Unknown"} · ${validator.contract_type_hash}`;
+  } else {
+    badge.title = label === "UNKNOWN" ? "Type unknown" : label;
+  }
+  cell.appendChild(badge);
+  return cell;
+}
+
+function validatorSourceTypeLabel(hash) {
+  if (sameHash(hash, "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe")) {
+    return "StDEPOOL";
+  }
+  if (sameHash(hash, "14e20e304f53e6da152eb95fffc993dbd28245a775d847eed043f7c78a503885")) {
+    return "DEPOOL";
+  }
+  return "UNKNOWN";
+}
+
+function validatorSourceTypeClass(hash) {
+  if (sameHash(hash, "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe")) {
+    return "stdepool";
+  }
+  if (sameHash(hash, "14e20e304f53e6da152eb95fffc993dbd28245a775d847eed043f7c78a503885")) {
+    return "depool";
+  }
+  return "unknown";
+}
+
+function sameHash(left, right) {
+  return typeof left === "string" && left.toLowerCase() === right;
+}
+
+function validatorSourceCell(validator) {
+  const cell = document.createElement("div");
+  cell.className = "validator-cell validator-source";
+  const source = validator && validator.source;
+  if (source && source.address) {
+    const address = copyableValue(
+      shortenAddress(source.address),
+      source.address,
+      "validator-source-address",
+      "validator source address"
+    );
+    if (source.contract_type_hash) {
+      address.title = source.contract_type_hash;
+    }
+    cell.appendChild(address);
+    return cell;
+  }
+
+  if (validator && validator.contract_type === "EverWallet") {
+    const direct = document.createElement("span");
+    direct.className = "validator-source-direct";
+    direct.textContent = "Direct";
+    cell.appendChild(direct);
+    return cell;
+  }
+
+  const unknown = document.createElement("span");
+  unknown.className = "validator-source-unknown";
+  unknown.textContent = "Unknown";
+  cell.appendChild(unknown);
+  return cell;
+}
+
+function validatorTypeLabel(typeName) {
+  if (typeName === "EverWallet") {
+    return "EVER";
+  }
+  if (typeName === "DePoolProxy") {
+    return "PROXY";
+  }
+  if (typeName === "StEverDePoolProxy") {
+    return "StPROXY";
+  }
+  return "UNKNOWN";
+}
+
+function validatorTypeClass(typeName) {
+  if (typeName === "EverWallet") {
+    return "ever";
+  }
+  if (typeName === "DePoolProxy") {
+    return "proxy";
+  }
+  if (typeName === "StEverDePoolProxy") {
+    return "stproxy";
+  }
+  return "unknown";
+}
+
 function validatorCell(text, className = "", title = text) {
   const cell = document.createElement("div");
   cell.className = `validator-cell ${className}`.trim();
@@ -829,11 +949,8 @@ function validatorCopyCell(text, value, className, label) {
 function validatorIdentityCell(wallet, publicKey) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-id";
-  const avatar = document.createElement("span");
-  avatar.className = "validator-avatar";
-  avatar.style.background = validatorGradient(publicKey || wallet);
   const address = copyableValue(shortenAddress(wallet), wallet, "validator-address", "validator wallet address");
-  cell.append(avatar, address);
+  cell.append(address);
   return cell;
 }
 
@@ -853,6 +970,11 @@ function copyableValue(text, value, className, label) {
     button.disabled = true;
     return button;
   }
+  wireCopyButton(button, feedback, value);
+  return button;
+}
+
+function wireCopyButton(button, feedback, value) {
   button.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -868,7 +990,6 @@ function copyableValue(text, value, className, label) {
       }, 1200);
     }
   });
-  return button;
 }
 
 async function copyText(value) {
@@ -946,6 +1067,9 @@ function shortenAddress(address) {
     return "-";
   }
   const [workchain, hash] = address.includes(":") ? address.split(":") : ["-1", address];
+  if (!hash) {
+    return "-";
+  }
   return `${workchain}:${hash.slice(0, 4)}...${hash.slice(-4)}`;
 }
 
@@ -954,22 +1078,6 @@ function shortenHash(value, head = 5, tail = 5) {
     return "-";
   }
   return value.length <= head + tail + 3 ? value : `${value.slice(0, head)}...${value.slice(-tail)}`;
-}
-
-function validatorGradient(seed) {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i += 1) {
-    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
-  }
-  const gradients = [
-    "linear-gradient(135deg, #67b7c7 0%, #2e6f8f 100%)",
-    "linear-gradient(135deg, #75bd91 0%, #2f7655 100%)",
-    "linear-gradient(135deg, #caa85c 0%, #806a36 100%)",
-    "linear-gradient(135deg, #8f98c9 0%, #536093 100%)",
-    "linear-gradient(135deg, #9d80ae 0%, #654a73 100%)",
-    "linear-gradient(135deg, #c48771 0%, #81503f 100%)",
-  ];
-  return gradients[hash % gradients.length];
 }
 
 function sumTokenValues(items, key) {
@@ -998,6 +1106,10 @@ function formatStakeAmount(value) {
 
 function formatRewardAmount(value) {
   return formatTokenAmount(value, 9, 9);
+}
+
+function formatRewardCellAmount(value) {
+  return formatTokenAmount(value, 0, 0);
 }
 
 function formatTokenAmount(value, minimumFractionDigits = 0, maximumFractionDigits = 3) {

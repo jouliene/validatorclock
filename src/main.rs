@@ -12,6 +12,7 @@ mod logging;
 mod server;
 mod state;
 mod tls;
+mod validator_types;
 
 use state::AppState;
 

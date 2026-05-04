@@ -175,6 +175,7 @@ h1 {
 .info-panel,
 .round-panel,
 .recent-round-panel {
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: linear-gradient(180deg, rgba(17, 21, 30, 0.94), rgba(8, 10, 15, 0.98));
@@ -650,11 +651,12 @@ dd {
 }
 
 .validator-list {
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .validator-table {
-  min-width: 650px;
+  width: 100%;
+  min-width: 0;
 }
 
 .validator-table.is-absent {
@@ -664,8 +666,8 @@ dd {
 .validator-header,
 .validator-row {
   display: grid;
-  grid-template-columns: 36px 148px 112px 92px 122px 64px;
-  column-gap: 8px;
+  grid-template-columns: 24px 68px 114px 126px 82px 74px 64px 54px;
+  column-gap: 6px;
   justify-content: start;
   align-items: center;
 }
@@ -676,19 +678,23 @@ dd {
 }
 
 .validator-header {
-  padding: 9px 12px;
+  padding: 8px 9px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.11);
   color: var(--muted);
-  font-size: var(--label-size);
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 500;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .validator-row {
-  min-height: 40px;
-  padding: 9px 12px;
+  min-height: 39px;
+  padding: 8px 9px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.validator-row:hover {
+  background: rgba(255, 255, 255, 0.018);
 }
 
 .validator-row:last-child {
@@ -699,9 +705,14 @@ dd {
   min-width: 0;
   overflow: visible;
   color: var(--text);
-  font-size: var(--body-size);
+  font-size: 12.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.validator-header .validator-cell {
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .validator-history-heading {
@@ -712,8 +723,8 @@ dd {
 
 .history-direction {
   color: var(--muted-2);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 9.5px;
+  font-weight: 400;
   text-transform: none;
 }
 
@@ -722,17 +733,6 @@ dd {
   min-width: 0;
   max-width: 100%;
   align-items: center;
-  gap: 7px;
-}
-
-.validator-avatar {
-  flex: 0 0 auto;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #1dd8ff 0%, #4357ff 52%, #c94d8c 100%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
-  opacity: 0.82;
 }
 
 .validator-address,
@@ -742,8 +742,8 @@ dd {
 
 .validator-address {
   color: #8bdcff;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 12.5px;
+  font-weight: 400;
 }
 
 .validator-pubkey {
@@ -755,16 +755,106 @@ dd {
   align-items: center;
 }
 
+.validator-source-type {
+  display: flex;
+  align-items: center;
+}
+
+.validator-source {
+  display: flex;
+  align-items: center;
+}
+
+.validator-source-address {
+  color: #9fceb3;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.validator-source-direct {
+  color: var(--muted-2);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.validator-source-unknown {
+  color: #b7c0ce;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.validator-type {
+  display: flex;
+  align-items: center;
+}
+
+.validator-type-badge {
+  display: inline-flex;
+  min-width: 0;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px 0;
+  border: 1px solid rgba(154, 166, 184, 0.28);
+  border-radius: 999px;
+  background: rgba(154, 166, 184, 0.08);
+  color: #c7d0dc;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.validator-type-badge.is-ever {
+  border-color: rgba(47, 147, 220, 0.38);
+  background: rgba(47, 147, 220, 0.12);
+  color: #9dc8e8;
+}
+
+.validator-type-badge.is-proxy {
+  border-color: rgba(50, 175, 104, 0.34);
+  background: rgba(50, 175, 104, 0.11);
+  color: #9fceb3;
+}
+
+.validator-type-badge.is-depool {
+  border-color: rgba(50, 175, 104, 0.34);
+  background: rgba(50, 175, 104, 0.11);
+  color: #9fceb3;
+}
+
+.validator-type-badge.is-stproxy {
+  border-color: rgba(202, 168, 92, 0.38);
+  background: rgba(202, 168, 92, 0.12);
+  color: #d7c28f;
+}
+
+.validator-type-badge.is-stdepool {
+  border-color: rgba(202, 168, 92, 0.38);
+  background: rgba(202, 168, 92, 0.12);
+  color: #d7c28f;
+}
+
+.validator-type-badge.is-unknown {
+  border-color: rgba(154, 166, 184, 0.28);
+  background: rgba(154, 166, 184, 0.08);
+  color: #b7c0ce;
+}
+
 .validator-history-dots {
   display: inline-flex;
-  gap: 6px;
+  gap: 5px;
   align-items: center;
 }
 
 .validator-history-dot {
-  width: 11px;
-  height: 11px;
-  flex: 0 0 11px;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
   border: 1px solid rgba(154, 166, 184, 0.62);
   border-radius: 50%;
   background: transparent;
@@ -875,14 +965,6 @@ dd {
   color: var(--muted);
   font-size: var(--body-size);
   line-height: 1.45;
-}
-
-.round-blue .validator-avatar {
-  background: linear-gradient(135deg, #24e0ff 0%, #2f93dc 58%, #7657ff 100%);
-}
-
-.round-green .validator-avatar {
-  background: linear-gradient(135deg, #7ee45f 0%, #32af68 58%, #19bdd6 100%);
 }
 
 .error-banner {
@@ -1098,8 +1180,9 @@ dd {
     display: grid;
     grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "index identity identity"
-      "pubkey pubkey pubkey"
+      "index type source"
+      "identity identity identity"
+      "history history history"
       "stake stake reward"
       "weight weight weight";
     gap: 8px 10px;
@@ -1121,31 +1204,39 @@ dd {
   .validator-row .validator-cell:nth-child(1) {
     grid-area: index;
     color: var(--muted);
-    font-weight: 700;
+    font-weight: 400;
     text-align: left;
   }
 
   .validator-row .validator-cell:nth-child(2) {
-    grid-area: identity;
+    grid-area: type;
   }
 
   .validator-row .validator-cell:nth-child(3) {
-    grid-area: pubkey;
+    grid-area: source;
   }
 
   .validator-row .validator-cell:nth-child(4) {
-    grid-area: stake;
+    grid-area: identity;
   }
 
   .validator-row .validator-cell:nth-child(5) {
-    grid-area: reward;
+    grid-area: history;
   }
 
   .validator-row .validator-cell:nth-child(6) {
+    grid-area: stake;
+  }
+
+  .validator-row .validator-cell:nth-child(7) {
+    grid-area: reward;
+  }
+
+  .validator-row .validator-cell:nth-child(8) {
     grid-area: weight;
   }
 
-  .validator-row .validator-cell:nth-child(n+3) {
+  .validator-row .validator-cell:nth-child(n+5) {
     display: grid;
     gap: 3px;
     padding: 8px;
@@ -1155,28 +1246,28 @@ dd {
     text-align: left;
   }
 
-  .validator-row .validator-cell:nth-child(n+3)::before {
+  .validator-row .validator-cell:nth-child(n+5)::before {
     color: var(--muted);
     font-family: var(--font-sans);
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 500;
     line-height: 1;
     text-transform: uppercase;
   }
 
-  .validator-row .validator-cell:nth-child(3)::before {
+  .validator-row .validator-cell:nth-child(5)::before {
     content: "History · Older -> Latest";
   }
 
-  .validator-row .validator-cell:nth-child(4)::before {
+  .validator-row .validator-cell:nth-child(6)::before {
     content: "Stake";
   }
 
-  .validator-row .validator-cell:nth-child(5)::before {
+  .validator-row .validator-cell:nth-child(7)::before {
     content: "Rewards";
   }
 
-  .validator-row .validator-cell:nth-child(6)::before {
+  .validator-row .validator-cell:nth-child(8)::before {
     content: "Weight";
   }
 
@@ -1184,8 +1275,37 @@ dd {
     grid-template-columns: 28px minmax(0, 1fr);
     grid-template-areas:
       "index identity"
-      "pubkey pubkey"
+      "history history"
       "stake stake";
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(2) {
+    grid-area: identity;
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(3) {
+    display: grid;
+    grid-area: history;
+    gap: 3px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.024);
+    text-align: left;
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(3)::before {
+    color: var(--muted);
+    content: "History · Older -> Latest";
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(4) {
+    grid-area: stake;
   }
 
   .validator-table.is-absent .validator-row .validator-cell:nth-child(4)::before {
@@ -1255,8 +1375,10 @@ dd {
   .validator-row {
     grid-template-columns: 24px minmax(0, 1fr);
     grid-template-areas:
-      "index identity"
-      "pubkey pubkey"
+      "index type"
+      "source source"
+      "identity identity"
+      "history history"
       "stake stake"
       "reward reward"
       "weight weight";
@@ -1264,5 +1386,9 @@ dd {
 
   .validator-table.is-absent .validator-row {
     grid-template-columns: 24px minmax(0, 1fr);
+    grid-template-areas:
+      "index identity"
+      "history history"
+      "stake stake";
   }
 }

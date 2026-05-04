@@ -85,6 +85,12 @@ impl AppConfig {
             path
         })
     }
+
+    pub(crate) fn effective_validator_type_cache_path(&self) -> PathBuf {
+        let mut path = self.cache_path.clone();
+        path.set_file_name("validators_clock_validator_types.json");
+        path
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]

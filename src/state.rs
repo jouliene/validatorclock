@@ -1,6 +1,7 @@
-use crate::chain::{CacheEntry, ValidatorRoundCache, load_validator_round_disk_cache};
+use crate::chain::CacheEntry;
 use crate::config::AppConfig;
 use crate::history::{RoundHistoryStore, load_round_history};
+use crate::validator_types::{ValidatorTypeCache, load_validator_type_cache};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -21,8 +22,8 @@ pub(crate) struct AppState {
     pub(crate) started_at: SystemTime,
     pub(crate) cache: RwLock<HashMap<String, CacheEntry>>,
     pub(crate) chain_status: RwLock<HashMap<String, ChainRuntimeStatus>>,
-    pub(crate) validator_round_cache_path: PathBuf,
-    pub(crate) validator_round_cache: ValidatorRoundCache,
+    pub(crate) validator_type_cache_path: PathBuf,
+    pub(crate) validator_type_cache: RwLock<ValidatorTypeCache>,
     pub(crate) round_history_path: PathBuf,
     pub(crate) round_history: RwLock<RoundHistoryStore>,
     pub(crate) acme_challenges: RwLock<HashMap<String, String>>,
@@ -31,18 +32,19 @@ pub(crate) struct AppState {
 impl AppState {
     pub(crate) fn new(config: Arc<AppConfig>) -> Self {
         let round_history_path = config.effective_history_path();
+        let validator_type_cache_path = config.effective_validator_type_cache_path();
         Self {
             config: Arc::clone(&config),
             started_at: SystemTime::now(),
             cache: RwLock::new(HashMap::new()),
             chain_status: RwLock::new(HashMap::new()),
-            validator_round_cache_path: config.cache_path.clone(),
-            validator_round_cache: RwLock::new(
-                load_validator_round_disk_cache(&config.cache_path).unwrap_or_else(|error| {
-                    warn!(error = ?error, "failed to load validator round cache");
-                    HashMap::new()
+            validator_type_cache: RwLock::new(
+                load_validator_type_cache(&validator_type_cache_path).unwrap_or_else(|error| {
+                    warn!(path = %validator_type_cache_path.display(), error = ?error, "failed to load validator type cache");
+                    ValidatorTypeCache::default()
                 }),
             ),
+            validator_type_cache_path,
             round_history: RwLock::new(
                 load_round_history(&round_history_path).unwrap_or_else(|error| {
                     warn!(path = %round_history_path.display(), error = ?error, "failed to load round history");

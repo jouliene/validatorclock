@@ -37,19 +37,19 @@ pub(crate) struct RecentAbsentValidatorDto {
     history: Vec<ValidatorParticipationDto>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct RoundHistoryStore {
     #[serde(default)]
     chains: HashMap<String, ChainRoundHistory>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 struct ChainRoundHistory {
     #[serde(default)]
     rounds: BTreeMap<u32, StoredRound>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 struct StoredRound {
     round_id: u32,
     round_color: RoundColor,
@@ -62,12 +62,12 @@ struct StoredRound {
     validators: BTreeMap<String, StoredValidator>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 struct StoredValidator {
     wallet: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 struct RoundHistoryDisk {
     version: u32,
     #[serde(default)]
@@ -75,16 +75,19 @@ struct RoundHistoryDisk {
 }
 
 impl RoundHistoryStore {
-    pub(crate) fn merge_from(&mut self, other: RoundHistoryStore) {
+    pub(crate) fn merge_from(&mut self, other: RoundHistoryStore) -> bool {
+        let mut changed = false;
         for (chain_id, other_chain) in other.chains {
-            self.chains
+            changed |= self
+                .chains
                 .entry(chain_id)
                 .or_default()
                 .merge_from(other_chain);
         }
         for chain in self.chains.values_mut() {
-            chain.prune();
+            changed |= chain.prune();
         }
+        changed
     }
 
     pub(crate) fn record_snapshot(
@@ -92,16 +95,17 @@ impl RoundHistoryStore {
         chain_id: &str,
         snapshot: &ClockSnapshot,
         observed_at: u64,
-    ) {
+    ) -> bool {
         let chain = self.chains.entry(chain_id.to_owned()).or_default();
-        chain.record_set(&snapshot.current_set, observed_at);
+        let mut changed = chain.record_set(&snapshot.current_set, observed_at);
         if let Some(previous_set) = &snapshot.previous_set {
-            chain.record_set(previous_set, observed_at);
+            changed |= chain.record_set(previous_set, observed_at);
         }
         if let Some(next_set) = &snapshot.next_set {
-            chain.record_set(next_set, observed_at);
+            changed |= chain.record_set(next_set, observed_at);
         }
-        chain.prune();
+        changed |= chain.prune();
+        changed
     }
 
     pub(crate) fn record_validator_set(
@@ -110,10 +114,11 @@ impl RoundHistoryStore {
         set: &ValidatorSetDto,
         observed_at: u64,
         complete: bool,
-    ) {
+    ) -> bool {
         let chain = self.chains.entry(chain_id.to_owned()).or_default();
-        chain.record_set_with_completeness(set, observed_at, complete);
-        chain.prune();
+        let mut changed = chain.record_set_with_completeness(set, observed_at, complete);
+        changed |= chain.prune();
+        changed
     }
 
     pub(crate) fn annotate_snapshot(&self, chain_id: &str, snapshot: &mut ClockSnapshot) {
@@ -292,19 +297,22 @@ impl ValidatorIdentitySet {
 }
 
 impl ChainRoundHistory {
-    fn merge_from(&mut self, other: ChainRoundHistory) {
+    fn merge_from(&mut self, other: ChainRoundHistory) -> bool {
+        let mut changed = false;
         for (round_id, other_round) in other.rounds {
             match self.rounds.get_mut(&round_id) {
-                Some(round) => round.merge_from(other_round),
+                Some(round) => changed |= round.merge_from(other_round),
                 None => {
                     self.rounds.insert(round_id, other_round);
+                    changed = true;
                 }
             }
         }
+        changed
     }
 
-    fn record_set(&mut self, set: &ValidatorSetDto, observed_at: u64) {
-        self.record_set_with_completeness(set, observed_at, true);
+    fn record_set(&mut self, set: &ValidatorSetDto, observed_at: u64) -> bool {
+        self.record_set_with_completeness(set, observed_at, true)
     }
 
     fn record_set_with_completeness(
@@ -312,43 +320,51 @@ impl ChainRoundHistory {
         set: &ValidatorSetDto,
         observed_at: u64,
         complete: bool,
-    ) {
+    ) -> bool {
         if set.validators.is_empty() {
-            return;
+            return false;
         }
 
-        self.rounds.insert(
-            set.round_id,
-            StoredRound {
-                round_id: set.round_id,
-                round_color: set.round_color,
-                utime_since: set.utime_since,
-                utime_until: set.utime_until,
-                observed_at,
-                complete,
-                validators: set
-                    .validators
-                    .iter()
-                    .map(|validator| {
-                        (
-                            validator.public_key.clone(),
-                            StoredValidator {
-                                wallet: validator.wallet.clone(),
-                            },
-                        )
-                    })
-                    .collect(),
-            },
-        );
+        let incoming = StoredRound {
+            round_id: set.round_id,
+            round_color: set.round_color,
+            utime_since: set.utime_since,
+            utime_until: set.utime_until,
+            observed_at,
+            complete,
+            validators: set
+                .validators
+                .iter()
+                .map(|validator| {
+                    (
+                        validator.public_key.clone(),
+                        StoredValidator {
+                            wallet: validator.wallet.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        };
+
+        match self.rounds.get_mut(&set.round_id) {
+            Some(existing) => existing.merge_from(incoming),
+            None => {
+                self.rounds.insert(set.round_id, incoming);
+                true
+            }
+        }
     }
 
-    fn prune(&mut self) {
+    fn prune(&mut self) -> bool {
+        let mut changed = false;
         while self.rounds.len() > MAX_ROUNDS_PER_CHAIN {
             let Some(oldest) = self.rounds.keys().next().copied() else {
                 break;
             };
             self.rounds.remove(&oldest);
+            changed = true;
         }
+        changed
     }
 }
 
@@ -362,35 +378,121 @@ impl StoredRound {
             })
     }
 
-    fn merge_from(&mut self, other: StoredRound) {
-        if other.complete {
-            *self = other;
-            return;
+    fn merge_from(&mut self, other: StoredRound) -> bool {
+        // Complete rounds come from elector/full-round state and are authoritative.
+        // Partial rounds come from transaction scans and can only add known wallets.
+        match (self.complete, other.complete) {
+            (true, true) => self.merge_complete_from(other),
+            (false, true) => self.replace_with_preserved_wallets(other),
+            (true, false) => self.merge_wallets_from_partial(other),
+            (false, false) => self.merge_partial_from(other),
+        }
+    }
+
+    fn merge_complete_from(&mut self, other: StoredRound) -> bool {
+        let other_is_preferred = other.observed_at > self.observed_at
+            || (other.observed_at == self.observed_at && other.richness() > self.richness());
+        if other_is_preferred {
+            self.replace_with_preserved_wallets(other)
+        } else {
+            self.merge_wallets_from_partial(other)
+        }
+    }
+
+    fn replace_with_preserved_wallets(&mut self, mut replacement: StoredRound) -> bool {
+        for (public_key, validator) in &mut replacement.validators {
+            if validator.wallet.is_none()
+                && let Some(wallet) = self
+                    .validators
+                    .get(public_key)
+                    .and_then(|existing| existing.wallet.clone())
+            {
+                validator.wallet = Some(wallet);
+            }
         }
 
-        self.observed_at = self.observed_at.max(other.observed_at);
+        if self.same_meaningful_content(&replacement) {
+            return false;
+        }
 
-        if self.complete {
-            for (public_key, other_validator) in other.validators {
-                if let Some(validator) = self.validators.get_mut(&public_key)
-                    && validator.wallet.is_none()
-                {
-                    validator.wallet = other_validator.wallet;
-                }
+        *self = replacement;
+        true
+    }
+
+    fn merge_wallets_from_partial(&mut self, other: StoredRound) -> bool {
+        let mut changed = false;
+        let observed_at = other.observed_at;
+        for (public_key, other_validator) in other.validators {
+            if let Some(validator) = self.validators.get_mut(&public_key)
+                && validator.wallet.is_none()
+                && other_validator.wallet.is_some()
+            {
+                validator.wallet = other_validator.wallet;
+                changed = true;
             }
-            return;
+        }
+        if changed {
+            self.observed_at = self.observed_at.max(observed_at);
+        }
+        changed
+    }
+
+    fn merge_partial_from(&mut self, other: StoredRound) -> bool {
+        let mut changed = false;
+        let observed_at = other.observed_at;
+        if observed_at > self.observed_at {
+            if self.round_color != other.round_color {
+                self.round_color = other.round_color;
+                changed = true;
+            }
+            if self.utime_since != other.utime_since {
+                self.utime_since = other.utime_since;
+                changed = true;
+            }
+            if self.utime_until != other.utime_until {
+                self.utime_until = other.utime_until;
+                changed = true;
+            }
         }
 
         for (public_key, other_validator) in other.validators {
-            self.validators
-                .entry(public_key)
-                .and_modify(|validator| {
-                    if validator.wallet.is_none() {
-                        validator.wallet = other_validator.wallet.clone();
-                    }
-                })
-                .or_insert(other_validator);
+            match self.validators.get_mut(&public_key) {
+                Some(validator)
+                    if validator.wallet.is_none() && other_validator.wallet.is_some() =>
+                {
+                    validator.wallet = other_validator.wallet;
+                    changed = true;
+                }
+                Some(_) => {}
+                None => {
+                    self.validators.insert(public_key, other_validator);
+                    changed = true;
+                }
+            }
         }
+        if changed {
+            self.observed_at = self.observed_at.max(observed_at);
+        }
+        changed
+    }
+
+    fn same_meaningful_content(&self, other: &StoredRound) -> bool {
+        self.round_id == other.round_id
+            && self.round_color == other.round_color
+            && self.utime_since == other.utime_since
+            && self.utime_until == other.utime_until
+            && self.complete == other.complete
+            && self.validators == other.validators
+    }
+
+    fn richness(&self) -> (usize, usize) {
+        (
+            self.validators.len(),
+            self.validators
+                .values()
+                .filter(|validator| validator.wallet.is_some())
+                .count(),
+        )
     }
 }
 
@@ -553,6 +655,9 @@ mod tests {
             public_key: public_key.to_owned(),
             adnl_addr: None,
             wallet: wallet.map(str::to_owned),
+            source: None,
+            contract_type: None,
+            contract_type_hash: None,
             stake: None,
             reward: None,
             weight: "1".to_owned(),
@@ -766,6 +871,77 @@ mod tests {
         assert!(round.complete);
         assert!(!round.validators.contains_key("alice"));
         assert!(round.validators.contains_key("bob"));
+    }
+
+    #[test]
+    fn merge_keeps_newer_complete_round_authoritative() {
+        let mut newer_store = RoundHistoryStore::default();
+        newer_store
+            .chains
+            .entry("test".to_owned())
+            .or_default()
+            .record_set_with_completeness(
+                &ValidatorSetDto {
+                    validators: vec![validator_with_wallet("alice", Some("-1:wallet"))],
+                    ..set(10, RoundColor::Blue, Vec::new())
+                },
+                200,
+                true,
+            );
+
+        let mut older_store = RoundHistoryStore::default();
+        older_store
+            .chains
+            .entry("test".to_owned())
+            .or_default()
+            .record_set_with_completeness(&set(10, RoundColor::Blue, vec!["bob"]), 100, true);
+
+        assert!(!newer_store.merge_from(older_store));
+        let round = &newer_store.chains["test"].rounds[&10];
+
+        assert!(round.complete);
+        assert!(round.validators.contains_key("alice"));
+        assert!(!round.validators.contains_key("bob"));
+        assert_eq!(
+            round.validators["alice"].wallet.as_deref(),
+            Some("-1:wallet")
+        );
+    }
+
+    #[test]
+    fn complete_round_refresh_preserves_existing_wallets() {
+        let mut store = RoundHistoryStore::default();
+        let chain = store.chains.entry("test".to_owned()).or_default();
+        assert!(chain.record_set_with_completeness(
+            &ValidatorSetDto {
+                validators: vec![validator_with_wallet("alice", Some("-1:wallet"))],
+                ..set(10, RoundColor::Blue, Vec::new())
+            },
+            100,
+            true,
+        ));
+
+        assert!(!chain.record_set_with_completeness(
+            &set(10, RoundColor::Blue, vec!["alice"]),
+            200,
+            true,
+        ));
+        let round = &chain.rounds[&10];
+
+        assert_eq!(
+            round.validators["alice"].wallet.as_deref(),
+            Some("-1:wallet")
+        );
+        assert_eq!(round.observed_at, 100);
+    }
+
+    #[test]
+    fn recording_same_complete_round_is_not_dirty() {
+        let mut store = RoundHistoryStore::default();
+        let chain = store.chains.entry("test".to_owned()).or_default();
+
+        assert!(chain.record_set(&set(10, RoundColor::Blue, vec!["alice"]), 100));
+        assert!(!chain.record_set(&set(10, RoundColor::Blue, vec!["alice"]), 200));
     }
 
     #[test]

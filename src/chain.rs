@@ -1,10 +1,12 @@
 use crate::config::{AppConfig, ChainConfig};
-use crate::fsutil::write_file_atomic;
 use crate::history::{
     RecentAbsentValidatorDto, ValidatorParticipationDto, load_round_history,
     save_round_history_merged,
 };
 use crate::state::AppState;
+use crate::validator_types::{
+    ValidatorSourceCacheEntry, ValidatorTypeCache, contract_type_name, save_validator_type_cache,
+};
 use anyhow::{Context, Result, anyhow, bail};
 use minik2::{
     Config, CurrentElectionData, Elector, FpTokens, HashBytes, JrpcTransport, Ref, Transport,
@@ -13,22 +15,24 @@ use minik2::{
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::env;
-use std::fs;
-use std::io::ErrorKind;
-use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::RwLock;
+use tokio::task::JoinSet;
 use tokio::time::{Duration, MissedTickBehavior, interval, timeout};
 use tracing::{debug, info, warn};
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
 use tycho_types::models::account::AccountState;
-use tycho_types::models::{IntAddr, MsgInfo, Transaction};
+use tycho_types::models::{IntAddr, MsgInfo, StdAddr, Transaction};
 use tycho_types::num::Tokens;
 
 const ELECTOR_TX_SCAN_LIMIT: u8 = 100;
 const ONE_TOKEN: u128 = 1_000_000_000;
+const VALIDATOR_TYPE_FETCH_CONCURRENCY: usize = 8;
+const VALIDATOR_TYPE_UPDATE_MIN_TIMEOUT_SECS: u64 = 5;
+const VALIDATOR_TYPE_UPDATE_MAX_TIMEOUT_SECS: u64 = 30;
+const PROXY_SOURCE_TX_SCAN_LIMIT: u8 = 100;
+const PROXY_SOURCE_TX_SCAN_MAX_PAGES: usize = 40;
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ChainsResponse {
@@ -142,11 +146,20 @@ pub(crate) struct ValidatorDto {
     pub(crate) public_key: String,
     pub(crate) adnl_addr: Option<String>,
     pub(crate) wallet: Option<String>,
+    pub(crate) source: Option<ValidatorSourceDto>,
+    pub(crate) contract_type: Option<String>,
+    pub(crate) contract_type_hash: Option<String>,
     pub(crate) stake: Option<String>,
     pub(crate) reward: Option<String>,
     pub(crate) weight: String,
     pub(crate) weight_percent: f64,
     pub(crate) history: Vec<ValidatorParticipationDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct ValidatorSourceDto {
+    pub(crate) address: String,
+    pub(crate) contract_type_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
@@ -162,6 +175,9 @@ pub(crate) struct ElectionCandidateDto {
     created_at: u32,
     stake_factor: u32,
     pub(crate) wallet: String,
+    pub(crate) source: Option<ValidatorSourceDto>,
+    pub(crate) contract_type: Option<String>,
+    pub(crate) contract_type_hash: Option<String>,
     adnl_addr: String,
     pub(crate) history: Vec<ValidatorParticipationDto>,
 }
@@ -192,12 +208,6 @@ pub(crate) struct ValidatorRoundData {
     total_weight_raw: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-struct ValidatorRoundDiskCache {
-    version: u32,
-    rounds: HashMap<String, ValidatorRoundData>,
-}
-
 #[derive(Debug, Clone, FromAbi, WithAbiType)]
 #[allow(dead_code)]
 struct ParticipateInElectionsInput {
@@ -207,6 +217,18 @@ struct ParticipateInElectionsInput {
     stake_factor: u32,
     adnl_addr: minik2::HashBytes,
     signature: Vec<u8>,
+}
+
+#[derive(Debug, Clone, FromAbi, WithAbiType)]
+#[allow(dead_code)]
+struct ProxyProcessNewStakeInput {
+    query_id: u64,
+    validator_key: minik2::HashBytes,
+    stake_at: u32,
+    max_factor: u32,
+    adnl_addr: minik2::HashBytes,
+    signature: Vec<u8>,
+    elector: StdAddr,
 }
 
 #[derive(Debug, Clone, FromAbi, WithAbiType)]
@@ -245,7 +267,6 @@ pub(crate) struct CacheEntry {
 }
 
 type ValidatorHistory = HashMap<String, ValidatorElectionHistory>;
-pub(crate) type ValidatorRoundCache = RwLock<HashMap<String, ValidatorRoundData>>;
 
 struct ValidatorRoundHistoryScan<'a> {
     stake_at: u32,
@@ -411,11 +432,7 @@ pub(crate) async fn get_chain_snapshot(
     let timeout_seconds = state.config.refresh_timeout_seconds;
     let refresh_result = timeout(
         Duration::from_secs(timeout_seconds),
-        fetch_chain_snapshot_cached(
-            chain,
-            &state.validator_round_cache,
-            &state.validator_round_cache_path,
-        ),
+        fetch_chain_snapshot_with_validator_types(state, chain),
     )
     .await
     .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {timeout_seconds}s")));
@@ -460,20 +477,463 @@ pub(crate) async fn get_chain_snapshot(
 async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
     let chain_id = snapshot.chain.id.clone();
     let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
-    let mut history = state.round_history.write().await;
-    history.record_snapshot(&chain_id, snapshot, observed_at);
-    history.annotate_snapshot(&chain_id, snapshot);
-    if let Err(error) = save_round_history_merged(&state.round_history_path, &mut history) {
-        warn!(
-            path = %state.round_history_path.display(),
-            error = ?error,
-            "failed to save round history"
-        );
+    let history_to_save = {
+        let mut history = state.round_history.write().await;
+        let changed = history.record_snapshot(&chain_id, snapshot, observed_at);
+        history.annotate_snapshot(&chain_id, snapshot);
+        changed.then(|| history.clone())
+    };
+
+    let Some(mut history_to_save) = history_to_save else {
+        return;
+    };
+
+    let history_path = state.round_history_path.clone();
+    match tokio::task::spawn_blocking(move || {
+        save_round_history_merged(&history_path, &mut history_to_save)?;
+        Ok::<_, anyhow::Error>(history_to_save)
+    })
+    .await
+    {
+        Ok(Ok(saved_history)) => {
+            state.round_history.write().await.merge_from(saved_history);
+        }
+        Ok(Err(error)) => {
+            warn!(
+                path = %state.round_history_path.display(),
+                error = ?error,
+                "failed to save round history"
+            );
+        }
+        Err(error) => {
+            warn!(
+                path = %state.round_history_path.display(),
+                error = ?error,
+                "round history save task failed"
+            );
+        }
     }
 }
 
 pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSnapshot> {
-    fetch_chain_snapshot_inner(chain, None, None).await
+    fetch_chain_snapshot_inner(chain).await
+}
+
+async fn fetch_chain_snapshot_with_validator_types(
+    state: &AppState,
+    chain: &ChainConfig,
+) -> Result<ClockSnapshot> {
+    let mut snapshot = fetch_chain_snapshot(chain).await?;
+    let type_update_timeout =
+        Duration::from_secs((state.config.refresh_timeout_seconds / 3).clamp(
+            VALIDATOR_TYPE_UPDATE_MIN_TIMEOUT_SECS,
+            VALIDATOR_TYPE_UPDATE_MAX_TIMEOUT_SECS,
+        ));
+    match timeout(
+        type_update_timeout,
+        update_validator_contract_type_hashes(state, chain, &mut snapshot),
+    )
+    .await
+    {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => {
+            warn!(
+                chain_id = %chain.id,
+                error = ?error,
+                "failed to update validator contract type hashes"
+            );
+        }
+        Err(_) => {
+            warn!(
+                chain_id = %chain.id,
+                timeout_seconds = type_update_timeout.as_secs(),
+                "validator contract type hash update timed out"
+            );
+        }
+    }
+    Ok(snapshot)
+}
+
+async fn update_validator_contract_type_hashes(
+    state: &AppState,
+    chain: &ChainConfig,
+    snapshot: &mut ClockSnapshot,
+) -> Result<()> {
+    let wallets = validator_wallets(snapshot);
+    if wallets.is_empty() {
+        return Ok(());
+    }
+
+    let missing_wallets = {
+        let cache = state.validator_type_cache.read().await;
+        apply_validator_type_cache(&cache, &chain.id, snapshot);
+        wallets
+            .clone()
+            .into_iter()
+            .filter(|wallet| cache.get(&chain.id, wallet).is_none())
+            .collect::<Vec<_>>()
+    };
+
+    if !missing_wallets.is_empty() {
+        let fetched = fetch_validator_contract_type_hashes(chain, missing_wallets).await?;
+        if !fetched.is_empty() {
+            let cache_to_save = {
+                let mut cache = state.validator_type_cache.write().await;
+                let mut changed = false;
+                for (wallet, repr_hash) in fetched {
+                    changed |= cache.insert(&chain.id, &wallet, repr_hash);
+                }
+                apply_validator_type_cache(&cache, &chain.id, snapshot);
+                changed.then(|| cache.clone())
+            };
+
+            if let Some(cache_to_save) = cache_to_save {
+                save_validator_type_cache_background(state, cache_to_save).await;
+            }
+        }
+    }
+
+    let missing_source_wallets = {
+        let cache = state.validator_type_cache.read().await;
+        apply_validator_type_cache(&cache, &chain.id, snapshot);
+        proxy_wallets_missing_source(&cache, &chain.id, &wallets)
+    };
+
+    if missing_source_wallets.is_empty() {
+        return Ok(());
+    }
+
+    let fetched_sources = fetch_proxy_validator_sources(chain, missing_source_wallets).await?;
+    if fetched_sources.is_empty() {
+        return Ok(());
+    }
+
+    let cache_to_save = {
+        let mut cache = state.validator_type_cache.write().await;
+        let mut changed = false;
+        for (wallet, source) in fetched_sources {
+            changed |= cache.insert_source(
+                &chain.id,
+                &wallet,
+                source.address,
+                source.contract_type_hash,
+            );
+        }
+        apply_validator_type_cache(&cache, &chain.id, snapshot);
+        changed.then(|| cache.clone())
+    };
+
+    if let Some(cache_to_save) = cache_to_save {
+        save_validator_type_cache_background(state, cache_to_save).await;
+    }
+
+    Ok(())
+}
+
+async fn save_validator_type_cache_background(state: &AppState, cache_to_save: ValidatorTypeCache) {
+    let cache_path = state.validator_type_cache_path.clone();
+    match tokio::task::spawn_blocking(move || {
+        save_validator_type_cache(&cache_path, &cache_to_save)
+    })
+    .await
+    {
+        Ok(Ok(())) => {}
+        Ok(Err(error)) => {
+            warn!(
+                path = %state.validator_type_cache_path.display(),
+                error = ?error,
+                "failed to save validator type cache"
+            );
+        }
+        Err(error) => {
+            warn!(
+                path = %state.validator_type_cache_path.display(),
+                error = ?error,
+                "validator type cache save task failed"
+            );
+        }
+    }
+}
+
+fn validator_wallets(snapshot: &ClockSnapshot) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut wallets = Vec::new();
+    for validator in snapshot
+        .current_set
+        .validators
+        .iter()
+        .chain(
+            snapshot
+                .previous_set
+                .iter()
+                .flat_map(|set| set.validators.iter()),
+        )
+        .chain(
+            snapshot
+                .next_set
+                .iter()
+                .flat_map(|set| set.validators.iter()),
+        )
+    {
+        if let Some(wallet) = &validator.wallet
+            && seen.insert(wallet.clone())
+        {
+            wallets.push(wallet.clone());
+        }
+    }
+    for candidate in &snapshot.election.candidates {
+        if seen.insert(candidate.wallet.clone()) {
+            wallets.push(candidate.wallet.clone());
+        }
+    }
+    wallets
+}
+
+fn apply_validator_type_cache(
+    cache: &ValidatorTypeCache,
+    chain_id: &str,
+    snapshot: &mut ClockSnapshot,
+) {
+    for validator in snapshot
+        .current_set
+        .validators
+        .iter_mut()
+        .chain(
+            snapshot
+                .previous_set
+                .iter_mut()
+                .flat_map(|set| set.validators.iter_mut()),
+        )
+        .chain(
+            snapshot
+                .next_set
+                .iter_mut()
+                .flat_map(|set| set.validators.iter_mut()),
+        )
+    {
+        if let Some(wallet) = &validator.wallet
+            && let Some(entry) = cache.get(chain_id, wallet)
+        {
+            validator.contract_type_hash = Some(entry.repr_hash.clone());
+            validator.contract_type = Some(contract_type_name(&entry.repr_hash).to_owned());
+            validator.source = entry.source.as_ref().map(validator_source_dto);
+        }
+    }
+
+    for candidate in &mut snapshot.election.candidates {
+        if let Some(entry) = cache.get(chain_id, &candidate.wallet) {
+            candidate.contract_type_hash = Some(entry.repr_hash.clone());
+            candidate.contract_type = Some(contract_type_name(&entry.repr_hash).to_owned());
+            candidate.source = entry.source.as_ref().map(validator_source_dto);
+        }
+    }
+}
+
+fn validator_source_dto(source: &ValidatorSourceCacheEntry) -> ValidatorSourceDto {
+    ValidatorSourceDto {
+        address: source.address.clone(),
+        contract_type_hash: source.repr_hash.clone(),
+    }
+}
+
+fn proxy_wallets_missing_source(
+    cache: &ValidatorTypeCache,
+    chain_id: &str,
+    wallets: &[String],
+) -> Vec<String> {
+    wallets
+        .iter()
+        .filter_map(|wallet| {
+            let entry = cache.get(chain_id, wallet)?;
+            is_proxy_contract_type(contract_type_name(&entry.repr_hash))
+                .then(|| entry.source.is_none())
+                .and_then(|missing| missing.then(|| wallet.clone()))
+        })
+        .collect()
+}
+
+fn is_proxy_contract_type(contract_type: &str) -> bool {
+    matches!(contract_type, "DePoolProxy" | "StEverDePoolProxy")
+}
+
+async fn fetch_validator_contract_type_hashes(
+    chain: &ChainConfig,
+    wallets: Vec<String>,
+) -> Result<Vec<(String, String)>> {
+    let transport = Transport::jrpc(&chain.rpc)
+        .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
+    let mut fetched = Vec::new();
+
+    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
+        let mut tasks = JoinSet::new();
+        for wallet in chunk {
+            let transport = transport.clone();
+            let wallet = wallet.clone();
+            tasks.spawn(async move {
+                let result = account_contract_code_hash(&transport, &wallet).await;
+                (wallet, result)
+            });
+        }
+
+        while let Some(result) = tasks.join_next().await {
+            match result {
+                Ok((wallet, Ok(repr_hash))) => fetched.push((wallet, repr_hash)),
+                Ok((wallet, Err(error))) => {
+                    debug!(
+                        chain_id = %chain.id,
+                        wallet,
+                        error = ?error,
+                        "failed to fetch validator contract type hash"
+                    );
+                }
+                Err(error) => {
+                    warn!(
+                        chain_id = %chain.id,
+                        error = ?error,
+                        "validator contract type hash task failed"
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(fetched)
+}
+
+async fn fetch_proxy_validator_sources(
+    chain: &ChainConfig,
+    wallets: Vec<String>,
+) -> Result<Vec<(String, ValidatorSourceDto)>> {
+    let rpc = JrpcTransport::new(&chain.rpc)
+        .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
+    let transport = Transport::from(&rpc);
+    let mut fetched = Vec::new();
+
+    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
+        let mut tasks = JoinSet::new();
+        for wallet in chunk {
+            let rpc = rpc.clone();
+            let transport = transport.clone();
+            let wallet = wallet.clone();
+            tasks.spawn(async move {
+                let result = discover_proxy_validator_source(&rpc, &transport, &wallet).await;
+                (wallet, result)
+            });
+        }
+
+        while let Some(result) = tasks.join_next().await {
+            match result {
+                Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
+                Ok((wallet, Ok(None))) => {
+                    debug!(
+                        chain_id = %chain.id,
+                        wallet,
+                        "proxy validator source not found"
+                    );
+                }
+                Ok((wallet, Err(error))) => {
+                    debug!(
+                        chain_id = %chain.id,
+                        wallet,
+                        error = ?error,
+                        "failed to discover proxy validator source"
+                    );
+                }
+                Err(error) => {
+                    warn!(
+                        chain_id = %chain.id,
+                        error = ?error,
+                        "proxy validator source task failed"
+                    );
+                }
+            }
+        }
+    }
+
+    Ok(fetched)
+}
+
+async fn discover_proxy_validator_source(
+    rpc: &JrpcTransport,
+    transport: &Transport,
+    proxy_wallet: &str,
+) -> Result<Option<ValidatorSourceDto>> {
+    let Some(address) = scan_proxy_source_address(rpc, proxy_wallet).await? else {
+        return Ok(None);
+    };
+    let contract_type_hash = match account_contract_code_hash(transport, &address).await {
+        Ok(repr_hash) => Some(repr_hash),
+        Err(error) => {
+            debug!(
+                proxy_wallet,
+                source = address,
+                error = ?error,
+                "failed to fetch proxy source contract hash"
+            );
+            None
+        }
+    };
+
+    Ok(Some(ValidatorSourceDto {
+        address,
+        contract_type_hash,
+    }))
+}
+
+async fn scan_proxy_source_address(
+    rpc: &JrpcTransport,
+    proxy_wallet: &str,
+) -> Result<Option<String>> {
+    let mut continuation = None::<String>;
+
+    for _ in 0..PROXY_SOURCE_TX_SCAN_MAX_PAGES {
+        let mut params = serde_json::json!({
+            "account": proxy_wallet,
+            "limit": PROXY_SOURCE_TX_SCAN_LIMIT,
+        });
+        if let Some(lt) = &continuation {
+            params["lastTransactionLt"] = serde_json::json!(lt);
+        }
+
+        let tx_bocs: Vec<String> = rpc.call("getTransactionsList", params).await?;
+        if tx_bocs.is_empty() {
+            break;
+        }
+
+        let mut next_continuation = None;
+        for tx_boc in tx_bocs {
+            let transaction: Transaction = BocRepr::decode_base64(tx_boc)?;
+            next_continuation = Some(transaction.prev_trans_lt.to_string());
+            if let Some(source) = parse_proxy_process_new_stake_source(&transaction)? {
+                return Ok(Some(source));
+            }
+        }
+
+        if next_continuation.as_deref() == Some("0") || next_continuation == continuation {
+            break;
+        }
+        continuation = next_continuation;
+    }
+
+    Ok(None)
+}
+
+async fn account_contract_code_hash(
+    transport: &Transport,
+    account_address: &str,
+) -> Result<String> {
+    let state = transport.get_account_state(account_address).await?;
+    let account = state
+        .account()
+        .with_context(|| format!("account `{account_address}` not found"))?;
+    let AccountState::Active(state_init) = &account.state else {
+        bail!("account `{account_address}` is not active");
+    };
+    let code = state_init
+        .code
+        .as_ref()
+        .with_context(|| format!("account `{account_address}` has no code"))?;
+    Ok(code.repr_hash().to_string())
 }
 
 pub(crate) async fn backfill_round_history(
@@ -587,24 +1047,7 @@ pub(crate) async fn backfill_round_history(
     })
 }
 
-async fn fetch_chain_snapshot_cached(
-    chain: &ChainConfig,
-    validator_round_cache: &ValidatorRoundCache,
-    validator_round_cache_path: &Path,
-) -> Result<ClockSnapshot> {
-    fetch_chain_snapshot_inner(
-        chain,
-        Some(validator_round_cache),
-        Some(validator_round_cache_path),
-    )
-    .await
-}
-
-async fn fetch_chain_snapshot_inner(
-    chain: &ChainConfig,
-    validator_round_cache: Option<&ValidatorRoundCache>,
-    validator_round_cache_path: Option<&Path>,
-) -> Result<ClockSnapshot> {
+async fn fetch_chain_snapshot_inner(chain: &ChainConfig) -> Result<ClockSnapshot> {
     let transport = Transport::jrpc(&chain.rpc)
         .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
     let config = Config::fetch(&transport)
@@ -616,16 +1059,9 @@ async fn fetch_chain_snapshot_inner(
     let election = fetch_election(&transport, &config)
         .await
         .unwrap_or_default();
-    let validator_round_data_result = fetch_validator_round_data(
-        chain,
-        &transport,
-        &config,
-        &current_set,
-        next_set.as_ref(),
-        validator_round_cache,
-        validator_round_cache_path,
-    )
-    .await;
+    // Live refreshes only use elector/full-round state. Transaction scans are
+    // CLI-only partial backfill and must never prove absence.
+    let validator_round_data_result = fetch_frozen_validator_round_data(&transport, &config).await;
     let validator_round_data = match validator_round_data_result {
         Ok(round_data) => round_data,
         Err(error) => {
@@ -717,6 +1153,9 @@ impl ValidatorSetDto {
                         public_key,
                         adnl_addr: validator.adnl_addr.as_ref().map(|adnl| hex_lower(&adnl.0)),
                         wallet: history.map(|history| history.wallet.clone()),
+                        source: None,
+                        contract_type: None,
+                        contract_type_hash: None,
                         stake: history.map(|history| history.stake.clone()),
                         reward: total_reward_raw
                             .map(|reward| {
@@ -769,6 +1208,9 @@ impl ValidatorSetDto {
                     public_key: public_key.clone(),
                     adnl_addr: None,
                     wallet: Some(history.wallet.clone()),
+                    source: None,
+                    contract_type: None,
+                    contract_type_hash: None,
                     stake: Some(history.stake.clone()),
                     reward: history.reward.clone(),
                     weight,
@@ -833,6 +1275,9 @@ async fn fetch_election(transport: &Transport, config: &Config) -> Result<Electi
                 created_at: member.created_at,
                 stake_factor: member.stake_factor,
                 wallet: masterchain_hash_address(&member.src_addr.0),
+                source: None,
+                contract_type: None,
+                contract_type_hash: None,
                 adnl_addr: hex_lower(&member.adnl_addr.0),
                 history: Vec::new(),
             })
@@ -908,115 +1353,6 @@ fn validator_round_data_from_frozen(election: &FullPastElectionData) -> Validato
         total_reward: Some(election.bonuses.to_string()),
         total_reward_raw: Some(election.bonuses.0.to_string()),
         total_weight_raw: Some(total_weight.to_string()),
-    }
-}
-
-async fn fetch_validator_round_data(
-    chain: &ChainConfig,
-    transport: &Transport,
-    config: &Config,
-    current_set: &ValidatorSet,
-    next_set: Option<&ValidatorSet>,
-    validator_round_cache: Option<&ValidatorRoundCache>,
-    validator_round_cache_path: Option<&Path>,
-) -> Result<HashMap<u32, ValidatorRoundData>> {
-    let mut rounds = fetch_frozen_validator_round_data(transport, config)
-        .await
-        .unwrap_or_else(|error| {
-            if env::var_os("VALIDATORS_CLOCK_DEBUG_HISTORY").is_some() {
-                debug!(error = ?error, "frozen validator round data unavailable");
-            }
-            HashMap::new()
-        });
-    let missing_targets: Vec<_> = validator_round_targets(current_set, next_set)
-        .into_iter()
-        .filter(|(stake_at, target_keys)| {
-            !target_keys.is_empty()
-                && rounds
-                    .get(stake_at)
-                    .is_none_or(|round| round.validators.len() < target_keys.len())
-        })
-        .collect();
-    if missing_targets.is_empty() {
-        return Ok(rounds);
-    }
-
-    let capabilities = transport.get_capabilities().await.unwrap_or_default();
-    if !capabilities
-        .iter()
-        .any(|capability| capability == "getTransactionsList")
-    {
-        return Ok(rounds);
-    }
-
-    let elector = Elector::from_config(transport, config)?;
-    let rpc = JrpcTransport::new(&chain.rpc)?;
-    let account = elector.address().to_string();
-    let timings = config.election_timings()?;
-    let election_fee = apply_price_factor(ONE_TOKEN, config.compute_price_factor(true)?);
-    let debug_history = env::var_os("VALIDATORS_CLOCK_DEBUG_HISTORY").is_some();
-
-    for (stake_at, target_keys) in missing_targets {
-        let cache_key = validator_history_cache_key(chain, stake_at);
-        if let Some(cache) = validator_round_cache
-            && let Some(cached) = cache.read().await.get(&cache_key)
-        {
-            merge_validator_round_data(rounds.entry(stake_at).or_default(), cached.clone());
-            continue;
-        }
-
-        let round_data = scan_validator_election_round_history(
-            &rpc,
-            &account,
-            ValidatorRoundHistoryScan {
-                stake_at,
-                target_keys: Some(&target_keys),
-                elections_start_before: timings.elections_start_before,
-                elections_end_before: timings.elections_end_before,
-                max_pages: 700,
-                election_fee,
-                debug_history,
-                progress: false,
-                align_to_window: false,
-            },
-        )
-        .await?;
-        let round_data = round_data.round_data;
-
-        if let Some(cache) = validator_round_cache {
-            let snapshot = {
-                let mut cache = cache.write().await;
-                cache.insert(cache_key, round_data.clone());
-                cache.clone()
-            };
-            if let Some(path) = validator_round_cache_path
-                && let Err(error) = save_validator_round_disk_cache(path, &snapshot)
-            {
-                warn!(path = %path.display(), error = ?error, "failed to save validator round cache");
-            }
-        }
-        merge_validator_round_data(rounds.entry(stake_at).or_default(), round_data);
-    }
-
-    Ok(rounds)
-}
-
-fn merge_validator_round_data(target: &mut ValidatorRoundData, source: ValidatorRoundData) {
-    target.validators.extend(source.validators);
-    if target.total_stake.is_none() {
-        target.total_stake = source.total_stake;
-    }
-    if target.total_stake_raw.is_none() {
-        target.total_stake_raw = source.total_stake_raw;
-    }
-    if target.total_reward.is_none() {
-        target.total_reward = source.total_reward;
-    }
-    if target.total_reward_raw.is_none() {
-        target.total_reward_raw = source.total_reward_raw;
-    }
-    if target.total_weight_raw.is_none() {
-        target.total_weight_raw = source.total_weight_raw;
     }
 }
 
@@ -1156,28 +1492,6 @@ async fn scan_validator_election_round_history(
         pages_scanned,
         reached_stop,
     })
-}
-
-fn validator_round_targets(
-    current_set: &ValidatorSet,
-    next_set: Option<&ValidatorSet>,
-) -> Vec<(u32, HashSet<String>)> {
-    let mut targets = vec![(current_set.utime_since, validator_public_keys(current_set))];
-    if let Some(next_set) = next_set {
-        targets.push((next_set.utime_since, validator_public_keys(next_set)));
-    }
-    targets
-}
-
-fn validator_public_keys(set: &ValidatorSet) -> HashSet<String> {
-    set.list
-        .iter()
-        .map(|validator| hex_lower(&validator.public_key.0))
-        .collect()
-}
-
-fn validator_history_cache_key(chain: &ChainConfig, stake_at: u32) -> String {
-    format!("{}:{}:{}", chain.id, chain.rpc, stake_at)
 }
 
 async fn estimated_transaction_lt_at(
@@ -1340,6 +1654,30 @@ fn parse_election_submission(
     }))
 }
 
+fn parse_proxy_process_new_stake_source(transaction: &Transaction) -> Result<Option<String>> {
+    let Some(message) = transaction.load_in_msg()? else {
+        return Ok(None);
+    };
+
+    let MsgInfo::Int(info) = message.info else {
+        return Ok(None);
+    };
+    let Some(source) = info.src.as_std() else {
+        return Ok(None);
+    };
+    if source.workchain != 0 {
+        return Ok(None);
+    }
+
+    let values = match proxy_process_new_stake_fn().decode_internal_input(message.body) {
+        Ok(values) => values,
+        Err(_) => return Ok(None),
+    };
+    let _input = ProxyProcessNewStakeInput::from_abi(AbiValue::Tuple(values))?;
+
+    Ok(Some(source.to_string()))
+}
+
 fn std_addr_string(address: &IntAddr) -> Option<String> {
     address.as_std().map(ToString::to_string)
 }
@@ -1355,6 +1693,16 @@ fn participate_in_elections_fn() -> &'static Function {
         Function::builder(AbiVersion::V2_0, "participate_in_elections")
             .with_id(0x4e73744b)
             .with_inputs([ParticipateInElectionsInput::abi_type().named("input")])
+            .build()
+    })
+}
+
+fn proxy_process_new_stake_fn() -> &'static Function {
+    static FUNCTION: OnceLock<Function> = OnceLock::new();
+    FUNCTION.get_or_init(|| {
+        Function::builder(AbiVersion::V2_0, "process_new_stake")
+            .with_id(0x138bac8c)
+            .with_inputs(ProxyProcessNewStakeInput::abi_type().named("").flatten())
             .build()
     })
 }
@@ -1381,33 +1729,6 @@ fn masterchain_hash_address(bytes: &[u8]) -> String {
     format!("-1:{}", hex_lower(bytes))
 }
 
-pub(crate) fn load_validator_round_disk_cache(
-    path: &Path,
-) -> Result<HashMap<String, ValidatorRoundData>> {
-    let content = match fs::read_to_string(path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(HashMap::new()),
-        Err(error) => {
-            return Err(error).with_context(|| format!("failed to read {}", path.display()));
-        }
-    };
-    let cache: ValidatorRoundDiskCache = serde_json::from_str(&content)
-        .with_context(|| format!("failed to parse {}", path.display()))?;
-    Ok(cache.rounds)
-}
-
-fn save_validator_round_disk_cache(
-    path: &Path,
-    rounds: &HashMap<String, ValidatorRoundData>,
-) -> Result<()> {
-    let cache = ValidatorRoundDiskCache {
-        version: 1,
-        rounds: rounds.clone(),
-    };
-    let content = serde_json::to_string_pretty(&cache)?;
-    write_file_atomic(path, content.as_bytes(), 0o644)
-}
-
 fn endpoint_label(endpoint: &str) -> String {
     endpoint
         .trim()
@@ -1427,38 +1748,6 @@ fn now_sec() -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
-
-    #[test]
-    fn validator_round_disk_cache_loads_missing_file_as_empty() {
-        let dir = test_dir("missing");
-        let path = dir.join("nested").join("rounds.json");
-
-        let loaded = load_validator_round_disk_cache(&path).unwrap();
-
-        assert!(loaded.is_empty());
-    }
-
-    #[test]
-    fn validator_round_disk_cache_writes_atomically_and_creates_parent_dir() {
-        let dir = test_dir("write");
-        let path = dir.join("nested").join("rounds.json");
-        let mut rounds = HashMap::new();
-        rounds.insert(
-            "test-round".to_owned(),
-            ValidatorRoundData {
-                total_stake: Some("100".to_owned()),
-                total_stake_raw: Some("100000000000".to_owned()),
-                ..ValidatorRoundData::default()
-            },
-        );
-
-        save_validator_round_disk_cache(&path, &rounds).unwrap();
-
-        let loaded = load_validator_round_disk_cache(&path).unwrap();
-        assert_eq!(loaded["test-round"].total_stake.as_deref(), Some("100"));
-        assert!(!path.with_extension("tmp").exists());
-    }
 
     #[test]
     fn frozen_round_data_builds_previous_validator_set() {
@@ -1507,19 +1796,5 @@ mod tests {
         assert!(transaction_is_inside_election_window(150, 100, 200));
         assert!(transaction_is_inside_election_window(200, 100, 200));
         assert!(!transaction_is_inside_election_window(201, 100, 200));
-    }
-
-    fn test_dir(label: &str) -> std::path::PathBuf {
-        let nanos = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos();
-        let dir = env::temp_dir().join(format!(
-            "validators_clock_chain_test_{label}_{}_{}",
-            std::process::id(),
-            nanos
-        ));
-        fs::create_dir_all(&dir).unwrap();
-        dir
     }
 }
