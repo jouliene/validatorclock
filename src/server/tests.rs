@@ -1,7 +1,7 @@
 use super::assets::asset_version;
 use super::routes::{app_router, challenge_redirect_router};
 use super::security::{normalize_host, redirect_location, request_host_allowed};
-use crate::chain::{test_cache_entry, test_clock_snapshot};
+use crate::chain::test_clock_snapshot;
 use crate::config::{AcmeConfig, AppConfig, ChainConfig, SecurityConfig, TlsConfig};
 use crate::state::AppState;
 use crate::tls;
@@ -325,10 +325,9 @@ async fn app_router_serves_runtime_status() {
 async fn app_router_serves_cached_clock_shape() {
     let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
     let snapshot = test_clock_snapshot("test");
-    state.cache.write().await.insert(
-        "test".to_owned(),
-        test_cache_entry(now_sec_for_test(), snapshot),
-    );
+    state
+        .store_cached_snapshot("test", now_sec_for_test(), snapshot)
+        .await;
 
     let response = app_router(state)
         .oneshot(

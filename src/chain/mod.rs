@@ -1,5 +1,4 @@
 use crate::config::{AppConfig, ChainConfig};
-use crate::history::save_round_history_merged;
 use crate::state::AppState;
 use anyhow::{Result, anyhow};
 use std::sync::Arc;
@@ -24,14 +23,6 @@ pub(crate) use dto::{
 pub(crate) use elector::fetch_chain_snapshot;
 use util::now_sec;
 use validator_sources::update_validator_contract_type_hashes;
-
-#[cfg(test)]
-pub(crate) fn test_cache_entry(fetched_at: u64, snapshot: ClockSnapshot) -> CacheEntry {
-    CacheEntry {
-        fetched_at,
-        snapshot,
-    }
-}
 
 #[cfg(test)]
 pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
@@ -96,8 +87,7 @@ pub(crate) fn chains_response(config: &AppConfig) -> ChainsResponse {
 pub(crate) async fn runtime_status(state: &AppState) -> Result<RuntimeStatusResponse> {
     let now = now_sec()?;
     let refresh_seconds = state.config.refresh_seconds.max(10);
-    let cache = state.cache.read().await;
-    let chain_status = state.chain_status.read().await;
+    let runtime_snapshots = state.chain_runtime_snapshots(now, refresh_seconds).await;
     let mut any_missing = false;
     let mut any_stale_error = false;
 
@@ -106,33 +96,28 @@ pub(crate) async fn runtime_status(state: &AppState) -> Result<RuntimeStatusResp
         .chains
         .iter()
         .map(|chain| {
-            let cached = cache.get(&chain.id);
-            let fetched_at = cached.map(|entry| entry.snapshot.fetched_at);
-            let age_seconds = fetched_at.map(|fetched_at| now.saturating_sub(fetched_at));
-            let stale = age_seconds.is_none_or(|age| age > refresh_seconds.saturating_mul(2));
-            let status = chain_status.get(&chain.id);
+            let status = runtime_snapshots
+                .get(&chain.id)
+                .cloned()
+                .unwrap_or_default();
 
-            if cached.is_none() {
+            if !status.cached {
                 any_missing = true;
             }
-            if stale
-                && status
-                    .and_then(|status| status.last_error.as_ref())
-                    .is_some()
-            {
+            if status.stale && status.last_error.is_some() {
                 any_stale_error = true;
             }
 
             ChainRuntimeStatusDto {
                 id: chain.id.clone(),
                 name: chain.name.clone(),
-                cached: cached.is_some(),
-                fetched_at,
-                age_seconds,
-                stale,
-                last_attempt_at: status.and_then(|status| status.last_attempt_at),
-                last_success_at: status.and_then(|status| status.last_success_at),
-                last_error: status.and_then(|status| status.last_error.clone()),
+                cached: status.cached,
+                fetched_at: status.fetched_at,
+                age_seconds: status.age_seconds,
+                stale: status.stale,
+                last_attempt_at: status.last_attempt_at,
+                last_success_at: status.last_success_at,
+                last_error: status.last_error,
             }
         })
         .collect();
@@ -227,15 +212,10 @@ pub(crate) async fn get_chain_snapshot(
     let refresh_seconds = state.config.refresh_seconds.max(10);
 
     if !force_refresh
-        && let Some(entry) = state.cache.read().await.get(chain_id)
-        && now.saturating_sub(entry.fetched_at) < refresh_seconds
-    {
-        let mut snapshot = entry.snapshot.clone();
-        state
-            .round_history
-            .read()
+        && let Some(snapshot) = state
+            .cached_snapshot_if_fresh(chain_id, now, refresh_seconds)
             .await
-            .annotate_snapshot(chain_id, &mut snapshot);
+    {
         return Ok(snapshot);
     }
 
@@ -256,14 +236,11 @@ pub(crate) async fn get_chain_snapshot(
     match refresh_result {
         Ok(mut snapshot) => {
             let fetched_at = snapshot.fetched_at;
-            update_round_history(state, &mut snapshot).await;
-            state.cache.write().await.insert(
-                chain_id.to_owned(),
-                CacheEntry {
-                    fetched_at: now,
-                    snapshot: snapshot.clone(),
-                },
-            );
+            let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
+            state.record_round_history(&mut snapshot, observed_at).await;
+            state
+                .store_cached_snapshot(chain_id, now, snapshot.clone())
+                .await;
             state.record_refresh_success(chain_id, fetched_at).await;
             Ok(snapshot)
         }
@@ -272,13 +249,7 @@ pub(crate) async fn get_chain_snapshot(
             state
                 .record_refresh_failure(chain_id, now, error_message)
                 .await;
-            if let Some(entry) = state.cache.read().await.get(chain_id) {
-                let mut snapshot = entry.snapshot.clone();
-                state
-                    .round_history
-                    .read()
-                    .await
-                    .annotate_snapshot(chain_id, &mut snapshot);
+            if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
                 snapshot.warning = Some(format!(
                     "using cached data from {}; refresh failed: {error}",
                     snapshot.fetched_at
@@ -286,61 +257,6 @@ pub(crate) async fn get_chain_snapshot(
                 return Ok(snapshot);
             }
             Err(error)
-        }
-    }
-}
-
-async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
-    let chain_id = snapshot.chain.id.clone();
-    let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
-    let retention = crate::history::RoundHistoryStore::retention_for_snapshot(&chain_id, snapshot);
-    let history_path = state.round_history_path_for_chain(&chain_id);
-    let history_to_save = {
-        let mut history = state.round_history.write().await;
-        let rounds_before = history.round_count_for_chain(&chain_id);
-        let changed = history.record_snapshot(&chain_id, snapshot, observed_at);
-        history.annotate_snapshot(&chain_id, snapshot);
-        let rounds_after = history.round_count_for_chain(&chain_id);
-        if changed || !history_path.exists() {
-            info!(
-                chain_id,
-                path = %history_path.display(),
-                rounds_before,
-                rounds_after,
-                changed,
-                "round history scheduled for save"
-            );
-        }
-        (changed || !history_path.exists()).then(|| history.clone())
-    };
-
-    let Some(history_to_save) = history_to_save else {
-        return;
-    };
-
-    let history_base_path = state.round_history_path.clone();
-    let log_history_path = history_path.clone();
-    match tokio::task::spawn_blocking(move || {
-        save_round_history_merged(&history_base_path, &chain_id, &history_to_save, &retention)
-    })
-    .await
-    {
-        Ok(Ok(saved_history)) => {
-            state.round_history.write().await.merge_from(saved_history);
-        }
-        Ok(Err(error)) => {
-            warn!(
-                path = %log_history_path.display(),
-                error = ?error,
-                "failed to save round history"
-            );
-        }
-        Err(error) => {
-            warn!(
-                path = %log_history_path.display(),
-                error = ?error,
-                "round history save task failed"
-            );
         }
     }
 }

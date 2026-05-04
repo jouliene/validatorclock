@@ -55,6 +55,16 @@ pub(crate) struct ClockSnapshot {
     pub(crate) warning: Option<String>,
 }
 
+impl ClockSnapshot {
+    pub(crate) fn chain_id(&self) -> &str {
+        &self.chain.id
+    }
+
+    pub(crate) fn fetched_at(&self) -> u64 {
+        self.fetched_at
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ElectionTimingsDto {
     pub(super) validators_elected_for: u32,
@@ -158,4 +168,21 @@ pub(super) struct ValidatorRoundData {
 pub(crate) struct CacheEntry {
     pub(super) fetched_at: u64,
     pub(super) snapshot: ClockSnapshot,
+}
+
+impl CacheEntry {
+    pub(crate) fn new(fetched_at: u64, snapshot: ClockSnapshot) -> Self {
+        Self {
+            fetched_at,
+            snapshot,
+        }
+    }
+
+    pub(crate) fn fetched_at(&self) -> u64 {
+        self.fetched_at
+    }
+
+    pub(crate) fn snapshot(&self) -> &ClockSnapshot {
+        &self.snapshot
+    }
 }
