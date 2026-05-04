@@ -15,10 +15,10 @@ The live server treats elector/full-round data as authoritative for round
 history, so recorded rounds can prove both participation and absence.
 Configured chains are refreshed in the background, so normal browser requests
 usually read a warm in-memory snapshot instead of waiting for an RPC round trip.
-The UI keeps a small local round history file and uses it to mark whether a
+The UI keeps small per-chain round history files and uses them to mark whether a
 validator appeared in the current and previous same-color rounds. The server
-prunes that file to the visible history windows after each successful refresh so
-it does not grow without bound.
+prunes each file to the visible history windows after each successful refresh so
+they do not grow without bound.
 Validator wallet contract code hashes are cached next to `cache_path` in
 `validators_clock_validator_types.json`; the round tables map known hashes to
 contract names and show `Unknown` for other known-but-unmapped hashes.
@@ -105,6 +105,13 @@ the git checkout:
 
 First run with `"staging": true`; after issuance works, switch it to `false` for
 a trusted production certificate.
+
+`history_path` is a base path. Runtime history is written per chain by adding the
+chain id before the extension, for example
+`validators_clock_history_everscale.json` and
+`validators_clock_history_tycho-testnet.json`. If an old combined
+`validators_clock_history.json` file exists, the server reads it as a fallback
+until each chain has its own file.
 
 On startup and during the renewal loop, the app reuses an existing certificate
 only if the key loads, the certificate is valid outside the renewal window, and

@@ -1,3 +1,4 @@
 /target
 validators_clock_cache.json
+validators_clock_history*.json
 validators_clock_validator_types.json

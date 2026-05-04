@@ -215,21 +215,22 @@ async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
     let chain_id = snapshot.chain.id.clone();
     let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
     let retention = crate::history::RoundHistoryStore::retention_for_snapshot(&chain_id, snapshot);
+    let history_path = state.round_history_path_for_chain(&chain_id);
     let history_to_save = {
         let mut history = state.round_history.write().await;
         let changed = history.record_snapshot(&chain_id, snapshot, observed_at);
         history.annotate_snapshot(&chain_id, snapshot);
-        changed.then(|| history.clone())
+        (changed || !history_path.exists()).then(|| history.clone())
     };
 
-    let Some(mut history_to_save) = history_to_save else {
+    let Some(history_to_save) = history_to_save else {
         return;
     };
 
-    let history_path = state.round_history_path.clone();
+    let history_base_path = state.round_history_path.clone();
+    let log_history_path = history_path.clone();
     match tokio::task::spawn_blocking(move || {
-        save_round_history_merged(&history_path, &mut history_to_save, &retention)?;
-        Ok::<_, anyhow::Error>(history_to_save)
+        save_round_history_merged(&history_base_path, &chain_id, &history_to_save, &retention)
     })
     .await
     {
@@ -238,14 +239,14 @@ async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
         }
         Ok(Err(error)) => {
             warn!(
-                path = %state.round_history_path.display(),
+                path = %log_history_path.display(),
                 error = ?error,
                 "failed to save round history"
             );
         }
         Err(error) => {
             warn!(
-                path = %state.round_history_path.display(),
+                path = %log_history_path.display(),
                 error = ?error,
                 "round history save task failed"
             );

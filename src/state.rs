@@ -1,6 +1,6 @@
 use crate::chain::CacheEntry;
 use crate::config::AppConfig;
-use crate::history::{RoundHistoryStore, load_round_history};
+use crate::history::{RoundHistoryStore, load_round_history_for_chains, round_history_chain_path};
 use crate::validator_types::{ValidatorTypeCache, load_validator_type_cache};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -46,7 +46,11 @@ impl AppState {
             ),
             validator_type_cache_path,
             round_history: RwLock::new(
-                load_round_history(&round_history_path).unwrap_or_else(|error| {
+                load_round_history_for_chains(
+                    &round_history_path,
+                    config.chains.iter().map(|chain| chain.id.as_str()),
+                )
+                .unwrap_or_else(|error| {
                     warn!(path = %round_history_path.display(), error = ?error, "failed to load round history");
                     RoundHistoryStore::default()
                 }),
@@ -65,6 +69,10 @@ impl AppState {
             .duration_since(UNIX_EPOCH)
             .ok()
             .map(|duration| duration.as_secs())
+    }
+
+    pub(crate) fn round_history_path_for_chain(&self, chain_id: &str) -> PathBuf {
+        round_history_chain_path(&self.round_history_path, chain_id)
     }
 
     pub(crate) async fn record_refresh_attempt(&self, chain_id: &str, at: u64) {
