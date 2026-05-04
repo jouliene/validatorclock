@@ -101,3 +101,15 @@ pub(super) async fn update_validator_contract_type_hashes(
 
     Ok(())
 }
+
+pub(super) async fn apply_cached_validator_contract_type_hashes(
+    state: &AppState,
+    chain: &ChainConfig,
+    snapshot: &mut ClockSnapshot,
+) {
+    state
+        .with_validator_type_cache(|cache| {
+            apply_validator_type_cache(cache, &chain.id, snapshot);
+        })
+        .await;
+}

@@ -39,7 +39,7 @@ function renderRecentAbsentValidators(container, validators) {
 
   const header = document.createElement("div");
   header.className = "validator-header";
-  for (const label of ["N", "Validator", "History", "Last seen"]) {
+  for (const label of ["#", "Type", "Source", "Validator", "History", "Last seen"]) {
     header.appendChild(validatorHeaderCell(label));
   }
   table.appendChild(header);
@@ -49,9 +49,11 @@ function renderRecentAbsentValidators(container, validators) {
     row.className = "validator-row";
     row.append(
       validatorCell(String(index + 1)),
+      validatorSourceTypeCell(validator),
+      validatorSourceCell(validator),
       validatorIdentityCell(validator.wallet || validator.public_key, validator.public_key),
       validatorHistoryCell(validator.history),
-      validatorCell(`Round ${validator.last_seen_round}`, "validator-number", String(validator.last_seen_round))
+      validatorCell(`Round ${validator.last_seen_round}`, "validator-number validator-last-seen", String(validator.last_seen_round))
     );
     table.appendChild(row);
   });

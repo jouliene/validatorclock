@@ -1,4 +1,5 @@
 use super::super::{ClockSnapshot, ValidatorSourceDto};
+use crate::history::{RecentAbsentValidatorDto, RecentAbsentValidatorSourceDto};
 use crate::validator_types::{ValidatorSourceCacheEntry, ValidatorTypeCache, contract_type_name};
 use std::collections::HashSet;
 
@@ -31,6 +32,29 @@ pub(super) fn validator_wallets(snapshot: &ClockSnapshot) -> Vec<String> {
     for candidate in &snapshot.election.candidates {
         if seen.insert(candidate.wallet.clone()) {
             wallets.push(candidate.wallet.clone());
+        }
+    }
+    for validator in snapshot
+        .current_set
+        .recent_absent_validators
+        .iter()
+        .chain(
+            snapshot
+                .previous_set
+                .iter()
+                .flat_map(|set| set.recent_absent_validators.iter()),
+        )
+        .chain(
+            snapshot
+                .next_set
+                .iter()
+                .flat_map(|set| set.recent_absent_validators.iter()),
+        )
+    {
+        if let Some(wallet) = &validator.wallet
+            && seen.insert(wallet.clone())
+        {
+            wallets.push(wallet.clone());
         }
     }
     wallets
@@ -74,6 +98,26 @@ pub(super) fn apply_validator_type_cache(
             candidate.source = entry.source.as_ref().map(validator_source_dto);
         }
     }
+
+    for validator in snapshot
+        .current_set
+        .recent_absent_validators
+        .iter_mut()
+        .chain(
+            snapshot
+                .previous_set
+                .iter_mut()
+                .flat_map(|set| set.recent_absent_validators.iter_mut()),
+        )
+        .chain(
+            snapshot
+                .next_set
+                .iter_mut()
+                .flat_map(|set| set.recent_absent_validators.iter_mut()),
+        )
+    {
+        apply_recent_absent_validator_type_cache(cache, chain_id, validator);
+    }
 }
 
 pub(super) fn proxy_wallets_missing_source(
@@ -94,6 +138,30 @@ pub(super) fn proxy_wallets_missing_source(
 
 fn validator_source_dto(source: &ValidatorSourceCacheEntry) -> ValidatorSourceDto {
     ValidatorSourceDto {
+        address: source.address.clone(),
+        contract_type_hash: source.repr_hash.clone(),
+    }
+}
+
+fn apply_recent_absent_validator_type_cache(
+    cache: &ValidatorTypeCache,
+    chain_id: &str,
+    validator: &mut RecentAbsentValidatorDto,
+) {
+    let Some(wallet) = &validator.wallet else {
+        return;
+    };
+    let Some(entry) = cache.get(chain_id, wallet) else {
+        return;
+    };
+
+    validator.contract_type_hash = Some(entry.repr_hash.clone());
+    validator.contract_type = Some(contract_type_name(&entry.repr_hash).to_owned());
+    validator.source = entry.source.as_ref().map(recent_absent_source_dto);
+}
+
+fn recent_absent_source_dto(source: &ValidatorSourceCacheEntry) -> RecentAbsentValidatorSourceDto {
+    RecentAbsentValidatorSourceDto {
         address: source.address.clone(),
         contract_type_hash: source.repr_hash.clone(),
     }

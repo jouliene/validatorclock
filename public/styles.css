@@ -32,10 +32,10 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 50% 18%, rgba(33, 83, 110, 0.26), transparent 35%),
-    radial-gradient(circle at 18% 28%, rgba(202, 168, 92, 0.08), transparent 26%),
-    radial-gradient(circle at 78% 34%, rgba(47, 147, 220, 0.1), transparent 28%),
-    linear-gradient(180deg, #070b10 0%, #040609 58%, #08090e 100%);
+    radial-gradient(circle at 50% 17%, rgba(33, 83, 110, 0.14), transparent 31%),
+    radial-gradient(circle at 18% 28%, rgba(202, 168, 92, 0.045), transparent 23%),
+    radial-gradient(circle at 78% 34%, rgba(47, 147, 220, 0.055), transparent 24%),
+    linear-gradient(180deg, #06090d 0%, #030407 58%, #07080c 100%);
   color: var(--text);
   font-family: var(--font-sans);
 }
@@ -240,8 +240,8 @@ h1::after {
   aspect-ratio: 1;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 47%, rgba(80, 202, 255, 0.16), rgba(32, 136, 194, 0.055) 38%, transparent 67%),
-    radial-gradient(circle at 56% 56%, rgba(65, 210, 125, 0.12), transparent 54%);
+    radial-gradient(circle at 50% 47%, rgba(80, 202, 255, 0.1), rgba(32, 136, 194, 0.03) 38%, transparent 66%),
+    radial-gradient(circle at 56% 56%, rgba(65, 210, 125, 0.07), transparent 53%);
   filter: blur(4px);
 }
 
@@ -834,7 +834,7 @@ dd {
 
 .recent-round-heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
@@ -843,11 +843,40 @@ dd {
 }
 
 .recent-round-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
   font-size: 14px;
   font-weight: 760;
   letter-spacing: 0;
   text-transform: uppercase;
+}
+
+.recent-title-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--round-color) 30%, white 5%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 48% 44%, color-mix(in srgb, var(--round-color) 7%, transparent), transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01));
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--round-color) 7%, transparent),
+    inset 0 0 0 5px rgba(0, 0, 0, 0.16);
+}
+
+.recent-title-icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: color-mix(in srgb, var(--round-color) 58%, white 22%);
+  stroke-width: 1.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .recent-blue .recent-round-heading h2 {
@@ -858,7 +887,7 @@ dd {
   color: color-mix(in srgb, #32af68 86%, white 14%);
 }
 
-.recent-round-heading span {
+.recent-round-count {
   display: inline-flex;
   min-height: 28px;
   align-items: center;
@@ -1134,7 +1163,7 @@ dd {
 }
 
 .validator-table.is-absent {
-  min-width: 460px;
+  min-width: 620px;
 }
 
 .validator-header,
@@ -1148,7 +1177,7 @@ dd {
 
 .validator-table.is-absent .validator-header,
 .validator-table.is-absent .validator-row {
-  grid-template-columns: 36px 180px 112px 92px;
+  grid-template-columns: 28px 72px minmax(96px, 1fr) minmax(120px, 1.22fr) 82px minmax(82px, 0.78fr);
 }
 
 .validator-header {
@@ -1204,6 +1233,12 @@ dd {
 .validator-row .validator-cell:nth-child(6) {
   justify-self: center;
   text-align: center;
+}
+
+.validator-table.is-absent .validator-header .validator-cell:nth-child(6),
+.validator-table.is-absent .validator-row .validator-cell:nth-child(6) {
+  justify-self: end;
+  text-align: right;
 }
 
 .validator-history-heading {
@@ -1275,10 +1310,27 @@ dd {
 }
 
 .validator-source-direct {
-  color: var(--muted-2);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid rgba(154, 196, 224, 0.16);
+  border-radius: var(--radius-sm);
+  background: rgba(154, 196, 224, 0.045);
+  color: rgba(198, 210, 224, 0.84);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.validator-source-direct::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--round-color) 52%, var(--gold) 10%);
+  opacity: 0.76;
 }
 
 .validator-source-unknown {
@@ -1462,6 +1514,11 @@ dd {
   font-variant-numeric: tabular-nums;
   text-align: right;
   text-overflow: ellipsis;
+}
+
+.validator-last-seen {
+  color: rgba(218, 228, 240, 0.92);
+  font-weight: 690;
 }
 
 .round-blue .validator-avatar {
@@ -1787,18 +1844,26 @@ dd {
   }
 
   .validator-table.is-absent .validator-row {
-    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
-      "index identity"
-      "history history"
-      "stake stake";
+      "index type source"
+      "identity identity identity"
+      "history history lastseen";
   }
 
   .validator-table.is-absent .validator-row .validator-cell:nth-child(2) {
-    grid-area: identity;
+    grid-area: type;
   }
 
   .validator-table.is-absent .validator-row .validator-cell:nth-child(3) {
+    grid-area: source;
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(4) {
+    grid-area: identity;
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(5) {
     display: grid;
     grid-area: history;
     gap: 3px;
@@ -1809,7 +1874,7 @@ dd {
     text-align: left;
   }
 
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(3)::before {
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(5)::before {
     color: var(--muted);
     content: "History · Older -> Latest";
     font-family: var(--font-sans);
@@ -1819,11 +1884,12 @@ dd {
     text-transform: uppercase;
   }
 
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(4) {
-    grid-area: stake;
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(6) {
+    grid-area: lastseen;
+    justify-self: stretch;
   }
 
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(4)::before {
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(6)::before {
     content: "Last seen";
   }
 

@@ -221,8 +221,9 @@ function recentRoundPanel(color, validators) {
   const heading = document.createElement("div");
   heading.className = "recent-round-heading";
   const title = document.createElement("h2");
-  title.textContent = `Seen in recent ${color} rounds`;
+  title.append(recentRoundTitleIcon(), document.createTextNode(`Seen in recent ${color} rounds`));
   const count = document.createElement("span");
+  count.className = "recent-round-count";
   count.textContent = validators.length === 0 ? "empty" : `${validators.length} absent now`;
   heading.append(title, count);
   section.appendChild(heading);
@@ -240,4 +241,17 @@ function recentRoundPanel(color, validators) {
   section.appendChild(list);
 
   return section;
+}
+
+function recentRoundTitleIcon() {
+  const icon = document.createElement("span");
+  icon.className = "recent-title-icon";
+  icon.innerHTML = [
+    '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">',
+    '<path d="M2.5 12s3.4-6.2 9.5-6.2 9.5 6.2 9.5 6.2-3.4 6.2-9.5 6.2S2.5 12 2.5 12Z"></path>',
+    '<circle cx="12" cy="12" r="2.7"></circle>',
+    '<path d="m17.8 17.8 3 3"></path>',
+    '</svg>',
+  ].join("");
+  return icon;
 }

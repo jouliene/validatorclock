@@ -13,7 +13,8 @@ pub(crate) use storage::{
 };
 use types::{ChainRoundHistory, RoundHistoryDisk, StoredRound, StoredValidator};
 pub(crate) use types::{
-    ParticipationStatus, RecentAbsentValidatorDto, RoundHistoryStore, ValidatorParticipationDto,
+    ParticipationStatus, RecentAbsentValidatorDto, RecentAbsentValidatorSourceDto,
+    RoundHistoryStore, ValidatorParticipationDto,
 };
 use window::RoundWindow;
 

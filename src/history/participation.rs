@@ -128,6 +128,9 @@ impl RoundHistoryStore {
                     .or_insert_with(|| RecentAbsentValidatorDto {
                         public_key: public_key.clone(),
                         wallet: validator.wallet.clone(),
+                        source: None,
+                        contract_type: None,
+                        contract_type_hash: None,
                         last_seen_round: round,
                         history: Vec::new(),
                     });

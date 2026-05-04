@@ -22,7 +22,9 @@ pub(crate) use dto::{
 };
 pub(crate) use elector::fetch_chain_snapshot;
 use util::now_sec;
-use validator_sources::update_validator_contract_type_hashes;
+use validator_sources::{
+    apply_cached_validator_contract_type_hashes, update_validator_contract_type_hashes,
+};
 
 #[cfg(test)]
 pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
@@ -238,6 +240,7 @@ pub(crate) async fn get_chain_snapshot(
             let fetched_at = snapshot.fetched_at;
             let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
             state.record_round_history(&mut snapshot, observed_at).await;
+            apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
             state
                 .store_cached_snapshot(chain_id, now, snapshot.clone())
                 .await;

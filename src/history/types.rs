@@ -19,10 +19,23 @@ pub(crate) struct ValidatorParticipationDto {
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct RecentAbsentValidatorDto {
-    pub(super) public_key: String,
-    pub(super) wallet: Option<String>,
-    pub(super) last_seen_round: u32,
-    pub(super) history: Vec<ValidatorParticipationDto>,
+    pub(crate) public_key: String,
+    pub(crate) wallet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) source: Option<RecentAbsentValidatorSourceDto>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) contract_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) contract_type_hash: Option<String>,
+    pub(crate) last_seen_round: u32,
+    pub(crate) history: Vec<ValidatorParticipationDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct RecentAbsentValidatorSourceDto {
+    pub(crate) address: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) contract_type_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
