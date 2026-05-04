@@ -179,7 +179,7 @@ h1::after {
 .top-grid {
   position: relative;
   display: grid;
-  min-height: 430px;
+  min-height: 448px;
   place-items: center;
   margin-top: -4px;
 }
@@ -189,7 +189,7 @@ h1::after {
   isolation: isolate;
   display: grid;
   place-items: center;
-  min-height: 416px;
+  min-height: 434px;
   padding: 0;
 }
 
@@ -197,7 +197,7 @@ h1::after {
   content: "";
   position: absolute;
   z-index: -1;
-  width: min(52vw, 620px);
+  width: min(54vw, 660px);
   aspect-ratio: 1;
   border-radius: 50%;
   background:
@@ -207,7 +207,7 @@ h1::after {
 }
 
 #clockSvg {
-  width: min(100%, 430px);
+  width: min(100%, 456px);
   aspect-ratio: 1;
   height: auto;
   overflow: visible;
@@ -517,8 +517,47 @@ dd {
   overflow-wrap: anywhere;
   color: var(--text);
   font-size: var(--body-size);
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+.network-panel dl {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(150, 190, 216, 0.12);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.014)),
+    rgba(4, 10, 16, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.network-panel dl div {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(150, 190, 216, 0.095);
+  border-radius: 0;
+  background:
+    linear-gradient(90deg, rgba(55, 157, 212, 0.035), transparent 44%),
+    rgba(255, 255, 255, 0.006);
+}
+
+.network-panel dl div:last-child {
+  border-bottom: 0;
+}
+
+.network-panel dt {
+  color: rgba(169, 204, 228, 0.8);
+  font-size: 10.5px;
+  font-weight: 760;
+}
+
+.network-panel dd {
+  color: rgba(245, 247, 251, 0.94);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .date-stack {
@@ -531,6 +570,7 @@ dd {
   overflow-wrap: normal;
   white-space: nowrap;
   font-size: 13px;
+  font-weight: 650;
 }
 
 .chain-tabs {
