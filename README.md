@@ -11,13 +11,14 @@ be added by appending entries to the `chains` array.
 Active validator sets expose public keys, ADNL addresses, and validator weights.
 The server parses frozen elector round data to derive validator wallets, stakes,
 total round stake, total rewards, and per-validator rewards from on-chain state.
-The live server treats elector/full-round data as authoritative. Transaction
-scans are reserved for manual history backfill and are stored only as partial
-history, so they can prove participation but never prove absence.
+The live server treats elector/full-round data as authoritative for round
+history, so recorded rounds can prove both participation and absence.
 Configured chains are refreshed in the background, so normal browser requests
 usually read a warm in-memory snapshot instead of waiting for an RPC round trip.
-The UI also keeps a small local round history file and uses it to mark whether a
-validator appeared in the previous same-color rounds.
+The UI keeps a small local round history file and uses it to mark whether a
+validator appeared in the current and previous same-color rounds. The server
+prunes that file to the visible history windows after each successful refresh so
+it does not grow without bound.
 Validator wallet contract code hashes are cached next to `cache_path` in
 `validators_clock_validator_types.json`; the round tables map known hashes to
 contract names and show `Unknown` for other known-but-unmapped hashes.
@@ -40,18 +41,6 @@ Useful checks:
 cargo run -- --once everscale
 cargo run -- --config validators_clock.json
 ```
-
-Manual history backfill:
-
-```bash
-cargo run -- --backfill-history tycho-testnet --rounds 10 --max-pages 300
-```
-
-This scans elector election windows for the requested chain and writes recovered
-validator submissions into `history_path` so the history dots can be filled after
-downtime. Start with Tycho because the validator set is small and the scan is
-lighter. Backfilled transaction history is partial: it can mark validators that
-participated, but only elector/full-round history can mark missed validators.
 
 ## Built-in HTTPS
 
