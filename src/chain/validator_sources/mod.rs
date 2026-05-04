@@ -10,9 +10,7 @@ use self::wallet_index::{
 use super::ClockSnapshot;
 use crate::config::ChainConfig;
 use crate::state::AppState;
-use crate::validator_types::{ValidatorTypeCache, save_validator_type_cache};
 use anyhow::Result;
-use tracing::{info, warn};
 
 pub(super) const VALIDATOR_TYPE_FETCH_CONCURRENCY: usize = 8;
 
@@ -27,38 +25,47 @@ pub(super) async fn update_validator_contract_type_hashes(
     }
 
     let missing_wallets = {
-        let cache = state.validator_type_cache.read().await;
-        apply_validator_type_cache(&cache, &chain.id, snapshot);
-        wallets
-            .clone()
-            .into_iter()
-            .filter(|wallet| cache.get(&chain.id, wallet).is_none())
-            .collect::<Vec<_>>()
+        state
+            .with_validator_type_cache(|cache| {
+                apply_validator_type_cache(cache, &chain.id, snapshot);
+                wallets
+                    .clone()
+                    .into_iter()
+                    .filter(|wallet| cache.get(&chain.id, wallet).is_none())
+                    .collect::<Vec<_>>()
+            })
+            .await
     };
 
     if !missing_wallets.is_empty() {
         let fetched = fetch_validator_contract_type_hashes(chain, missing_wallets).await?;
         if !fetched.is_empty() {
-            let cache_to_save = {
-                let mut cache = state.validator_type_cache.write().await;
-                let mut changed = false;
-                for (wallet, repr_hash) in fetched {
-                    changed |= cache.insert(&chain.id, &wallet, repr_hash);
-                }
-                apply_validator_type_cache(&cache, &chain.id, snapshot);
-                changed.then(|| cache.clone())
-            };
+            let cache_to_save = state
+                .update_validator_type_cache(|cache| {
+                    let mut changed = false;
+                    for (wallet, repr_hash) in fetched {
+                        changed |= cache.insert(&chain.id, &wallet, repr_hash);
+                    }
+                    apply_validator_type_cache(cache, &chain.id, snapshot);
+                    changed.then(|| cache.clone())
+                })
+                .await;
 
             if let Some(cache_to_save) = cache_to_save {
-                save_validator_type_cache_background(state, cache_to_save).await;
+                state
+                    .save_validator_type_cache_background(cache_to_save)
+                    .await;
             }
         }
     }
 
     let missing_source_wallets = {
-        let cache = state.validator_type_cache.read().await;
-        apply_validator_type_cache(&cache, &chain.id, snapshot);
-        proxy_wallets_missing_source(&cache, &chain.id, &wallets)
+        state
+            .with_validator_type_cache(|cache| {
+                apply_validator_type_cache(cache, &chain.id, snapshot);
+                proxy_wallets_missing_source(cache, &chain.id, &wallets)
+            })
+            .await
     };
 
     if missing_source_wallets.is_empty() {
@@ -70,54 +77,27 @@ pub(super) async fn update_validator_contract_type_hashes(
         return Ok(());
     }
 
-    let cache_to_save = {
-        let mut cache = state.validator_type_cache.write().await;
-        let mut changed = false;
-        for (wallet, source) in fetched_sources {
-            changed |= cache.insert_source(
-                &chain.id,
-                &wallet,
-                source.address,
-                source.contract_type_hash,
-            );
-        }
-        apply_validator_type_cache(&cache, &chain.id, snapshot);
-        changed.then(|| cache.clone())
-    };
+    let cache_to_save = state
+        .update_validator_type_cache(|cache| {
+            let mut changed = false;
+            for (wallet, source) in fetched_sources {
+                changed |= cache.insert_source(
+                    &chain.id,
+                    &wallet,
+                    source.address,
+                    source.contract_type_hash,
+                );
+            }
+            apply_validator_type_cache(cache, &chain.id, snapshot);
+            changed.then(|| cache.clone())
+        })
+        .await;
 
     if let Some(cache_to_save) = cache_to_save {
-        save_validator_type_cache_background(state, cache_to_save).await;
+        state
+            .save_validator_type_cache_background(cache_to_save)
+            .await;
     }
 
     Ok(())
-}
-
-async fn save_validator_type_cache_background(state: &AppState, cache_to_save: ValidatorTypeCache) {
-    let cache_path = state.validator_type_cache_path.clone();
-    match tokio::task::spawn_blocking(move || {
-        save_validator_type_cache(&cache_path, &cache_to_save)
-    })
-    .await
-    {
-        Ok(Ok(())) => {
-            info!(
-                path = %state.validator_type_cache_path.display(),
-                "saved validator type cache"
-            );
-        }
-        Ok(Err(error)) => {
-            warn!(
-                path = %state.validator_type_cache_path.display(),
-                error = ?error,
-                "failed to save validator type cache"
-            );
-        }
-        Err(error) => {
-            warn!(
-                path = %state.validator_type_cache_path.display(),
-                error = ?error,
-                "validator type cache save task failed"
-            );
-        }
-    }
 }

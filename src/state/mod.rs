@@ -1,3 +1,4 @@
+mod acme;
 mod cache;
 mod history;
 mod runtime;
@@ -17,14 +18,14 @@ use tracing::info;
 
 pub(crate) struct AppState {
     pub(crate) config: Arc<AppConfig>,
-    pub(crate) started_at: SystemTime,
+    started_at: SystemTime,
     cache: RwLock<HashMap<String, CacheEntry>>,
     chain_status: RwLock<HashMap<String, ChainRuntimeStatus>>,
-    pub(crate) validator_type_cache_path: PathBuf,
-    pub(crate) validator_type_cache: RwLock<ValidatorTypeCache>,
+    validator_type_cache_path: PathBuf,
+    validator_type_cache: RwLock<ValidatorTypeCache>,
     round_history_path: PathBuf,
     round_history: RwLock<RoundHistoryStore>,
-    pub(crate) acme_challenges: RwLock<HashMap<String, String>>,
+    acme_challenges: RwLock<HashMap<String, String>>,
 }
 
 impl AppState {

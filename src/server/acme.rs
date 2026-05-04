@@ -12,7 +12,7 @@ pub(super) async fn acme_challenge(
     headers: HeaderMap,
     uri: Uri,
 ) -> Response {
-    if let Some(value) = state.acme_challenges.read().await.get(&token).cloned() {
+    if let Some(value) = state.acme_challenge(&token).await {
         return (
             [(
                 header::CONTENT_TYPE,

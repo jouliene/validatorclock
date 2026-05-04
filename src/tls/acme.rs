@@ -165,12 +165,10 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
         let key_authorization = challenge.key_authorization().as_str().to_owned();
 
         state
-            .acme_challenges
-            .write()
-            .await
-            .insert(token.clone(), key_authorization);
+            .insert_acme_challenge(token.clone(), key_authorization)
+            .await;
         if let Err(error) = challenge.set_ready().await {
-            state.acme_challenges.write().await.remove(&token);
+            state.remove_acme_challenge(&token).await;
             return Err(error).context("failed to mark ACME challenge ready");
         }
         challenge_tokens.push(token);
@@ -183,7 +181,7 @@ async fn issue_acme_certificate(state: &AppState) -> Result<()> {
         .await
         .context("ACME order did not become ready");
     for token in &challenge_tokens {
-        state.acme_challenges.write().await.remove(token);
+        state.remove_acme_challenge(token).await;
     }
     let status = status_result?;
     if status != OrderStatus::Ready {

@@ -450,10 +450,8 @@ async fn challenge_route_is_available_before_host_check() {
         "allowed.example".to_owned(),
     ]))));
     state
-        .acme_challenges
-        .write()
-        .await
-        .insert("token123".to_owned(), "challenge-value".to_owned());
+        .insert_acme_challenge("token123".to_owned(), "challenge-value".to_owned())
+        .await;
 
     let response = challenge_redirect_router(state)
         .oneshot(
