@@ -12,6 +12,8 @@ Builds validators_clock, installs the binary to $HOME/.cargo/bin, creates a
 production runtime directory at $HOME/.validators_clock, installs/updates the
 systemd service, and restarts it.
 
+If cargo is missing, the script installs Rust with rustup first.
+
 This script does not run git pull. Production update flow:
 
   git pull --ff-only
@@ -50,11 +52,6 @@ done
 if [[ "${EUID}" -eq 0 ]]; then
   echo "Run ./install.sh as the deployment user, not with sudo." >&2
   echo "The script asks sudo only for systemd operations." >&2
-  exit 1
-fi
-
-if ! command -v cargo >/dev/null 2>&1; then
-  echo "cargo is required but was not found in PATH" >&2
   exit 1
 fi
 
@@ -120,6 +117,37 @@ json_array_from_csv() {
   done
   output+="]"
   printf '%s' "$output"
+}
+
+ensure_cargo() {
+  if command -v cargo >/dev/null 2>&1; then
+    return
+  fi
+
+  if [[ -f "${HOME}/.cargo/env" ]]; then
+    # shellcheck disable=SC1091
+    source "${HOME}/.cargo/env"
+  fi
+
+  if command -v cargo >/dev/null 2>&1; then
+    return
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "curl is required to install Rust with rustup" >&2
+    exit 1
+  fi
+
+  echo "Rust/Cargo not found; installing Rust with rustup"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+
+  # shellcheck disable=SC1091
+  source "${HOME}/.cargo/env"
+
+  if ! command -v cargo >/dev/null 2>&1; then
+    echo "cargo is still not available after rustup install" >&2
+    exit 1
+  fi
 }
 
 write_config_if_missing() {
@@ -251,6 +279,8 @@ mkdir -p "$BIN_DIR" "$STATE_DIR" "$ACME_DIR"
 chmod 700 "$STATE_DIR" "$ACME_DIR"
 
 write_config_if_missing
+
+ensure_cargo
 
 echo "Building release binary"
 cargo build --release --locked
