@@ -64,3 +64,6 @@ pub(crate) fn load_config(path: Option<&Path>) -> Result<LoadedConfig> {
         serde_json::from_str(&content).context("failed to parse validators clock config")?;
     Ok(LoadedConfig { config, source })
 }
+
+#[cfg(test)]
+mod tests;
