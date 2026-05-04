@@ -31,7 +31,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #08090e 0%, #050609 58%, #08090e 100%);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(33, 83, 110, 0.26), transparent 35%),
+    radial-gradient(circle at 18% 28%, rgba(202, 168, 92, 0.08), transparent 26%),
+    radial-gradient(circle at 78% 34%, rgba(47, 147, 220, 0.1), transparent 28%),
+    linear-gradient(180deg, #070b10 0%, #040609 58%, #08090e 100%);
   color: var(--text);
   font-family: var(--font-sans);
 }
@@ -43,7 +47,7 @@ button {
 .app-shell {
   width: min(1500px, calc(100% - 48px));
   margin: 0 auto;
-  padding: 18px 0 34px;
+  padding: 22px 0 34px;
 }
 
 .titlebar {
@@ -51,8 +55,8 @@ button {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  min-height: 42px;
-  padding: 0 0 14px;
+  min-height: 64px;
+  padding: 0 0 16px;
   text-align: center;
 }
 
@@ -63,41 +67,62 @@ p {
 }
 
 h1 {
+  display: grid;
+  justify-items: center;
   color: var(--text);
-  font-size: 26px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 31px;
   line-height: 1.08;
-  font-weight: 720;
+  font-weight: 500;
+  text-shadow:
+    0 0 18px rgba(131, 213, 255, 0.18),
+    0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+h1::after {
+  content: "";
+  display: block;
+  width: 220px;
+  height: 18px;
+  margin-top: 10px;
+  background:
+    linear-gradient(90deg, transparent, rgba(216, 168, 75, 0.9), transparent) left 8px center / 84px 1px no-repeat,
+    linear-gradient(90deg, transparent, rgba(216, 168, 75, 0.9), transparent) right 8px center / 84px 1px no-repeat,
+    conic-gradient(from 45deg, transparent 0 25%, #f4d88a 0 50%, transparent 0 75%, #c89136 0) center / 11px 11px no-repeat;
+  filter: drop-shadow(0 0 7px rgba(220, 172, 79, 0.42));
 }
 
 .header-updated {
   position: absolute;
-  top: 1px;
+  top: 0;
   right: 0;
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.065);
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(154, 196, 224, 0.16);
   border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  background: linear-gradient(180deg, rgba(18, 26, 37, 0.86), rgba(7, 11, 17, 0.88));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   color: var(--muted);
   font-size: 12px;
 }
 
 .runtime-status {
   position: absolute;
-  top: 1px;
+  top: 0;
   left: 0;
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  min-height: 28px;
+  min-height: 34px;
   max-width: 240px;
   padding: 0 10px;
-  border: 1px solid rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(154, 196, 224, 0.16);
   border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  background: linear-gradient(180deg, rgba(18, 26, 37, 0.86), rgba(7, 11, 17, 0.88));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   color: var(--muted);
   font-size: 12px;
   white-space: nowrap;
@@ -156,6 +181,7 @@ h1 {
   display: grid;
   min-height: 430px;
   place-items: center;
+  margin-top: -4px;
 }
 
 .clock-stage {
@@ -199,7 +225,29 @@ h1 {
 }
 
 .info-panel {
-  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+  border-color: rgba(170, 205, 230, 0.16);
+  background:
+    radial-gradient(circle at 0 0, rgba(202, 168, 92, 0.045), transparent 34%),
+    radial-gradient(circle at 100% 100%, rgba(45, 170, 235, 0.1), transparent 34%),
+    linear-gradient(180deg, rgba(16, 24, 34, 0.9), rgba(5, 9, 14, 0.94));
+  box-shadow:
+    0 32px 90px rgba(0, 0, 0, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.018);
+}
+
+.info-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, var(--panel-glow, rgba(47, 147, 220, 0.32)), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), transparent 24%);
+  opacity: 0.5;
 }
 
 .election-panel,
@@ -211,12 +259,20 @@ h1 {
 
 .election-panel {
   left: 0;
-  width: 390px;
+  width: 410px;
+  --panel-glow: rgba(202, 168, 92, 0.18);
+  border-color: rgba(202, 168, 92, 0.28);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.38),
+    0 0 30px rgba(202, 168, 92, 0.055),
+    18px 22px 54px rgba(47, 147, 220, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
 }
 
 .network-panel {
   right: 0;
   width: 430px;
+  --panel-glow: rgba(47, 147, 220, 0.28);
 }
 
 .network-panel dl div {
@@ -233,6 +289,34 @@ h2 {
   text-transform: uppercase;
 }
 
+.info-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(235, 242, 252, 0.88);
+}
+
+.info-panel h2::before {
+  content: "";
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border: 1px solid rgba(202, 168, 92, 0.46);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(202, 168, 92, 0.32), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  box-shadow: 0 0 18px rgba(202, 168, 92, 0.12), inset 0 0 0 4px rgba(0, 0, 0, 0.18);
+}
+
+.network-panel h2::before {
+  border-color: rgba(132, 205, 240, 0.42);
+  background:
+    radial-gradient(circle, rgba(132, 205, 240, 0.26), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+  box-shadow: 0 0 18px rgba(47, 147, 220, 0.16), inset 0 0 0 4px rgba(0, 0, 0, 0.18);
+}
+
 .status-display {
   display: grid;
   margin-bottom: 16px;
@@ -242,9 +326,11 @@ h2 {
 
 #metricStatus {
   color: var(--gold);
-  font-size: 26px;
-  font-weight: 720;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 29px;
+  font-weight: 600;
   line-height: 1.05;
+  text-shadow: 0 0 18px rgba(202, 168, 92, 0.2);
 }
 
 .election-timing-groups {
@@ -253,11 +339,14 @@ h2 {
 }
 
 .election-time-card {
-  padding: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-left: 3px solid var(--card-accent, rgba(202, 168, 92, 0.7));
+  padding: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  border-left: 4px solid var(--card-accent, rgba(202, 168, 92, 0.7));
   border-radius: var(--radius-md);
-  background: var(--surface-soft);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.018)),
+    rgba(255, 255, 255, 0.018);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .election-time-card.is-active-round {
@@ -313,6 +402,7 @@ h2 {
 
 .is-elections .election-countdown {
   color: var(--gold);
+  text-shadow: 0 0 12px rgba(202, 168, 92, 0.22);
 }
 
 .election-date-stack {
@@ -355,9 +445,9 @@ dl div {
   gap: 10px;
   align-items: baseline;
   padding: 10px 11px;
-  border: 1px solid rgba(255, 255, 255, 0.065);
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: var(--radius-sm);
-  background: var(--surface-soft);
+  background: rgba(255, 255, 255, 0.021);
 }
 
 dt {
@@ -391,7 +481,8 @@ dd {
 
 .chain-tabs {
   display: grid;
-  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   margin-bottom: 18px;
 }
 
@@ -400,20 +491,26 @@ dd {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  min-height: 38px;
-  padding: 0 12px;
-  border: 1px solid transparent;
+  min-height: 54px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
   color: var(--text);
   cursor: pointer;
   font-size: var(--body-size);
   font-weight: 650;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .chain-tab[aria-selected="true"] {
   border-color: color-mix(in srgb, var(--chain-color, var(--cyan)) 70%, white 10%);
-  background: var(--surface-selected);
+  background:
+    radial-gradient(circle at 30% 0, color-mix(in srgb, var(--chain-color, var(--cyan)) 26%, transparent), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.026));
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--chain-color, var(--cyan)) 20%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
 .chain-tab-main {
