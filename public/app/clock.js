@@ -33,8 +33,8 @@ function buildClockModel(snapshot, now) {
   return {
     angle,
     baseSegments: [
-      { startAngle: Math.PI / 2, sweepAngle: Math.PI, color: "url(#blueRound)" },
-      { startAngle: Math.PI * 1.5, sweepAngle: Math.PI, color: "url(#greenRound)" },
+      { startAngle: Math.PI / 2, sweepAngle: Math.PI, color: "url(#blueRound)", highlight: "rgba(134, 233, 255, 0.58)" },
+      { startAngle: Math.PI * 1.5, sweepAngle: Math.PI, color: "url(#greenRound)", highlight: "rgba(135, 244, 169, 0.54)" },
     ],
     electionArc: {
       startAngle: timeToAngle(electionsStart),
@@ -60,33 +60,47 @@ function drawClock(model) {
   svg.replaceChildren();
 
   const center = 256;
-  const outer = 214;
-  const inner = 76;
+  const outer = 208;
+  const inner = 88;
   const electionRadius = 229;
+  const bezelOuter = 242;
+  const bezelInner = 214;
 
   drawDefs(svg);
 
-  drawCircle(svg, center, center, 242, "url(#clockAura)", "none", 0);
-  drawCircle(svg, center, center, 223, "rgba(6, 13, 20, 0.68)", "rgba(86, 191, 243, 0.24)", 1);
-  drawCircle(svg, center, center, 214, "none", "url(#outerRim)", 3);
+  drawCircle(svg, center, center, 250, "url(#clockAura)", "none", 0);
+  drawDonutSlice(svg, center, center, bezelOuter, bezelInner, -Math.PI / 2, Math.PI * 2 - 0.0001, "url(#bezelFace)", 0).setAttribute("filter", "url(#bezelShadow)");
+  drawCircle(svg, center, center, bezelOuter - 1, "none", "url(#bezelEdge)", 2);
+  drawCircle(svg, center, center, bezelOuter - 8, "none", "rgba(198, 242, 255, 0.12)", 8);
+  drawCircle(svg, center, center, bezelInner + 1, "rgba(5, 12, 18, 0.72)", "rgba(220, 248, 255, 0.12)", 1);
+  drawCircle(svg, center, center, bezelInner - 3, "none", "rgba(0, 2, 5, 0.78)", 5);
+  drawDonutSlice(svg, center, center, outer + 2, inner - 2, -Math.PI / 2, Math.PI * 2 - 0.0001, "url(#dialTrack)", 0);
 
   for (const segment of model.baseSegments) {
     const slice = drawDonutSlice(svg, center, center, outer, inner, segment.startAngle, segment.sweepAngle, segment.color, 0);
     slice.setAttribute("filter", "url(#roundGlow)");
+    drawArcStroke(svg, center, center, outer - 4, segment.startAngle, segment.sweepAngle, segment.highlight, 4.2);
   }
 
-  drawDonutSlice(svg, center, center, outer + 1, inner - 2, Math.PI / 2, Math.PI * 2 - 0.0001, "url(#dialGloss)", 0);
-  drawCircle(svg, center, center, outer + 6, "none", "rgba(140, 213, 255, 0.18)", 1);
-  drawCircle(svg, center, center, inner + 1, "url(#centerWell)", "rgba(255, 255, 255, 0.04)", 1);
-  drawClockTicks(svg, center, center, outer, inner);
+  drawDonutSlice(svg, center, center, outer + 1, inner - 1, Math.PI / 2, Math.PI * 2 - 0.0001, "url(#dialGloss)", 0);
+  drawArcStroke(svg, center, center, outer - 12, Math.PI * 1.03, Math.PI * 0.42, "rgba(226, 253, 255, 0.28)", 7);
+  drawArcStroke(svg, center, center, outer - 12, Math.PI * 1.55, Math.PI * 0.32, "rgba(226, 255, 235, 0.18)", 6);
+  drawCircle(svg, center, center, outer + 5, "none", "rgba(0, 7, 12, 0.72)", 5);
+  drawCircle(svg, center, center, outer + 5, "none", "url(#bezelEdge)", 1.8);
+  drawCircle(svg, center, center, outer - 2, "none", "rgba(255, 255, 255, 0.08)", 1);
+  drawGaugeTicks(svg, center, center, outer, inner);
+  drawCircle(svg, center, center, inner + 11, "rgba(0, 3, 8, 0.76)", "rgba(255, 255, 255, 0.05)", 1);
+  drawCircle(svg, center, center, inner + 4, "none", "rgba(130, 210, 232, 0.2)", 2);
+  drawCircle(svg, center, center, inner + 1, "url(#centerWell)", "rgba(255, 255, 255, 0.07)", 1);
+  drawCircle(svg, center, center, inner - 13, "none", "rgba(90, 160, 185, 0.13)", 1);
   drawSeam(svg, center, inner, outer);
   drawArcStroke(svg, center, center, electionRadius, model.electionArc.startAngle, model.electionArc.sweepAngle, "url(#electionArc)", 11, "url(#arcGlow)");
   drawArcEndpoint(svg, center, center, electionRadius, model.electionArc.startAngle);
   drawArcEndpoint(svg, center, center, electionRadius, model.electionArc.startAngle + model.electionArc.sweepAngle);
   drawNeedle(svg, center, center, electionRadius + 4, model.angle);
-  drawCircle(svg, center, center, 17, "rgba(255, 255, 255, 0.08)", "rgba(255, 255, 255, 0.1)", 1);
-  drawCircle(svg, center, center, 11, "url(#hub)", "rgba(255, 255, 255, 0.28)", 1);
-  drawCircle(svg, center, center, 5, "rgba(255, 185, 190, 0.9)", "none", 0);
+  drawCircle(svg, center, center, 21, "url(#hubRing)", "rgba(255, 255, 255, 0.14)", 1);
+  drawCircle(svg, center, center, 13, "url(#hub)", "rgba(255, 255, 255, 0.3)", 1);
+  drawCircle(svg, center, center, 5.5, "rgba(255, 190, 194, 0.94)", "none", 0);
 }
 
 function drawDefs(svg) {
@@ -94,11 +108,15 @@ function drawDefs(svg) {
   defs.innerHTML = `
     <filter id="roundGlow" x="-18%" y="-18%" width="136%" height="136%">
       <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000712" flood-opacity="0.46"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#36bdf6" flood-opacity="0.16"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#36bdf6" flood-opacity="0.14"/>
     </filter>
     <filter id="arcGlow" x="-28%" y="-28%" width="156%" height="156%">
       <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ffd66a" flood-opacity="0.74"/>
       <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#d69835" flood-opacity="0.38"/>
+    </filter>
+    <filter id="bezelShadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#00040a" flood-opacity="0.62"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#6fd4ff" flood-opacity="0.16"/>
     </filter>
     <filter id="needleShadow" x="-26%" y="-26%" width="152%" height="152%">
       <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#02050a" flood-opacity="0.5"/>
@@ -109,33 +127,58 @@ function drawDefs(svg) {
       <stop offset="0.56" stop-color="#0e2333" stop-opacity="0.18"/>
       <stop offset="1" stop-color="#061018" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="outerRim" x1="92" y1="76" x2="424" y2="436" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#57caff" stop-opacity="0.56"/>
-      <stop offset="0.5" stop-color="#d7f7ff" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#2a6f94" stop-opacity="0.44"/>
+    <radialGradient id="bezelFace" cx="36%" cy="24%" r="78%">
+      <stop offset="0" stop-color="#263a46"/>
+      <stop offset="0.28" stop-color="#132431"/>
+      <stop offset="0.58" stop-color="#07121b"/>
+      <stop offset="0.78" stop-color="#050a11"/>
+      <stop offset="1" stop-color="#1d3441"/>
+    </radialGradient>
+    <linearGradient id="bezelEdge" x1="83" y1="74" x2="430" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#a6ecff" stop-opacity="0.72"/>
+      <stop offset="0.23" stop-color="#2b80ac" stop-opacity="0.26"/>
+      <stop offset="0.52" stop-color="#e7f8ff" stop-opacity="0.18"/>
+      <stop offset="0.82" stop-color="#276d8b" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#0f2230" stop-opacity="0.56"/>
+    </linearGradient>
+    <radialGradient id="dialTrack" cx="46%" cy="42%" r="66%">
+      <stop offset="0" stop-color="#112531"/>
+      <stop offset="0.52" stop-color="#07141d"/>
+      <stop offset="0.82" stop-color="#03080d"/>
+      <stop offset="1" stop-color="#000307"/>
     </linearGradient>
     <linearGradient id="blueRound" x1="104" y1="82" x2="236" y2="430" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#66e7ff"/>
-      <stop offset="0.42" stop-color="#26aef0"/>
-      <stop offset="0.74" stop-color="#1d85cc"/>
-      <stop offset="1" stop-color="#155f9e"/>
+      <stop offset="0" stop-color="#7af0ff"/>
+      <stop offset="0.24" stop-color="#42c9f8"/>
+      <stop offset="0.56" stop-color="#2499dd"/>
+      <stop offset="0.83" stop-color="#176cae"/>
+      <stop offset="1" stop-color="#0f4a7f"/>
     </linearGradient>
     <linearGradient id="greenRound" x1="304" y1="80" x2="420" y2="430" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#7df09d"/>
-      <stop offset="0.45" stop-color="#37c873"/>
-      <stop offset="0.76" stop-color="#269b5e"/>
-      <stop offset="1" stop-color="#1d714b"/>
+      <stop offset="0" stop-color="#8fffb0"/>
+      <stop offset="0.26" stop-color="#54dd85"/>
+      <stop offset="0.6" stop-color="#2eb36c"/>
+      <stop offset="0.84" stop-color="#1e8052"/>
+      <stop offset="1" stop-color="#14583d"/>
     </linearGradient>
     <radialGradient id="dialGloss" cx="35%" cy="23%" r="76%">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/>
-      <stop offset="0.2" stop-color="#ffffff" stop-opacity="0.08"/>
-      <stop offset="0.62" stop-color="#ffffff" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000000" stop-opacity="0.22"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.26"/>
+      <stop offset="0.16" stop-color="#ffffff" stop-opacity="0.1"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.82" stop-color="#000000" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.38"/>
     </radialGradient>
     <radialGradient id="centerWell" cx="48%" cy="40%" r="64%">
-      <stop offset="0" stop-color="#162b36"/>
-      <stop offset="0.54" stop-color="#09151e"/>
-      <stop offset="1" stop-color="#03070b"/>
+      <stop offset="0" stop-color="#112632"/>
+      <stop offset="0.44" stop-color="#07131c"/>
+      <stop offset="0.78" stop-color="#02070c"/>
+      <stop offset="1" stop-color="#000205"/>
+    </radialGradient>
+    <radialGradient id="hubRing" cx="35%" cy="30%" r="72%">
+      <stop offset="0" stop-color="#56636a"/>
+      <stop offset="0.34" stop-color="#26333a"/>
+      <stop offset="0.72" stop-color="#11191f"/>
+      <stop offset="1" stop-color="#020509"/>
     </radialGradient>
     <radialGradient id="hub" cx="35%" cy="30%" r="70%">
       <stop offset="0" stop-color="#ff8a92"/>
@@ -204,22 +247,17 @@ function drawArcStroke(svg, cx, cy, radius, startAngle, sweepAngle, color, strok
   return path;
 }
 
-function drawClockTicks(svg, cx, cy, outerRadius, innerRadius) {
-  for (let index = 0; index < 80; index += 1) {
-    const angle = -Math.PI / 2 + (index / 80) * Math.PI * 2;
-    const isMajor = index % 10 === 0;
-    const isHalf = index % 5 === 0;
-    const start = polar(cx, cy, outerRadius - (isMajor ? 45 : isHalf ? 41 : 36), angle);
-    const end = polar(cx, cy, outerRadius - 28, angle);
-    const tick = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    tick.setAttribute("x1", start.x);
-    tick.setAttribute("y1", start.y);
-    tick.setAttribute("x2", end.x);
-    tick.setAttribute("y2", end.y);
-    tick.setAttribute("stroke", isMajor ? "rgba(232, 247, 255, 0.44)" : "rgba(232, 247, 255, 0.22)");
-    tick.setAttribute("stroke-width", isMajor ? 1.5 : isHalf ? 1.1 : 0.8);
-    tick.setAttribute("stroke-linecap", "round");
-    svg.appendChild(tick);
+function drawGaugeTicks(svg, cx, cy, outerRadius, innerRadius) {
+  for (let index = 0; index < 96; index += 1) {
+    const angle = -Math.PI / 2 + (index / 96) * Math.PI * 2;
+    const isMajor = index % 12 === 0;
+    const isHalf = index % 6 === 0;
+    const startRadius = innerRadius + (isMajor ? 18 : isHalf ? 25 : 32);
+    const endRadius = outerRadius - (isMajor ? 18 : isHalf ? 24 : 31);
+    const start = polar(cx, cy, startRadius, angle);
+    const end = polar(cx, cy, endRadius, angle);
+    drawLine(svg, start, end, "rgba(0, 8, 12, 0.46)", isMajor ? 3.6 : isHalf ? 2.7 : 1.9);
+    drawLine(svg, start, end, isMajor ? "rgba(247, 253, 255, 0.78)" : "rgba(226, 249, 255, 0.38)", isMajor ? 1.8 : isHalf ? 1.15 : 0.72);
   }
 }
 
@@ -241,16 +279,18 @@ function drawSeam(svg, center, innerRadius, outerRadius) {
 
 function drawArcEndpoint(svg, cx, cy, radius, angle) {
   const point = polar(cx, cy, radius, angle);
-  drawCircle(svg, point.x, point.y, 4.8, "#ffe58a", "rgba(255, 255, 255, 0.88)", 1);
+  drawCircle(svg, point.x, point.y, 6.2, "rgba(255, 214, 98, 0.24)", "none", 0);
+  drawCircle(svg, point.x, point.y, 3.8, "#ffe58a", "rgba(255, 255, 255, 0.9)", 1);
 }
 
 function drawNeedle(svg, cx, cy, radius, angle) {
   const back = polar(cx, cy, 13, angle + Math.PI);
   const tip = polar(cx, cy, radius, angle);
-  const counter = polar(cx, cy, 28, angle + Math.PI);
+  const counter = polar(cx, cy, 34, angle + Math.PI);
 
-  drawNeedlePolygon(svg, counter, tip, angle, 7.5, "url(#needle)", "url(#needleShadow)");
-  drawNeedlePolygon(svg, back, polar(cx, cy, 76, angle + Math.PI), angle + Math.PI, 5, "rgba(151, 39, 49, 0.72)");
+  drawNeedlePolygon(svg, counter, tip, angle, 8.6, "url(#needle)", "url(#needleShadow)");
+  drawLine(svg, polar(cx, cy, 18, angle), polar(cx, cy, radius - 12, angle), "rgba(255, 178, 183, 0.78)", 1.45);
+  drawNeedlePolygon(svg, back, polar(cx, cy, 80, angle + Math.PI), angle + Math.PI, 5.2, "rgba(151, 39, 49, 0.72)");
 }
 
 function drawNeedlePolygon(svg, back, tip, angle, width, fill, filter = null) {
@@ -271,6 +311,18 @@ function drawNeedlePolygon(svg, back, tip, angle, width, fill, filter = null) {
     needle.setAttribute("filter", filter);
   }
   svg.appendChild(needle);
+}
+
+function drawLine(svg, start, end, stroke, strokeWidth) {
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", start.x);
+  line.setAttribute("y1", start.y);
+  line.setAttribute("x2", end.x);
+  line.setAttribute("y2", end.y);
+  line.setAttribute("stroke", stroke);
+  line.setAttribute("stroke-width", strokeWidth);
+  line.setAttribute("stroke-linecap", "round");
+  svg.appendChild(line);
 }
 
 function drawCircle(svg, cx, cy, radius, fill, stroke, strokeWidth) {

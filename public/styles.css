@@ -154,7 +154,7 @@ h1 {
 .top-grid {
   position: relative;
   display: grid;
-  min-height: 390px;
+  min-height: 430px;
   place-items: center;
 }
 
@@ -163,7 +163,7 @@ h1 {
   isolation: isolate;
   display: grid;
   place-items: center;
-  min-height: 376px;
+  min-height: 416px;
   padding: 0;
 }
 
@@ -181,7 +181,7 @@ h1 {
 }
 
 #clockSvg {
-  width: min(100%, 382px);
+  width: min(100%, 430px);
   aspect-ratio: 1;
   height: auto;
   overflow: visible;
