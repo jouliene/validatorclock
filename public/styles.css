@@ -724,7 +724,7 @@ dd {
     linear-gradient(180deg, rgba(18, 23, 31, 0.96), rgba(7, 10, 15, 0.988));
   box-shadow:
     0 34px 88px rgba(0, 0, 0, 0.34),
-    0 0 34px color-mix(in srgb, var(--round-color) 5%, transparent),
+    0 0 26px color-mix(in srgb, var(--round-color) 2.5%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.055),
     inset 0 0 0 1px rgba(255, 255, 255, 0.012);
 }
@@ -735,9 +735,9 @@ dd {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 5%, transparent), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.036), transparent 18%);
-  opacity: 0.7;
+    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 2.4%, transparent), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 16%);
+  opacity: 0.62;
 }
 
 .round-panel::after {
@@ -746,12 +746,12 @@ dd {
   top: 22px;
   bottom: 22px;
   left: 0;
-  width: 2px;
+  width: 1px;
   pointer-events: none;
   background:
-    linear-gradient(180deg, transparent, color-mix(in srgb, var(--round-color) 72%, white 8%) 14%, color-mix(in srgb, var(--round-color) 38%, transparent) 56%, transparent);
-  box-shadow: 0 0 22px color-mix(in srgb, var(--round-color) 32%, transparent);
-  opacity: 0.82;
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--round-color) 48%, white 6%) 14%, color-mix(in srgb, var(--round-color) 22%, transparent) 56%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--round-color) 16%, transparent);
+  opacity: 0.58;
 }
 
 .round-panel > * {
@@ -760,12 +760,12 @@ dd {
 
 .round-blue {
   --round-color: #2f93dc;
-  border-color: rgba(47, 147, 220, 0.36);
+  border-color: rgba(47, 147, 220, 0.24);
 }
 
 .round-green {
   --round-color: #32af68;
-  border-color: rgba(50, 175, 104, 0.36);
+  border-color: rgba(50, 175, 104, 0.24);
 }
 
 .recent-rounds-grid {
@@ -787,7 +787,7 @@ dd {
   background: linear-gradient(180deg, rgba(18, 23, 31, 0.94), rgba(7, 10, 15, 0.988));
   box-shadow:
     0 28px 72px rgba(0, 0, 0, 0.26),
-    0 0 30px color-mix(in srgb, var(--round-color) 5%, transparent),
+    0 0 22px color-mix(in srgb, var(--round-color) 2.5%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
@@ -797,8 +797,8 @@ dd {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 4%, transparent), transparent 30%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.032), transparent 18%);
+    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 2.2%, transparent), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 16%);
 }
 
 .recent-round-panel::after {
@@ -807,11 +807,11 @@ dd {
   top: 18px;
   bottom: 18px;
   left: 0;
-  width: 2px;
+  width: 1px;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--round-color) 60%, white 8%) 18%, color-mix(in srgb, var(--round-color) 30%, transparent) 64%, transparent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--round-color) 28%, transparent);
-  opacity: 0.78;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--round-color) 44%, white 6%) 18%, color-mix(in srgb, var(--round-color) 18%, transparent) 64%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--round-color) 14%, transparent);
+  opacity: 0.55;
 }
 
 .recent-round-panel > * {
@@ -824,12 +824,12 @@ dd {
 
 .recent-blue {
   --round-color: #2f93dc;
-  border: 1px solid rgba(47, 147, 220, 0.34);
+  border: 1px solid rgba(47, 147, 220, 0.22);
 }
 
 .recent-green {
   --round-color: #32af68;
-  border: 1px solid rgba(50, 175, 104, 0.34);
+  border: 1px solid rgba(50, 175, 104, 0.22);
 }
 
 .recent-round-heading {
@@ -863,9 +863,9 @@ dd {
   min-height: 28px;
   align-items: center;
   padding: 0 10px;
-  border: 1px solid color-mix(in srgb, var(--round-color) 26%, rgba(255, 255, 255, 0.12));
+  border: 1px solid color-mix(in srgb, var(--round-color) 16%, rgba(255, 255, 255, 0.12));
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--round-color) 6%, transparent);
+  background: color-mix(in srgb, var(--round-color) 3.5%, transparent);
   color: var(--muted);
   font-size: var(--body-size);
   font-weight: 700;
@@ -912,13 +912,13 @@ dd {
   height: 38px;
   flex: 0 0 38px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--round-color) 58%, white 6%);
+  border: 1px solid color-mix(in srgb, var(--round-color) 34%, white 6%);
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--round-color) 16%, transparent), transparent 54%),
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--round-color) 8%, transparent), transparent 54%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012));
   box-shadow:
-    0 0 22px color-mix(in srgb, var(--round-color) 22%, transparent),
+    0 0 12px color-mix(in srgb, var(--round-color) 9%, transparent),
     inset 0 0 0 5px rgba(0, 0, 0, 0.18);
 }
 
@@ -926,19 +926,19 @@ dd {
   width: 23px;
   height: 23px;
   fill: none;
-  stroke: color-mix(in srgb, var(--round-color) 78%, white 22%);
+  stroke: color-mix(in srgb, var(--round-color) 60%, white 24%);
   stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--round-color) 34%, transparent));
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--round-color) 12%, transparent));
 }
 
 .round-blue .round-heading h2 {
-  color: color-mix(in srgb, #2f93dc 86%, white 14%);
+  color: color-mix(in srgb, #2f93dc 68%, white 26%);
 }
 
 .round-green .round-heading h2 {
-  color: color-mix(in srgb, #32af68 86%, white 14%);
+  color: color-mix(in srgb, #32af68 68%, white 26%);
 }
 
 .round-meta {
@@ -1011,15 +1011,18 @@ dd {
 }
 
 .round-panel .round-badge {
-  border-color: color-mix(in srgb, var(--round-color) 44%, white 8%);
-  background: color-mix(in srgb, var(--round-color) 10%, transparent);
-  color: color-mix(in srgb, var(--round-color) 76%, white 24%);
+  border-color: color-mix(in srgb, var(--round-color) 28%, white 8%);
+  background: color-mix(in srgb, var(--round-color) 5.5%, transparent);
+  color: color-mix(in srgb, var(--round-color) 62%, white 28%);
 }
 
 .round-badge.is-active {
-  border-color: color-mix(in srgb, var(--round-color) 52%, white 12%);
-  background: color-mix(in srgb, var(--round-color) 12%, transparent);
-  color: color-mix(in srgb, var(--round-color) 72%, white 28%);
+  border-color: rgba(202, 168, 92, 0.62);
+  background:
+    radial-gradient(circle at 14px 50%, rgba(202, 168, 92, 0.14), transparent 18px),
+    rgba(202, 168, 92, 0.075);
+  color: var(--gold);
+  box-shadow: 0 0 16px rgba(202, 168, 92, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .round-badge.is-previous {
@@ -1029,9 +1032,9 @@ dd {
 }
 
 .round-badge.is-election {
-  border-color: color-mix(in srgb, var(--round-color) 52%, white 12%);
-  background: color-mix(in srgb, var(--round-color) 12%, transparent);
-  color: color-mix(in srgb, var(--round-color) 72%, white 28%);
+  border-color: color-mix(in srgb, var(--round-color) 34%, white 10%);
+  background: color-mix(in srgb, var(--round-color) 6%, transparent);
+  color: color-mix(in srgb, var(--round-color) 66%, white 26%);
 }
 
 .round-stats {
@@ -1052,7 +1055,7 @@ dd {
   border: 1px solid rgba(255, 255, 255, 0.078);
   border-radius: var(--radius-sm);
   background:
-    radial-gradient(circle at 0 0, color-mix(in srgb, var(--round-color) 4%, transparent), transparent 56%),
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--round-color) 2.4%, transparent), transparent 54%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.013)),
     var(--surface-soft);
   box-shadow:
@@ -1065,10 +1068,10 @@ dd {
   width: 34px;
   height: 34px;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--round-color) 34%, white 4%);
+  border: 1px solid color-mix(in srgb, var(--round-color) 22%, white 4%);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--round-color) 8%, transparent);
-  color: color-mix(in srgb, var(--round-color) 82%, white 18%);
+  background: color-mix(in srgb, var(--round-color) 4.5%, transparent);
+  color: color-mix(in srgb, var(--round-color) 58%, white 26%);
 }
 
 .round-stat-icon svg {
@@ -1079,7 +1082,7 @@ dd {
   stroke-width: 1.9;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--round-color) 26%, transparent));
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--round-color) 10%, transparent));
 }
 
 .round-stat-copy {
@@ -1119,14 +1122,14 @@ dd {
   width: 100%;
   min-width: 690px;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--round-color) 22%, rgba(255, 255, 255, 0.072));
+  border: 1px solid color-mix(in srgb, var(--round-color) 13%, rgba(255, 255, 255, 0.072));
   border-radius: var(--radius-md);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 3.5%, transparent), transparent 24%),
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 1.8%, transparent), transparent 22%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.005)),
     rgba(4, 8, 14, 0.34);
   box-shadow:
-    inset 2px 0 0 color-mix(in srgb, var(--round-color) 38%, transparent),
+    inset 2px 0 0 color-mix(in srgb, var(--round-color) 24%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.026);
 }
 
@@ -1137,7 +1140,7 @@ dd {
 .validator-header,
 .validator-row {
   display: grid;
-  grid-template-columns: 28px 76px minmax(104px, 1.1fr) minmax(128px, 1.35fr) 82px minmax(76px, 0.8fr) minmax(60px, 0.7fr) minmax(58px, 0.7fr);
+  grid-template-columns: 28px 72px minmax(96px, 1fr) minmax(120px, 1.26fr) 82px minmax(84px, 0.78fr) minmax(72px, 0.68fr) minmax(60px, 0.62fr);
   column-gap: 8px;
   justify-content: start;
   align-items: center;
@@ -1153,7 +1156,7 @@ dd {
   padding: 9px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.115);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 7%, transparent), transparent 54%),
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 3.4%, transparent), transparent 50%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.012));
   color: rgba(218, 228, 240, 0.9);
   font-size: var(--label-size);
@@ -1167,16 +1170,16 @@ dd {
   padding: 9px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.075);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 2%, transparent), transparent 34%),
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 0.9%, transparent), transparent 28%),
     rgba(255, 255, 255, 0.003);
   transition: background 160ms ease, box-shadow 160ms ease;
 }
 
 .validator-row:hover {
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 10%, transparent), transparent 64%),
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 4.8%, transparent), transparent 58%),
     rgba(255, 255, 255, 0.018);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--round-color) 62%, white 4%);
+  box-shadow: inset 2px 0 0 color-mix(in srgb, var(--round-color) 38%, white 4%);
 }
 
 .validator-row:last-child {
@@ -1195,6 +1198,12 @@ dd {
 .validator-header .validator-cell {
   overflow: visible;
   text-overflow: clip;
+}
+
+.validator-header .validator-cell:nth-child(6),
+.validator-row .validator-cell:nth-child(6) {
+  justify-self: center;
+  text-align: center;
 }
 
 .validator-history-heading {
