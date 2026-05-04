@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 mod acme;
 mod app;
@@ -14,14 +14,53 @@ pub(crate) use tls::TlsConfig;
 
 const DEFAULT_CONFIG: &str = include_str!("../../validators_clock.json");
 
-pub(crate) fn load_config(path: Option<&Path>) -> Result<AppConfig> {
-    let content = match path {
-        Some(path) => fs::read_to_string(path)
-            .with_context(|| format!("failed to read config {}", path.display()))?,
+#[derive(Debug, Clone)]
+pub(crate) struct LoadedConfig {
+    pub(crate) config: AppConfig,
+    pub(crate) source: ConfigSource,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum ConfigSource {
+    Explicit(PathBuf),
+    LocalDefault(PathBuf),
+    EmbeddedDefault,
+}
+
+impl ConfigSource {
+    pub(crate) fn label(&self) -> &'static str {
+        match self {
+            Self::Explicit(_) => "explicit",
+            Self::LocalDefault(_) => "local_default",
+            Self::EmbeddedDefault => "embedded_default",
+        }
+    }
+
+    pub(crate) fn path(&self) -> Option<&Path> {
+        match self {
+            Self::Explicit(path) | Self::LocalDefault(path) => Some(path),
+            Self::EmbeddedDefault => None,
+        }
+    }
+}
+
+pub(crate) fn load_config(path: Option<&Path>) -> Result<LoadedConfig> {
+    let (content, source) = match path {
+        Some(path) => (
+            fs::read_to_string(path)
+                .with_context(|| format!("failed to read config {}", path.display()))?,
+            ConfigSource::Explicit(path.to_path_buf()),
+        ),
         None => {
-            fs::read_to_string("validators_clock.json").unwrap_or_else(|_| DEFAULT_CONFIG.into())
+            let default_path = PathBuf::from("validators_clock.json");
+            match fs::read_to_string(&default_path) {
+                Ok(content) => (content, ConfigSource::LocalDefault(default_path)),
+                Err(_) => (DEFAULT_CONFIG.into(), ConfigSource::EmbeddedDefault),
+            }
         }
     };
 
-    serde_json::from_str(&content).context("failed to parse validators clock config")
+    let config =
+        serde_json::from_str(&content).context("failed to parse validators clock config")?;
+    Ok(LoadedConfig { config, source })
 }

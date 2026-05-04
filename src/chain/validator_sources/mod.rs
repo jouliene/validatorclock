@@ -12,7 +12,7 @@ use crate::config::ChainConfig;
 use crate::state::AppState;
 use crate::validator_types::{ValidatorTypeCache, save_validator_type_cache};
 use anyhow::Result;
-use tracing::warn;
+use tracing::{info, warn};
 
 pub(super) const VALIDATOR_TYPE_FETCH_CONCURRENCY: usize = 8;
 
@@ -99,7 +99,12 @@ async fn save_validator_type_cache_background(state: &AppState, cache_to_save: V
     })
     .await
     {
-        Ok(Ok(())) => {}
+        Ok(Ok(())) => {
+            info!(
+                path = %state.validator_type_cache_path.display(),
+                "saved validator type cache"
+            );
+        }
         Ok(Err(error)) => {
             warn!(
                 path = %state.validator_type_cache_path.display(),

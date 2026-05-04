@@ -31,6 +31,15 @@ pub(crate) struct RoundHistoryStore {
     pub(super) chains: HashMap<String, ChainRoundHistory>,
 }
 
+impl RoundHistoryStore {
+    pub(crate) fn round_count_for_chain(&self, chain_id: &str) -> usize {
+        self.chains
+            .get(chain_id)
+            .map(|chain| chain.rounds.len())
+            .unwrap_or_default()
+    }
+}
+
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub(super) struct ChainRoundHistory {
     #[serde(default)]

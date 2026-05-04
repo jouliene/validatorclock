@@ -3,8 +3,9 @@ use crate::history::save_round_history_merged;
 use crate::state::AppState;
 use anyhow::{Result, anyhow};
 use std::sync::Arc;
+use std::time::Instant;
 use tokio::time::{Duration, MissedTickBehavior, interval, timeout};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 const VALIDATOR_TYPE_UPDATE_MIN_TIMEOUT_SECS: u64 = 5;
 const VALIDATOR_TYPE_UPDATE_MAX_TIMEOUT_SECS: u64 = 30;
@@ -121,19 +122,36 @@ async fn refresh_configured_chains(state: &AppState) {
         .collect::<Vec<_>>();
 
     for chain_id in chain_ids {
+        let started_at = Instant::now();
         match get_chain_snapshot(state, &chain_id, true).await {
             Ok(snapshot) if snapshot.warning.is_some() => {
-                debug!(chain_id, warning = ?snapshot.warning, "background refresh used cached data");
+                info!(
+                    chain_id,
+                    duration_ms = started_at.elapsed().as_millis(),
+                    fetched_at = snapshot.fetched_at,
+                    round_id = snapshot.current_set.round_id,
+                    round_color = ?snapshot.current_set.round_color,
+                    warning = ?snapshot.warning,
+                    "background refresh completed with cached data"
+                );
             }
             Ok(snapshot) => {
-                debug!(
+                info!(
                     chain_id,
+                    duration_ms = started_at.elapsed().as_millis(),
                     fetched_at = snapshot.fetched_at,
+                    round_id = snapshot.current_set.round_id,
+                    round_color = ?snapshot.current_set.round_color,
                     "background refresh completed"
                 );
             }
             Err(error) => {
-                warn!(chain_id, error = ?error, "background refresh failed");
+                warn!(
+                    chain_id,
+                    duration_ms = started_at.elapsed().as_millis(),
+                    error = ?error,
+                    "background refresh failed"
+                );
             }
         }
     }
@@ -218,8 +236,20 @@ async fn update_round_history(state: &AppState, snapshot: &mut ClockSnapshot) {
     let history_path = state.round_history_path_for_chain(&chain_id);
     let history_to_save = {
         let mut history = state.round_history.write().await;
+        let rounds_before = history.round_count_for_chain(&chain_id);
         let changed = history.record_snapshot(&chain_id, snapshot, observed_at);
         history.annotate_snapshot(&chain_id, snapshot);
+        let rounds_after = history.round_count_for_chain(&chain_id);
+        if changed || !history_path.exists() {
+            info!(
+                chain_id,
+                path = %history_path.display(),
+                rounds_before,
+                rounds_after,
+                changed,
+                "round history scheduled for save"
+            );
+        }
         (changed || !history_path.exists()).then(|| history.clone())
     };
 

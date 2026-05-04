@@ -3,6 +3,7 @@ use config::load_config;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
+use tracing::info;
 
 mod chain;
 mod config;
@@ -22,8 +23,19 @@ async fn main() -> Result<()> {
     tls::install_rustls_crypto_provider();
 
     let cli = Cli::parse()?;
-    let config = Arc::new(load_config(cli.config_path.as_deref())?);
+    let loaded_config = load_config(cli.config_path.as_deref())?;
+    let config_source = loaded_config.source;
+    let config = Arc::new(loaded_config.config);
     config.validate()?;
+    if let Some(path) = config_source.path() {
+        info!(
+            config_source = config_source.label(),
+            path = %path.display(),
+            "loaded config"
+        );
+    } else {
+        info!(config_source = config_source.label(), "loaded config");
+    }
 
     if let Some(chain_id) = cli.once {
         let chain = config

@@ -48,6 +48,10 @@ struct ValidatorTypeDiskCache {
 }
 
 impl ValidatorTypeCache {
+    pub(crate) fn len(&self) -> usize {
+        self.entries.len()
+    }
+
     pub(crate) fn get(&self, chain_id: &str, wallet: &str) -> Option<&ValidatorTypeCacheEntry> {
         self.entries.get(&cache_key(chain_id, wallet))
     }

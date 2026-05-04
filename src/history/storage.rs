@@ -7,6 +7,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
+use tracing::info;
 
 #[cfg(test)]
 pub(super) fn load_round_history(path: &Path) -> Result<RoundHistoryStore> {
@@ -68,6 +69,7 @@ pub(crate) fn save_round_history_merged(
     let path = round_history_chain_path(base_path, chain_id);
     let _lock = RoundHistoryFileLock::acquire(&path)?;
     let mut disk_history = load_round_history_optional(&path)?.unwrap_or_default();
+    let rounds_before = disk_history.round_count_for_chain(chain_id);
     disk_history
         .chains
         .retain(|disk_chain_id, _| disk_chain_id == chain_id);
@@ -80,8 +82,16 @@ pub(crate) fn save_round_history_merged(
             .merge_from(chain);
     }
 
-    disk_history.prune_to_retention(retention);
+    let pruned = disk_history.prune_to_retention(retention);
     save_round_history(&path, &disk_history)?;
+    info!(
+        chain_id,
+        path = %path.display(),
+        rounds_before,
+        rounds_after = disk_history.round_count_for_chain(chain_id),
+        pruned,
+        "saved chain round history"
+    );
 
     Ok(disk_history)
 }
