@@ -720,6 +720,13 @@ dd {
   overflow: hidden;
   min-height: 340px;
   padding: 18px 20px 22px;
+  background:
+    linear-gradient(180deg, rgba(18, 23, 31, 0.96), rgba(7, 10, 15, 0.988));
+  box-shadow:
+    0 34px 88px rgba(0, 0, 0, 0.34),
+    0 0 34px color-mix(in srgb, var(--round-color) 5%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.012);
 }
 
 .round-panel::before {
@@ -728,9 +735,23 @@ dd {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 10%, transparent), transparent 34%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 22%);
-  opacity: 0.72;
+    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 5%, transparent), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.036), transparent 18%);
+  opacity: 0.7;
+}
+
+.round-panel::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  bottom: 22px;
+  left: 0;
+  width: 2px;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent, color-mix(in srgb, var(--round-color) 72%, white 8%) 14%, color-mix(in srgb, var(--round-color) 38%, transparent) 56%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--round-color) 32%, transparent);
+  opacity: 0.82;
 }
 
 .round-panel > * {
@@ -740,25 +761,11 @@ dd {
 .round-blue {
   --round-color: #2f93dc;
   border-color: rgba(47, 147, 220, 0.36);
-  background:
-    linear-gradient(180deg, rgba(47, 147, 220, 0.036), rgba(47, 147, 220, 0) 190px),
-    linear-gradient(180deg, rgba(12, 20, 31, 0.95), rgba(7, 10, 16, 0.985));
-  box-shadow:
-    0 34px 88px rgba(0, 0, 0, 0.34),
-    0 0 38px rgba(47, 147, 220, 0.072),
-    inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
 .round-green {
   --round-color: #32af68;
   border-color: rgba(50, 175, 104, 0.36);
-  background:
-    linear-gradient(180deg, rgba(50, 175, 104, 0.036), rgba(50, 175, 104, 0) 190px),
-    linear-gradient(180deg, rgba(10, 23, 19, 0.95), rgba(7, 10, 16, 0.985));
-  box-shadow:
-    0 34px 88px rgba(0, 0, 0, 0.34),
-    0 0 38px rgba(50, 175, 104, 0.072),
-    inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
 .recent-rounds-grid {
@@ -773,20 +780,56 @@ dd {
 }
 
 .recent-round-panel {
+  position: relative;
+  overflow: hidden;
   min-height: 0;
   padding: 18px;
+  background: linear-gradient(180deg, rgba(18, 23, 31, 0.94), rgba(7, 10, 15, 0.988));
+  box-shadow:
+    0 28px 72px rgba(0, 0, 0, 0.26),
+    0 0 30px color-mix(in srgb, var(--round-color) 5%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.recent-round-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 0, color-mix(in srgb, var(--round-color) 4%, transparent), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.032), transparent 18%);
+}
+
+.recent-round-panel::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 0;
+  width: 2px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--round-color) 60%, white 8%) 18%, color-mix(in srgb, var(--round-color) 30%, transparent) 64%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--round-color) 28%, transparent);
+  opacity: 0.78;
+}
+
+.recent-round-panel > * {
+  position: relative;
 }
 
 .recent-round-panel.is-empty {
-  background: rgba(255, 255, 255, 0.018);
+  background: linear-gradient(180deg, rgba(18, 23, 31, 0.88), rgba(7, 10, 15, 0.98));
 }
 
 .recent-blue {
-  border: 1px solid rgba(47, 147, 220, 0.36);
+  --round-color: #2f93dc;
+  border: 1px solid rgba(47, 147, 220, 0.34);
 }
 
 .recent-green {
-  border: 1px solid rgba(50, 175, 104, 0.36);
+  --round-color: #32af68;
+  border: 1px solid rgba(50, 175, 104, 0.34);
 }
 
 .recent-round-heading {
@@ -796,7 +839,7 @@ dd {
   gap: 16px;
   margin-bottom: 14px;
   padding-bottom: 14px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.075);
 }
 
 .recent-round-heading h2 {
@@ -808,14 +851,21 @@ dd {
 }
 
 .recent-blue .recent-round-heading h2 {
-  color: #2f93dc;
+  color: color-mix(in srgb, #2f93dc 86%, white 14%);
 }
 
 .recent-green .recent-round-heading h2 {
-  color: #32af68;
+  color: color-mix(in srgb, #32af68 86%, white 14%);
 }
 
 .recent-round-heading span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--round-color) 26%, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--round-color) 6%, transparent);
   color: var(--muted);
   font-size: var(--body-size);
   font-weight: 700;
@@ -827,7 +877,7 @@ dd {
   min-height: 76px;
   align-items: center;
   padding: 0 12px;
-  color: var(--muted);
+  color: rgba(195, 207, 222, 0.86);
   font-size: var(--body-size);
   font-weight: 650;
 }
@@ -837,7 +887,7 @@ dd {
   display: block;
   margin-bottom: 14px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.075);
   text-align: left;
 }
 
@@ -865,8 +915,8 @@ dd {
   border: 1px solid color-mix(in srgb, var(--round-color) 58%, white 6%);
   border-radius: 50%;
   background:
-    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--round-color) 24%, transparent), transparent 52%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.012));
+    radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--round-color) 16%, transparent), transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012));
   box-shadow:
     0 0 22px color-mix(in srgb, var(--round-color) 22%, transparent),
     inset 0 0 0 5px rgba(0, 0, 0, 0.18);
@@ -884,11 +934,11 @@ dd {
 }
 
 .round-blue .round-heading h2 {
-  color: #2f93dc;
+  color: color-mix(in srgb, #2f93dc 86%, white 14%);
 }
 
 .round-green .round-heading h2 {
-  color: #32af68;
+  color: color-mix(in srgb, #32af68 86%, white 14%);
 }
 
 .round-meta {
@@ -1002,8 +1052,8 @@ dd {
   border: 1px solid rgba(255, 255, 255, 0.078);
   border-radius: var(--radius-sm);
   background:
-    radial-gradient(circle at 0 0, color-mix(in srgb, var(--round-color) 8%, transparent), transparent 60%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.014)),
+    radial-gradient(circle at 0 0, color-mix(in srgb, var(--round-color) 4%, transparent), transparent 56%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.013)),
     var(--surface-soft);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.035),
@@ -1017,7 +1067,7 @@ dd {
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--round-color) 34%, white 4%);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--round-color) 12%, transparent);
+  background: color-mix(in srgb, var(--round-color) 8%, transparent);
   color: color-mix(in srgb, var(--round-color) 82%, white 18%);
 }
 
@@ -1069,12 +1119,15 @@ dd {
   width: 100%;
   min-width: 690px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.072);
+  border: 1px solid color-mix(in srgb, var(--round-color) 22%, rgba(255, 255, 255, 0.072));
   border-radius: var(--radius-md);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.024), rgba(255, 255, 255, 0.006)),
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 3.5%, transparent), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.005)),
     rgba(4, 8, 14, 0.34);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.026);
+  box-shadow:
+    inset 2px 0 0 color-mix(in srgb, var(--round-color) 38%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.026);
 }
 
 .validator-table.is-absent {
@@ -1100,8 +1153,8 @@ dd {
   padding: 9px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.115);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.014)),
-    color-mix(in srgb, var(--round-color) 4%, transparent);
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 7%, transparent), transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.012));
   color: rgba(218, 228, 240, 0.9);
   font-size: var(--label-size);
   font-weight: 760;
@@ -1113,7 +1166,9 @@ dd {
   min-height: 43px;
   padding: 9px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.075);
-  background: rgba(255, 255, 255, 0.004);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 2%, transparent), transparent 34%),
+    rgba(255, 255, 255, 0.003);
   transition: background 160ms ease, box-shadow 160ms ease;
 }
 
