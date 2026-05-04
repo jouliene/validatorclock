@@ -434,7 +434,7 @@ mod tests {
             version: 1,
             chains: tycho_history.chains,
         };
-        fs::write(&path, serde_json::to_string_pretty(&disk).unwrap()).unwrap();
+        fs::write(&tycho_path, serde_json::to_string_pretty(&disk).unwrap()).unwrap();
 
         let mut stale_clone = everscale_history;
         record_rounds(
@@ -477,7 +477,7 @@ mod tests {
     }
 
     #[test]
-    fn load_round_history_for_chains_prefers_chain_files_and_falls_back_to_legacy() {
+    fn load_round_history_for_chains_ignores_legacy_combined_file() {
         let path = temp_history_path("split_history_load");
         let everscale_path = round_history_chain_path(&path, "everscale");
 
@@ -511,12 +511,7 @@ mod tests {
             .collect::<Vec<_>>();
         assert_eq!(everscale_rounds, vec![22]);
 
-        let tycho_rounds = loaded.chains["tycho-testnet"]
-            .rounds
-            .keys()
-            .copied()
-            .collect::<Vec<_>>();
-        assert_eq!(tycho_rounds, vec![20]);
+        assert!(!loaded.chains.contains_key("tycho-testnet"));
 
         let _ = fs::remove_file(&path);
         let _ = fs::remove_file(&everscale_path);

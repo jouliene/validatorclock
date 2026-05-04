@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
 
-pub(crate) fn load_round_history(path: &Path) -> Result<RoundHistoryStore> {
+#[cfg(test)]
+pub(super) fn load_round_history(path: &Path) -> Result<RoundHistoryStore> {
     Ok(load_round_history_optional(path)?.unwrap_or_default())
 }
 
@@ -16,23 +17,11 @@ pub(crate) fn load_round_history_for_chains<'a>(
     base_path: &Path,
     chain_ids: impl IntoIterator<Item = &'a str>,
 ) -> Result<RoundHistoryStore> {
-    let legacy_history = load_round_history(base_path)?;
     let mut history = RoundHistoryStore::default();
 
     for chain_id in chain_ids {
         let chain_path = round_history_chain_path(base_path, chain_id);
-        let chain_history = match load_round_history_optional(&chain_path)? {
-            Some(chain_history) => chain_history,
-            None => RoundHistoryStore {
-                chains: legacy_history
-                    .chains
-                    .get(chain_id)
-                    .cloned()
-                    .map(|chain| [(chain_id.to_owned(), chain)].into())
-                    .unwrap_or_default(),
-            },
-        };
-
+        let chain_history = load_round_history_optional(&chain_path)?.unwrap_or_default();
         if let Some(chain) = chain_history.chains.get(chain_id).cloned() {
             history.chains.insert(chain_id.to_owned(), chain);
         }
@@ -82,14 +71,6 @@ pub(crate) fn save_round_history_merged(
     disk_history
         .chains
         .retain(|disk_chain_id, _| disk_chain_id == chain_id);
-
-    if let Some(chain) = load_round_history(base_path)?.chains.get(chain_id).cloned() {
-        disk_history
-            .chains
-            .entry(chain_id.to_owned())
-            .or_default()
-            .merge_from(chain);
-    }
 
     if let Some(chain) = history.chains.get(chain_id).cloned() {
         disk_history

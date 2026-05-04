@@ -109,9 +109,7 @@ a trusted production certificate.
 `history_path` is a base path. Runtime history is written per chain by adding the
 chain id before the extension, for example
 `validators_clock_history_everscale.json` and
-`validators_clock_history_tycho-testnet.json`. If an old combined
-`validators_clock_history.json` file exists, the server reads it as a fallback
-until each chain has its own file.
+`validators_clock_history_tycho-testnet.json`.
 
 On startup and during the renewal loop, the app reuses an existing certificate
 only if the key loads, the certificate is valid outside the renewal window, and
