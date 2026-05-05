@@ -1219,6 +1219,10 @@ dd {
 
 .validator-table {
   --validator-grid-columns: 24px 70px 118px 126px 94px 82px 70px 56px;
+  --validator-column-gap: 4px;
+  --validator-row-padding-inline: 12px;
+  --validator-source-offset: 5px;
+  --validator-stake-offset: -8px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -1241,7 +1245,7 @@ dd {
 .validator-row {
   display: grid;
   grid-template-columns: var(--validator-grid-columns);
-  column-gap: 4px;
+  column-gap: var(--validator-column-gap);
   justify-content: space-between;
   align-items: center;
 }
@@ -1253,7 +1257,7 @@ dd {
 
 .validator-header {
   min-height: 44px;
-  padding: 9px 12px;
+  padding: 9px var(--validator-row-padding-inline);
   border-bottom: 1px solid rgba(255, 255, 255, 0.105);
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--round-color) 1.2%, transparent), transparent 50%),
@@ -1267,7 +1271,7 @@ dd {
 
 .validator-row {
   min-height: 43px;
-  padding: 9px 12px;
+  padding: 9px var(--validator-row-padding-inline);
   border-bottom: 1px solid rgba(255, 255, 255, 0.068);
   background:
     linear-gradient(90deg, color-mix(in srgb, var(--round-color) 0.25%, transparent), transparent 28%),
@@ -1308,13 +1312,13 @@ dd {
 
 .validator-header .validator-source,
 .validator-row .validator-source {
-  transform: translateX(5px);
+  transform: translateX(var(--validator-source-offset));
 }
 
 .validator-header .validator-stake,
 .validator-row .validator-stake {
   justify-self: center;
-  transform: translateX(-8px);
+  transform: translateX(var(--validator-stake-offset));
 }
 
 .validator-header .validator-rewards,
@@ -1621,58 +1625,19 @@ dd {
 @media (max-width: 1450px) and (min-width: 761px) {
   .validator-table {
     --validator-grid-columns: 22px 64px 94px 96px 82px 62px 66px 54px;
-  }
-
-  .validator-header,
-  .validator-row {
-    column-gap: 4px;
-  }
-
-  .validator-header .validator-source,
-  .validator-row .validator-source {
-    transform: translateX(3px);
-  }
-
-  .validator-header .validator-stake,
-  .validator-row .validator-stake {
-    transform: translateX(-6px);
-  }
-
-  .validator-header {
-    padding-inline: 8px;
-  }
-
-  .validator-row {
-    padding-inline: 8px;
+    --validator-row-padding-inline: 8px;
+    --validator-source-offset: 3px;
+    --validator-stake-offset: -6px;
   }
 }
 
 @media (max-width: 1280px) and (min-width: 761px) {
   .validator-table {
     --validator-grid-columns: 20px 56px 82px 78px 74px 54px 62px 52px;
-  }
-
-  .validator-header,
-  .validator-row {
-    column-gap: 3px;
-  }
-
-  .validator-header .validator-source,
-  .validator-row .validator-source {
-    transform: translateX(2px);
-  }
-
-  .validator-header .validator-stake,
-  .validator-row .validator-stake {
-    transform: translateX(-4px);
-  }
-
-  .validator-header {
-    padding-inline: 6px;
-  }
-
-  .validator-row {
-    padding-inline: 6px;
+    --validator-column-gap: 3px;
+    --validator-row-padding-inline: 6px;
+    --validator-source-offset: 2px;
+    --validator-stake-offset: -4px;
   }
 
   .validator-address,
