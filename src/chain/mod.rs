@@ -26,6 +26,17 @@ use validator_sources::{
     apply_cached_validator_contract_type_hashes, update_validator_contract_type_hashes,
 };
 
+pub(crate) async fn apply_cached_validator_types_to_snapshot(
+    state: &AppState,
+    chain_id: &str,
+    snapshot: &mut ClockSnapshot,
+) {
+    let Some(chain) = state.config.chain(chain_id) else {
+        return;
+    };
+    apply_cached_validator_contract_type_hashes(state, chain, snapshot).await;
+}
+
 #[cfg(test)]
 pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
     ClockSnapshot {

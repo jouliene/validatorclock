@@ -1,5 +1,5 @@
 use super::AppState;
-use crate::chain::{CacheEntry, ClockSnapshot};
+use crate::chain::{CacheEntry, ClockSnapshot, apply_cached_validator_types_to_snapshot};
 
 impl AppState {
     pub(crate) async fn cached_snapshot_if_fresh(
@@ -15,6 +15,7 @@ impl AppState {
                 .then(|| entry.snapshot().clone())?
         };
         self.annotate_snapshot(chain_id, &mut snapshot).await;
+        apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
         Some(snapshot)
     }
 
@@ -24,6 +25,7 @@ impl AppState {
             cache.get(chain_id).map(|entry| entry.snapshot().clone())?
         };
         self.annotate_snapshot(chain_id, &mut snapshot).await;
+        apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
         Some(snapshot)
     }
 
