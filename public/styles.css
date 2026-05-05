@@ -498,11 +498,11 @@ h2 {
 
 #metricStatus {
   color: var(--gold);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--font-sans);
   font-size: 26px;
-  font-weight: 600;
-  line-height: 1.05;
-  text-shadow: 0 0 10px rgba(202, 168, 92, 0.1);
+  font-weight: 760;
+  line-height: 1.08;
+  text-shadow: 0 0 9px rgba(202, 168, 92, 0.08);
 }
 
 .election-timing-groups {
@@ -1233,9 +1233,9 @@ dd {
 }
 
 .validator-table {
-  --validator-grid-columns: 28px 70px minmax(98px, 1.08fr) minmax(124px, 1.36fr) 86px minmax(80px, 0.76fr) minmax(70px, 0.66fr) minmax(56px, 0.56fr);
+  --validator-grid-columns: 28px 74px minmax(92px, 0.98fr) minmax(106px, 1.02fr) 104px minmax(78px, 0.84fr) minmax(68px, 0.68fr) minmax(54px, 0.52fr);
   width: 100%;
-  min-width: 690px;
+  min-width: 700px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.085);
   border-left: 4px solid color-mix(in srgb, var(--round-color) 56%, white 4%);
@@ -1249,7 +1249,7 @@ dd {
 }
 
 .validator-table.is-absent {
-  min-width: 690px;
+  min-width: 700px;
 }
 
 .validator-header,
@@ -1313,6 +1313,17 @@ dd {
 .validator-header .validator-cell {
   overflow: visible;
   text-overflow: clip;
+}
+
+.validator-header .validator-cell:nth-child(1),
+.validator-row .validator-cell:nth-child(1) {
+  justify-self: center;
+  text-align: center;
+}
+
+.validator-header .validator-cell:nth-child(5),
+.validator-row .validator-cell:nth-child(5) {
+  justify-self: center;
 }
 
 .validator-header .validator-cell:nth-child(6),
@@ -1401,25 +1412,10 @@ dd {
   font-weight: 680;
 }
 
-.validator-source-direct::before,
-.validator-source-unknown::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  margin-right: 6px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--round-color) 52%, var(--gold) 10%);
-  opacity: 0.76;
-}
-
 .validator-source-unknown {
   border-color: rgba(154, 166, 184, 0.22);
   background: rgba(154, 166, 184, 0.055);
   color: rgba(195, 204, 216, 0.84);
-}
-
-.validator-source-unknown::before {
-  background: rgba(154, 166, 184, 0.78);
 }
 
 .validator-type {
