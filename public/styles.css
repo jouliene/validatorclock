@@ -2060,3 +2060,489 @@ dd {
       "stake stake";
   }
 }
+
+@media (max-width: 1220px) {
+  .election-panel,
+  .network-panel {
+    height: auto;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  body {
+    background:
+      radial-gradient(circle at 50% 12%, rgba(47, 147, 220, 0.038), transparent 28%),
+      radial-gradient(circle at 50% 36%, rgba(202, 168, 92, 0.012), transparent 26%),
+      linear-gradient(180deg, #05080c 0%, #030407 58%, #07080c 100%);
+  }
+
+  .app-shell {
+    width: 100%;
+    max-width: 430px;
+    padding: 12px 10px 28px;
+  }
+
+  .titlebar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding-bottom: 12px;
+  }
+
+  .titlebar h1 {
+    font-size: 22px;
+  }
+
+  h1::after {
+    width: 180px;
+    height: 14px;
+    margin-top: 8px;
+    background:
+      linear-gradient(90deg, transparent, rgba(216, 168, 75, 0.68), transparent) left 16px center / 58px 1px no-repeat,
+      linear-gradient(90deg, transparent, rgba(216, 168, 75, 0.68), transparent) right 16px center / 58px 1px no-repeat,
+      radial-gradient(circle, rgba(244, 216, 138, 0.86) 0 2px, rgba(200, 145, 54, 0.36) 2.5px, transparent 3px) center / 8px 8px no-repeat;
+  }
+
+  .runtime-status,
+  .header-updated {
+    min-width: 0;
+    min-height: 31px;
+    overflow: hidden;
+    padding-inline: 9px;
+  }
+
+  .header-updated {
+    gap: 6px;
+    font-size: 11.5px;
+  }
+
+  .header-updated strong,
+  #runtimeFreshness {
+    font-size: 12px;
+  }
+
+  .top-grid {
+    gap: 12px;
+    margin-top: 0;
+  }
+
+  .titlebar > *,
+  .top-grid > *,
+  .rounds-grid > *,
+  .recent-rounds-grid > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .clock-stage {
+    width: 100%;
+    min-height: 282px;
+    padding: 0;
+  }
+
+  .clock-stage::before {
+    width: min(86vw, 340px);
+    opacity: 0.72;
+    filter: blur(3px);
+  }
+
+  #clockSvg {
+    width: min(78vw, 280px);
+    filter: drop-shadow(0 20px 36px rgba(0, 0, 0, 0.42));
+  }
+
+  .election-panel {
+    order: 2;
+    width: 100%;
+    padding: 15px;
+  }
+
+  .network-panel {
+    order: 3;
+    width: 100%;
+    grid-template-rows: auto auto;
+    gap: 10px;
+  }
+
+  .network-card,
+  .network-message-card {
+    width: 100%;
+    padding: 15px;
+  }
+
+  .network-message-card {
+    min-height: 106px;
+  }
+
+  .network-message-card p {
+    max-width: 30ch;
+    font-size: 12.2px;
+    line-height: 1.38;
+  }
+
+  .info-panel h2 {
+    gap: 8px;
+    min-height: 32px;
+    margin-bottom: 12px;
+  }
+
+  .panel-avatar {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+
+  .network-globe {
+    width: 22px;
+    height: 22px;
+  }
+
+  .chain-tabs {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .chain-tab {
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .chain-tab-main {
+    min-width: 0;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .chain-mark {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .network-panel dl {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .network-panel dl div,
+  .network-panel dl div:nth-child(-n+2) {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    min-width: 0;
+    min-height: 50px;
+    padding: 8px 12px;
+  }
+
+  .network-panel dd {
+    min-width: 0;
+    justify-content: flex-start;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+  }
+
+  #metricRpc {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+    text-align: left;
+    white-space: normal;
+  }
+
+  #metricStatus {
+    font-size: 24px;
+  }
+
+  .election-time-card-header {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .countdown-block {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .election-countdown {
+    font-size: 16px;
+    text-align: left;
+  }
+
+  .date-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .date-value {
+    overflow-wrap: anywhere;
+    text-align: left;
+  }
+
+  .rounds-grid,
+  .recent-rounds-grid {
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .round-panel,
+  .recent-round-panel {
+    padding: 14px;
+  }
+
+  .round-heading {
+    display: grid;
+    gap: 10px;
+  }
+
+  .round-title-block {
+    padding-right: 0;
+  }
+
+  .round-badge {
+    position: static;
+    justify-self: start;
+  }
+
+  .round-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .round-stat,
+  .round-stat:last-child {
+    grid-column: auto;
+    min-height: 60px;
+    padding: 10px 11px;
+  }
+
+  .round-stat strong {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .recent-round-heading {
+    display: grid;
+    gap: 10px;
+  }
+
+  .recent-round-count {
+    justify-self: start;
+  }
+
+  .validator-list {
+    overflow-x: hidden;
+    padding-bottom: 0;
+  }
+
+  .validator-table,
+  .validator-table.is-absent {
+    display: grid;
+    min-width: 0;
+    gap: 8px;
+    overflow: visible;
+    border: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .validator-header {
+    display: none;
+  }
+
+  .validator-row {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-areas:
+      "index type"
+      "source source"
+      "identity identity"
+      "history history"
+      "stake stake"
+      "reward reward"
+      "weight weight";
+    gap: 8px;
+    min-height: 0;
+    padding: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-left: 3px solid color-mix(in srgb, var(--round-color) 55%, white 4%);
+    border-radius: var(--radius-md);
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--round-color) 1.3%, transparent), transparent 52%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.008)),
+      rgba(255, 255, 255, 0.012);
+  }
+
+  .validator-row:last-child {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+  }
+
+  .validator-row .validator-cell {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 12px;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+  .validator-row .validator-cell:nth-child(1) {
+    grid-area: index;
+    color: var(--muted);
+    font-weight: 500;
+    text-align: left;
+  }
+
+  .validator-row .validator-cell:nth-child(2) {
+    grid-area: type;
+  }
+
+  .validator-row .validator-cell:nth-child(3) {
+    grid-area: source;
+    justify-content: flex-start;
+  }
+
+  .validator-row .validator-cell:nth-child(4) {
+    grid-area: identity;
+  }
+
+  .validator-row .validator-cell:nth-child(5) {
+    grid-area: history;
+  }
+
+  .validator-row .validator-cell:nth-child(6) {
+    grid-area: stake;
+    justify-self: stretch;
+    text-align: left;
+  }
+
+  .validator-row .validator-cell:nth-child(7) {
+    grid-area: reward;
+  }
+
+  .validator-row .validator-cell:nth-child(8) {
+    grid-area: weight;
+  }
+
+  .validator-row .validator-cell:nth-child(n+4) {
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.022);
+    text-align: left;
+  }
+
+  .validator-row .validator-cell:nth-child(n+4)::before {
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .validator-row .validator-cell:nth-child(4)::before {
+    content: "Validator";
+  }
+
+  .validator-row .validator-cell:nth-child(5)::before {
+    content: "History · Older -> Latest";
+  }
+
+  .validator-row .validator-cell:nth-child(6)::before {
+    content: "Stake";
+  }
+
+  .validator-row .validator-cell:nth-child(7)::before {
+    content: "Rewards";
+  }
+
+  .validator-row .validator-cell:nth-child(8)::before {
+    content: "Weight";
+  }
+
+  .validator-table.is-absent .validator-row {
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-areas:
+      "index type"
+      "source source"
+      "identity identity"
+      "history history"
+      "lastseen lastseen";
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(6) {
+    grid-area: lastseen;
+    justify-self: stretch;
+    text-align: left;
+  }
+
+  .validator-table.is-absent .validator-row .validator-cell:nth-child(6)::before {
+    content: "Seen";
+  }
+
+  .validator-address,
+  .validator-source-address {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  .validator-source {
+    overflow: hidden;
+  }
+
+  .validator-copy {
+    max-width: 100%;
+  }
+
+  .validator-history-dots {
+    gap: 5px;
+  }
+
+  .validator-history-dot {
+    width: 10px;
+    height: 10px;
+    flex-basis: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .validator-row,
+  .validator-table.is-absent .validator-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-areas:
+      "index type"
+      "source source"
+      "identity identity"
+      "history history"
+      "stake stake"
+      "reward reward"
+      "weight weight";
+  }
+
+  .validator-row .validator-cell:nth-child(3) {
+    justify-content: flex-start;
+  }
+
+  .validator-table.is-absent .validator-row {
+    grid-template-areas:
+      "index type"
+      "source source"
+      "identity identity"
+      "history history"
+      "lastseen lastseen";
+  }
+}
