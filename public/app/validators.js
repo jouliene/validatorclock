@@ -12,6 +12,25 @@ const VALIDATOR_HEADER_CLASSES = {
 
 const VALIDATOR_NUMBER_HEADERS = new Set(["Stake", "Rewards", "Weight", "Seen"]);
 
+const UNKNOWN_VALIDATOR_TYPE = { label: "UNKNOWN", className: "unknown" };
+
+const VALIDATOR_CONTRACT_TYPES = {
+  EverWallet: { label: "EVER", className: "ever" },
+  DePoolProxy: { label: "PROXY", className: "proxy" },
+  StEverDePoolProxy: { label: "StPROXY", className: "stproxy" },
+};
+
+const VALIDATOR_SOURCE_TYPES = {
+  "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe": {
+    label: "StDEPOOL",
+    className: "stdepool",
+  },
+  "14e20e304f53e6da152eb95fffc993dbd28245a775d847eed043f7c78a503885": {
+    label: "DEPOOL",
+    className: "depool",
+  },
+};
+
 function renderValidators(container, validators, options) {
   const table = document.createElement("div");
   table.className = "validator-table";
@@ -156,18 +175,17 @@ function validatorSourceTypeCell(validator) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-source-type";
   const hash = validator && validator.source && validator.source.contract_type_hash;
-  const label = hash ? validatorSourceTypeLabel(hash) : validatorTypeLabel(validator && validator.contract_type);
-  const className = hash ? validatorSourceTypeClass(hash) : validatorTypeClass(validator && validator.contract_type);
+  const type = hash ? validatorSourceType(hash) : validatorContractType(validator && validator.contract_type);
 
   const badge = document.createElement("span");
-  badge.className = `validator-type-badge is-${className}`;
-  badge.appendChild(validatorBadgeText(label));
+  badge.className = `validator-type-badge is-${type.className}`;
+  badge.appendChild(validatorBadgeText(type.label));
   if (hash) {
-    badge.title = `${label} · ${hash}`;
+    badge.title = `${type.label} · ${hash}`;
   } else if (validator && validator.contract_type_hash) {
     badge.title = `${validator.contract_type || "Unknown"} · ${validator.contract_type_hash}`;
   } else {
-    badge.title = label === "UNKNOWN" ? "Type unknown" : label;
+    badge.title = type.label === UNKNOWN_VALIDATOR_TYPE.label ? "Type unknown" : type.label;
   }
   cell.appendChild(badge);
   return cell;
@@ -180,28 +198,12 @@ function validatorBadgeText(label) {
   return text;
 }
 
-function validatorSourceTypeLabel(hash) {
-  if (sameHash(hash, "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe")) {
-    return "StDEPOOL";
-  }
-  if (sameHash(hash, "14e20e304f53e6da152eb95fffc993dbd28245a775d847eed043f7c78a503885")) {
-    return "DEPOOL";
-  }
-  return "UNKNOWN";
+function validatorSourceType(hash) {
+  return VALIDATOR_SOURCE_TYPES[String(hash || "").toLowerCase()] || UNKNOWN_VALIDATOR_TYPE;
 }
 
-function validatorSourceTypeClass(hash) {
-  if (sameHash(hash, "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe")) {
-    return "stdepool";
-  }
-  if (sameHash(hash, "14e20e304f53e6da152eb95fffc993dbd28245a775d847eed043f7c78a503885")) {
-    return "depool";
-  }
-  return "unknown";
-}
-
-function sameHash(left, right) {
-  return typeof left === "string" && left.toLowerCase() === right;
+function validatorContractType(typeName) {
+  return VALIDATOR_CONTRACT_TYPES[typeName] || UNKNOWN_VALIDATOR_TYPE;
 }
 
 function validatorSourceCell(validator) {
@@ -245,32 +247,6 @@ function validatorSourceKind(validator) {
   }
   if (validator && validator.contract_type === "EverWallet") {
     return "direct";
-  }
-  return "unknown";
-}
-
-function validatorTypeLabel(typeName) {
-  if (typeName === "EverWallet") {
-    return "EVER";
-  }
-  if (typeName === "DePoolProxy") {
-    return "PROXY";
-  }
-  if (typeName === "StEverDePoolProxy") {
-    return "StPROXY";
-  }
-  return "UNKNOWN";
-}
-
-function validatorTypeClass(typeName) {
-  if (typeName === "EverWallet") {
-    return "ever";
-  }
-  if (typeName === "DePoolProxy") {
-    return "proxy";
-  }
-  if (typeName === "StEverDePoolProxy") {
-    return "stproxy";
   }
   return "unknown";
 }
