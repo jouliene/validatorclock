@@ -2117,6 +2117,10 @@ dd {
   }
 
   .header-updated {
+    display: none;
+  }
+
+  .header-updated {
     gap: 6px;
     font-size: 11.5px;
   }
@@ -2364,15 +2368,12 @@ dd {
 
   .validator-row {
     display: grid;
-    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
-      "index type"
-      "source source"
-      "identity identity"
-      "history history"
-      "stake stake"
-      "reward reward"
-      "weight weight";
+      "index type type"
+      "identity identity identity"
+      "history history history"
+      "stake reward weight";
     gap: 8px;
     min-height: 0;
     padding: 11px;
@@ -2474,14 +2475,55 @@ dd {
     content: "Weight";
   }
 
-  .validator-table.is-absent .validator-row {
-    grid-template-columns: 30px minmax(0, 1fr);
+  .validator-row.has-source-detail {
     grid-template-areas:
-      "index type"
-      "source source"
-      "identity identity"
-      "history history"
-      "lastseen lastseen";
+      "index type type"
+      "source source source"
+      "identity identity identity"
+      "history history history"
+      "stake reward weight";
+  }
+
+  .validator-source.is-direct,
+  .validator-source.is-unknown {
+    display: none;
+  }
+
+  .validator-source.is-detail {
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.022);
+  }
+
+  .validator-source.is-detail::before {
+    color: var(--muted);
+    content: "Source";
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .validator-table.is-absent .validator-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "index type type"
+      "identity identity identity"
+      "history history history"
+      "lastseen lastseen lastseen";
+  }
+
+  .validator-table.is-absent .validator-row.has-source-detail {
+    grid-template-areas:
+      "index type type"
+      "source source source"
+      "identity identity identity"
+      "history history history"
+      "lastseen lastseen lastseen";
   }
 
   .validator-table.is-absent .validator-row .validator-cell:nth-child(6) {
@@ -2522,15 +2564,12 @@ dd {
 @media (max-width: 380px) {
   .validator-row,
   .validator-table.is-absent .validator-row {
-    grid-template-columns: 28px minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
-      "index type"
-      "source source"
-      "identity identity"
-      "history history"
-      "stake stake"
-      "reward reward"
-      "weight weight";
+      "index type type"
+      "identity identity identity"
+      "history history history"
+      "stake reward weight";
   }
 
   .validator-row .validator-cell:nth-child(3) {
@@ -2539,10 +2578,27 @@ dd {
 
   .validator-table.is-absent .validator-row {
     grid-template-areas:
-      "index type"
-      "source source"
-      "identity identity"
-      "history history"
-      "lastseen lastseen";
+      "index type type"
+      "identity identity identity"
+      "history history history"
+      "lastseen lastseen lastseen";
+  }
+
+  .validator-row.has-source-detail {
+    grid-template-areas:
+      "index type type"
+      "source source source"
+      "identity identity identity"
+      "history history history"
+      "stake reward weight";
+  }
+
+  .validator-table.is-absent .validator-row.has-source-detail {
+    grid-template-areas:
+      "index type type"
+      "source source source"
+      "identity identity identity"
+      "history history history"
+      "lastseen lastseen lastseen";
   }
 }

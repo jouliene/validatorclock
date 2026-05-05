@@ -11,7 +11,7 @@ function renderValidators(container, validators, options) {
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
-    row.className = "validator-row";
+    row.className = `validator-row has-source-${validatorSourceKind(validator)}`;
 
     row.append(
       validatorCell(String(index + 1)),
@@ -46,7 +46,7 @@ function renderRecentAbsentValidators(container, validators) {
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
-    row.className = "validator-row";
+    row.className = `validator-row has-source-${validatorSourceKind(validator)}`;
     row.append(
       validatorCell(String(index + 1)),
       validatorSourceTypeCell(validator),
@@ -198,7 +198,8 @@ function sameHash(left, right) {
 
 function validatorSourceCell(validator) {
   const cell = document.createElement("div");
-  cell.className = "validator-cell validator-source";
+  const sourceKind = validatorSourceKind(validator);
+  cell.className = `validator-cell validator-source is-${sourceKind}`;
   const source = validator && validator.source;
   if (source && source.address) {
     const address = copyableValue(
@@ -227,6 +228,17 @@ function validatorSourceCell(validator) {
   unknown.textContent = "Unknown";
   cell.appendChild(unknown);
   return cell;
+}
+
+function validatorSourceKind(validator) {
+  const source = validator && validator.source;
+  if (source && source.address) {
+    return "detail";
+  }
+  if (validator && validator.contract_type === "EverWallet") {
+    return "direct";
+  }
+  return "unknown";
 }
 
 function validatorTypeLabel(typeName) {
