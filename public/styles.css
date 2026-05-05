@@ -406,13 +406,18 @@ h2 {
   color: rgba(235, 242, 252, 0.88);
 }
 
-.panel-avatar {
+.panel-avatar,
+.recent-title-icon,
+.round-title-icon {
   display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.panel-avatar {
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
-  place-items: center;
-  border-radius: 50%;
 }
 
 .panel-avatar svg {
@@ -917,25 +922,27 @@ dd {
   border-bottom: 1px solid rgba(255, 255, 255, 0.075);
 }
 
-.recent-round-heading h2 {
+.recent-round-heading h2,
+.round-heading h2 {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-size: 14px;
   font-weight: 760;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
+.recent-round-heading h2 {
+  gap: 10px;
+  margin: 0;
+  color: color-mix(in srgb, var(--round-color) 86%, white 14%);
+  font-size: 14px;
+}
+
 .recent-title-icon {
-  display: grid;
   width: 34px;
   height: 34px;
   flex: 0 0 34px;
-  place-items: center;
   border: 1px solid color-mix(in srgb, var(--round-color) 30%, white 5%);
-  border-radius: 50%;
   background:
     radial-gradient(circle at 48% 44%, color-mix(in srgb, var(--round-color) 3.5%, transparent), transparent 54%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.01));
@@ -957,14 +964,6 @@ dd {
   height: 21px;
   stroke: color-mix(in srgb, var(--round-color) 58%, white 22%);
   stroke-width: 1.85;
-}
-
-.recent-blue .recent-round-heading h2 {
-  color: color-mix(in srgb, #2f93dc 86%, white 14%);
-}
-
-.recent-green .recent-round-heading h2 {
-  color: color-mix(in srgb, #32af68 86%, white 14%);
 }
 
 .recent-round-count {
@@ -1015,24 +1014,18 @@ dd {
 }
 
 .round-heading h2 {
-  display: flex;
-  align-items: center;
   gap: 12px;
   margin-bottom: 7px;
+  color: color-mix(in srgb, var(--round-color) 68%, white 26%);
   font-size: 15px;
   font-weight: 780;
-  letter-spacing: 0;
-  text-transform: uppercase;
 }
 
 .round-title-icon {
-  display: grid;
   width: 38px;
   height: 38px;
   flex: 0 0 38px;
-  place-items: center;
   border: 1px solid color-mix(in srgb, var(--round-color) 34%, white 6%);
-  border-radius: 50%;
   background:
     radial-gradient(circle at 50% 42%, color-mix(in srgb, var(--round-color) 4%, transparent), transparent 54%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.012));
@@ -1047,14 +1040,6 @@ dd {
   stroke: color-mix(in srgb, var(--round-color) 60%, white 24%);
   stroke-width: 1.9;
   filter: drop-shadow(0 0 2px color-mix(in srgb, var(--round-color) 5%, transparent));
-}
-
-.round-blue .round-heading h2 {
-  color: color-mix(in srgb, #2f93dc 68%, white 26%);
-}
-
-.round-green .round-heading h2 {
-  color: color-mix(in srgb, #32af68 68%, white 26%);
 }
 
 .round-meta {
