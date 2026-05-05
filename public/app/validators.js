@@ -11,6 +11,8 @@ const VALIDATOR_HEADER_CLASSES = {
 };
 
 const VALIDATOR_NUMBER_HEADERS = new Set(["Stake", "Rewards", "Weight", "Seen"]);
+const VALIDATOR_ROUND_HEADERS = ["#", "Type", "Source", "Validator", "History", "Stake", "Rewards", "Weight"];
+const VALIDATOR_ABSENT_HEADERS = ["#", "Type", "Source", "Validator", "History", "Seen"];
 
 const UNKNOWN_VALIDATOR_TYPE = { label: "UNKNOWN", className: "unknown" };
 
@@ -34,13 +36,7 @@ const VALIDATOR_SOURCE_TYPES = {
 function renderValidators(container, validators, options) {
   const table = document.createElement("div");
   table.className = "validator-table";
-
-  const header = document.createElement("div");
-  header.className = "validator-header";
-  for (const label of ["#", "Type", "Source", "Validator", "History", "Stake", "Rewards", "Weight"]) {
-    header.appendChild(validatorHeaderCell(label));
-  }
-  table.appendChild(header);
+  table.appendChild(validatorHeader(VALIDATOR_ROUND_HEADERS));
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
@@ -69,13 +65,7 @@ function renderRecentAbsentValidators(container, validators) {
 
   const table = document.createElement("div");
   table.className = "validator-table is-absent";
-
-  const header = document.createElement("div");
-  header.className = "validator-header";
-  for (const label of ["#", "Type", "Source", "Validator", "History", "Seen"]) {
-    header.appendChild(validatorHeaderCell(label));
-  }
-  table.appendChild(header);
+  table.appendChild(validatorHeader(VALIDATOR_ABSENT_HEADERS));
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
@@ -92,6 +82,15 @@ function renderRecentAbsentValidators(container, validators) {
   });
 
   container.appendChild(table);
+}
+
+function validatorHeader(labels) {
+  const header = document.createElement("div");
+  header.className = "validator-header";
+  for (const label of labels) {
+    header.appendChild(validatorHeaderCell(label));
+  }
+  return header;
 }
 
 function validatorHeaderCell(label) {
