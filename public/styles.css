@@ -1215,8 +1215,6 @@ dd {
   --validator-grid-columns: 24px 70px 118px 126px 94px 82px 70px 56px;
   --validator-column-gap: 4px;
   --validator-row-padding-inline: 12px;
-  --validator-source-offset: 5px;
-  --validator-stake-offset: -8px;
   width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -1304,21 +1302,14 @@ dd {
   text-align: center;
 }
 
-.validator-header .validator-source,
-.validator-row .validator-source {
-  transform: translateX(var(--validator-source-offset));
-}
-
 .validator-header .validator-stake,
-.validator-row .validator-stake {
-  justify-self: center;
-  transform: translateX(var(--validator-stake-offset));
-}
-
+.validator-row .validator-stake,
 .validator-header .validator-rewards,
-.validator-row .validator-rewards {
-  justify-self: center;
-  text-align: center;
+.validator-row .validator-rewards,
+.validator-header .validator-weight,
+.validator-row .validator-weight {
+  justify-self: stretch;
+  text-align: right;
 }
 
 .validator-table.is-absent .validator-header .validator-seen,
@@ -1620,18 +1611,14 @@ dd {
   .validator-table {
     --validator-grid-columns: 22px 64px 94px 96px 82px 62px 66px 54px;
     --validator-row-padding-inline: 8px;
-    --validator-source-offset: 3px;
-    --validator-stake-offset: -6px;
   }
 }
 
 @media (max-width: 1280px) and (min-width: 761px) {
   .validator-table {
-    --validator-grid-columns: 20px 56px 82px 78px 74px 54px 62px 52px;
+    --validator-grid-columns: 20px 56px 74px 76px 72px 62px 58px 52px;
     --validator-column-gap: 3px;
     --validator-row-padding-inline: 6px;
-    --validator-source-offset: 2px;
-    --validator-stake-offset: -4px;
   }
 
   .validator-address,
