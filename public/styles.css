@@ -1212,7 +1212,7 @@ dd {
 }
 
 .validator-table {
-  --validator-grid-columns: 24px 70px 118px 126px 94px 82px 70px 56px;
+  --validator-grid-columns: 24px 70px 114px 126px 94px 82px 70px 60px;
   --validator-column-gap: 4px;
   --validator-row-padding-inline: 12px;
   width: 100%;
@@ -1302,7 +1302,6 @@ dd {
   text-align: center;
 }
 
-.validator-header .validator-stake,
 .validator-row .validator-stake,
 .validator-header .validator-rewards,
 .validator-row .validator-rewards,
@@ -1310,6 +1309,15 @@ dd {
 .validator-row .validator-weight {
   justify-self: stretch;
   text-align: right;
+}
+
+.validator-header .validator-source-type,
+.validator-header .validator-source,
+.validator-header .validator-id,
+.validator-header .validator-history,
+.validator-header .validator-stake {
+  justify-self: stretch;
+  text-align: center;
 }
 
 .validator-table.is-absent .validator-header .validator-seen,
@@ -1383,11 +1391,22 @@ dd {
   color: rgba(195, 204, 216, 0.84);
 }
 
+.validator-row .validator-id,
 .validator-row .validator-history,
 .validator-row .validator-source-type,
 .validator-row .validator-source {
   display: flex;
   align-items: center;
+}
+
+@media (min-width: 761px) {
+  .validator-row .validator-id,
+  .validator-row .validator-history,
+  .validator-row .validator-source-type,
+  .validator-row .validator-source {
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 .validator-type-badge {
@@ -1609,14 +1628,14 @@ dd {
 
 @media (max-width: 1450px) and (min-width: 761px) {
   .validator-table {
-    --validator-grid-columns: 22px 64px 94px 96px 82px 62px 66px 54px;
+    --validator-grid-columns: 22px 64px 90px 96px 82px 62px 66px 58px;
     --validator-row-padding-inline: 8px;
   }
 }
 
 @media (max-width: 1280px) and (min-width: 761px) {
   .validator-table {
-    --validator-grid-columns: 20px 56px 74px 76px 72px 62px 58px 52px;
+    --validator-grid-columns: 20px 64px 70px 76px 72px 62px 58px 56px;
     --validator-column-gap: 3px;
     --validator-row-padding-inline: 6px;
   }
