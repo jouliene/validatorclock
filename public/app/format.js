@@ -89,7 +89,7 @@ function formatStakeAmount(value) {
 }
 
 function formatRewardAmount(value) {
-  return formatTokenAmount(value, 9, 9);
+  return formatTokenAmount(value, 0, 2);
 }
 
 function formatRewardCellAmount(value) {

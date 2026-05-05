@@ -79,7 +79,7 @@ function renderRoundPanel(color, snapshot, model) {
 
 function renderRoundMeta(container, round, snapshot) {
   container.replaceChildren(
-    roundMetaItem("Round_Id", String(round.utime_since)),
+    roundMetaItem("Round ID", String(round.utime_since)),
     roundMetaItem("Round", String(calculatedRoundNumber(round, snapshot)))
   );
 }

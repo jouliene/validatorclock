@@ -304,13 +304,17 @@ function drawSpark(svg, x, y, angle, active) {
 }
 
 function drawNeedle(svg, cx, cy, radius, angle) {
-  const back = polar(cx, cy, 13, angle + Math.PI);
-  const tip = polar(cx, cy, radius, angle);
-  const counter = polar(cx, cy, 34, angle + Math.PI);
+  const tip = polar(cx, cy, radius - 7, angle);
+  const tipBase = polar(cx, cy, radius - 25, angle);
+  const tail = polar(cx, cy, 62, angle + Math.PI);
+  const inner = polar(cx, cy, 17, angle);
 
-  drawNeedlePolygon(svg, counter, tip, angle, 8.6, "url(#needle)", "url(#needleShadow)");
-  drawLine(svg, polar(cx, cy, 18, angle), polar(cx, cy, radius - 12, angle), "rgba(255, 178, 183, 0.78)", 1.45);
-  drawNeedlePolygon(svg, back, polar(cx, cy, 80, angle + Math.PI), angle + Math.PI, 5.2, "rgba(151, 39, 49, 0.72)");
+  const shadow = drawLine(svg, tail, tip, "rgba(0, 3, 8, 0.58)", 6.4);
+  shadow.setAttribute("filter", "url(#needleShadow)");
+  drawLine(svg, tail, tip, "rgba(184, 38, 51, 0.82)", 3.6);
+  drawLine(svg, inner, polar(cx, cy, radius - 31, angle), "rgba(255, 122, 134, 0.88)", 1.35);
+  drawNeedlePolygon(svg, tipBase, tip, angle, 8, "url(#needle)", "url(#needleShadow)");
+  drawLine(svg, polar(cx, cy, 15, angle + Math.PI), tail, "rgba(116, 26, 36, 0.58)", 2.6);
 }
 
 function drawNeedlePolygon(svg, back, tip, angle, width, fill, filter = null) {
@@ -354,6 +358,7 @@ function drawLine(svg, start, end, stroke, strokeWidth) {
   line.setAttribute("stroke-width", strokeWidth);
   line.setAttribute("stroke-linecap", "round");
   svg.appendChild(line);
+  return line;
 }
 
 function drawCircle(svg, cx, cy, radius, fill, stroke, strokeWidth) {
