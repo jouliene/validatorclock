@@ -14,6 +14,7 @@ const APP_RUNTIME_JS: &str = include_str!("../../public/app/runtime.js");
 const APP_ENTRY_JS: &str = include_str!("../../public/app.js");
 const EVERSCALE_LOGO_SVG: &str = include_str!("../../public/brands/everscale.svg");
 const TYCHO_LOGO_SVG: &str = include_str!("../../public/brands/tycho.svg");
+const JOKES_JSON: &str = include_str!("../../public/jokes.json");
 const ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("public, max-age=31536000, immutable");
 const APP_JS_PARTS: &[&str] = &[
@@ -50,6 +51,7 @@ pub(super) fn asset_version() -> String {
             APP_ENTRY_JS,
             EVERSCALE_LOGO_SVG,
             TYCHO_LOGO_SVG,
+            JOKES_JSON,
         ])
     )
 }
@@ -102,6 +104,19 @@ pub(super) async fn everscale_logo() -> impl IntoResponse {
 
 pub(super) async fn tycho_logo() -> impl IntoResponse {
     svg_response(TYCHO_LOGO_SVG)
+}
+
+pub(super) async fn jokes_json() -> impl IntoResponse {
+    (
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json; charset=utf-8"),
+            ),
+            (header::CACHE_CONTROL, ASSET_CACHE_CONTROL),
+        ],
+        JOKES_JSON,
+    )
 }
 
 fn svg_response(svg: &'static str) -> impl IntoResponse {

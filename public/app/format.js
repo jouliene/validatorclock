@@ -47,23 +47,6 @@ function shortenHash(value, head = 5, tail = 5) {
   return value.length <= head + tail + 3 ? value : `${value.slice(0, head)}...${value.slice(-tail)}`;
 }
 
-function validatorGradient(seed) {
-  const value = String(seed || "");
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  const gradients = [
-    "linear-gradient(135deg, #67b7c7 0%, #2e6f8f 100%)",
-    "linear-gradient(135deg, #75bd91 0%, #2f7655 100%)",
-    "linear-gradient(135deg, #caa85c 0%, #806a36 100%)",
-    "linear-gradient(135deg, #8f98c9 0%, #536093 100%)",
-    "linear-gradient(135deg, #9d80ae 0%, #654a73 100%)",
-    "linear-gradient(135deg, #c48771 0%, #81503f 100%)",
-  ];
-  return gradients[hash % gradients.length];
-}
-
 function sumTokenValues(items, key) {
   const total = items.reduce((sum, item) => {
     const value = Number(item[key] || 0);
@@ -89,7 +72,7 @@ function formatStakeAmount(value) {
 }
 
 function formatRewardAmount(value) {
-  return formatTokenAmount(value, 0, 2);
+  return formatTokenAmount(value, 0, 0);
 }
 
 function formatRewardCellAmount(value) {

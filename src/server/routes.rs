@@ -1,6 +1,6 @@
 use super::acme::{acme_challenge, redirect_to_https};
 use super::api::{chain_clock, health, list_chains, not_found, status};
-use super::assets::{app_js, everscale_logo, index, styles, tycho_logo};
+use super::assets::{app_js, everscale_logo, index, jokes_json, styles, tycho_logo};
 use super::security::{add_security_headers, enforce_allowed_host, handle_options};
 use crate::state::AppState;
 use axum::Router;
@@ -23,6 +23,7 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/index.html", get(index))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
+        .route("/jokes.json", get(jokes_json))
         .route("/brands/everscale.svg", get(everscale_logo))
         .route("/brands/tycho.svg", get(tycho_logo))
         .route("/api/health", get(health))

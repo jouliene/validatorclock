@@ -33,8 +33,8 @@ function buildClockModel(snapshot, now) {
   return {
     angle,
     baseSegments: [
-      { startAngle: Math.PI / 2, sweepAngle: Math.PI, color: "url(#blueRound)", highlight: "rgba(134, 233, 255, 0.58)" },
-      { startAngle: Math.PI * 1.5, sweepAngle: Math.PI, color: "url(#greenRound)", highlight: "rgba(135, 244, 169, 0.54)" },
+      { startAngle: Math.PI / 2, sweepAngle: Math.PI, color: "url(#blueRound)", highlight: "rgba(134, 233, 255, 0.42)" },
+      { startAngle: Math.PI * 1.5, sweepAngle: Math.PI, color: "url(#greenRound)", highlight: "rgba(135, 244, 169, 0.4)" },
     ],
     electionArc: {
       startAngle: timeToAngle(electionsStart),
@@ -83,14 +83,14 @@ function drawClock(model) {
   }
 
   drawDonutSlice(svg, center, center, outer + 1, inner - 1, Math.PI / 2, Math.PI * 2 - 0.0001, "url(#dialGloss)", 0);
-  drawArcStroke(svg, center, center, outer - 13, Math.PI * 1.03, Math.PI * 0.42, "rgba(232, 253, 255, 0.22)", 6);
-  drawArcStroke(svg, center, center, outer - 13, Math.PI * 1.55, Math.PI * 0.32, "rgba(226, 255, 235, 0.15)", 5);
+  drawArcStroke(svg, center, center, outer - 13, Math.PI * 1.03, Math.PI * 0.42, "rgba(232, 253, 255, 0.14)", 6);
+  drawArcStroke(svg, center, center, outer - 13, Math.PI * 1.55, Math.PI * 0.32, "rgba(226, 255, 235, 0.1)", 5);
   drawCircle(svg, center, center, outer + 5, "none", "rgba(0, 7, 12, 0.72)", 5);
   drawCircle(svg, center, center, outer + 5, "none", "url(#bezelEdge)", 1.8);
   drawCircle(svg, center, center, outer - 2, "none", "rgba(255, 255, 255, 0.08)", 1);
   drawGaugeTicks(svg, center, center, outer, inner);
   drawCircle(svg, center, center, inner + 14, "url(#centerLip)", "rgba(255, 255, 255, 0.06)", 1);
-  drawCircle(svg, center, center, inner + 6, "none", "rgba(147, 226, 244, 0.16)", 2);
+  drawCircle(svg, center, center, inner + 6, "none", "rgba(147, 226, 244, 0.08)", 2);
   drawCircle(svg, center, center, inner + 1, "url(#centerWell)", "rgba(255, 255, 255, 0.07)", 1);
   drawCircle(svg, center, center, inner - 13, "none", "rgba(90, 160, 185, 0.13)", 1);
   drawSeam(svg, center, inner, outer);
@@ -110,23 +110,23 @@ function drawDefs(svg) {
   defs.innerHTML = `
     <filter id="roundGlow" x="-18%" y="-18%" width="136%" height="136%">
       <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000712" flood-opacity="0.46"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#36bdf6" flood-opacity="0.14"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#36bdf6" flood-opacity="0.07"/>
     </filter>
     <filter id="arcGlow" x="-28%" y="-28%" width="156%" height="156%">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ffd66a" flood-opacity="0.74"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#d69835" flood-opacity="0.38"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ffd66a" flood-opacity="0.42"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#d69835" flood-opacity="0.2"/>
     </filter>
     <filter id="bezelShadow" x="-18%" y="-18%" width="136%" height="136%">
       <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#00040a" flood-opacity="0.62"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#6fd4ff" flood-opacity="0.16"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#6fd4ff" flood-opacity="0.08"/>
     </filter>
     <filter id="needleShadow" x="-26%" y="-26%" width="152%" height="152%">
       <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#02050a" flood-opacity="0.5"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#ff5361" flood-opacity="0.28"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#ff5361" flood-opacity="0.14"/>
     </filter>
     <radialGradient id="clockAura" cx="50%" cy="48%" r="50%">
-      <stop offset="0" stop-color="#193142" stop-opacity="0.38"/>
-      <stop offset="0.56" stop-color="#0e2333" stop-opacity="0.18"/>
+      <stop offset="0" stop-color="#193142" stop-opacity="0.2"/>
+      <stop offset="0.56" stop-color="#0e2333" stop-opacity="0.08"/>
       <stop offset="1" stop-color="#061018" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="bezelFace" cx="36%" cy="24%" r="78%">
@@ -290,7 +290,7 @@ function drawArcEndpoint(svg, cx, cy, radius, angle, active) {
   const point = polar(cx, cy, radius, angle);
   const glow = active ? 14 : 11;
   const core = active ? 5.1 : 4.4;
-  drawCircle(svg, point.x, point.y, glow, "rgba(255, 214, 98, 0.24)", "none", 0);
+  drawCircle(svg, point.x, point.y, glow, "rgba(255, 214, 98, 0.13)", "none", 0);
   drawCircle(svg, point.x, point.y, core, "#ffe58a", "rgba(255, 255, 255, 0.92)", 1);
   drawSpark(svg, point.x, point.y, angle, active);
 }
@@ -299,8 +299,8 @@ function drawSpark(svg, x, y, angle, active) {
   const tangent = angle + Math.PI / 2;
   const radialSize = active ? 13 : 9;
   const tangentSize = active ? 10 : 7;
-  drawCenteredLine(svg, x, y, angle, radialSize, active ? "rgba(255, 244, 174, 0.88)" : "rgba(255, 232, 142, 0.5)", active ? 1.8 : 1.2);
-  drawCenteredLine(svg, x, y, tangent, tangentSize, active ? "rgba(255, 244, 174, 0.74)" : "rgba(255, 232, 142, 0.42)", active ? 1.5 : 1);
+  drawCenteredLine(svg, x, y, angle, radialSize, active ? "rgba(255, 244, 174, 0.62)" : "rgba(255, 232, 142, 0.34)", active ? 1.8 : 1.2);
+  drawCenteredLine(svg, x, y, tangent, tangentSize, active ? "rgba(255, 244, 174, 0.52)" : "rgba(255, 232, 142, 0.28)", active ? 1.5 : 1);
 }
 
 function drawNeedle(svg, cx, cy, radius, angle) {

@@ -17,7 +17,7 @@ function renderValidators(container, validators, options) {
       validatorCell(String(index + 1)),
       validatorSourceTypeCell(validator),
       validatorSourceCell(validator),
-      validatorIdentityCell(validatorWalletAddress(validator), validator.public_key),
+      validatorIdentityCell(validatorWalletAddress(validator)),
       validatorHistoryCell(validator.history),
       validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number", validator.stake || ""),
       validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number", validator.reward || ""),
@@ -39,7 +39,7 @@ function renderRecentAbsentValidators(container, validators) {
 
   const header = document.createElement("div");
   header.className = "validator-header";
-  for (const label of ["#", "Type", "Source", "Validator", "History", "Last seen"]) {
+  for (const label of ["#", "Type", "Source", "Validator", "History", "Seen"]) {
     header.appendChild(validatorHeaderCell(label));
   }
   table.appendChild(header);
@@ -51,9 +51,9 @@ function renderRecentAbsentValidators(container, validators) {
       validatorCell(String(index + 1)),
       validatorSourceTypeCell(validator),
       validatorSourceCell(validator),
-      validatorIdentityCell(validator.wallet || validator.public_key, validator.public_key),
+      validatorIdentityCell(validator.wallet || validator.public_key),
       validatorHistoryCell(validator.history),
-      validatorCell(`Round ${validator.last_seen_round}`, "validator-number validator-last-seen", String(validator.last_seen_round))
+      validatorCell(formatSeenRounds(validator), "validator-number validator-seen-rounds", String(validator.last_seen_round || ""))
     );
     table.appendChild(row);
   });
@@ -63,7 +63,7 @@ function renderRecentAbsentValidators(container, validators) {
 
 function validatorHeaderCell(label) {
   const cell = document.createElement("div");
-  cell.className = `validator-cell${["Stake", "Rewards", "Weight", "Last seen"].includes(label) ? " validator-number" : ""}`;
+  cell.className = `validator-cell${["Stake", "Rewards", "Weight", "Seen"].includes(label) ? " validator-number" : ""}`;
 
   if (label !== "History") {
     cell.textContent = label;
@@ -78,6 +78,23 @@ function validatorHeaderCell(label) {
   direction.textContent = "Older -> Latest";
   cell.append(name, direction);
   return cell;
+}
+
+function formatSeenRounds(validator) {
+  const rounds = Array.isArray(validator?.history)
+    ? validator.history
+      .filter((point) => point.status === "participated" && point.round != null)
+      .map((point) => Number(point.round))
+      .filter((round) => Number.isFinite(round))
+    : [];
+
+  if (rounds.length === 0 && validator?.last_seen_round != null) {
+    rounds.push(Number(validator.last_seen_round));
+  }
+
+  return [...new Set(rounds)]
+    .sort((left, right) => right - left)
+    .join(", ");
 }
 
 function validatorHistoryCell(history) {
@@ -253,14 +270,11 @@ function validatorCopyCell(text, value, className, label) {
   return cell;
 }
 
-function validatorIdentityCell(wallet, publicKey) {
+function validatorIdentityCell(wallet) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-id";
-  const avatar = document.createElement("span");
-  avatar.className = "validator-avatar";
-  avatar.style.background = validatorGradient(publicKey || wallet);
   const address = copyableValue(shortenAddress(wallet), wallet, "validator-address", "validator wallet address");
-  cell.append(avatar, address);
+  cell.append(address);
   return cell;
 }
 

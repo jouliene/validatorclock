@@ -1,8 +1,6 @@
 function renderMetrics(snapshot, model, now) {
-  $("metricChain").textContent = snapshot.chain.name;
   $("metricRpc").textContent = snapshot.chain.rpc_label;
   $("metricGlobalId").textContent = snapshot.global_id;
-  $("metricSeqno").textContent = snapshot.seqno;
   $("metricStatus").textContent = model.status;
   applyRoundAccent(snapshot.current_set.round_color);
   applyNetworkAccent(snapshot.chain.id);
@@ -29,8 +27,8 @@ function applyRoundAccent(color) {
   activeRoundCard.style.setProperty("--card-accent", roundAccentColor(color));
   activeRoundCard.style.setProperty("--card-accent-text", roundAccentTextColor(color));
   activeRoundCard.style.setProperty("--card-accent-glow", color === "green"
-    ? "rgba(50, 175, 104, 0.2)"
-    : "rgba(47, 147, 220, 0.22)");
+    ? "rgba(50, 175, 104, 0.1)"
+    : "rgba(47, 147, 220, 0.11)");
 }
 
 function applyNetworkAccent(chainId) {
@@ -40,6 +38,6 @@ function applyNetworkAccent(chainId) {
   }
   const isTycho = chainId === "tycho-testnet";
   panel.style.setProperty("--network-accent", isTycho ? "rgba(50, 175, 104, 0.8)" : "rgba(47, 147, 220, 0.82)");
-  panel.style.setProperty("--network-accent-soft", isTycho ? "rgba(50, 175, 104, 0.055)" : "rgba(47, 147, 220, 0.06)");
-  panel.style.setProperty("--network-accent-line", isTycho ? "rgba(50, 175, 104, 0.24)" : "rgba(47, 147, 220, 0.24)");
+  panel.style.setProperty("--network-accent-soft", isTycho ? "rgba(50, 175, 104, 0.028)" : "rgba(47, 147, 220, 0.03)");
+  panel.style.setProperty("--network-accent-line", isTycho ? "rgba(50, 175, 104, 0.12)" : "rgba(47, 147, 220, 0.12)");
 }
