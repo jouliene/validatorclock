@@ -40,6 +40,31 @@ git pull --ff-only
 cargo run
 ```
 
+## Visual Check
+
+For local frontend checks, build the binary and capture mobile/desktop
+screenshots:
+
+```bash
+scripts/visual-check.sh
+```
+
+The script starts a temporary preview server, captures screenshots with
+Brave/Chromium/Chrome, and runs mobile geometry checks for horizontal overflow
+and validator-card alignment. Artifacts are written to:
+
+```text
+target/visual-check
+```
+
+Optional overrides:
+
+```bash
+VALIDATORS_CLOCK_VISUAL_PORT=18788 scripts/visual-check.sh
+VALIDATORS_CLOCK_VISUAL_OUT=/tmp/validators-clock-check scripts/visual-check.sh
+VALIDATORS_CLOCK_BROWSER=chromium scripts/visual-check.sh
+```
+
 ## Install In Production
 
 Use an Ubuntu/systemd server. Point your domain DNS to the server first. Ports
