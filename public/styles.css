@@ -1468,24 +1468,14 @@ dd {
   color: #9dc8e8;
 }
 
-.validator-type-badge.is-proxy {
-  border-color: rgba(50, 175, 104, 0.34);
-  background: rgba(50, 175, 104, 0.11);
-  color: #9fceb3;
-}
-
+.validator-type-badge.is-proxy,
 .validator-type-badge.is-depool {
   border-color: rgba(50, 175, 104, 0.34);
   background: rgba(50, 175, 104, 0.11);
   color: #9fceb3;
 }
 
-.validator-type-badge.is-stproxy {
-  border-color: rgba(202, 168, 92, 0.38);
-  background: rgba(202, 168, 92, 0.12);
-  color: #d7c28f;
-}
-
+.validator-type-badge.is-stproxy,
 .validator-type-badge.is-stdepool {
   border-color: rgba(202, 168, 92, 0.38);
   background: rgba(202, 168, 92, 0.12);
@@ -1645,6 +1635,8 @@ dd {
 
   .election-panel,
   .network-panel {
+    height: auto;
+    max-width: 100%;
     position: static;
     width: auto;
     transform: none;
@@ -1728,424 +1720,6 @@ dd {
 }
 
 @media (max-width: 760px) {
-  .app-shell {
-    width: min(100% - 24px, 720px);
-    padding: 14px 0 28px;
-  }
-
-  .titlebar {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    justify-items: stretch;
-    min-height: auto;
-    padding-bottom: 16px;
-    text-align: center;
-  }
-
-  .titlebar h1 {
-    order: 1;
-    grid-column: 1 / -1;
-    font-size: 24px;
-  }
-
-  .runtime-status {
-    order: 2;
-    position: static;
-    justify-content: center;
-    max-width: none;
-    width: 100%;
-  }
-
-  .header-updated {
-    order: 3;
-    grid-column: 1 / -1;
-    position: static;
-    justify-content: center;
-    width: 100%;
-  }
-
-  .top-grid {
-    gap: 14px;
-  }
-
-  .network-panel {
-    order: 2;
-  }
-
-  .clock-stage {
-    order: 1;
-    min-height: 250px;
-    padding: 2px 0;
-  }
-
-  #clockSvg {
-    width: min(100%, 264px);
-  }
-
-  .election-panel {
-    order: 3;
-  }
-
-  .info-panel,
-  .round-panel {
-    padding: 15px;
-  }
-
-  .network-panel {
-    padding: 0;
-  }
-
-  .network-card,
-  .network-message-card {
-    padding: 15px;
-  }
-
-  .network-panel dl div {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-    align-items: start;
-  }
-
-  .network-panel dl {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .network-panel dl div + div {
-    margin-top: 0;
-  }
-
-  .network-panel dl div:nth-child(-n+2) {
-    grid-column: 1 / -1;
-  }
-
-  .network-panel dd {
-    text-align: left;
-  }
-
-  #metricStatus {
-    font-size: 23px;
-  }
-
-  .election-time-card {
-    padding: 12px;
-  }
-
-  .election-countdown {
-    font-size: 15px;
-  }
-
-  .chain-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .chain-tab {
-    justify-content: center;
-    min-height: 42px;
-    padding: 0 10px;
-  }
-
-  .chain-tab-main {
-    min-width: 0;
-  }
-
-  .rounds-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin-top: 14px;
-  }
-
-  .recent-rounds-grid {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin-top: 14px;
-  }
-
-  .round-panel {
-    min-height: 0;
-  }
-
-  .recent-round-panel {
-    padding: 15px;
-  }
-
-  .recent-round-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .round-title-block {
-    padding-right: 128px;
-  }
-
-  .round-badge {
-    position: absolute;
-    display: inline-flex;
-    margin-top: 0;
-  }
-
-  .round-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .round-stat:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .validator-list {
-    overflow-x: visible;
-  }
-
-  .validator-table {
-    display: grid;
-    min-width: 0;
-    gap: 8px;
-  }
-
-  .validator-header {
-    display: none;
-  }
-
-  .validator-row {
-    display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "index type source"
-      "identity identity identity"
-      "history history history"
-      "stake stake reward"
-      "weight weight weight";
-    gap: 8px 10px;
-    min-height: 0;
-    padding: 11px;
-    border: 1px solid rgba(255, 255, 255, 0.075);
-    border-radius: var(--radius-md);
-    background: var(--surface-soft);
-  }
-
-  .validator-row:last-child {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.075);
-  }
-
-  .validator-row .validator-cell {
-    font-size: 12px;
-  }
-
-  .validator-row .validator-cell:nth-child(1) {
-    grid-area: index;
-    color: var(--muted);
-    font-weight: 400;
-    text-align: left;
-  }
-
-  .validator-row .validator-cell:nth-child(2) {
-    grid-area: type;
-  }
-
-  .validator-row .validator-cell:nth-child(3) {
-    grid-area: source;
-  }
-
-  .validator-row .validator-cell:nth-child(4) {
-    grid-area: identity;
-  }
-
-  .validator-row .validator-cell:nth-child(5) {
-    grid-area: history;
-    justify-self: stretch;
-  }
-
-  .validator-row .validator-cell:nth-child(6) {
-    grid-area: stake;
-  }
-
-  .validator-row .validator-cell:nth-child(7) {
-    grid-area: reward;
-  }
-
-  .validator-row .validator-cell:nth-child(8) {
-    grid-area: weight;
-  }
-
-  .validator-row .validator-cell:nth-child(n+5) {
-    display: grid;
-    gap: 3px;
-    padding: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.055);
-    border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.024);
-    text-align: left;
-  }
-
-  .validator-row .validator-cell:nth-child(n+5)::before {
-    color: var(--muted);
-    font-family: var(--font-sans);
-    font-size: 10px;
-    font-weight: 500;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
-  .validator-row .validator-cell:nth-child(5)::before {
-    content: "History · Older -> Latest";
-  }
-
-  .validator-row .validator-cell:nth-child(6)::before {
-    content: "Stake";
-  }
-
-  .validator-row .validator-cell:nth-child(7)::before {
-    content: "Rewards";
-  }
-
-  .validator-row .validator-cell:nth-child(8)::before {
-    content: "Weight";
-  }
-
-  .validator-table.is-absent .validator-row {
-    grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "index type source"
-      "identity identity identity"
-      "history history lastseen";
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(2) {
-    grid-area: type;
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(3) {
-    grid-area: source;
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(4) {
-    grid-area: identity;
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(5) {
-    display: grid;
-    grid-area: history;
-    gap: 3px;
-    padding: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.055);
-    border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.024);
-    text-align: left;
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(5)::before {
-    color: var(--muted);
-    content: "History · Older -> Latest";
-    font-family: var(--font-sans);
-    font-size: 10px;
-    font-weight: 500;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(6) {
-    grid-area: lastseen;
-    justify-self: stretch;
-  }
-
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(6)::before {
-    content: "Seen";
-  }
-
-  .validator-row .validator-number {
-    text-align: left;
-  }
-}
-
-@media (max-width: 440px) {
-  .app-shell {
-    width: min(100% - 18px, 420px);
-    padding-top: 10px;
-  }
-
-  .titlebar {
-    grid-template-columns: 1fr;
-  }
-
-  .runtime-status,
-  .header-updated {
-    min-height: 30px;
-  }
-
-  .election-time-card-header {
-    display: grid;
-    gap: 8px;
-  }
-
-  .countdown-block {
-    justify-items: start;
-    text-align: left;
-  }
-
-  .election-countdown {
-    text-align: left;
-  }
-
-  .date-row {
-    display: grid;
-    gap: 2px;
-  }
-
-  .date-value {
-    text-align: left;
-  }
-
-  .round-meta-item {
-    min-height: 28px;
-  }
-}
-
-@media (max-width: 360px) {
-  .chain-tabs,
-  .network-panel dl,
-  .round-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .network-panel dl div:nth-child(-n+2),
-  .round-stat:last-child {
-    grid-column: auto;
-  }
-
-  .validator-row {
-    grid-template-columns: 24px minmax(0, 1fr);
-    grid-template-areas:
-      "index type"
-      "source source"
-      "identity identity"
-      "history history"
-      "stake stake"
-      "reward reward"
-      "weight weight";
-  }
-
-  .validator-table.is-absent .validator-row {
-    grid-template-columns: 24px minmax(0, 1fr);
-    grid-template-areas:
-      "index identity"
-      "history history"
-      "stake stake";
-  }
-}
-
-@media (max-width: 1220px) {
-  .election-panel,
-  .network-panel {
-    height: auto;
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 760px) {
   html,
   body {
     overflow-x: hidden;
@@ -2165,12 +1739,18 @@ dd {
   }
 
   .titlebar {
+    display: grid;
     grid-template-columns: 1fr;
     gap: 8px;
+    justify-items: stretch;
+    min-height: auto;
     padding-bottom: 12px;
+    text-align: center;
   }
 
   .titlebar h1 {
+    order: 1;
+    grid-column: 1 / -1;
     font-size: 22px;
   }
 
@@ -2186,19 +1766,24 @@ dd {
 
   .runtime-status,
   .header-updated {
+    position: static;
+    width: 100%;
     min-width: 0;
     min-height: 31px;
+    max-width: none;
     overflow: hidden;
     padding-inline: 9px;
+    justify-content: center;
+  }
+
+  .runtime-status {
+    order: 2;
   }
 
   .header-updated {
+    order: 3;
+    grid-column: 1 / -1;
     display: none;
-  }
-
-  .header-updated {
-    gap: 6px;
-    font-size: 11.5px;
   }
 
   .header-updated strong,
@@ -2372,12 +1957,14 @@ dd {
 
   .rounds-grid,
   .recent-rounds-grid {
+    grid-template-columns: 1fr;
     gap: 12px;
     margin-top: 12px;
   }
 
   .round-panel,
   .recent-round-panel {
+    min-height: 0;
     padding: 14px;
   }
 
@@ -2418,7 +2005,15 @@ dd {
     gap: 10px;
   }
 
+  .recent-round-heading h2 {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+  }
+
   .recent-round-count {
+    margin-left: 44px;
     justify-self: start;
   }
 
@@ -2443,13 +2038,14 @@ dd {
   }
 
   .validator-row {
+    position: relative;
     display: grid;
-    grid-template-columns: 24px repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
-      "index type type type"
-      "identity identity identity identity"
-      "history history history history"
-      "stake stake reward weight";
+      "type type type"
+      "identity identity identity"
+      "history history history"
+      "stake reward weight";
     gap: 8px 7px;
     min-height: 0;
     padding: 11px;
@@ -2474,45 +2070,77 @@ dd {
     white-space: normal;
   }
 
-  .validator-row .validator-cell:nth-child(1) {
+  .validator-row .validator-cell:is(
+    .validator-index,
+    .validator-source-type,
+    .validator-source,
+    .validator-id,
+    .validator-history,
+    .validator-stake,
+    .validator-rewards,
+    .validator-weight,
+    .validator-seen
+  ) {
+    transform: none;
+  }
+
+  .validator-row .validator-cell.validator-index {
     grid-area: index;
+    position: absolute;
+    top: 13px;
+    left: 12px;
+    width: 24px;
     color: var(--muted);
     font-weight: 500;
     text-align: left;
   }
 
-  .validator-row .validator-cell:nth-child(2) {
+  .validator-row .validator-cell.validator-source-type {
     grid-area: type;
+    min-height: 23px;
+    padding-left: 32px;
   }
 
-  .validator-row .validator-cell:nth-child(3) {
+  .validator-row .validator-cell.validator-source {
     grid-area: source;
     justify-content: flex-start;
   }
 
-  .validator-row .validator-cell:nth-child(4) {
+  .validator-row .validator-cell.validator-id {
     grid-area: identity;
   }
 
-  .validator-row .validator-cell:nth-child(5) {
+  .validator-row .validator-cell.validator-history {
     grid-area: history;
   }
 
-  .validator-row .validator-cell:nth-child(6) {
+  .validator-row .validator-cell.validator-source,
+  .validator-row .validator-cell.validator-id,
+  .validator-row .validator-cell.validator-history {
+    justify-self: stretch;
+  }
+
+  .validator-row .validator-cell.validator-stake {
     grid-area: stake;
     justify-self: stretch;
     text-align: left;
   }
 
-  .validator-row .validator-cell:nth-child(7) {
+  .validator-row .validator-cell.validator-rewards {
     grid-area: reward;
   }
 
-  .validator-row .validator-cell:nth-child(8) {
+  .validator-row .validator-cell.validator-weight {
     grid-area: weight;
   }
 
-  .validator-row .validator-cell:nth-child(n+4) {
+  .validator-row .validator-source.is-detail,
+  .validator-row .validator-cell.validator-id,
+  .validator-row .validator-cell.validator-history,
+  .validator-row .validator-cell.validator-stake,
+  .validator-row .validator-cell.validator-rewards,
+  .validator-row .validator-cell.validator-weight,
+  .validator-row .validator-cell.validator-seen {
     display: grid;
     gap: 4px;
     padding: 8px;
@@ -2522,7 +2150,13 @@ dd {
     text-align: left;
   }
 
-  .validator-row .validator-cell:nth-child(n+4)::before {
+  .validator-row .validator-source.is-detail::before,
+  .validator-row .validator-cell.validator-id::before,
+  .validator-row .validator-cell.validator-history::before,
+  .validator-row .validator-cell.validator-stake::before,
+  .validator-row .validator-cell.validator-rewards::before,
+  .validator-row .validator-cell.validator-weight::before,
+  .validator-row .validator-cell.validator-seen::before {
     color: var(--muted);
     font-family: var(--font-sans);
     font-size: 10px;
@@ -2531,33 +2165,33 @@ dd {
     text-transform: uppercase;
   }
 
-  .validator-row .validator-cell:nth-child(4)::before {
+  .validator-row .validator-cell.validator-id::before {
     content: "Validator";
   }
 
-  .validator-row .validator-cell:nth-child(5)::before {
+  .validator-row .validator-cell.validator-history::before {
     content: "History · Older -> Latest";
   }
 
-  .validator-row .validator-cell:nth-child(6)::before {
+  .validator-row .validator-cell.validator-stake::before {
     content: "Stake";
   }
 
-  .validator-row .validator-cell:nth-child(7)::before {
+  .validator-row .validator-cell.validator-rewards::before {
     content: "Rewards";
   }
 
-  .validator-row .validator-cell:nth-child(8)::before {
+  .validator-row .validator-cell.validator-weight::before {
     content: "Weight";
   }
 
   .validator-row.has-source-detail {
     grid-template-areas:
-      "index type type type"
-      "source source source source"
-      "identity identity identity identity"
-      "history history history history"
-      "stake stake reward weight";
+      "type type type"
+      "source source source"
+      "identity identity identity"
+      "history history history"
+      "stake reward weight";
   }
 
   .validator-source.is-direct,
@@ -2565,50 +2199,35 @@ dd {
     display: none;
   }
 
-  .validator-source.is-detail {
-    display: grid;
-    gap: 4px;
-    padding: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.055);
-    border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.022);
-  }
-
   .validator-source.is-detail::before {
-    color: var(--muted);
     content: "Source";
-    font-family: var(--font-sans);
-    font-size: 10px;
-    font-weight: 650;
-    line-height: 1;
-    text-transform: uppercase;
   }
 
   .validator-table.is-absent .validator-row {
-    grid-template-columns: 28px repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
-      "index type type type"
-      "identity identity identity identity"
-      "history history history history"
-      "lastseen lastseen lastseen lastseen";
+      "type type type"
+      "identity identity identity"
+      "history history history"
+      "lastseen lastseen lastseen";
   }
 
   .validator-table.is-absent .validator-row.has-source-detail {
     grid-template-areas:
-      "index type type type"
-      "source source source source"
-      "identity identity identity identity"
-      "history history history history"
-      "lastseen lastseen lastseen lastseen";
+      "type type type"
+      "source source source"
+      "identity identity identity"
+      "history history history"
+      "lastseen lastseen lastseen";
   }
 
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(6) {
+  .validator-table.is-absent .validator-row .validator-cell.validator-seen {
     grid-area: lastseen;
     justify-self: stretch;
     text-align: left;
   }
 
-  .validator-table.is-absent .validator-row .validator-cell:nth-child(6)::before {
+  .validator-table.is-absent .validator-row .validator-cell.validator-seen::before {
     content: "Seen";
   }
 
@@ -2634,47 +2253,5 @@ dd {
     width: 10px;
     height: 10px;
     flex-basis: 10px;
-  }
-}
-
-@media (max-width: 380px) {
-  .validator-row,
-  .validator-table.is-absent .validator-row {
-    grid-template-columns: 24px repeat(3, minmax(0, 1fr));
-    grid-template-areas:
-      "index type type type"
-      "identity identity identity identity"
-      "history history history history"
-      "stake stake reward weight";
-  }
-
-  .validator-row .validator-cell:nth-child(3) {
-    justify-content: flex-start;
-  }
-
-  .validator-table.is-absent .validator-row {
-    grid-template-areas:
-      "index type type type"
-      "identity identity identity identity"
-      "history history history history"
-      "lastseen lastseen lastseen lastseen";
-  }
-
-  .validator-row.has-source-detail {
-    grid-template-areas:
-      "index type type type"
-      "source source source source"
-      "identity identity identity identity"
-      "history history history history"
-      "stake stake reward weight";
-  }
-
-  .validator-table.is-absent .validator-row.has-source-detail {
-    grid-template-areas:
-      "index type type type"
-      "source source source source"
-      "identity identity identity identity"
-      "history history history history"
-      "lastseen lastseen lastseen lastseen";
   }
 }

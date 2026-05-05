@@ -14,14 +14,14 @@ function renderValidators(container, validators, options) {
     row.className = `validator-row has-source-${validatorSourceKind(validator)}`;
 
     row.append(
-      validatorCell(String(index + 1)),
+      validatorCell(String(index + 1), "validator-index"),
       validatorSourceTypeCell(validator),
       validatorSourceCell(validator),
       validatorIdentityCell(validatorWalletAddress(validator)),
       validatorHistoryCell(validator.history),
-      validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number", validator.stake || ""),
-      validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number", validator.reward || ""),
-      validatorCell(validator.weight_percent == null ? "-" : `${formatPercent(validator.weight_percent)}`, "validator-number", validator.weight || "")
+      validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number validator-stake", validator.stake || ""),
+      validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number validator-rewards", validator.reward || ""),
+      validatorCell(validator.weight_percent == null ? "-" : `${formatPercent(validator.weight_percent)}`, "validator-number validator-weight", validator.weight || "")
     );
     table.appendChild(row);
   });
@@ -48,12 +48,12 @@ function renderRecentAbsentValidators(container, validators) {
     const row = document.createElement("div");
     row.className = `validator-row has-source-${validatorSourceKind(validator)}`;
     row.append(
-      validatorCell(String(index + 1)),
+      validatorCell(String(index + 1), "validator-index"),
       validatorSourceTypeCell(validator),
       validatorSourceCell(validator),
       validatorIdentityCell(validator.wallet || validator.public_key),
       validatorHistoryCell(validator.history),
-      validatorCell(formatSeenRounds(validator), "validator-number validator-seen-rounds", String(validator.last_seen_round || ""))
+      validatorCell(formatSeenRounds(validator), "validator-number validator-seen-rounds validator-seen", String(validator.last_seen_round || ""))
     );
     table.appendChild(row);
   });
