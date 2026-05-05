@@ -1877,6 +1877,7 @@ dd {
 
   .validator-row .validator-cell:nth-child(5) {
     grid-area: history;
+    justify-self: stretch;
   }
 
   .validator-row .validator-cell:nth-child(6) {
