@@ -1,3 +1,17 @@
+const VALIDATOR_HEADER_CLASSES = {
+  "#": "validator-index",
+  Type: "validator-source-type",
+  Source: "validator-source",
+  Validator: "validator-id",
+  History: "validator-history",
+  Stake: "validator-stake",
+  Rewards: "validator-rewards",
+  Weight: "validator-weight",
+  Seen: "validator-seen",
+};
+
+const VALIDATOR_NUMBER_HEADERS = new Set(["Stake", "Rewards", "Weight", "Seen"]);
+
 function renderValidators(container, validators, options) {
   const table = document.createElement("div");
   table.className = "validator-table";
@@ -63,7 +77,15 @@ function renderRecentAbsentValidators(container, validators) {
 
 function validatorHeaderCell(label) {
   const cell = document.createElement("div");
-  cell.className = `validator-cell${["Stake", "Rewards", "Weight", "Seen"].includes(label) ? " validator-number" : ""}`;
+  const classes = ["validator-cell"];
+  const semanticClass = VALIDATOR_HEADER_CLASSES[label];
+  if (semanticClass) {
+    classes.push(semanticClass);
+  }
+  if (VALIDATOR_NUMBER_HEADERS.has(label)) {
+    classes.push("validator-number");
+  }
+  cell.className = classes.join(" ");
 
   if (label !== "History") {
     cell.textContent = label;
@@ -128,20 +150,6 @@ function historyStatusLabel(status) {
     return "missed";
   }
   return "unknown";
-}
-
-function validatorTypeCell(typeName, hash) {
-  const name = typeof typeName === "string" ? typeName : "";
-  const value = typeof hash === "string" ? hash : "";
-  const cell = document.createElement("div");
-  cell.className = "validator-cell validator-type";
-
-  const badge = document.createElement("span");
-  badge.className = `validator-type-badge is-${validatorTypeClass(name)}`;
-  badge.appendChild(validatorBadgeText(validatorTypeLabel(name)));
-  badge.title = value ? `${name || "Unknown"} · ${value}` : "Type unknown";
-  cell.appendChild(badge);
-  return cell;
 }
 
 function validatorSourceTypeCell(validator) {
@@ -272,13 +280,6 @@ function validatorCell(text, className = "", title = text) {
   cell.className = `validator-cell ${className}`.trim();
   cell.textContent = text;
   cell.title = title;
-  return cell;
-}
-
-function validatorCopyCell(text, value, className, label) {
-  const cell = document.createElement("div");
-  cell.className = `validator-cell ${className}`.trim();
-  cell.appendChild(copyableValue(text, value, className, label));
   return cell;
 }
 
