@@ -11,7 +11,7 @@ use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tower::ServiceExt;
 
 #[test]
@@ -399,6 +399,37 @@ async fn app_router_serves_cached_clock_shape() {
     assert_eq!(body["next_set"], Value::Null);
     assert_eq!(body["election"]["candidates"].as_array().unwrap().len(), 0);
     assert_eq!(body["warning"], Value::Null);
+}
+
+#[tokio::test]
+async fn app_router_serves_stale_cached_clock_without_waiting_for_rpc() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let snapshot = test_clock_snapshot("test");
+    state.store_cached_snapshot("test", 1, snapshot).await;
+
+    let response = tokio::time::timeout(
+        Duration::from_secs(2),
+        app_router(state).oneshot(
+            Request::builder()
+                .uri("/api/chains/test/clock")
+                .body(Body::empty())
+                .unwrap(),
+        ),
+    )
+    .await
+    .expect("stale cached response should not wait for rpc")
+    .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(body["chain"]["id"], "test");
+    assert_eq!(body["fetched_at"], 123);
+    assert!(
+        body["warning"]
+            .as_str()
+            .unwrap()
+            .contains("refresh is running in background")
+    );
 }
 
 #[tokio::test]

@@ -8,6 +8,7 @@ use tracing::{info, warn};
 
 const VALIDATOR_TYPE_UPDATE_MIN_TIMEOUT_SECS: u64 = 5;
 const VALIDATOR_TYPE_UPDATE_MAX_TIMEOUT_SECS: u64 = 30;
+const STALE_REFRESH_WARNING: &str = "refresh is running in background";
 
 mod dto;
 mod elector;
@@ -273,6 +274,82 @@ pub(crate) async fn get_chain_snapshot(
             Err(error)
         }
     }
+}
+
+pub(crate) async fn get_chain_snapshot_cached_first(
+    state: Arc<AppState>,
+    chain_id: &str,
+    force_refresh: bool,
+) -> Result<ClockSnapshot> {
+    let now = now_sec()?;
+    let refresh_seconds = state.config.refresh_seconds.max(10);
+
+    if !force_refresh {
+        if let Some(snapshot) = state
+            .cached_snapshot_if_fresh(chain_id, now, refresh_seconds)
+            .await
+        {
+            return Ok(snapshot);
+        }
+
+        if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
+            snapshot.warning = Some(format!(
+                "using cached data from {}; {STALE_REFRESH_WARNING}",
+                snapshot.fetched_at
+            ));
+            spawn_stale_snapshot_refresh(Arc::clone(&state), chain_id.to_owned(), now).await;
+            return Ok(snapshot);
+        }
+    }
+
+    get_chain_snapshot(&state, chain_id, force_refresh).await
+}
+
+async fn spawn_stale_snapshot_refresh(state: Arc<AppState>, chain_id: String, now: u64) {
+    let retry_after_seconds = state
+        .config
+        .refresh_seconds
+        .max(10)
+        .min(state.config.refresh_timeout_seconds.max(10));
+    if !state
+        .mark_refresh_attempt_if_due(&chain_id, now, retry_after_seconds)
+        .await
+    {
+        return;
+    }
+
+    tokio::spawn(async move {
+        let started_at = Instant::now();
+        match get_chain_snapshot(&state, &chain_id, true).await {
+            Ok(snapshot) if snapshot.warning.is_some() => {
+                info!(
+                    chain_id,
+                    duration_ms = started_at.elapsed().as_millis(),
+                    fetched_at = snapshot.fetched_at,
+                    warning = ?snapshot.warning,
+                    "stale cache refresh completed with cached data"
+                );
+            }
+            Ok(snapshot) => {
+                info!(
+                    chain_id,
+                    duration_ms = started_at.elapsed().as_millis(),
+                    fetched_at = snapshot.fetched_at,
+                    round_id = snapshot.current_set.round_id,
+                    round_color = ?snapshot.current_set.round_color,
+                    "stale cache refresh completed"
+                );
+            }
+            Err(error) => {
+                warn!(
+                    chain_id,
+                    duration_ms = started_at.elapsed().as_millis(),
+                    error = ?error,
+                    "stale cache refresh failed"
+                );
+            }
+        }
+    });
 }
 
 async fn fetch_chain_snapshot_with_validator_types(

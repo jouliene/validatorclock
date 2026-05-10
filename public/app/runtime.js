@@ -65,12 +65,19 @@ function renderChainTabs() {
 
 async function selectChain(chainId) {
   state.selectedChainId = chainId;
-  state.snapshot = null;
   state.roundRenderKey = null;
   renderChainTabs();
-  clearClock();
+  const cachedSnapshot = state.snapshotsByChain.get(chainId);
+  if (cachedSnapshot) {
+    state.snapshot = cachedSnapshot;
+    setError(cachedSnapshot.warning || "");
+    renderNow();
+  } else {
+    state.snapshot = null;
+    clearClock();
+  }
   renderRuntimeStatus(Math.trunc(Date.now() / 1000));
-  await loadClock(true);
+  await loadClock(false);
   await loadRuntimeStatus();
 }
 
@@ -94,9 +101,11 @@ async function loadClock(force = false) {
       return;
     }
     state.snapshot = snapshot;
+    state.snapshotsByChain.set(chainId, snapshot);
     state.roundRenderKey = null;
     setError(snapshot.warning || "");
     renderNow();
+    updateStaleSnapshotRetry(chainId, snapshot);
   } finally {
     if (requestSeq === state.clockRequestSeq) {
       state.clockLoading = false;
@@ -240,6 +249,26 @@ function refreshStaleSnapshot(now) {
   if (age >= refreshSeconds && attemptAge >= 5) {
     loadClock(false).catch((error) => setError(error.message));
   }
+}
+
+function updateStaleSnapshotRetry(chainId, snapshot) {
+  window.clearTimeout(state.staleRetryTimer);
+  state.staleRetryTimer = null;
+  const warning = snapshot.warning || "";
+  const retryKey = `${chainId}:${snapshot.fetched_at}`;
+  if (!warning.includes("refresh is running in background") || state.staleRetryKey === retryKey) {
+    if (!warning) {
+      state.staleRetryKey = null;
+    }
+    return;
+  }
+
+  state.staleRetryKey = retryKey;
+  state.staleRetryTimer = window.setTimeout(() => {
+    if (state.selectedChainId === chainId) {
+      loadClock(false).catch((error) => setError(error.message));
+    }
+  }, 5000);
 }
 
 function renderRuntimeStatus(now) {

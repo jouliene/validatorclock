@@ -1,5 +1,5 @@
 use super::security::{json_error, query_forces_refresh};
-use crate::chain::{chains_response, get_chain_snapshot, runtime_status};
+use crate::chain::{chains_response, get_chain_snapshot_cached_first, runtime_status};
 use crate::state::AppState;
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -46,7 +46,7 @@ pub(super) async fn chain_clock(
         );
     }
 
-    match get_chain_snapshot(&state, &chain_id, force_refresh).await {
+    match get_chain_snapshot_cached_first(Arc::clone(&state), &chain_id, force_refresh).await {
         Ok(snapshot) => Json(snapshot).into_response(),
         Err(error) => {
             error!(chain_id, error = ?error, "snapshot request failed");

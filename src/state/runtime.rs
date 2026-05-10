@@ -77,4 +77,22 @@ impl AppState {
         status.last_attempt_at = Some(at);
         status.last_error = Some(error);
     }
+
+    pub(crate) async fn mark_refresh_attempt_if_due(
+        &self,
+        chain_id: &str,
+        at: u64,
+        retry_after_seconds: u64,
+    ) -> bool {
+        let mut status = self.chain_status.write().await;
+        let status = status.entry(chain_id.to_owned()).or_default();
+        if status
+            .last_attempt_at
+            .is_some_and(|last_attempt| at.saturating_sub(last_attempt) < retry_after_seconds)
+        {
+            return false;
+        }
+        status.last_attempt_at = Some(at);
+        true
+    }
 }
