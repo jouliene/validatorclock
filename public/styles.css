@@ -1633,7 +1633,7 @@ dd {
   position: fixed;
   z-index: 55;
   display: grid;
-  max-width: min(460px, calc(100vw - 24px));
+  max-width: min(560px, calc(100vw - 24px));
   gap: 7px;
   padding: 10px 12px;
   border: 1px solid rgba(154, 196, 224, 0.18);
