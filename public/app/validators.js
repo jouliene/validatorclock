@@ -606,6 +606,7 @@ function wireCopyButton(button, feedback, value) {
   button.addEventListener("click", async (event) => {
     event.preventDefault();
     event.stopPropagation();
+    hideValidatorTooltip();
     try {
       await copyText(value);
       markCopied(button);
