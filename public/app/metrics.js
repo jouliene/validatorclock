@@ -1,6 +1,5 @@
 function renderMetrics(snapshot, model, now) {
   $("metricRpc").textContent = snapshot.chain.rpc_label;
-  $("metricGlobalId").textContent = snapshot.global_id;
   $("metricStatus").textContent = model.status;
   applyRoundAccent(snapshot.current_set.round_color);
   applyNetworkAccent(snapshot.chain.id);
@@ -36,8 +35,13 @@ function applyNetworkAccent(chainId) {
   if (!panel) {
     return;
   }
-  const isTycho = chainId === "tycho-testnet";
-  panel.style.setProperty("--network-accent", isTycho ? "rgba(50, 175, 104, 0.8)" : "rgba(47, 147, 220, 0.82)");
-  panel.style.setProperty("--network-accent-soft", isTycho ? "rgba(50, 175, 104, 0.028)" : "rgba(47, 147, 220, 0.03)");
-  panel.style.setProperty("--network-accent-line", isTycho ? "rgba(50, 175, 104, 0.12)" : "rgba(47, 147, 220, 0.12)");
+  const accents = {
+    everscale: ["rgba(99, 71, 245, 0.82)", "rgba(99, 71, 245, 0.032)", "rgba(99, 71, 245, 0.13)"],
+    "tycho-testnet": ["rgba(46, 204, 113, 0.78)", "rgba(46, 204, 113, 0.03)", "rgba(46, 204, 113, 0.12)"],
+    ton: ["rgba(77, 184, 255, 0.82)", "rgba(77, 184, 255, 0.032)", "rgba(77, 184, 255, 0.13)"],
+  };
+  const [accent, soft, line] = accents[chainId] || accents.ton;
+  panel.style.setProperty("--network-accent", accent);
+  panel.style.setProperty("--network-accent-soft", soft);
+  panel.style.setProperty("--network-accent-line", line);
 }

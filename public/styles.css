@@ -740,8 +740,9 @@ dd {
   min-height: 54px;
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.085);
-  border-left: 4px solid rgba(154, 196, 224, 0.16);
+  border-left: 4px solid color-mix(in srgb, var(--chain-color, var(--cyan)) 46%, rgba(154, 196, 224, 0.12));
   background:
+    linear-gradient(90deg, color-mix(in srgb, var(--chain-color, var(--cyan)) 4.5%, transparent), transparent 48%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.014)),
     rgba(255, 255, 255, 0.012);
   color: var(--text);
@@ -753,13 +754,13 @@ dd {
 
 .chain-tab[aria-selected="true"] {
   border-color: rgba(255, 255, 255, 0.12);
-  border-left-color: color-mix(in srgb, var(--chain-color, var(--cyan)) 70%, white 8%);
+  border-left-color: color-mix(in srgb, var(--chain-color, var(--cyan)) 82%, white 10%);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--chain-color, var(--cyan)) 7%, transparent), transparent 50%),
+    linear-gradient(90deg, color-mix(in srgb, var(--chain-color, var(--cyan)) 11%, transparent), transparent 52%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018)),
     rgba(255, 255, 255, 0.012);
   box-shadow:
-    0 0 8px color-mix(in srgb, var(--chain-color, var(--cyan)) 3%, transparent),
+    0 0 10px color-mix(in srgb, var(--chain-color, var(--cyan)) 4%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 

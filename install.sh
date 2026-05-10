@@ -222,7 +222,7 @@ write_config_if_missing() {
       "id": "everscale",
       "name": "Everscale",
       "rpc": "https://jrpc.everwallet.net",
-      "color": "#38bdf8",
+      "color": "#6347F5",
       "token_symbol": "EVER",
       "rpc_label": "jrpc.everwallet.net"
     },
@@ -230,7 +230,7 @@ write_config_if_missing() {
       "id": "tycho-testnet",
       "name": "Tycho Testnet",
       "rpc": "https://rpc-testnet.tychoprotocol.com",
-      "color": "#35d07f",
+      "color": "#2ECC71",
       "token_symbol": "TYCHO",
       "rpc_label": "rpc-testnet.tychoprotocol.com"
     },
@@ -238,7 +238,7 @@ write_config_if_missing() {
       "id": "ton",
       "name": "TON",
       "rpc": "https://jrpc-ton.broxus.com",
-      "color": "#0098ea",
+      "color": "#4DB8FF",
       "token_symbol": "TON",
       "rpc_label": "jrpc-ton.broxus.com"
     }
