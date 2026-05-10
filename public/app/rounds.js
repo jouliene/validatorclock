@@ -193,7 +193,7 @@ function renderRecentRoundPanels(snapshot, model) {
   for (const color of ["blue", "green"]) {
     const round = displayedRoundForColor(color, snapshot, model);
     const validators = round?.recent_absent_validators || [];
-    grid.appendChild(recentRoundPanel(color, validators));
+    grid.appendChild(recentRoundPanel(color, validators, snapshot));
   }
 
   grid.hidden = false;
@@ -212,7 +212,7 @@ function displayedRoundForColor(color, snapshot, model) {
   return null;
 }
 
-function recentRoundPanel(color, validators) {
+function recentRoundPanel(color, validators, snapshot) {
   const section = document.createElement("section");
   section.className = `recent-round-panel recent-${color}`;
   if (validators.length === 0) {
@@ -238,8 +238,7 @@ function recentRoundPanel(color, validators) {
     list.appendChild(empty);
   } else {
     renderRecentAbsentValidators(list, validators, {
-      chainId: state.selectedChainId,
-      addressType: selectedAddressType(),
+      ...validatorRenderOptions(snapshot),
     });
   }
   section.appendChild(list);
@@ -251,6 +250,7 @@ function validatorRenderOptions(snapshot, extra = {}) {
   return {
     chainId: snapshot.chain.id,
     addressType: selectedAddressType(snapshot.chain.id),
+    glossaryLabels: validatorGlossaryLabelsForSnapshot(snapshot),
     ...extra,
   };
 }

@@ -1582,9 +1582,9 @@ dd {
 }
 
 .validator-type-badge.is-v1r3 {
-  border-color: rgba(129, 140, 248, 0.38);
-  background: rgba(129, 140, 248, 0.12);
-  color: #c1c6ff;
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f6cf8d;
 }
 
 .validator-type-badge.is-vest {

@@ -60,7 +60,7 @@ let validatorHoverTooltipTarget = null;
 function renderValidators(container, validators, options = {}) {
   const table = document.createElement("div");
   table.className = "validator-table";
-  table.appendChild(validatorHeader(VALIDATOR_ROUND_HEADERS));
+  table.appendChild(validatorHeader(VALIDATOR_ROUND_HEADERS, options));
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
@@ -89,7 +89,7 @@ function renderRecentAbsentValidators(container, validators, options = {}) {
 
   const table = document.createElement("div");
   table.className = "validator-table is-absent";
-  table.appendChild(validatorHeader(VALIDATOR_ABSENT_HEADERS));
+  table.appendChild(validatorHeader(VALIDATOR_ABSENT_HEADERS, options));
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
@@ -108,16 +108,16 @@ function renderRecentAbsentValidators(container, validators, options = {}) {
   container.appendChild(table);
 }
 
-function validatorHeader(labels) {
+function validatorHeader(labels, options = {}) {
   const header = document.createElement("div");
   header.className = "validator-header";
   for (const label of labels) {
-    header.appendChild(validatorHeaderCell(label));
+    header.appendChild(validatorHeaderCell(label, options));
   }
   return header;
 }
 
-function validatorHeaderCell(label) {
+function validatorHeaderCell(label, options = {}) {
   const cell = document.createElement("div");
   const classes = ["validator-cell"];
   const semanticClass = VALIDATOR_HEADER_CLASSES[label];
@@ -138,6 +138,7 @@ function validatorHeaderCell(label) {
     help.className = "validator-type-help";
     help.setAttribute("aria-label", "Show type glossary");
     help.setAttribute("aria-expanded", "false");
+    help.validatorGlossaryLabels = normalizedGlossaryLabels(options.glossaryLabels);
     setValidatorTooltip(help, "Type glossary");
     help.innerHTML = `
       <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -225,8 +226,8 @@ function historyStatusLabel(status) {
 function validatorSourceTypeCell(validator) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-source-type";
-  const hash = validator && validator.source && validator.source.contract_type_hash;
-  const type = hash ? validatorSourceType(hash) : validatorContractType(validator && validator.contract_type);
+  const type = displayedValidatorType(validator);
+  const hash = type.hash;
 
   const badge = document.createElement("span");
   badge.className = `validator-type-badge is-${type.className}`;
@@ -255,6 +256,35 @@ function validatorSourceType(hash) {
 
 function validatorContractType(typeName) {
   return VALIDATOR_CONTRACT_TYPES[typeName] || UNKNOWN_VALIDATOR_TYPE;
+}
+
+function displayedValidatorType(validator) {
+  const hash = validator && validator.source && validator.source.contract_type_hash;
+  if (hash) {
+    return { ...validatorSourceType(hash), hash };
+  }
+  return { ...validatorContractType(validator && validator.contract_type), hash: "" };
+}
+
+function validatorGlossaryLabelsForSnapshot(snapshot) {
+  const labels = new Set();
+  collectValidatorGlossaryLabels(labels, snapshot?.current_set?.validators);
+  collectValidatorGlossaryLabels(labels, snapshot?.previous_set?.validators);
+  collectValidatorGlossaryLabels(labels, snapshot?.next_set?.validators);
+  collectValidatorGlossaryLabels(labels, snapshot?.election?.candidates);
+  collectValidatorGlossaryLabels(labels, snapshot?.current_set?.recent_absent_validators);
+  collectValidatorGlossaryLabels(labels, snapshot?.previous_set?.recent_absent_validators);
+  collectValidatorGlossaryLabels(labels, snapshot?.next_set?.recent_absent_validators);
+  return labels;
+}
+
+function collectValidatorGlossaryLabels(labels, validators) {
+  if (!Array.isArray(validators)) {
+    return;
+  }
+  for (const validator of validators) {
+    labels.add(displayedValidatorType(validator).label);
+  }
 }
 
 function validatorSourceCell(validator, options = {}) {
@@ -399,7 +429,7 @@ function toggleValidatorTypeGlossary(anchor) {
 
   closeValidatorTypeGlossary();
   validatorTypeGlossaryAnchor = anchor;
-  validatorTypeGlossaryPopover = buildValidatorTypeGlossary();
+  validatorTypeGlossaryPopover = buildValidatorTypeGlossary(anchor.validatorGlossaryLabels);
   document.body.appendChild(validatorTypeGlossaryPopover);
   positionValidatorTypeGlossary();
   setValidatorTypeHelpExpanded(anchor);
@@ -410,7 +440,7 @@ function toggleValidatorTypeGlossary(anchor) {
   window.addEventListener("scroll", closeValidatorTypeGlossary, true);
 }
 
-function buildValidatorTypeGlossary() {
+function buildValidatorTypeGlossary(labels) {
   const popover = document.createElement("div");
   popover.className = "validator-type-glossary";
   popover.setAttribute("role", "dialog");
@@ -421,7 +451,7 @@ function buildValidatorTypeGlossary() {
   title.textContent = "Type glossary";
   popover.appendChild(title);
 
-  for (const entry of VALIDATOR_TYPE_GLOSSARY) {
+  for (const entry of validatorTypeGlossaryEntries(labels)) {
     const row = document.createElement("div");
     row.className = "validator-type-glossary-row";
 
@@ -443,6 +473,18 @@ function buildValidatorTypeGlossary() {
   }
 
   return popover;
+}
+
+function normalizedGlossaryLabels(labels) {
+  return labels instanceof Set ? labels : new Set(Array.isArray(labels) ? labels : []);
+}
+
+function validatorTypeGlossaryEntries(labels) {
+  if (!(labels instanceof Set) || labels.size === 0) {
+    return VALIDATOR_TYPE_GLOSSARY;
+  }
+  const entries = VALIDATOR_TYPE_GLOSSARY.filter((entry) => labels.has(entry.label));
+  return entries.length > 0 ? entries : VALIDATOR_TYPE_GLOSSARY;
 }
 
 function glossaryBadgeClass(label) {
