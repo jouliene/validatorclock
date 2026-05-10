@@ -318,7 +318,7 @@ h1::after {
   right: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: minmax(276px, 1fr) 82px;
+  grid-template-rows: auto minmax(96px, 1fr);
   gap: 12px;
   padding: 0;
   border: 0;
@@ -348,9 +348,8 @@ h1::after {
 
 .network-card {
   display: grid;
-  align-content: center;
   gap: 12px;
-  padding: 22px;
+  padding: 22px 22px 12px;
 }
 
 .network-message-card {
@@ -747,9 +746,9 @@ dd {
   min-height: 54px;
   padding: 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.085);
-  border-left: 4px solid color-mix(in srgb, var(--chain-color, var(--cyan)) 46%, rgba(154, 196, 224, 0.12));
+  border-left: 4px solid rgba(154, 166, 184, 0.24);
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--chain-color, var(--cyan)) 4.5%, transparent), transparent 48%),
+    linear-gradient(90deg, rgba(154, 166, 184, 0.035), transparent 48%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.014)),
     rgba(255, 255, 255, 0.012);
   color: var(--text);
@@ -757,6 +756,11 @@ dd {
   font-size: var(--body-size);
   font-weight: 650;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.032);
+}
+
+.chain-tab[aria-selected="false"] .chain-mark {
+  opacity: 0.72;
+  filter: grayscale(1) saturate(0.15);
 }
 
 .chain-tab[aria-selected="true"] {
@@ -769,10 +773,6 @@ dd {
   box-shadow:
     0 0 10px color-mix(in srgb, var(--chain-color, var(--cyan)) 4%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
-}
-
-.chain-tab:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
 }
 
 .chain-tab-main {

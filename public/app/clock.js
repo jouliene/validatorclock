@@ -200,7 +200,7 @@ function drawDefs(svg) {
       <stop offset="0.58" stop-color="#dc3f4d"/>
       <stop offset="1" stop-color="#9b2630"/>
     </linearGradient>
-    <linearGradient id="electionArc" x1="344" y1="136" x2="430" y2="394" gradientUnits="userSpaceOnUse">
+    <linearGradient id="electionArc" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0" stop-color="#fff5a2"/>
       <stop offset="0.5" stop-color="#ffd462"/>
       <stop offset="1" stop-color="#d59a38"/>
