@@ -26,6 +26,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   ValidatorController: { label: "LSTCTRL", className: "lstctrl" },
   TonWalletV1R3: { label: "V1R3", className: "v1r3" },
   TonVestingWallet: { label: "VEST", className: "vest" },
+  WhalesPoolProxy: { label: "WHALES", className: "whales" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -49,6 +50,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "LSTCTRL", name: "TON Liquid Staking Controller", description: "Masterchain controller used by TON liquid-staking pools. It receives validator stake from a basechain tonstake_pool, participates in validation through Elector, and returns funds and rewards according to the pool protocol." },
   { label: "V1R3", name: "TON Wallet V1 R3", description: "Standard TON wallet contract. It stores seqno and public key, accepts signed external messages, and can be deployed in the masterchain for direct validation." },
   { label: "VEST", name: "TON Vesting Wallet", description: "TON vesting wallet that locks funds on a schedule while still allowing approved staking operations. It can validate directly from the masterchain when Elector staking is allowed." },
+  { label: "WHALES", name: "TON Whales Pool Proxy", description: "Masterchain proxy used by Whales staking pools. It forwards stake messages from a basechain whales_pool to Elector and forwards Elector confirmations back to the pool." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
@@ -369,6 +371,9 @@ function validatorSourceRole(validator) {
   if (validator.contract_type === "ValidatorController") {
     return "Liquid staking pool";
   }
+  if (validator.contract_type === "WhalesPoolProxy") {
+    return "Whales pool";
+  }
   if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1") {
     return "Owner address";
   }
@@ -496,6 +501,7 @@ function glossaryBadgeClass(label) {
   if (label === "LSTCTRL") return "lstctrl";
   if (label === "V1R3") return "v1r3";
   if (label === "VEST") return "vest";
+  if (label === "WHALES") return "whales";
   return "unknown";
 }
 

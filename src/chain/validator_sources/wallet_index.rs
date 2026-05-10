@@ -184,6 +184,22 @@ pub(super) fn validator_controller_wallets_missing_source(
         .collect()
 }
 
+pub(super) fn whales_pool_proxy_wallets_missing_source(
+    cache: &ValidatorTypeCache,
+    chain_id: &str,
+    wallets: &[String],
+) -> Vec<String> {
+    wallets
+        .iter()
+        .filter_map(|wallet| {
+            let entry = cache.get(chain_id, wallet)?;
+            is_whales_pool_proxy_contract_type(contract_type_name(&entry.repr_hash))
+                .then(|| entry.source.is_none())
+                .and_then(|missing| missing.then(|| wallet.clone()))
+        })
+        .collect()
+}
+
 fn validator_source_dto(source: &ValidatorSourceCacheEntry) -> ValidatorSourceDto {
     ValidatorSourceDto {
         address: source.address.clone(),
@@ -229,4 +245,8 @@ fn is_nominator_pool_contract_type(contract_type: &str) -> bool {
 
 fn is_validator_controller_contract_type(contract_type: &str) -> bool {
     matches!(contract_type, "ValidatorController")
+}
+
+fn is_whales_pool_proxy_contract_type(contract_type: &str) -> bool {
+    matches!(contract_type, "WhalesPoolProxy")
 }

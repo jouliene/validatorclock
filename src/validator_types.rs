@@ -43,6 +43,10 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "b66c1630c39fa67f1daed236b52af3ce9e67544161b4373375e8b4eef1bcbc59",
         "TonVestingWallet",
     ),
+    (
+        "6097b64a3b9db526a6b26497afeae3f224a8f639d37b6534d46df21fe0589c21",
+        "WhalesPoolProxy",
+    ),
 ];
 
 #[derive(Debug, Clone, Default)]
@@ -199,6 +203,10 @@ mod tests {
         assert_eq!(
             contract_type_name("b66c1630c39fa67f1daed236b52af3ce9e67544161b4373375e8b4eef1bcbc59"),
             "TonVestingWallet"
+        );
+        assert_eq!(
+            contract_type_name("6097b64a3b9db526a6b26497afeae3f224a8f639d37b6534d46df21fe0589c21"),
+            "WhalesPoolProxy"
         );
     }
 

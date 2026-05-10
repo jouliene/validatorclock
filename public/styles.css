@@ -1593,6 +1593,12 @@ dd {
   color: #f3b3d2;
 }
 
+.validator-type-badge.is-whales {
+  border-color: rgba(132, 204, 22, 0.38);
+  background: rgba(132, 204, 22, 0.12);
+  color: #c8e88e;
+}
+
 .validator-type-badge.is-unknown {
   border-color: rgba(154, 166, 184, 0.28);
   background: rgba(154, 166, 184, 0.08);
