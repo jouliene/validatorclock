@@ -318,7 +318,7 @@ h1::after {
   right: 0;
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(86px, 1fr);
+  grid-template-rows: minmax(276px, 1fr) 82px;
   gap: 12px;
   padding: 0;
   border: 0;
@@ -347,6 +347,9 @@ h1::after {
 }
 
 .network-card {
+  display: grid;
+  align-content: center;
+  gap: 12px;
   padding: 22px;
 }
 
@@ -397,7 +400,11 @@ h1::after {
 }
 
 .network-panel .chain-tabs {
-  margin-bottom: 10px;
+  margin-bottom: 0;
+}
+
+.network-card h2 {
+  margin-bottom: 0;
 }
 
 h2 {
@@ -762,6 +769,10 @@ dd {
   box-shadow:
     0 0 10px color-mix(in srgb, var(--chain-color, var(--cyan)) 4%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.chain-tab:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .chain-tab-main {
@@ -1782,6 +1793,10 @@ dd {
     gap: 8px;
     min-height: 32px;
     margin-bottom: 12px;
+  }
+
+  .network-card h2 {
+    margin-bottom: 0;
   }
 
   .panel-avatar {
