@@ -236,7 +236,10 @@ fn is_proxy_contract_type(contract_type: &str) -> bool {
 }
 
 fn is_single_nominator_contract_type(contract_type: &str) -> bool {
-    matches!(contract_type, "SingleNominatorV1_0" | "SingleNominatorV1_1")
+    matches!(
+        contract_type,
+        "SingleNominatorV1_0" | "SingleNominatorV1_1" | "TonSingleNominatorPool"
+    )
 }
 
 fn is_nominator_pool_contract_type(contract_type: &str) -> bool {

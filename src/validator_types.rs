@@ -47,6 +47,14 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "6097b64a3b9db526a6b26497afeae3f224a8f639d37b6534d46df21fe0589c21",
         "WhalesPoolProxy",
     ),
+    (
+        "8a025e9cd260112554c68d2c2f27fb41dd980b43e09cb34f0c678a89e6b7f4c7",
+        "WhalesPoolProxy",
+    ),
+    (
+        "c63a2766b55a96d54fd88c2727cee63feddfd3c42f5fe56983e3e436607eb2e5",
+        "TonSingleNominatorPool",
+    ),
 ];
 
 #[derive(Debug, Clone, Default)]
@@ -207,6 +215,14 @@ mod tests {
         assert_eq!(
             contract_type_name("6097b64a3b9db526a6b26497afeae3f224a8f639d37b6534d46df21fe0589c21"),
             "WhalesPoolProxy"
+        );
+        assert_eq!(
+            contract_type_name("8a025e9cd260112554c68d2c2f27fb41dd980b43e09cb34f0c678a89e6b7f4c7"),
+            "WhalesPoolProxy"
+        );
+        assert_eq!(
+            contract_type_name("c63a2766b55a96d54fd88c2727cee63feddfd3c42f5fe56983e3e436607eb2e5"),
+            "TonSingleNominatorPool"
         );
     }
 

@@ -22,6 +22,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   StEverDePoolProxy: { label: "StPROXY", className: "stproxy" },
   SingleNominatorV1_1: { label: "SNOMv1.1", className: "snom" },
   SingleNominatorV1_0: { label: "SNOMv1.0", className: "snom" },
+  TonSingleNominatorPool: { label: "SNPOOL", className: "snpool" },
   TonNominatorPool: { label: "NOMPOOL", className: "nompool" },
   ValidatorController: { label: "LSTCTRL", className: "lstctrl" },
   TonWalletV1R3: { label: "V1R3", className: "v1r3" },
@@ -46,6 +47,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "StDEPOOL", name: "Staked EVER DePool", description: "Specialized DePool that uses liquid-staking funds for validation. It validates through a masterchain proxy contract, the same way as a regular DePool." },
   { label: "SNOMv1.1", name: "Single Nominator v1.1", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },
+  { label: "SNPOOL", name: "TON Single Nominator Pool", description: "Single-owner TON staking pool. One owner funds the pool, while a validator/controller wallet operates validation through Elector." },
   { label: "NOMPOOL", name: "TON Nominator Pool", description: "Multi-user TON staking pool where nominators delegate stake to a validator. The pool participates in validation and distributes rewards by pool settings." },
   { label: "LSTCTRL", name: "TON Liquid Staking Controller", description: "Masterchain controller used by TON liquid-staking pools. It receives validator stake from a basechain tonstake_pool, participates in validation through Elector, and returns funds and rewards according to the pool protocol." },
   { label: "V1R3", name: "TON Wallet V1 R3", description: "Standard TON wallet contract. It stores seqno and public key, accepts signed external messages, and can be deployed in the masterchain for direct validation." },
@@ -374,7 +376,7 @@ function validatorSourceRole(validator) {
   if (validator.contract_type === "WhalesPoolProxy") {
     return "Whales pool";
   }
-  if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1") {
+  if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1" || validator.contract_type === "TonSingleNominatorPool") {
     return "Owner address";
   }
   return "";
@@ -497,6 +499,7 @@ function glossaryBadgeClass(label) {
   if (label === "PROXY" || label === "DEPOOL") return "proxy";
   if (label === "StPROXY" || label === "StDEPOOL") return "stproxy";
   if (label === "SNOMv1.0" || label === "SNOMv1.1") return "snom";
+  if (label === "SNPOOL") return "snpool";
   if (label === "NOMPOOL") return "nompool";
   if (label === "LSTCTRL") return "lstctrl";
   if (label === "V1R3") return "v1r3";

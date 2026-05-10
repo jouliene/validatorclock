@@ -1569,6 +1569,12 @@ dd {
   color: #a8d9ff;
 }
 
+.validator-type-badge.is-snpool {
+  border-color: rgba(248, 113, 113, 0.38);
+  background: rgba(248, 113, 113, 0.11);
+  color: #f7a8a8;
+}
+
 .validator-type-badge.is-nompool {
   border-color: rgba(164, 133, 255, 0.38);
   background: rgba(164, 133, 255, 0.12);
