@@ -225,6 +225,7 @@ function shuffleNetworkMessages(messages) {
 
 function renderNow() {
   const now = Math.trunc(Date.now() / 1000);
+  renderAddressFormatToolbar();
   renderRuntimeStatus(now);
   refreshStaleSnapshot(now);
 
@@ -236,6 +237,61 @@ function renderNow() {
   drawClock(model);
   renderMetrics(state.snapshot, model, now);
   renderRoundPanelsIfNeeded(state.snapshot, model);
+}
+
+function renderAddressFormatToolbar() {
+  const toolbar = $("addressFormatToolbar");
+  const toggle = $("addressFormatToggle");
+  if (!toolbar || !toggle) {
+    return;
+  }
+
+  const isTon = state.selectedChainId === "ton";
+  toolbar.hidden = !isTon;
+  if (!isTon) {
+    toggle.replaceChildren();
+    delete toggle.dataset.current;
+    return;
+  }
+
+  if (toggle.dataset.current === state.tonAddressFormat && toggle.childElementCount > 0) {
+    return;
+  }
+
+  toggle.dataset.current = state.tonAddressFormat;
+  toggle.replaceChildren(
+    addressFormatButton("friendly", "B64", "TON user-friendly base64 address"),
+    addressFormatButton("raw", "RAW", "Raw workchain:hash address")
+  );
+}
+
+function addressFormatButton(format, label, title) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "address-format-button";
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute("aria-pressed", String(state.tonAddressFormat === format));
+  button.addEventListener("click", () => setTonAddressFormat(format));
+  return button;
+}
+
+function setTonAddressFormat(format) {
+  if (format !== "raw" && format !== "friendly") {
+    return;
+  }
+  state.tonAddressFormat = format;
+  try {
+    window.localStorage?.setItem(TON_ADDRESS_FORMAT_KEY, format);
+  } catch (error) {
+    // The preference is optional; private browsing can reject storage writes.
+  }
+  const toggle = $("addressFormatToggle");
+  if (toggle) {
+    delete toggle.dataset.current;
+  }
+  state.roundRenderKey = null;
+  renderNow();
 }
 
 function refreshStaleSnapshot(now) {

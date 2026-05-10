@@ -1,6 +1,18 @@
+const TON_ADDRESS_FORMAT_KEY = "validators-clock-ton-address-format";
+
+function initialTonAddressFormat() {
+  try {
+    const value = window.localStorage?.getItem(TON_ADDRESS_FORMAT_KEY);
+    return value === "raw" || value === "friendly" ? value : "friendly";
+  } catch (error) {
+    return "friendly";
+  }
+}
+
 const state = {
   chains: [],
   selectedChainId: null,
+  tonAddressFormat: initialTonAddressFormat(),
   refreshSeconds: 60,
   runtimeStatus: null,
   snapshot: null,

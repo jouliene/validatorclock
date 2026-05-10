@@ -33,7 +33,10 @@ function shortenAddress(address) {
   if (!address || address === "-") {
     return "-";
   }
-  const [workchain, hash] = address.includes(":") ? address.split(":") : ["-1", address];
+  if (!address.includes(":")) {
+    return shortenHash(address, 4, 4);
+  }
+  const [workchain, hash] = address.split(":");
   if (!hash) {
     return "-";
   }
@@ -56,7 +59,99 @@ function sumTokenValues(items, key) {
 }
 
 function formatMasterchainAddress(hash) {
-  return hash.includes(":") ? hash : `-1:${hash}`;
+  if (!hash) {
+    return "-";
+  }
+  return hash.includes(":") || !isHexHash(hash) ? hash : `-1:${hash}`;
+}
+
+function formatDisplayAddress(address, options = {}) {
+  const raw = formatMasterchainAddress(address || "");
+  if (!raw || raw === "-") {
+    return { text: "-", value: "-", title: "-" };
+  }
+
+  if (options.chainId === "ton" && options.addressFormat !== "raw") {
+    const friendly = toTonUserFriendlyAddress(raw);
+    if (friendly) {
+      return {
+        text: shortenAddress(friendly),
+        value: friendly,
+        title: `${friendly} · ${raw}`,
+      };
+    }
+  }
+
+  return {
+    text: shortenAddress(raw),
+    value: raw,
+    title: raw,
+  };
+}
+
+function toTonUserFriendlyAddress(address) {
+  const raw = formatMasterchainAddress(address || "");
+  if (!raw.includes(":")) {
+    return "";
+  }
+
+  const [workchainPart, hash] = raw.split(":");
+  if (!isHexHash(hash)) {
+    return "";
+  }
+
+  const body = new Uint8Array(34);
+  body[0] = 0x11;
+  body[1] = tonWorkchainByte(Number(workchainPart));
+  body.set(hexToBytes(hash), 2);
+
+  const checksum = crc16Ccitt(body);
+  const full = new Uint8Array(36);
+  full.set(body);
+  full[34] = checksum >> 8;
+  full[35] = checksum & 0xff;
+  return base64UrlEncode(full);
+}
+
+function tonWorkchainByte(workchain) {
+  if (!Number.isFinite(workchain)) {
+    return 0xff;
+  }
+  return workchain < 0 ? (256 + workchain) & 0xff : workchain & 0xff;
+}
+
+function isHexHash(value) {
+  return /^[0-9a-fA-F]{64}$/.test(value || "");
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let index = 0; index < hex.length; index += 2) {
+    bytes[index / 2] = Number.parseInt(hex.slice(index, index + 2), 16);
+  }
+  return bytes;
+}
+
+function crc16Ccitt(bytes) {
+  let crc = 0;
+  for (const byte of bytes) {
+    crc ^= byte << 8;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+    }
+  }
+  return crc;
+}
+
+function base64UrlEncode(bytes) {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  const base64 = typeof btoa === "function"
+    ? btoa(binary)
+    : Buffer.from(bytes).toString("base64");
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 function formatWeight(value) {

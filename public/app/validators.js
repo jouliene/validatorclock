@@ -46,7 +46,7 @@ function renderValidators(container, validators, options = {}) {
       validatorCell(String(index + 1), "validator-index"),
       validatorSourceTypeCell(validator),
       validatorSourceCell(validator, options),
-      validatorIdentityCell(validatorWalletAddress(validator)),
+      validatorIdentityCell(validatorWalletAddress(validator), options),
       validatorHistoryCell(validator.history),
       validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number validator-stake", validator.stake || ""),
       validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number validator-rewards", validator.reward || ""),
@@ -74,7 +74,7 @@ function renderRecentAbsentValidators(container, validators, options = {}) {
       validatorCell(String(index + 1), "validator-index"),
       validatorSourceTypeCell(validator),
       validatorSourceCell(validator, options),
-      validatorIdentityCell(validator.wallet || validator.public_key),
+      validatorIdentityCell(validator.wallet || validator.public_key, options),
       validatorHistoryCell(validator.history),
       validatorCell(formatSeenRounds(validator), "validator-number validator-seen-rounds validator-seen", String(validator.last_seen_round || ""))
     );
@@ -212,7 +212,7 @@ function validatorSourceCell(validator, options = {}) {
   const tonHash = tonValidatorContractHash(validator, options);
   if (tonHash) {
     const hash = copyableValue(
-      shortenHash(tonHash),
+      shortenContractHash(tonHash),
       tonHash,
       "validator-source-address",
       "validator contract repr hash"
@@ -224,15 +224,16 @@ function validatorSourceCell(validator, options = {}) {
 
   const source = validator && validator.source;
   if (source && source.address) {
+    const formatted = formatDisplayAddress(source.address, options);
     const address = copyableValue(
-      shortenAddress(source.address),
-      source.address,
+      formatted.text,
+      formatted.value,
       "validator-source-address",
       "validator source address"
     );
-    if (source.contract_type_hash) {
-      address.title = source.contract_type_hash;
-    }
+    address.title = source.contract_type_hash
+      ? `${formatted.title} · ${source.contract_type_hash}`
+      : formatted.title;
     cell.appendChild(address);
     return cell;
   }
@@ -274,7 +275,7 @@ function tonValidatorContractHash(validator, options = {}) {
   return validator?.contract_type_hash || "";
 }
 
-function shortenHash(hash) {
+function shortenContractHash(hash) {
   return hash && hash.length > 12 ? `${hash.slice(0, 6)}...${hash.slice(-6)}` : (hash || "-");
 }
 
@@ -286,10 +287,12 @@ function validatorCell(text, className = "", title = text) {
   return cell;
 }
 
-function validatorIdentityCell(wallet) {
+function validatorIdentityCell(wallet, options = {}) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-id";
-  const address = copyableValue(shortenAddress(wallet), wallet, "validator-address", "validator wallet address");
+  const formatted = formatDisplayAddress(wallet, options);
+  const address = copyableValue(formatted.text, formatted.value, "validator-address", "validator wallet address");
+  address.title = formatted.title;
   cell.append(address);
   return cell;
 }

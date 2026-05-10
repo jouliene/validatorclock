@@ -6,6 +6,7 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
     snapshot.previous_set?.utime_since || "",
     snapshot.next_set?.utime_since || "",
     model.inElections ? "election" : "closed",
+    snapshot.chain.id === "ton" ? state.tonAddressFormat : "",
   ].join("|");
   if (state.roundRenderKey === key) {
     return;
@@ -41,7 +42,7 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "active";
     badge.classList.add("is-active");
     renderRoundStats(stats, current);
-    renderValidators(list, current.validators, { chainId: snapshot.chain.id, rewards: true });
+    renderValidators(list, current.validators, validatorRenderOptions(snapshot, { rewards: true }));
     return;
   }
 
@@ -49,7 +50,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundMeta(meta, next, snapshot);
     badge.textContent = "elected";
     renderRoundStats(stats, next);
-    renderValidators(list, next.validators, { chainId: snapshot.chain.id, rewards: true });
+    renderValidators(list, next.validators, validatorRenderOptions(snapshot, { rewards: true }));
     return;
   }
 
@@ -58,7 +59,7 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "elections open";
     badge.classList.add("is-election");
     renderCandidateStats(stats, candidates);
-    renderValidators(list, candidates, { chainId: snapshot.chain.id, rewards: false });
+    renderValidators(list, candidates, validatorRenderOptions(snapshot, { rewards: false }));
     return;
   }
 
@@ -67,7 +68,7 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "previous";
     badge.classList.add("is-previous");
     renderRoundStats(stats, previous);
-    renderValidators(list, previous.validators, { chainId: snapshot.chain.id, rewards: true });
+    renderValidators(list, previous.validators, validatorRenderOptions(snapshot, { rewards: true }));
     return;
   }
 
@@ -236,11 +237,22 @@ function recentRoundPanel(color, validators) {
     empty.textContent = "No absent validators";
     list.appendChild(empty);
   } else {
-    renderRecentAbsentValidators(list, validators, { chainId: state.selectedChainId });
+    renderRecentAbsentValidators(list, validators, {
+      chainId: state.selectedChainId,
+      addressFormat: state.tonAddressFormat,
+    });
   }
   section.appendChild(list);
 
   return section;
+}
+
+function validatorRenderOptions(snapshot, extra = {}) {
+  return {
+    chainId: snapshot.chain.id,
+    addressFormat: state.tonAddressFormat,
+    ...extra,
+  };
 }
 
 function recentRoundTitleIcon() {
