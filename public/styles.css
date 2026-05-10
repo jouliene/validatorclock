@@ -1563,7 +1563,8 @@ dd {
   color: #d7c28f;
 }
 
-.validator-type-badge.is-snom {
+.validator-type-badge.is-snom,
+.validator-type-badge.is-nompool {
   border-color: rgba(77, 184, 255, 0.38);
   background: rgba(77, 184, 255, 0.12);
   color: #a8d9ff;

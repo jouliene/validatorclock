@@ -152,6 +152,22 @@ pub(super) fn single_nominator_wallets_missing_source(
         .collect()
 }
 
+pub(super) fn nominator_pool_wallets_missing_source(
+    cache: &ValidatorTypeCache,
+    chain_id: &str,
+    wallets: &[String],
+) -> Vec<String> {
+    wallets
+        .iter()
+        .filter_map(|wallet| {
+            let entry = cache.get(chain_id, wallet)?;
+            is_nominator_pool_contract_type(contract_type_name(&entry.repr_hash))
+                .then(|| entry.source.is_none())
+                .and_then(|missing| missing.then(|| wallet.clone()))
+        })
+        .collect()
+}
+
 fn validator_source_dto(source: &ValidatorSourceCacheEntry) -> ValidatorSourceDto {
     ValidatorSourceDto {
         address: source.address.clone(),
@@ -189,4 +205,8 @@ fn is_proxy_contract_type(contract_type: &str) -> bool {
 
 fn is_single_nominator_contract_type(contract_type: &str) -> bool {
     matches!(contract_type, "SingleNominatorV1_0" | "SingleNominatorV1_1")
+}
+
+fn is_nominator_pool_contract_type(contract_type: &str) -> bool {
+    matches!(contract_type, "TonNominatorPool")
 }

@@ -22,6 +22,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   StEverDePoolProxy: { label: "StPROXY", className: "stproxy" },
   SingleNominatorV1_1: { label: "SNOMv1.1", className: "snom" },
   SingleNominatorV1_0: { label: "SNOMv1.0", className: "snom" },
+  TonNominatorPool: { label: "NOMPOOL", className: "nompool" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -41,6 +42,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "StDEPOOL", name: "Staked EVER DePool", description: "Specialized DePool that uses liquid-staking funds for validation. It validates through a masterchain proxy contract, the same way as a regular DePool." },
   { label: "SNOMv1.1", name: "Single Nominator v1.1", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },
+  { label: "NOMPOOL", name: "TON Nominator Pool", description: "Multi-user TON staking pool where nominators delegate stake to a validator. The pool participates in validation and distributes rewards by pool settings." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
@@ -263,12 +265,7 @@ function validatorSourceCell(validator, options = {}) {
       "validator source address"
     );
     const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-    setValidatorTooltip(
-      address,
-      contractHash
-        ? [...formatted.tooltip, `Contract HASH: ${contractHash}`]
-        : formatted.tooltip
-    );
+    setValidatorTooltip(address, validatorSourceTooltipLines(validator, formatted, contractHash));
     cell.appendChild(address);
     return cell;
   }
@@ -313,6 +310,29 @@ function validatorSourceKind(validator, options = {}) {
     return "direct";
   }
   return "unknown";
+}
+
+function validatorSourceTooltipLines(validator, formatted, contractHash = "") {
+  const role = validatorSourceRole(validator);
+  const lines = role ? [`Source: ${role}`] : [];
+  lines.push(...formatted.tooltip);
+  if (contractHash) {
+    lines.push(`Contract HASH: ${contractHash}`);
+  }
+  return lines;
+}
+
+function validatorSourceRole(validator) {
+  if (!validator) {
+    return "";
+  }
+  if (validator.contract_type === "TonNominatorPool") {
+    return "Validator address";
+  }
+  if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1") {
+    return "Owner address";
+  }
+  return "";
 }
 
 function tonValidatorContractHash(validator, options = {}) {
@@ -401,6 +421,7 @@ function glossaryBadgeClass(label) {
   if (label === "PROXY" || label === "DEPOOL") return "proxy";
   if (label === "StPROXY" || label === "StDEPOOL") return "stproxy";
   if (label === "SNOMv1.0" || label === "SNOMv1.1") return "snom";
+  if (label === "NOMPOOL") return "nompool";
   return "unknown";
 }
 

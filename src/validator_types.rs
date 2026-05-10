@@ -27,6 +27,10 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "a42ae69eac76ffe0e452d3d4f13d387a14e46c01a5aadba5fc1d893e6c71f5ba",
         "SingleNominatorV1_0",
     ),
+    (
+        "9a3ec14bc098f6b44064c305222caea2800f17dda85ee6a8198a7095ede10dcf",
+        "TonNominatorPool",
+    ),
 ];
 
 #[derive(Debug, Clone, Default)]
@@ -167,6 +171,10 @@ mod tests {
         assert_eq!(
             contract_type_name("a42ae69eac76ffe0e452d3d4f13d387a14e46c01a5aadba5fc1d893e6c71f5ba"),
             "SingleNominatorV1_0"
+        );
+        assert_eq!(
+            contract_type_name("9a3ec14bc098f6b44064c305222caea2800f17dda85ee6a8198a7095ede10dcf"),
+            "TonNominatorPool"
         );
     }
 
