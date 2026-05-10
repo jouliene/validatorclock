@@ -24,6 +24,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   SingleNominatorV1_0: { label: "SNOMv1.0", className: "snom" },
   TonNominatorPool: { label: "NOMPOOL", className: "nompool" },
   ValidatorController: { label: "LSTCTRL", className: "lstctrl" },
+  TonWalletV1R3: { label: "V1R3", className: "v1r3" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -45,6 +46,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "NOMPOOL", name: "TON Nominator Pool", description: "Multi-user TON staking pool where nominators delegate stake to a validator. The pool participates in validation and distributes rewards by pool settings." },
   { label: "LSTCTRL", name: "TON Liquid Staking Controller", description: "Masterchain controller used by TON liquid-staking pools. It receives validator stake from a basechain tonstake_pool, participates in validation through Elector, and returns funds and rewards according to the pool protocol." },
+  { label: "V1R3", name: "TON Wallet V1 R3", description: "Standard TON wallet contract. It stores seqno and public key, accepts signed external messages, and can be deployed in the masterchain for direct validation." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
@@ -272,6 +274,15 @@ function validatorSourceCell(validator, options = {}) {
     return cell;
   }
 
+  if (isDirectValidatorContract(validator)) {
+    const direct = document.createElement("span");
+    direct.className = "validator-source-direct";
+    direct.textContent = "Direct";
+    setValidatorTooltip(direct, directValidatorTooltipLines(validator));
+    cell.appendChild(direct);
+    return cell;
+  }
+
   const tonHash = tonValidatorContractHash(validator, options);
   if (tonHash) {
     const hash = copyableValue(
@@ -282,14 +293,6 @@ function validatorSourceCell(validator, options = {}) {
     );
     setValidatorTooltip(hash, `Contract HASH: ${tonHash}`);
     cell.appendChild(hash);
-    return cell;
-  }
-
-  if (validator && validator.contract_type === "EverWallet") {
-    const direct = document.createElement("span");
-    direct.className = "validator-source-direct";
-    direct.textContent = "Direct";
-    cell.appendChild(direct);
     return cell;
   }
 
@@ -305,11 +308,11 @@ function validatorSourceKind(validator, options = {}) {
   if (source && source.address) {
     return "detail";
   }
+  if (isDirectValidatorContract(validator)) {
+    return "direct";
+  }
   if (tonValidatorContractHash(validator, options)) {
     return "detail";
-  }
-  if (validator && validator.contract_type === "EverWallet") {
-    return "direct";
   }
   return "unknown";
 }
@@ -340,8 +343,23 @@ function validatorSourceRole(validator) {
   return "";
 }
 
+function isDirectValidatorContract(validator) {
+  return validator?.contract_type === "EverWallet" || validator?.contract_type === "TonWalletV1R3";
+}
+
+function directValidatorTooltipLines(validator) {
+  const lines = ["Source: Direct validation wallet"];
+  if (validator?.contract_type_hash) {
+    lines.push(`Contract HASH: ${validator.contract_type_hash}`);
+  }
+  return lines;
+}
+
 function tonValidatorContractHash(validator, options = {}) {
   if (options.chainId !== "ton") {
+    return "";
+  }
+  if (validator?.contract_type && validator.contract_type !== "Unknown") {
     return "";
   }
   return validator?.contract_type_hash || "";
@@ -428,6 +446,7 @@ function glossaryBadgeClass(label) {
   if (label === "SNOMv1.0" || label === "SNOMv1.1") return "snom";
   if (label === "NOMPOOL") return "nompool";
   if (label === "LSTCTRL") return "lstctrl";
+  if (label === "V1R3") return "v1r3";
   return "unknown";
 }
 

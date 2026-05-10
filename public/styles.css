@@ -1581,6 +1581,12 @@ dd {
   color: #a7e4df;
 }
 
+.validator-type-badge.is-v1r3 {
+  border-color: rgba(129, 140, 248, 0.38);
+  background: rgba(129, 140, 248, 0.12);
+  color: #c1c6ff;
+}
+
 .validator-type-badge.is-unknown {
   border-color: rgba(154, 166, 184, 0.28);
   background: rgba(154, 166, 184, 0.08);
