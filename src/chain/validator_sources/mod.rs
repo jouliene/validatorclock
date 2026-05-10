@@ -38,24 +38,9 @@ pub(super) async fn update_validator_contract_type_hashes(
     };
 
     if !missing_wallets.is_empty() {
-        let fetched = fetch_validator_contract_type_hashes(chain, missing_wallets).await?;
-        if !fetched.is_empty() {
-            let cache_to_save = state
-                .update_validator_type_cache(|cache| {
-                    let mut changed = false;
-                    for (wallet, repr_hash) in fetched {
-                        changed |= cache.insert(&chain.id, &wallet, repr_hash);
-                    }
-                    apply_validator_type_cache(cache, &chain.id, snapshot);
-                    changed.then(|| cache.clone())
-                })
-                .await;
-
-            if let Some(cache_to_save) = cache_to_save {
-                state
-                    .save_validator_type_cache_background(cache_to_save)
-                    .await;
-            }
+        for chunk in missing_wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
+            let fetched = fetch_validator_contract_type_hashes(chain, chunk.to_vec()).await?;
+            cache_validator_contract_type_hashes(state, chain, snapshot, fetched).await;
         }
     }
 
@@ -100,6 +85,34 @@ pub(super) async fn update_validator_contract_type_hashes(
     }
 
     Ok(())
+}
+
+async fn cache_validator_contract_type_hashes(
+    state: &AppState,
+    chain: &ChainConfig,
+    snapshot: &mut ClockSnapshot,
+    fetched: Vec<(String, String)>,
+) {
+    if fetched.is_empty() {
+        return;
+    }
+
+    let cache_to_save = state
+        .update_validator_type_cache(|cache| {
+            let mut changed = false;
+            for (wallet, repr_hash) in fetched {
+                changed |= cache.insert(&chain.id, &wallet, repr_hash);
+            }
+            apply_validator_type_cache(cache, &chain.id, snapshot);
+            changed.then(|| cache.clone())
+        })
+        .await;
+
+    if let Some(cache_to_save) = cache_to_save {
+        state
+            .save_validator_type_cache_background(cache_to_save)
+            .await;
+    }
 }
 
 pub(super) async fn apply_cached_validator_contract_type_hashes(

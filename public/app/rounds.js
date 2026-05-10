@@ -41,7 +41,7 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "active";
     badge.classList.add("is-active");
     renderRoundStats(stats, current);
-    renderValidators(list, current.validators, { rewards: true });
+    renderValidators(list, current.validators, { chainId: snapshot.chain.id, rewards: true });
     return;
   }
 
@@ -49,7 +49,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundMeta(meta, next, snapshot);
     badge.textContent = "elected";
     renderRoundStats(stats, next);
-    renderValidators(list, next.validators, { rewards: true });
+    renderValidators(list, next.validators, { chainId: snapshot.chain.id, rewards: true });
     return;
   }
 
@@ -58,7 +58,7 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "elections open";
     badge.classList.add("is-election");
     renderCandidateStats(stats, candidates);
-    renderValidators(list, candidates, { rewards: false });
+    renderValidators(list, candidates, { chainId: snapshot.chain.id, rewards: false });
     return;
   }
 
@@ -67,7 +67,7 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "previous";
     badge.classList.add("is-previous");
     renderRoundStats(stats, previous);
-    renderValidators(list, previous.validators, { rewards: true });
+    renderValidators(list, previous.validators, { chainId: snapshot.chain.id, rewards: true });
     return;
   }
 
@@ -236,7 +236,7 @@ function recentRoundPanel(color, validators) {
     empty.textContent = "No absent validators";
     list.appendChild(empty);
   } else {
-    renderRecentAbsentValidators(list, validators);
+    renderRecentAbsentValidators(list, validators, { chainId: state.selectedChainId });
   }
   section.appendChild(list);
 

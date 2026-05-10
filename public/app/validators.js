@@ -33,19 +33,19 @@ const VALIDATOR_SOURCE_TYPES = {
   },
 };
 
-function renderValidators(container, validators, options) {
+function renderValidators(container, validators, options = {}) {
   const table = document.createElement("div");
   table.className = "validator-table";
   table.appendChild(validatorHeader(VALIDATOR_ROUND_HEADERS));
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
-    row.className = `validator-row has-source-${validatorSourceKind(validator)}`;
+    row.className = `validator-row has-source-${validatorSourceKind(validator, options)}`;
 
     row.append(
       validatorCell(String(index + 1), "validator-index"),
       validatorSourceTypeCell(validator),
-      validatorSourceCell(validator),
+      validatorSourceCell(validator, options),
       validatorIdentityCell(validatorWalletAddress(validator)),
       validatorHistoryCell(validator.history),
       validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number validator-stake", validator.stake || ""),
@@ -58,7 +58,7 @@ function renderValidators(container, validators, options) {
   container.appendChild(table);
 }
 
-function renderRecentAbsentValidators(container, validators) {
+function renderRecentAbsentValidators(container, validators, options = {}) {
   if (!Array.isArray(validators) || validators.length === 0) {
     return;
   }
@@ -69,11 +69,11 @@ function renderRecentAbsentValidators(container, validators) {
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
-    row.className = `validator-row has-source-${validatorSourceKind(validator)}`;
+    row.className = `validator-row has-source-${validatorSourceKind(validator, options)}`;
     row.append(
       validatorCell(String(index + 1), "validator-index"),
       validatorSourceTypeCell(validator),
-      validatorSourceCell(validator),
+      validatorSourceCell(validator, options),
       validatorIdentityCell(validator.wallet || validator.public_key),
       validatorHistoryCell(validator.history),
       validatorCell(formatSeenRounds(validator), "validator-number validator-seen-rounds validator-seen", String(validator.last_seen_round || ""))
@@ -205,10 +205,23 @@ function validatorContractType(typeName) {
   return VALIDATOR_CONTRACT_TYPES[typeName] || UNKNOWN_VALIDATOR_TYPE;
 }
 
-function validatorSourceCell(validator) {
+function validatorSourceCell(validator, options = {}) {
   const cell = document.createElement("div");
-  const sourceKind = validatorSourceKind(validator);
+  const sourceKind = validatorSourceKind(validator, options);
   cell.className = `validator-cell validator-source is-${sourceKind}`;
+  const tonHash = tonValidatorContractHash(validator, options);
+  if (tonHash) {
+    const hash = copyableValue(
+      shortenHash(tonHash),
+      tonHash,
+      "validator-source-address",
+      "validator contract repr hash"
+    );
+    hash.title = tonHash;
+    cell.appendChild(hash);
+    return cell;
+  }
+
   const source = validator && validator.source;
   if (source && source.address) {
     const address = copyableValue(
@@ -239,7 +252,11 @@ function validatorSourceCell(validator) {
   return cell;
 }
 
-function validatorSourceKind(validator) {
+function validatorSourceKind(validator, options = {}) {
+  if (tonValidatorContractHash(validator, options)) {
+    return "detail";
+  }
+
   const source = validator && validator.source;
   if (source && source.address) {
     return "detail";
@@ -248,6 +265,17 @@ function validatorSourceKind(validator) {
     return "direct";
   }
   return "unknown";
+}
+
+function tonValidatorContractHash(validator, options = {}) {
+  if (options.chainId !== "ton") {
+    return "";
+  }
+  return validator?.contract_type_hash || "";
+}
+
+function shortenHash(hash) {
+  return hash && hash.length > 12 ? `${hash.slice(0, 6)}...${hash.slice(-6)}` : (hash || "-");
 }
 
 function validatorCell(text, className = "", title = text) {
