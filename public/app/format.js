@@ -68,16 +68,19 @@ function formatMasterchainAddress(hash) {
 function formatDisplayAddress(address, options = {}) {
   const raw = formatMasterchainAddress(address || "");
   if (!raw || raw === "-") {
-    return { text: "-", value: "-", title: "-" };
+    return { text: "-", value: "-", title: "-", tooltip: [] };
   }
 
+  const friendly = toTonUserFriendlyAddress(raw);
+  const tooltip = addressTooltipLines(raw, friendly);
+
   if (options.addressType === "ton") {
-    const friendly = toTonUserFriendlyAddress(raw);
     if (friendly) {
       return {
         text: shortenAddress(friendly),
         value: friendly,
-        title: `${friendly} · ${raw}`,
+        title: tooltip.join("\n"),
+        tooltip,
       };
     }
   }
@@ -85,8 +88,18 @@ function formatDisplayAddress(address, options = {}) {
   return {
     text: shortenAddress(raw),
     value: raw,
-    title: raw,
+    title: tooltip.join("\n"),
+    tooltip,
   };
+}
+
+function addressTooltipLines(raw, friendly) {
+  const lines = [];
+  if (friendly) {
+    lines.push(`TON address: ${friendly}`);
+  }
+  lines.push(`EVER address: ${raw}`);
+  return lines;
 }
 
 function shortenTonFriendlyAddress(address) {

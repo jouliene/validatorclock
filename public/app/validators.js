@@ -46,6 +46,8 @@ const VALIDATOR_TYPE_GLOSSARY = [
 
 let validatorTypeGlossaryPopover = null;
 let validatorTypeGlossaryAnchor = null;
+let validatorHoverTooltip = null;
+let validatorHoverTooltipTarget = null;
 
 function renderValidators(container, validators, options = {}) {
   const table = document.createElement("div");
@@ -128,7 +130,7 @@ function validatorHeaderCell(label) {
     help.className = "validator-type-help";
     help.setAttribute("aria-label", "Show type glossary");
     help.setAttribute("aria-expanded", "false");
-    help.title = "Type glossary";
+    setValidatorTooltip(help, "Type glossary");
     help.innerHTML = `
       <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
         <circle cx="12" cy="12" r="8.5"></circle>
@@ -189,9 +191,12 @@ function validatorHistoryCell(history) {
     const dot = document.createElement("span");
     const status = point.status || "unknown";
     dot.className = `validator-history-dot is-${status}`;
-    dot.title = point.round == null
-      ? "Round unknown"
-      : `Round ${point.round}: ${historyStatusLabel(status)}`;
+    setValidatorTooltip(
+      dot,
+      point.round == null
+        ? "Round: unknown"
+        : [`Round: ${point.round}`, `Status: ${historyStatusLabel(status)}`]
+    );
     dots.appendChild(dot);
   }
 
@@ -219,11 +224,11 @@ function validatorSourceTypeCell(validator) {
   badge.className = `validator-type-badge is-${type.className}`;
   badge.appendChild(validatorBadgeText(type.label));
   if (hash) {
-    badge.title = `${validatorTypeGlossaryTitle(type.label)} · ${hash}`;
+    setValidatorTooltip(badge, validatorTypeTooltipLines(type.label, hash));
   } else if (validator && validator.contract_type_hash) {
-    badge.title = `${validatorTypeGlossaryTitle(type.label)} · ${validator.contract_type_hash}`;
+    setValidatorTooltip(badge, validatorTypeTooltipLines(type.label, validator.contract_type_hash));
   } else {
-    badge.title = validatorTypeGlossaryTitle(type.label);
+    setValidatorTooltip(badge, validatorTypeTooltipLines(type.label));
   }
   cell.appendChild(badge);
   return cell;
@@ -257,9 +262,13 @@ function validatorSourceCell(validator, options = {}) {
       "validator-source-address",
       "validator source address"
     );
-    address.title = source.contract_type_hash
-      ? `${formatted.title} · ${source.contract_type_hash}`
-      : formatted.title;
+    const contractHash = source.contract_type_hash || validator?.contract_type_hash;
+    setValidatorTooltip(
+      address,
+      contractHash
+        ? [...formatted.tooltip, `Contract HASH: ${contractHash}`]
+        : formatted.tooltip
+    );
     cell.appendChild(address);
     return cell;
   }
@@ -272,7 +281,7 @@ function validatorSourceCell(validator, options = {}) {
       "validator-source-address",
       "validator contract repr hash"
     );
-    hash.title = tonHash;
+    setValidatorTooltip(hash, `Contract HASH: ${tonHash}`);
     cell.appendChild(hash);
     return cell;
   }
@@ -321,9 +330,16 @@ function validatorTypeGlossaryEntry(label) {
   return VALIDATOR_TYPE_GLOSSARY.find((entry) => entry.label === label);
 }
 
-function validatorTypeGlossaryTitle(label) {
+function validatorTypeTooltipLines(label, contractHash = "") {
   const entry = validatorTypeGlossaryEntry(label);
-  return entry ? `${entry.label} · ${entry.name}` : label;
+  const lines = [`Type: ${label}`];
+  if (entry) {
+    lines.push(`Name: ${entry.name}`);
+  }
+  if (contractHash) {
+    lines.push(`Contract HASH: ${contractHash}`);
+  }
+  return lines;
 }
 
 function toggleValidatorTypeGlossary(anchor) {
@@ -446,11 +462,113 @@ function setValidatorTypeHelpExpanded(activeAnchor) {
   });
 }
 
+function setValidatorTooltip(element, content) {
+  const tooltip = normalizeValidatorTooltip(content);
+  if (!tooltip) {
+    return;
+  }
+
+  element.dataset.validatorTooltip = tooltip;
+  element.addEventListener("mouseenter", handleValidatorTooltipEnter);
+  element.addEventListener("focus", handleValidatorTooltipEnter);
+  element.addEventListener("mouseleave", hideValidatorTooltip);
+  element.addEventListener("blur", hideValidatorTooltip);
+}
+
+function normalizeValidatorTooltip(content) {
+  const lines = Array.isArray(content)
+    ? content
+    : String(content || "").split("\n");
+  return lines
+    .map((line) => String(line || "").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function handleValidatorTooltipEnter(event) {
+  showValidatorTooltip(event.currentTarget);
+}
+
+function showValidatorTooltip(target) {
+  const content = target?.dataset?.validatorTooltip || "";
+  if (!content) {
+    return;
+  }
+
+  hideValidatorTooltip();
+  validatorHoverTooltipTarget = target;
+  validatorHoverTooltip = buildValidatorTooltip(content);
+  document.body.appendChild(validatorHoverTooltip);
+  positionValidatorTooltip();
+  window.addEventListener("resize", hideValidatorTooltip);
+  window.addEventListener("scroll", hideValidatorTooltip, true);
+}
+
+function buildValidatorTooltip(content) {
+  const tooltip = document.createElement("div");
+  tooltip.className = "validator-hover-tooltip";
+  tooltip.setAttribute("role", "tooltip");
+
+  for (const line of content.split("\n")) {
+    const row = document.createElement("div");
+    row.className = "validator-hover-tooltip-row";
+    const separatorIndex = line.indexOf(":");
+    if (separatorIndex > 0) {
+      const label = document.createElement("span");
+      label.className = "validator-hover-tooltip-label";
+      label.textContent = line.slice(0, separatorIndex + 1);
+      const value = document.createElement("span");
+      value.className = "validator-hover-tooltip-value";
+      value.textContent = line.slice(separatorIndex + 1).trim();
+      row.append(label, value);
+    } else {
+      const value = document.createElement("span");
+      value.className = "validator-hover-tooltip-value";
+      value.textContent = line;
+      row.append(value);
+    }
+    tooltip.appendChild(row);
+  }
+
+  return tooltip;
+}
+
+function positionValidatorTooltip() {
+  if (!validatorHoverTooltip || !validatorHoverTooltipTarget) {
+    return;
+  }
+
+  const targetRect = validatorHoverTooltipTarget.getBoundingClientRect();
+  const tooltipRect = validatorHoverTooltip.getBoundingClientRect();
+  const left = Math.min(
+    Math.max(12, targetRect.left + targetRect.width / 2 - tooltipRect.width / 2),
+    window.innerWidth - tooltipRect.width - 12
+  );
+  const aboveTop = targetRect.top - tooltipRect.height - 9;
+  const belowTop = targetRect.bottom + 9;
+  const top = aboveTop >= 12
+    ? aboveTop
+    : Math.min(belowTop, window.innerHeight - tooltipRect.height - 12);
+
+  validatorHoverTooltip.style.left = `${left}px`;
+  validatorHoverTooltip.style.top = `${Math.max(12, top)}px`;
+}
+
+function hideValidatorTooltip() {
+  validatorHoverTooltip?.remove();
+  validatorHoverTooltip = null;
+  validatorHoverTooltipTarget = null;
+  window.removeEventListener("resize", hideValidatorTooltip);
+  window.removeEventListener("scroll", hideValidatorTooltip, true);
+}
+
 function validatorCell(text, className = "", title = text) {
   const cell = document.createElement("div");
   cell.className = `validator-cell ${className}`.trim();
   cell.textContent = text;
-  cell.title = title;
+  if (title && title !== text && title !== "-") {
+    setValidatorTooltip(cell, title);
+  }
   return cell;
 }
 
@@ -459,7 +577,7 @@ function validatorIdentityCell(wallet, options = {}) {
   cell.className = "validator-cell validator-id";
   const formatted = formatDisplayAddress(wallet, options);
   const address = copyableValue(formatted.text, formatted.value, "validator-address", "validator wallet address");
-  address.title = formatted.title;
+  setValidatorTooltip(address, formatted.tooltip);
   cell.append(address);
   return cell;
 }
