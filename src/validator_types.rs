@@ -36,6 +36,10 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "ValidatorController",
     ),
     (
+        "13167d8f6618337ebdd0ede9a66ef7d767977e49841f04dc4165bab23eb1f1bc",
+        "ValidatorController",
+    ),
+    (
         "587cc789eff1c84f46ec3797e45fc809a14ff5ae24f1e0c7a6a99cc9dc9061ff",
         "TonWalletV1R3",
     ),
@@ -202,6 +206,10 @@ mod tests {
         );
         assert_eq!(
             contract_type_name("dd3ce98db487c7585803933bffba7a57eb4e663099059d08b83db0b4ce060793"),
+            "ValidatorController"
+        );
+        assert_eq!(
+            contract_type_name("13167d8f6618337ebdd0ede9a66ef7d767977e49841f04dc4165bab23eb1f1bc"),
             "ValidatorController"
         );
         assert_eq!(

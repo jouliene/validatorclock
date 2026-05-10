@@ -126,4 +126,19 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn parses_tonstakers_validator_controller_pool_address_from_data_cell() -> Result<()> {
+        let data = Boc::decode_hex(
+            "b5ee9c720102030100010300019e035c1cca9bb2afaf600001a7fd3c21cff0c750cc07a5bfaa7c4b6329dfb4b4080001a801406c000000020001c1c70f1e7dc90240001a7fb50d8000000000000002cec00000001000000000000000000101d1000000009ff4aaf668d845920fb5036e4fc37f8280008b9be461010e03cbf7f75c73df8a0e9003b16d8fea7b8fd73a292a83620988f6c61a836a7d1c06e50b43c307e28edd06de001e939b33f54a12858b5468a3186985d35ea35356252c45419f8555eecc3cd187c00200858007a4e6ccfd5284a162d51a28c61a6174d7a8d4d5894b115067e1557bb30f3461f000f49cd99faa50942c5aa34518c34c2e9af51a9ab129622a0cfc2aaf7661e68c3e",
+        )?;
+
+        let parsed = parse_validator_controller_pool(&data)?;
+
+        assert_eq!(
+            parsed,
+            "0:ec5b63fa9ee3f5ce8a4aa0d882623db186a0da9f4701b942d0f0c1f8a3b741b7"
+        );
+        Ok(())
+    }
 }
