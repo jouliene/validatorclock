@@ -50,7 +50,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "LSTCTRL", name: "TON Liquid Staking Controller", description: "Masterchain controller used by TON liquid-staking pools. It receives validator stake from a basechain tonstake_pool, participates in validation through Elector, and returns funds and rewards according to the pool protocol." },
   { label: "V1R3", name: "TON Wallet V1 R3", description: "Standard TON wallet contract. It stores seqno and public key, accepts signed external messages, and can be deployed in the masterchain for direct validation." },
   { label: "VEST", name: "TON Vesting Wallet", description: "TON vesting wallet that locks funds on a schedule while still allowing approved staking operations. It can validate directly from the masterchain when Elector staking is allowed." },
-  { label: "WHALES", name: "TON Whales Pool Proxy", description: "Masterchain proxy used by Whales staking pools. It forwards stake messages from a basechain whales_pool to Elector and forwards Elector confirmations back to the pool." },
+  { label: "WHALES", name: "TON Whales Pool Proxy", description: "Masterchain proxy used by Ton Whales nominator pools. The basechain pool stores user stakes, while this proxy represents the pool in validation and forwards messages between the pool and Elector." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
