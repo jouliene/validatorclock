@@ -7,6 +7,7 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
     snapshot.next_set?.utime_since || "",
     model.inElections ? "election" : "closed",
     selectedAddressType(snapshot.chain.id),
+    selectedSourceDisplayMode(snapshot.chain.id),
   ].join("|");
   if (state.roundRenderKey === key) {
     return;
@@ -250,6 +251,8 @@ function validatorRenderOptions(snapshot, extra = {}) {
   return {
     chainId: snapshot.chain.id,
     addressType: selectedAddressType(snapshot.chain.id),
+    sourceDisplayMode: selectedSourceDisplayMode(snapshot.chain.id),
+    onSourceDisplayModeChange: setSourceDisplayMode,
     glossaryLabels: validatorGlossaryLabelsForSnapshot(snapshot),
     ...extra,
   };

@@ -1,4 +1,5 @@
 const ADDRESS_TYPE_KEY = "validators-clock-address-type";
+const SOURCE_DISPLAY_KEY = "validators-clock-source-display";
 
 function initialAddressTypes() {
   try {
@@ -22,10 +23,28 @@ function selectedAddressType(chainId = state.selectedChainId) {
   return state.addressTypes[chainId] || defaultAddressType(chainId);
 }
 
+function initialSourceDisplayModes() {
+  try {
+    const stored = JSON.parse(window.localStorage?.getItem(SOURCE_DISPLAY_KEY) || "{}");
+    return stored && typeof stored === "object" ? stored : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function defaultSourceDisplayMode(chainId) {
+  return chainId === "ton" ? "meta" : "addr";
+}
+
+function selectedSourceDisplayMode(chainId = state.selectedChainId) {
+  return state.sourceDisplayModes[chainId] || defaultSourceDisplayMode(chainId);
+}
+
 const state = {
   chains: [],
   selectedChainId: null,
   addressTypes: initialAddressTypes(),
+  sourceDisplayModes: initialSourceDisplayModes(),
   refreshSeconds: 60,
   runtimeStatus: null,
   snapshot: null,

@@ -58,6 +58,44 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
+const TON_SOURCE_METADATA_BY_ADDRESS = {
+  "-1:950057f559dddf5ddfa64210f0e6536c55d219bf6fc7d7285b7735c215f21ef6": {
+    label: "CAT Val 1",
+    name: "CAT Validator 1",
+    detail: "Named TON validator wallet from TonAPI metadata.",
+  },
+  "0:8c397c43f9ff0b49659b5d0a302b1a93af7ccc63e5f5c0c4f25a9dc1f8b47ab3": {
+    label: "Telegram",
+    name: "Telegram",
+    detail: "Named owner wallet from TonAPI metadata.",
+  },
+  "0:a45b17f28409229b78360e3290420f13e4fe20f90d7e2bf8c4ac6703259e22fa": {
+    label: "Tonstakers",
+    name: "Tonstakers",
+    detail: "Named tonstake_pool liquid-staking pool from TonAPI metadata.",
+  },
+  "0:c3f99ec4f68ef9a820dc029bd797d21603e087db5ad2d88d4285b6aa041e37fa": {
+    label: "arabswallet",
+    name: "arabswallet.ton",
+    detail: "Named owner wallet from TonAPI metadata.",
+  },
+  "0:b66d1924b5cf9901357f54af01d5d98ddca5d944a89b94c8b2bc55bf694ccd4f": {
+    label: "blackmarket",
+    name: "blackmarket-dot-tg.ton",
+    detail: "Named owner wallet from TonAPI metadata.",
+  },
+  "0:ccae1e65877a165df4b0f8d3db832e87cddea9cca601f1b07d2df1ddd29ce6ff": {
+    label: "thedns",
+    name: "thedns-telegram.ton",
+    detail: "Named multisig owner from TonAPI metadata.",
+  },
+  "0:8bc991cfe177bc7e9721433efa3befd199485a55cffd040a06c89af026b71bcf": {
+    label: "Hipo",
+    name: "Hipo Finance",
+    detail: "Hipo Treasury source discovered from the validator proxy.",
+  },
+};
+
 let validatorTypeGlossaryPopover = null;
 let validatorTypeGlossaryAnchor = null;
 let validatorHoverTooltip = null;
@@ -161,6 +199,22 @@ function validatorHeaderCell(label, options = {}) {
     return cell;
   }
 
+  if (label === "Source" && options.chainId === "ton") {
+    cell.classList.add("validator-source-heading");
+    const name = document.createElement("span");
+    name.textContent = "Source";
+    const toggle = document.createElement("span");
+    toggle.className = "validator-source-mode-toggle";
+    toggle.setAttribute("role", "group");
+    toggle.setAttribute("aria-label", "Source display");
+    toggle.append(
+      validatorSourceModeButton("meta", "META", options),
+      validatorSourceModeButton("addr", "ADDR", options)
+    );
+    cell.append(name, toggle);
+    return cell;
+  }
+
   if (label !== "History") {
     cell.textContent = label;
     return cell;
@@ -174,6 +228,23 @@ function validatorHeaderCell(label, options = {}) {
   direction.textContent = "Older -> Latest";
   cell.append(name, direction);
   return cell;
+}
+
+function validatorSourceModeButton(mode, label, options = {}) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "validator-source-mode-button";
+  button.textContent = label;
+  button.title = mode === "meta" ? "Show TON source metadata" : "Show TON source address";
+  button.setAttribute("aria-pressed", String((options.sourceDisplayMode || "meta") === mode));
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof options.onSourceDisplayModeChange === "function") {
+      options.onSourceDisplayModeChange(mode);
+    }
+  });
+  return button;
 }
 
 function formatSeenRounds(validator) {
@@ -300,6 +371,20 @@ function validatorSourceCell(validator, options = {}) {
   const source = validator && validator.source;
   if (source && source.address) {
     const formatted = formatDisplayAddress(source.address, options);
+    if (shouldDisplayTonSourceMetadata(validator, options)) {
+      const meta = tonSourceMetadata(validator);
+      const metadata = copyableValue(
+        meta.label,
+        formatted.value,
+        `validator-source-address validator-source-meta is-${meta.className}`,
+        "validator source address"
+      );
+      const contractHash = source.contract_type_hash || validator?.contract_type_hash;
+      setValidatorTooltip(metadata, validatorSourceMetadataTooltipLines(validator, meta, formatted, contractHash));
+      cell.appendChild(metadata);
+      return cell;
+    }
+
     const address = copyableValue(
       formatted.text,
       formatted.value,
@@ -355,9 +440,112 @@ function validatorSourceKind(validator, options = {}) {
   return "unknown";
 }
 
+function shouldDisplayTonSourceMetadata(validator, options = {}) {
+  return options.chainId === "ton" && options.sourceDisplayMode !== "addr" && Boolean(validator?.source?.address);
+}
+
+function tonSourceMetadata(validator) {
+  const sourceAddress = normalizeSourceAddress(validator?.source?.address);
+  const explicit = TON_SOURCE_METADATA_BY_ADDRESS[sourceAddress];
+  if (explicit) {
+    return {
+      className: sourceMetadataClass(explicit.label),
+      ...explicit,
+    };
+  }
+
+  if (validator?.contract_type === "WhalesPoolProxy") {
+    return {
+      label: "TON Whales",
+      name: "TON Whales",
+      detail: "Nominator pool source for a TON Whales masterchain proxy.",
+      className: "whales",
+    };
+  }
+  if (validator?.contract_type === "HipoValidatorProxy") {
+    return {
+      label: "Hipo",
+      name: "Hipo Finance",
+      detail: "Hipo liquid-staking treasury source.",
+      className: "hipo",
+    };
+  }
+  if (validator?.contract_type === "ValidatorController") {
+    return {
+      label: "LST Pool",
+      name: "Liquid staking pool",
+      detail: "tonstake_pool source. No public owner name was found for this address.",
+      className: "lst",
+    };
+  }
+  if (validator?.contract_type === "TonNominatorPool") {
+    return {
+      label: "Nominator",
+      name: "Nominator pool validator",
+      detail: "Validator address configured in a TON nominator pool.",
+      className: "nominator",
+    };
+  }
+  if (validator?.contract_type === "TonSingleNominatorPool") {
+    return {
+      label: "Owner",
+      name: "Single nominator pool owner",
+      detail: "Owner address configured in a TON single nominator pool.",
+      className: "owner",
+    };
+  }
+  if (validator?.contract_type === "SingleNominatorV1_0" || validator?.contract_type === "SingleNominatorV1_1") {
+    return {
+      label: "Owner",
+      name: "Single nominator owner",
+      detail: "Owner wallet configured in a TON Single Nominator contract.",
+      className: "owner",
+    };
+  }
+  if (isDirectValidatorContract(validator)) {
+    return {
+      label: "Direct",
+      name: "Direct validation wallet",
+      detail: "Validator wallet participates directly through Elector.",
+      className: "direct",
+    };
+  }
+  return {
+    label: "Unknown",
+    name: "Unknown source owner",
+    detail: "No source metadata is known for this address yet.",
+    className: "unknown",
+  };
+}
+
+function normalizeSourceAddress(address) {
+  return formatMasterchainAddress(address || "").toLowerCase();
+}
+
+function sourceMetadataClass(label) {
+  return String(label || "unknown")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "unknown";
+}
+
 function validatorSourceTooltipLines(validator, formatted, contractHash = "") {
   const role = validatorSourceRole(validator);
   const lines = role ? [`Source: ${role}`] : [];
+  lines.push(...formatted.tooltip);
+  if (contractHash) {
+    lines.push(`Contract HASH: ${contractHash}`);
+  }
+  return lines;
+}
+
+function validatorSourceMetadataTooltipLines(validator, meta, formatted, contractHash = "") {
+  const role = validatorSourceRole(validator);
+  const lines = role ? [`Source: ${role}`] : [];
+  lines.push(`Owner: ${meta.name || meta.label}`);
+  if (meta.detail) {
+    lines.push(`Metadata: ${meta.detail}`);
+  }
   lines.push(...formatted.tooltip);
   if (contractHash) {
     lines.push(`Contract HASH: ${contractHash}`);
@@ -510,6 +698,7 @@ function glossaryBadgeClass(label) {
   if (label === "V1R3") return "v1r3";
   if (label === "VEST") return "vest";
   if (label === "WHALES") return "whales";
+  if (label === "HIPO") return "hipo";
   return "unknown";
 }
 

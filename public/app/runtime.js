@@ -242,6 +242,8 @@ function renderNow() {
 function renderAddressFormatToolbar() {
   const toolbar = $("addressFormatToolbar");
   const toggle = $("addressFormatToggle");
+  const sourceGroup = $("sourceDisplayGroup");
+  const sourceToggle = $("sourceDisplayToggle");
   if (!toolbar || !toggle) {
     return;
   }
@@ -250,20 +252,25 @@ function renderAddressFormatToolbar() {
   if (!state.selectedChainId) {
     toggle.replaceChildren();
     delete toggle.dataset.current;
+    sourceToggle?.replaceChildren();
+    delete sourceToggle?.dataset.current;
+    if (sourceGroup) {
+      sourceGroup.hidden = true;
+    }
     return;
   }
 
   const addressType = selectedAddressType();
   const currentKey = `${state.selectedChainId}:${addressType}`;
-  if (toggle.dataset.current === currentKey && toggle.childElementCount > 0) {
-    return;
+  if (toggle.dataset.current !== currentKey || toggle.childElementCount === 0) {
+    toggle.dataset.current = currentKey;
+    toggle.replaceChildren(
+      addressFormatButton("ever", "EVER", "Raw workchain:hash address"),
+      addressFormatButton("ton", "TON", "TON user-friendly base64 address")
+    );
   }
 
-  toggle.dataset.current = currentKey;
-  toggle.replaceChildren(
-    addressFormatButton("ever", "EVER", "Raw workchain:hash address"),
-    addressFormatButton("ton", "TON", "TON user-friendly base64 address")
-  );
+  renderSourceDisplayToggle(sourceGroup, sourceToggle);
 }
 
 function addressFormatButton(type, label, title) {
@@ -288,6 +295,61 @@ function setAddressType(type) {
     // The preference is optional; private browsing can reject storage writes.
   }
   const toggle = $("addressFormatToggle");
+  if (toggle) {
+    delete toggle.dataset.current;
+  }
+  state.roundRenderKey = null;
+  renderNow();
+}
+
+function renderSourceDisplayToggle(sourceGroup, sourceToggle) {
+  if (!sourceGroup || !sourceToggle) {
+    return;
+  }
+
+  const visible = state.selectedChainId === "ton";
+  sourceGroup.hidden = !visible;
+  if (!visible) {
+    sourceToggle.replaceChildren();
+    delete sourceToggle.dataset.current;
+    return;
+  }
+
+  const sourceMode = selectedSourceDisplayMode();
+  const currentKey = `${state.selectedChainId}:${sourceMode}`;
+  if (sourceToggle.dataset.current === currentKey && sourceToggle.childElementCount > 0) {
+    return;
+  }
+
+  sourceToggle.dataset.current = currentKey;
+  sourceToggle.replaceChildren(
+    sourceDisplayButton("meta", "META", "Show TON source owner metadata"),
+    sourceDisplayButton("addr", "ADDR", "Show TON source address")
+  );
+}
+
+function sourceDisplayButton(mode, label, title) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "address-format-button";
+  button.textContent = label;
+  button.title = title;
+  button.setAttribute("aria-pressed", String(selectedSourceDisplayMode() === mode));
+  button.addEventListener("click", () => setSourceDisplayMode(mode));
+  return button;
+}
+
+function setSourceDisplayMode(mode) {
+  if ((mode !== "meta" && mode !== "addr") || state.selectedChainId !== "ton") {
+    return;
+  }
+  state.sourceDisplayModes[state.selectedChainId] = mode;
+  try {
+    window.localStorage?.setItem(SOURCE_DISPLAY_KEY, JSON.stringify(state.sourceDisplayModes));
+  } catch (error) {
+    // The preference is optional; private browsing can reject storage writes.
+  }
+  const toggle = $("sourceDisplayToggle");
   if (toggle) {
     delete toggle.dataset.current;
   }

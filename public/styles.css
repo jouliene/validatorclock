@@ -268,14 +268,26 @@ h1::after {
 
 .address-format-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px 14px;
   margin: 14px 0 -2px;
   min-height: 30px;
 }
 
 .address-format-toolbar[hidden] {
+  display: none;
+}
+
+.address-format-group,
+.source-display-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-display-group[hidden] {
   display: none;
 }
 
@@ -1372,6 +1384,49 @@ dd {
   gap: 5px;
 }
 
+.validator-source-heading {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  line-height: 1;
+}
+
+.validator-source-mode-toggle {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid rgba(154, 196, 224, 0.16);
+  border-radius: 5px;
+  background: rgba(154, 196, 224, 0.045);
+}
+
+.validator-source-mode-button {
+  width: 30px;
+  height: 15px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: rgba(199, 212, 228, 0.66);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 15px;
+}
+
+.validator-source-mode-button[aria-pressed="true"] {
+  background: rgba(77, 184, 255, 0.17);
+  color: rgba(229, 246, 255, 0.96);
+}
+
+.validator-source-mode-button:focus-visible {
+  outline: 2px solid rgba(77, 184, 255, 0.5);
+  outline-offset: 1px;
+}
+
 .validator-type-help {
   display: inline-grid;
   width: 18px;
@@ -1479,6 +1534,34 @@ dd {
   color: rgba(159, 206, 179, 0.96);
   font-size: 13px;
   font-weight: 600;
+}
+
+.validator-source-meta {
+  color: rgba(196, 226, 242, 0.94);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 740;
+}
+
+.validator-source-meta.is-telegram,
+.validator-source-meta.is-tonstakers,
+.validator-source-meta.is-arabswallet,
+.validator-source-meta.is-hipo {
+  color: rgba(226, 238, 248, 0.96);
+}
+
+.validator-source-meta.is-ton-whales,
+.validator-source-meta.is-whales {
+  color: #c8e88e;
+}
+
+.validator-source-meta.is-lst,
+.validator-source-meta.is-nominator {
+  color: #a7e4df;
+}
+
+.validator-source-meta.is-owner {
+  color: rgba(185, 205, 226, 0.86);
 }
 
 .validator-source-direct,
