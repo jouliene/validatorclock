@@ -276,4 +276,5 @@ fn load_config_reports_explicit_source() {
     assert_eq!(loaded.source.label(), "explicit");
     assert_eq!(loaded.source.path(), Some(path));
     assert!(loaded.config.validate().is_ok());
+    assert!(loaded.config.chain("ton").is_some());
 }

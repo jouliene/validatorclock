@@ -30,6 +30,7 @@ const assetPath = (path) => assetVersion ? `${path}?v=${encodeURIComponent(asset
 const chainLogos = {
   everscale: assetPath("/brands/everscale.svg"),
   "tycho-testnet": assetPath("/brands/tycho.svg"),
+  ton: assetPath("/brands/ton.svg"),
 };
 
 const $ = (id) => document.getElementById(id);

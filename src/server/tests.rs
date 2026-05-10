@@ -241,7 +241,7 @@ async fn app_router_versions_and_caches_static_assets() {
     assert!(body.contains("function renderValidators"));
     assert!(body.contains("boot();"));
 
-    let response = app_router(state)
+    let response = app_router(Arc::clone(&state))
         .oneshot(
             Request::builder()
                 .uri(format!("/brands/everscale.svg?v={asset_version}"))
@@ -263,6 +263,23 @@ async fn app_router_versions_and_caches_static_assets() {
             .get(header::CACHE_CONTROL)
             .and_then(|value| value.to_str().ok()),
         Some("public, max-age=31536000, immutable")
+    );
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri(format!("/brands/ton.svg?v={asset_version}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(
+        response.headers(),
+        header::CONTENT_TYPE,
+        "image/svg+xml; charset=utf-8",
     );
 }
 

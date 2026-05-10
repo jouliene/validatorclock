@@ -1,7 +1,7 @@
 # Validators Clock
 
 Validators Clock is a web dashboard for TVM blockchains. It currently supports
-Everscale Mainnet and Tycho Testnet.
+Everscale Mainnet, Tycho Testnet, and TON.
 
 It shows validator rounds, election timing, candidates, stakes, rewards, wallet
 types, and recent validator history.
@@ -141,6 +141,7 @@ Important files:
 validators_clock.production.json
 validators_clock_history_everscale.json
 validators_clock_history_tycho-testnet.json
+validators_clock_history_ton.json
 validators_clock_validator_types.json
 acme/
 ```

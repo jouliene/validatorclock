@@ -233,6 +233,14 @@ write_config_if_missing() {
       "color": "#35d07f",
       "token_symbol": "TYCHO",
       "rpc_label": "rpc-testnet.tychoprotocol.com"
+    },
+    {
+      "id": "ton",
+      "name": "TON",
+      "rpc": "https://jrpc-ton.broxus.com",
+      "color": "#0098ea",
+      "token_symbol": "TON",
+      "rpc_label": "jrpc-ton.broxus.com"
     }
   ]
 }
