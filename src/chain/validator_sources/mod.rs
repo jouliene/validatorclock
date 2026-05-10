@@ -2,15 +2,18 @@ mod contract_types;
 mod nominator_pool_sources;
 mod proxy_sources;
 mod single_nominator_sources;
+mod validator_controller_sources;
 mod wallet_index;
 
 use self::contract_types::fetch_validator_contract_type_hashes;
 use self::nominator_pool_sources::fetch_nominator_pool_validator_sources;
 use self::proxy_sources::fetch_proxy_validator_sources;
 use self::single_nominator_sources::fetch_single_nominator_validator_sources;
+use self::validator_controller_sources::fetch_validator_controller_sources;
 use self::wallet_index::{
     apply_validator_type_cache, nominator_pool_wallets_missing_source,
-    proxy_wallets_missing_source, single_nominator_wallets_missing_source, validator_wallets,
+    proxy_wallets_missing_source, single_nominator_wallets_missing_source,
+    validator_controller_wallets_missing_source, validator_wallets,
 };
 use super::ClockSnapshot;
 use crate::config::ChainConfig;
@@ -94,6 +97,22 @@ pub(super) async fn update_validator_contract_type_hashes(
     if !missing_nominator_pool_source_wallets.is_empty() {
         let fetched_sources =
             fetch_nominator_pool_validator_sources(chain, missing_nominator_pool_source_wallets)
+                .await?;
+        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
+    }
+
+    let missing_validator_controller_source_wallets = {
+        state
+            .with_validator_type_cache(|cache| {
+                apply_validator_type_cache(cache, &chain.id, snapshot);
+                validator_controller_wallets_missing_source(cache, &chain.id, &wallets)
+            })
+            .await
+    };
+
+    if !missing_validator_controller_source_wallets.is_empty() {
+        let fetched_sources =
+            fetch_validator_controller_sources(chain, missing_validator_controller_source_wallets)
                 .await?;
         cache_validator_sources(state, chain, snapshot, fetched_sources).await;
     }
