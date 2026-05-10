@@ -36,11 +36,9 @@ const VALIDATOR_SOURCE_TYPES = {
 };
 
 const VALIDATOR_TYPE_GLOSSARY = [
-  { label: "EVER", name: "Ever Wallet", description: "Direct Everscale validator wallet." },
-  { label: "PROXY", name: "DePool Proxy", description: "Validator proxy that stakes through a DePool source." },
-  { label: "StPROXY", name: "Staked EVER DePool Proxy", description: "Validator proxy that stakes through a Staked EVER DePool source." },
-  { label: "DEPOOL", name: "DePool", description: "Everscale source contract for validator stake." },
-  { label: "StDEPOOL", name: "Staked EVER DePool", description: "Staked EVER source contract for validator stake." },
+  { label: "EVER", name: "Ever Wallet", description: "Default Broxus wallet for Tycho TVM networks. Can be deployed in the masterchain and used directly for validation." },
+  { label: "DEPOOL", name: "DePool", description: "Staking pool contract where many users can stake into one shared pool. The pool participates in validation through a proxy contract deployed in the masterchain." },
+  { label: "StDEPOOL", name: "Staked EVER DePool", description: "Specialized DePool that uses liquid-staking funds for validation. It validates through a masterchain proxy contract, the same way as a regular DePool." },
   { label: "SNOMv1.1", name: "Single Nominator v1.1", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
