@@ -1563,11 +1563,16 @@ dd {
   color: #d7c28f;
 }
 
-.validator-type-badge.is-snom,
-.validator-type-badge.is-nompool {
+.validator-type-badge.is-snom {
   border-color: rgba(77, 184, 255, 0.38);
   background: rgba(77, 184, 255, 0.12);
   color: #a8d9ff;
+}
+
+.validator-type-badge.is-nompool {
+  border-color: rgba(164, 133, 255, 0.38);
+  background: rgba(164, 133, 255, 0.12);
+  color: #c6b8ff;
 }
 
 .validator-type-badge.is-unknown {
