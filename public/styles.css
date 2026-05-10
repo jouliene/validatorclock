@@ -1575,7 +1575,7 @@ dd {
   color: #c6b8ff;
 }
 
-.validator-type-badge.is-vctrl {
+.validator-type-badge.is-lstctrl {
   border-color: rgba(56, 189, 178, 0.38);
   background: rgba(56, 189, 178, 0.12);
   color: #a7e4df;

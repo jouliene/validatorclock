@@ -23,7 +23,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   SingleNominatorV1_1: { label: "SNOMv1.1", className: "snom" },
   SingleNominatorV1_0: { label: "SNOMv1.0", className: "snom" },
   TonNominatorPool: { label: "NOMPOOL", className: "nompool" },
-  ValidatorController: { label: "VCTRL", className: "vctrl" },
+  ValidatorController: { label: "LSTCTRL", className: "lstctrl" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -44,7 +44,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "SNOMv1.1", name: "Single Nominator v1.1", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "NOMPOOL", name: "TON Nominator Pool", description: "Multi-user TON staking pool where nominators delegate stake to a validator. The pool participates in validation and distributes rewards by pool settings." },
-  { label: "VCTRL", name: "Validator Controller", description: "TON controller contract that manages validation for a pool or operator and points to the basechain pool address used as the funding source." },
+  { label: "LSTCTRL", name: "TON Liquid Staking Controller", description: "Masterchain controller used by TON liquid-staking pools. It receives validator stake from a basechain tonstake_pool, participates in validation through Elector, and returns funds and rewards according to the pool protocol." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
@@ -332,7 +332,7 @@ function validatorSourceRole(validator) {
     return "Validator address";
   }
   if (validator.contract_type === "ValidatorController") {
-    return "Pool address";
+    return "Liquid staking pool";
   }
   if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1") {
     return "Owner address";
@@ -427,7 +427,7 @@ function glossaryBadgeClass(label) {
   if (label === "StPROXY" || label === "StDEPOOL") return "stproxy";
   if (label === "SNOMv1.0" || label === "SNOMv1.1") return "snom";
   if (label === "NOMPOOL") return "nompool";
-  if (label === "VCTRL") return "vctrl";
+  if (label === "LSTCTRL") return "lstctrl";
   return "unknown";
 }
 
