@@ -1,18 +1,31 @@
-const TON_ADDRESS_FORMAT_KEY = "validators-clock-ton-address-format";
+const ADDRESS_TYPE_KEY = "validators-clock-address-type";
 
-function initialTonAddressFormat() {
+function initialAddressTypes() {
   try {
-    const value = window.localStorage?.getItem(TON_ADDRESS_FORMAT_KEY);
-    return value === "raw" || value === "friendly" ? value : "friendly";
+    const stored = JSON.parse(window.localStorage?.getItem(ADDRESS_TYPE_KEY) || "{}");
+    const types = stored && typeof stored === "object" ? stored : {};
+    const legacyTonFormat = window.localStorage?.getItem("validators-clock-ton-address-format");
+    if (!types.ton && (legacyTonFormat === "raw" || legacyTonFormat === "friendly")) {
+      types.ton = legacyTonFormat === "raw" ? "ever" : "ton";
+    }
+    return types;
   } catch (error) {
-    return "friendly";
+    return {};
   }
+}
+
+function defaultAddressType(chainId) {
+  return chainId === "ton" ? "ton" : "ever";
+}
+
+function selectedAddressType(chainId = state.selectedChainId) {
+  return state.addressTypes[chainId] || defaultAddressType(chainId);
 }
 
 const state = {
   chains: [],
   selectedChainId: null,
-  tonAddressFormat: initialTonAddressFormat(),
+  addressTypes: initialAddressTypes(),
   refreshSeconds: 60,
   runtimeStatus: null,
   snapshot: null,

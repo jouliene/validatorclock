@@ -6,7 +6,7 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
     snapshot.previous_set?.utime_since || "",
     snapshot.next_set?.utime_since || "",
     model.inElections ? "election" : "closed",
-    snapshot.chain.id === "ton" ? state.tonAddressFormat : "",
+    selectedAddressType(snapshot.chain.id),
   ].join("|");
   if (state.roundRenderKey === key) {
     return;
@@ -239,7 +239,7 @@ function recentRoundPanel(color, validators) {
   } else {
     renderRecentAbsentValidators(list, validators, {
       chainId: state.selectedChainId,
-      addressFormat: state.tonAddressFormat,
+      addressType: selectedAddressType(),
     });
   }
   section.appendChild(list);
@@ -250,7 +250,7 @@ function recentRoundPanel(color, validators) {
 function validatorRenderOptions(snapshot, extra = {}) {
   return {
     chainId: snapshot.chain.id,
-    addressFormat: state.tonAddressFormat,
+    addressType: selectedAddressType(snapshot.chain.id),
     ...extra,
   };
 }

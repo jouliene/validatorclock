@@ -34,7 +34,7 @@ function shortenAddress(address) {
     return "-";
   }
   if (!address.includes(":")) {
-    return shortenHash(address, 4, 4);
+    return shortenTonFriendlyAddress(address);
   }
   const [workchain, hash] = address.split(":");
   if (!hash) {
@@ -71,7 +71,7 @@ function formatDisplayAddress(address, options = {}) {
     return { text: "-", value: "-", title: "-" };
   }
 
-  if (options.chainId === "ton" && options.addressFormat !== "raw") {
+  if (options.addressType === "ton") {
     const friendly = toTonUserFriendlyAddress(raw);
     if (friendly) {
       return {
@@ -87,6 +87,13 @@ function formatDisplayAddress(address, options = {}) {
     value: raw,
     title: raw,
   };
+}
+
+function shortenTonFriendlyAddress(address) {
+  if (!address) {
+    return "-";
+  }
+  return shortenHash(address, 4, 4);
 }
 
 function toTonUserFriendlyAddress(address) {

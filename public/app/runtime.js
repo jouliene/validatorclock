@@ -246,43 +246,44 @@ function renderAddressFormatToolbar() {
     return;
   }
 
-  const isTon = state.selectedChainId === "ton";
-  toolbar.hidden = !isTon;
-  if (!isTon) {
+  toolbar.hidden = !state.selectedChainId;
+  if (!state.selectedChainId) {
     toggle.replaceChildren();
     delete toggle.dataset.current;
     return;
   }
 
-  if (toggle.dataset.current === state.tonAddressFormat && toggle.childElementCount > 0) {
+  const addressType = selectedAddressType();
+  const currentKey = `${state.selectedChainId}:${addressType}`;
+  if (toggle.dataset.current === currentKey && toggle.childElementCount > 0) {
     return;
   }
 
-  toggle.dataset.current = state.tonAddressFormat;
+  toggle.dataset.current = currentKey;
   toggle.replaceChildren(
-    addressFormatButton("friendly", "B64", "TON user-friendly base64 address"),
-    addressFormatButton("raw", "RAW", "Raw workchain:hash address")
+    addressFormatButton("ever", "EVER", "Raw workchain:hash address"),
+    addressFormatButton("ton", "TON", "TON user-friendly base64 address")
   );
 }
 
-function addressFormatButton(format, label, title) {
+function addressFormatButton(type, label, title) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "address-format-button";
   button.textContent = label;
   button.title = title;
-  button.setAttribute("aria-pressed", String(state.tonAddressFormat === format));
-  button.addEventListener("click", () => setTonAddressFormat(format));
+  button.setAttribute("aria-pressed", String(selectedAddressType() === type));
+  button.addEventListener("click", () => setAddressType(type));
   return button;
 }
 
-function setTonAddressFormat(format) {
-  if (format !== "raw" && format !== "friendly") {
+function setAddressType(type) {
+  if ((type !== "ever" && type !== "ton") || !state.selectedChainId) {
     return;
   }
-  state.tonAddressFormat = format;
+  state.addressTypes[state.selectedChainId] = type;
   try {
-    window.localStorage?.setItem(TON_ADDRESS_FORMAT_KEY, format);
+    window.localStorage?.setItem(ADDRESS_TYPE_KEY, JSON.stringify(state.addressTypes));
   } catch (error) {
     // The preference is optional; private browsing can reject storage writes.
   }
