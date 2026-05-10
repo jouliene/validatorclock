@@ -844,6 +844,78 @@ dd {
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
 }
 
+.network-game-tile {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  justify-content: space-between;
+  border-left-color: color-mix(in srgb, var(--gold) 64%, white 7%);
+  background:
+    linear-gradient(90deg, rgba(202, 168, 92, 0.07), transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014)),
+    rgba(255, 255, 255, 0.012);
+}
+
+.network-game-tile:hover,
+.network-game-tile:focus-visible {
+  border-color: rgba(202, 168, 92, 0.26);
+  border-left-color: color-mix(in srgb, var(--gold) 80%, white 10%);
+  box-shadow:
+    0 0 10px rgba(202, 168, 92, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.network-game-placeholder-icon {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid rgba(202, 168, 92, 0.24);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(202, 168, 92, 0.055), transparent 58%),
+    rgba(202, 168, 92, 0.035);
+  color: rgba(215, 194, 143, 0.82);
+}
+
+.network-game-placeholder-icon svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.network-game-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  justify-items: end;
+  padding-bottom: 8px;
+  line-height: 1;
+  text-align: right;
+}
+
+.network-game-result {
+  overflow: hidden;
+  max-width: 70px;
+  color: rgba(239, 229, 203, 0.94);
+  font-size: 12px;
+  font-weight: 780;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.network-game-score {
+  color: rgba(190, 204, 220, 0.7);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .chain-tab-main {
   display: inline-flex;
   align-items: center;
@@ -2151,6 +2223,22 @@ dd {
     overflow: hidden;
     padding: 0 8px;
     font-size: 12px;
+  }
+
+  .network-game-tile {
+    justify-content: center;
+    min-height: 50px;
+  }
+
+  .network-game-placeholder-icon {
+    width: 30px;
+    height: 30px;
+    flex-basis: 30px;
+  }
+
+  .network-game-copy {
+    justify-items: start;
+    text-align: left;
   }
 
   .chain-tab-main {

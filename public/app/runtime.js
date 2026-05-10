@@ -61,6 +61,42 @@ function renderChainTabs() {
     button.addEventListener("click", () => selectChain(chain.id));
     tabs.appendChild(button);
   }
+
+  tabs.appendChild(networkGameTile());
+}
+
+function networkGameTile() {
+  const tile = document.createElement("span");
+  tile.id = "networkGameTile";
+  tile.className = "chain-tab network-game-tile";
+  tile.setAttribute("aria-label", "Reserved game area");
+  tile.style.setProperty("--chain-color", palette.gold);
+
+  const icon = document.createElement("span");
+  icon.className = "network-game-placeholder-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.innerHTML = [
+    '<svg viewBox="0 0 24 24" focusable="false">',
+    '<path d="M7 18h10"></path>',
+    '<path d="M9 18v-4.5a3 3 0 0 1 6 0V18"></path>',
+    '<circle cx="12" cy="8" r="3"></circle>',
+    '<path d="M8.8 8h.01"></path>',
+    '<path d="M15.2 8h.01"></path>',
+    '</svg>',
+  ].join("");
+
+  const copy = document.createElement("span");
+  copy.className = "network-game-copy";
+  const result = document.createElement("strong");
+  result.className = "network-game-result";
+  result.textContent = "Game";
+  const score = document.createElement("span");
+  score.className = "network-game-score";
+  score.textContent = "soon";
+  copy.append(result, score);
+
+  tile.append(icon, copy);
+  return tile;
 }
 
 async function selectChain(chainId) {
