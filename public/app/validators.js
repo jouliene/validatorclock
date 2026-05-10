@@ -25,6 +25,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   TonNominatorPool: { label: "NOMPOOL", className: "nompool" },
   ValidatorController: { label: "LSTCTRL", className: "lstctrl" },
   TonWalletV1R3: { label: "V1R3", className: "v1r3" },
+  TonVestingWallet: { label: "VEST", className: "vest" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -47,6 +48,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "NOMPOOL", name: "TON Nominator Pool", description: "Multi-user TON staking pool where nominators delegate stake to a validator. The pool participates in validation and distributes rewards by pool settings." },
   { label: "LSTCTRL", name: "TON Liquid Staking Controller", description: "Masterchain controller used by TON liquid-staking pools. It receives validator stake from a basechain tonstake_pool, participates in validation through Elector, and returns funds and rewards according to the pool protocol." },
   { label: "V1R3", name: "TON Wallet V1 R3", description: "Standard TON wallet contract. It stores seqno and public key, accepts signed external messages, and can be deployed in the masterchain for direct validation." },
+  { label: "VEST", name: "TON Vesting Wallet", description: "TON vesting wallet that locks funds on a schedule while still allowing approved staking operations. It can validate directly from the masterchain when Elector staking is allowed." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
@@ -344,7 +346,11 @@ function validatorSourceRole(validator) {
 }
 
 function isDirectValidatorContract(validator) {
-  return validator?.contract_type === "EverWallet" || validator?.contract_type === "TonWalletV1R3";
+  return (
+    validator?.contract_type === "EverWallet"
+    || validator?.contract_type === "TonWalletV1R3"
+    || validator?.contract_type === "TonVestingWallet"
+  );
 }
 
 function directValidatorTooltipLines(validator) {
@@ -447,6 +453,7 @@ function glossaryBadgeClass(label) {
   if (label === "NOMPOOL") return "nompool";
   if (label === "LSTCTRL") return "lstctrl";
   if (label === "V1R3") return "v1r3";
+  if (label === "VEST") return "vest";
   return "unknown";
 }
 
