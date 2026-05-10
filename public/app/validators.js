@@ -28,6 +28,7 @@ const VALIDATOR_CONTRACT_TYPES = {
   TonWalletV1R3: { label: "V1R3", className: "v1r3" },
   TonVestingWallet: { label: "VEST", className: "vest" },
   WhalesPoolProxy: { label: "WHALES", className: "whales" },
+  HipoValidatorProxy: { label: "HIPO", className: "hipo" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -53,6 +54,7 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "V1R3", name: "TON Wallet V1 R3", description: "Standard TON wallet contract. It stores seqno and public key, accepts signed external messages, and can be deployed in the masterchain for direct validation." },
   { label: "VEST", name: "TON Vesting Wallet", description: "TON vesting wallet that locks funds on a schedule while still allowing approved staking operations. It can validate directly from the masterchain when Elector staking is allowed." },
   { label: "WHALES", name: "TON Whales Pool Proxy", description: "Masterchain proxy used by Ton Whales nominator pools. The basechain pool stores user stakes, while this proxy represents the pool in validation and forwards messages between the pool and Elector." },
+  { label: "HIPO", name: "Hipo Validator Proxy", description: "Masterchain proxy used by Hipo liquid staking. Hipo Treasury funds the validator proxy for a validation round, and the proxy submits stake to Elector." },
   { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
 ];
 
@@ -375,6 +377,9 @@ function validatorSourceRole(validator) {
   }
   if (validator.contract_type === "WhalesPoolProxy") {
     return "Whales pool";
+  }
+  if (validator.contract_type === "HipoValidatorProxy") {
+    return "Hipo Treasury";
   }
   if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1" || validator.contract_type === "TonSingleNominatorPool") {
     return "Owner address";

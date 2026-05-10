@@ -1605,6 +1605,12 @@ dd {
   color: #c8e88e;
 }
 
+.validator-type-badge.is-hipo {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.12);
+  color: #f7b37f;
+}
+
 .validator-type-badge.is-unknown {
   border-color: rgba(154, 166, 184, 0.28);
   background: rgba(154, 166, 184, 0.08);

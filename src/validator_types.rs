@@ -40,6 +40,10 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "ValidatorController",
     ),
     (
+        "3c62936b39cfe5a63ddfb206db60fca300d9fcabb8f17c068963071f0466125a",
+        "ValidatorController",
+    ),
+    (
         "587cc789eff1c84f46ec3797e45fc809a14ff5ae24f1e0c7a6a99cc9dc9061ff",
         "TonWalletV1R3",
     ),
@@ -58,6 +62,10 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
     (
         "c63a2766b55a96d54fd88c2727cee63feddfd3c42f5fe56983e3e436607eb2e5",
         "TonSingleNominatorPool",
+    ),
+    (
+        "56fb96fc4b9051deecfce8b04ce3c888990ba80fe6bd07154e351506ee9907a0",
+        "HipoValidatorProxy",
     ),
 ];
 
@@ -213,6 +221,10 @@ mod tests {
             "ValidatorController"
         );
         assert_eq!(
+            contract_type_name("3c62936b39cfe5a63ddfb206db60fca300d9fcabb8f17c068963071f0466125a"),
+            "ValidatorController"
+        );
+        assert_eq!(
             contract_type_name("587cc789eff1c84f46ec3797e45fc809a14ff5ae24f1e0c7a6a99cc9dc9061ff"),
             "TonWalletV1R3"
         );
@@ -231,6 +243,10 @@ mod tests {
         assert_eq!(
             contract_type_name("c63a2766b55a96d54fd88c2727cee63feddfd3c42f5fe56983e3e436607eb2e5"),
             "TonSingleNominatorPool"
+        );
+        assert_eq!(
+            contract_type_name("56fb96fc4b9051deecfce8b04ce3c888990ba80fe6bd07154e351506ee9907a0"),
+            "HipoValidatorProxy"
         );
     }
 

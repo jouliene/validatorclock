@@ -141,4 +141,20 @@ mod tests {
         );
         Ok(())
     }
+
+    #[test]
+    fn parses_alternate_tonstakers_validator_controller_pool_address_from_data_cell() -> Result<()>
+    {
+        let data = Boc::decode_base64(
+            "te6cckECAwEAAQMAAZ4DXBPm+zjp22wAAaf9PCHP8MdQzAelv6p8S2Mp37S0CAABqAFEqAAAAAIAAcE9jmSkX71AABp/tCRAAAAAAAAAAs7AAAAAEAAAAAAAAAAAAQHRAAAAAJ/5DciI7Su9IkV0fLqJk54FZfx5ceC6Gd8HS1eJ1S3/qPAA9HwEZD/tONfVz6lJS0PVKR5viEiEGyj9AuQewGQVnXIAHpObM/VKEoWLVGijGGmF016jU1YlLEVBn4VV7sw80YfAAgCFgAek5sz9UoShYtUaKMYaYXTXqNTViUsRUGfhVXuzDzRh8AD0nNmfqlCULFqjRRjDTC6a9RqasSliKgz8Kq92YeaMPgXhspg=",
+        )?;
+
+        let parsed = parse_validator_controller_pool(&data)?;
+
+        assert_eq!(
+            parsed,
+            "0:3d1f01190ffb4e35f573ea5252d0f54a479be2122106ca3f40b907b01905675c"
+        );
+        Ok(())
+    }
 }
