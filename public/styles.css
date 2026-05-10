@@ -1365,6 +1365,48 @@ dd {
   text-overflow: clip;
 }
 
+.validator-type-heading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.validator-type-help {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(154, 196, 224, 0.22);
+  border-radius: 50%;
+  background: rgba(154, 196, 224, 0.06);
+  color: rgba(205, 220, 235, 0.82);
+  cursor: pointer;
+}
+
+.validator-type-help svg {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.validator-type-help:hover,
+.validator-type-help[aria-expanded="true"] {
+  border-color: rgba(77, 184, 255, 0.38);
+  background: rgba(77, 184, 255, 0.13);
+  color: rgba(229, 246, 255, 0.96);
+}
+
+.validator-type-help:focus-visible {
+  outline: 2px solid rgba(77, 184, 255, 0.5);
+  outline-offset: 2px;
+}
+
 .validator-header .validator-index,
 .validator-row .validator-index {
   justify-self: center;
@@ -1521,10 +1563,70 @@ dd {
   color: #d7c28f;
 }
 
+.validator-type-badge.is-snom {
+  border-color: rgba(77, 184, 255, 0.38);
+  background: rgba(77, 184, 255, 0.12);
+  color: #a8d9ff;
+}
+
 .validator-type-badge.is-unknown {
   border-color: rgba(154, 166, 184, 0.28);
   background: rgba(154, 166, 184, 0.08);
   color: #b7c0ce;
+}
+
+.validator-type-glossary {
+  position: fixed;
+  z-index: 40;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(154, 196, 224, 0.18);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(17, 24, 34, 0.98), rgba(7, 10, 15, 0.985)),
+    #080b10;
+  box-shadow:
+    0 22px 58px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.validator-type-glossary-title {
+  color: rgba(218, 228, 240, 0.9);
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.validator-type-glossary-row {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 9px;
+  align-items: start;
+}
+
+.validator-type-glossary-row .validator-type-badge {
+  justify-self: start;
+}
+
+.validator-type-glossary-details {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: rgba(188, 199, 213, 0.82);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.validator-type-glossary-details strong {
+  overflow: hidden;
+  color: rgba(237, 244, 250, 0.94);
+  font-size: 12px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .validator-history-dots {
@@ -2227,6 +2329,15 @@ dd {
 
   .validator-source {
     overflow: hidden;
+  }
+
+  .validator-type-glossary {
+    gap: 7px;
+    padding: 11px;
+  }
+
+  .validator-type-glossary-row {
+    grid-template-columns: 72px minmax(0, 1fr);
   }
 
   .validator-copy {

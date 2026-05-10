@@ -19,6 +19,14 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "c05938cde3cee21141caacc9e88d3b8f2a4a4bc3968cb3d455d83cd0498d4375",
         "DePoolProxy",
     ),
+    (
+        "cc0d39589eb2c0cfe0fde28456657a3bdd3d953955ae3f98f25664ab3c904fbd",
+        "SingleNominatorV1_1",
+    ),
+    (
+        "a42ae69eac76ffe0e452d3d4f13d387a14e46c01a5aadba5fc1d893e6c71f5ba",
+        "SingleNominatorV1_0",
+    ),
 ];
 
 #[derive(Debug, Clone, Default)]
@@ -151,6 +159,14 @@ mod tests {
         assert_eq!(
             contract_type_name("c05938cde3cee21141caacc9e88d3b8f2a4a4bc3968cb3d455d83cd0498d4375"),
             "DePoolProxy"
+        );
+        assert_eq!(
+            contract_type_name("cc0d39589eb2c0cfe0fde28456657a3bdd3d953955ae3f98f25664ab3c904fbd"),
+            "SingleNominatorV1_1"
+        );
+        assert_eq!(
+            contract_type_name("a42ae69eac76ffe0e452d3d4f13d387a14e46c01a5aadba5fc1d893e6c71f5ba"),
+            "SingleNominatorV1_0"
         );
     }
 

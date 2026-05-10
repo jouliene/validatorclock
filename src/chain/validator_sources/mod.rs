@@ -1,11 +1,14 @@
 mod contract_types;
 mod proxy_sources;
+mod single_nominator_sources;
 mod wallet_index;
 
 use self::contract_types::fetch_validator_contract_type_hashes;
 use self::proxy_sources::fetch_proxy_validator_sources;
+use self::single_nominator_sources::fetch_single_nominator_validator_sources;
 use self::wallet_index::{
-    apply_validator_type_cache, proxy_wallets_missing_source, validator_wallets,
+    apply_validator_type_cache, proxy_wallets_missing_source,
+    single_nominator_wallets_missing_source, validator_wallets,
 };
 use super::ClockSnapshot;
 use crate::config::ChainConfig;
@@ -44,7 +47,7 @@ pub(super) async fn update_validator_contract_type_hashes(
         }
     }
 
-    let missing_source_wallets = {
+    let missing_proxy_source_wallets = {
         state
             .with_validator_type_cache(|cache| {
                 apply_validator_type_cache(cache, &chain.id, snapshot);
@@ -53,13 +56,41 @@ pub(super) async fn update_validator_contract_type_hashes(
             .await
     };
 
-    if missing_source_wallets.is_empty() {
-        return Ok(());
+    if !missing_proxy_source_wallets.is_empty() {
+        let fetched_sources =
+            fetch_proxy_validator_sources(chain, missing_proxy_source_wallets).await?;
+        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
     }
 
-    let fetched_sources = fetch_proxy_validator_sources(chain, missing_source_wallets).await?;
+    let missing_single_nominator_source_wallets = {
+        state
+            .with_validator_type_cache(|cache| {
+                apply_validator_type_cache(cache, &chain.id, snapshot);
+                single_nominator_wallets_missing_source(cache, &chain.id, &wallets)
+            })
+            .await
+    };
+
+    if !missing_single_nominator_source_wallets.is_empty() {
+        let fetched_sources = fetch_single_nominator_validator_sources(
+            chain,
+            missing_single_nominator_source_wallets,
+        )
+        .await?;
+        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
+    }
+
+    Ok(())
+}
+
+async fn cache_validator_sources(
+    state: &AppState,
+    chain: &ChainConfig,
+    snapshot: &mut ClockSnapshot,
+    fetched_sources: Vec<(String, super::ValidatorSourceDto)>,
+) {
     if fetched_sources.is_empty() {
-        return Ok(());
+        return;
     }
 
     let cache_to_save = state
@@ -83,8 +114,6 @@ pub(super) async fn update_validator_contract_type_hashes(
             .save_validator_type_cache_background(cache_to_save)
             .await;
     }
-
-    Ok(())
 }
 
 async fn cache_validator_contract_type_hashes(

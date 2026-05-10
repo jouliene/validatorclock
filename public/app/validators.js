@@ -20,6 +20,8 @@ const VALIDATOR_CONTRACT_TYPES = {
   EverWallet: { label: "EVER", className: "ever" },
   DePoolProxy: { label: "PROXY", className: "proxy" },
   StEverDePoolProxy: { label: "StPROXY", className: "stproxy" },
+  SingleNominatorV1_1: { label: "SNOMv1.1", className: "snom" },
+  SingleNominatorV1_0: { label: "SNOMv1.0", className: "snom" },
 };
 
 const VALIDATOR_SOURCE_TYPES = {
@@ -32,6 +34,20 @@ const VALIDATOR_SOURCE_TYPES = {
     className: "depool",
   },
 };
+
+const VALIDATOR_TYPE_GLOSSARY = [
+  { label: "EVER", name: "Ever Wallet", description: "Direct Everscale validator wallet." },
+  { label: "PROXY", name: "DePool Proxy", description: "Validator proxy that stakes through a DePool source." },
+  { label: "StPROXY", name: "Staked EVER DePool Proxy", description: "Validator proxy that stakes through a Staked EVER DePool source." },
+  { label: "DEPOOL", name: "DePool", description: "Everscale source contract for validator stake." },
+  { label: "StDEPOOL", name: "Staked EVER DePool", description: "Staked EVER source contract for validator stake." },
+  { label: "SNOMv1.1", name: "Single Nominator v1.1", description: "TON validator contract with a cold owner and hot validator role." },
+  { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },
+  { label: "UNKNOWN", name: "Unknown", description: "Contract type has not been identified yet." },
+];
+
+let validatorTypeGlossaryPopover = null;
+let validatorTypeGlossaryAnchor = null;
 
 function renderValidators(container, validators, options = {}) {
   const table = document.createElement("div");
@@ -104,6 +120,31 @@ function validatorHeaderCell(label) {
     classes.push("validator-number");
   }
   cell.className = classes.join(" ");
+
+  if (label === "Type") {
+    cell.classList.add("validator-type-heading");
+    const name = document.createElement("span");
+    name.textContent = "Type";
+    const help = document.createElement("button");
+    help.type = "button";
+    help.className = "validator-type-help";
+    help.setAttribute("aria-label", "Show type glossary");
+    help.setAttribute("aria-expanded", "false");
+    help.title = "Type glossary";
+    help.innerHTML = `
+      <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5"></circle>
+        <path d="M12 11.5v5"></path>
+        <path d="M12 8h.01"></path>
+      </svg>
+    `;
+    help.addEventListener("click", (event) => {
+      event.stopPropagation();
+      toggleValidatorTypeGlossary(help);
+    });
+    cell.append(name, help);
+    return cell;
+  }
 
   if (label !== "History") {
     cell.textContent = label;
@@ -180,11 +221,11 @@ function validatorSourceTypeCell(validator) {
   badge.className = `validator-type-badge is-${type.className}`;
   badge.appendChild(validatorBadgeText(type.label));
   if (hash) {
-    badge.title = `${type.label} · ${hash}`;
+    badge.title = `${validatorTypeGlossaryTitle(type.label)} · ${hash}`;
   } else if (validator && validator.contract_type_hash) {
-    badge.title = `${validator.contract_type || "Unknown"} · ${validator.contract_type_hash}`;
+    badge.title = `${validatorTypeGlossaryTitle(type.label)} · ${validator.contract_type_hash}`;
   } else {
-    badge.title = type.label === UNKNOWN_VALIDATOR_TYPE.label ? "Type unknown" : type.label;
+    badge.title = validatorTypeGlossaryTitle(type.label);
   }
   cell.appendChild(badge);
   return cell;
@@ -209,19 +250,6 @@ function validatorSourceCell(validator, options = {}) {
   const cell = document.createElement("div");
   const sourceKind = validatorSourceKind(validator, options);
   cell.className = `validator-cell validator-source is-${sourceKind}`;
-  const tonHash = tonValidatorContractHash(validator, options);
-  if (tonHash) {
-    const hash = copyableValue(
-      shortenContractHash(tonHash),
-      tonHash,
-      "validator-source-address",
-      "validator contract repr hash"
-    );
-    hash.title = tonHash;
-    cell.appendChild(hash);
-    return cell;
-  }
-
   const source = validator && validator.source;
   if (source && source.address) {
     const formatted = formatDisplayAddress(source.address, options);
@@ -235,6 +263,19 @@ function validatorSourceCell(validator, options = {}) {
       ? `${formatted.title} · ${source.contract_type_hash}`
       : formatted.title;
     cell.appendChild(address);
+    return cell;
+  }
+
+  const tonHash = tonValidatorContractHash(validator, options);
+  if (tonHash) {
+    const hash = copyableValue(
+      shortenContractHash(tonHash),
+      tonHash,
+      "validator-source-address",
+      "validator contract repr hash"
+    );
+    hash.title = tonHash;
+    cell.appendChild(hash);
     return cell;
   }
 
@@ -254,12 +295,11 @@ function validatorSourceCell(validator, options = {}) {
 }
 
 function validatorSourceKind(validator, options = {}) {
-  if (tonValidatorContractHash(validator, options)) {
-    return "detail";
-  }
-
   const source = validator && validator.source;
   if (source && source.address) {
+    return "detail";
+  }
+  if (tonValidatorContractHash(validator, options)) {
     return "detail";
   }
   if (validator && validator.contract_type === "EverWallet") {
@@ -277,6 +317,135 @@ function tonValidatorContractHash(validator, options = {}) {
 
 function shortenContractHash(hash) {
   return hash && hash.length > 12 ? `${hash.slice(0, 6)}...${hash.slice(-6)}` : (hash || "-");
+}
+
+function validatorTypeGlossaryEntry(label) {
+  return VALIDATOR_TYPE_GLOSSARY.find((entry) => entry.label === label);
+}
+
+function validatorTypeGlossaryTitle(label) {
+  const entry = validatorTypeGlossaryEntry(label);
+  return entry ? `${entry.label} · ${entry.name}` : label;
+}
+
+function toggleValidatorTypeGlossary(anchor) {
+  if (validatorTypeGlossaryPopover && validatorTypeGlossaryAnchor === anchor) {
+    closeValidatorTypeGlossary();
+    return;
+  }
+
+  closeValidatorTypeGlossary();
+  validatorTypeGlossaryAnchor = anchor;
+  validatorTypeGlossaryPopover = buildValidatorTypeGlossary();
+  document.body.appendChild(validatorTypeGlossaryPopover);
+  positionValidatorTypeGlossary();
+  setValidatorTypeHelpExpanded(anchor);
+
+  document.addEventListener("click", handleValidatorTypeGlossaryOutsideClick);
+  document.addEventListener("keydown", handleValidatorTypeGlossaryKeydown);
+  window.addEventListener("resize", closeValidatorTypeGlossary);
+  window.addEventListener("scroll", closeValidatorTypeGlossary, true);
+}
+
+function buildValidatorTypeGlossary() {
+  const popover = document.createElement("div");
+  popover.className = "validator-type-glossary";
+  popover.setAttribute("role", "dialog");
+  popover.setAttribute("aria-label", "Validator type glossary");
+
+  const title = document.createElement("div");
+  title.className = "validator-type-glossary-title";
+  title.textContent = "Type glossary";
+  popover.appendChild(title);
+
+  for (const entry of VALIDATOR_TYPE_GLOSSARY) {
+    const row = document.createElement("div");
+    row.className = "validator-type-glossary-row";
+
+    const badge = document.createElement("span");
+    const badgeType = { label: entry.label, className: glossaryBadgeClass(entry.label) };
+    badge.className = `validator-type-badge is-${badgeType.className}`;
+    badge.appendChild(validatorBadgeText(entry.label));
+
+    const details = document.createElement("span");
+    details.className = "validator-type-glossary-details";
+    const name = document.createElement("strong");
+    name.textContent = entry.name;
+    const description = document.createElement("span");
+    description.textContent = entry.description;
+    details.append(name, description);
+
+    row.append(badge, details);
+    popover.appendChild(row);
+  }
+
+  return popover;
+}
+
+function glossaryBadgeClass(label) {
+  if (label === "EVER") return "ever";
+  if (label === "PROXY" || label === "DEPOOL") return "proxy";
+  if (label === "StPROXY" || label === "StDEPOOL") return "stproxy";
+  if (label === "SNOMv1.0" || label === "SNOMv1.1") return "snom";
+  return "unknown";
+}
+
+function positionValidatorTypeGlossary() {
+  if (!validatorTypeGlossaryPopover || !validatorTypeGlossaryAnchor) {
+    return;
+  }
+
+  const anchorRect = validatorTypeGlossaryAnchor.getBoundingClientRect();
+  const width = Math.min(320, Math.max(260, window.innerWidth - 24));
+  validatorTypeGlossaryPopover.style.width = `${width}px`;
+
+  const popoverRect = validatorTypeGlossaryPopover.getBoundingClientRect();
+  const left = Math.min(
+    Math.max(12, anchorRect.left + anchorRect.width / 2 - width / 2),
+    window.innerWidth - width - 12
+  );
+  const belowTop = anchorRect.bottom + 8;
+  const aboveTop = anchorRect.top - popoverRect.height - 8;
+  const top = belowTop + popoverRect.height <= window.innerHeight - 12
+    ? belowTop
+    : Math.max(12, aboveTop);
+
+  validatorTypeGlossaryPopover.style.left = `${left}px`;
+  validatorTypeGlossaryPopover.style.top = `${top}px`;
+}
+
+function handleValidatorTypeGlossaryOutsideClick(event) {
+  if (
+    validatorTypeGlossaryPopover
+    && !validatorTypeGlossaryPopover.contains(event.target)
+    && !validatorTypeGlossaryAnchor?.contains(event.target)
+  ) {
+    closeValidatorTypeGlossary();
+  }
+}
+
+function handleValidatorTypeGlossaryKeydown(event) {
+  if (event.key === "Escape") {
+    closeValidatorTypeGlossary();
+  }
+}
+
+function closeValidatorTypeGlossary() {
+  validatorTypeGlossaryPopover?.remove();
+  validatorTypeGlossaryPopover = null;
+  validatorTypeGlossaryAnchor = null;
+  setValidatorTypeHelpExpanded(null);
+
+  document.removeEventListener("click", handleValidatorTypeGlossaryOutsideClick);
+  document.removeEventListener("keydown", handleValidatorTypeGlossaryKeydown);
+  window.removeEventListener("resize", closeValidatorTypeGlossary);
+  window.removeEventListener("scroll", closeValidatorTypeGlossary, true);
+}
+
+function setValidatorTypeHelpExpanded(activeAnchor) {
+  document.querySelectorAll(".validator-type-help").forEach((button) => {
+    button.setAttribute("aria-expanded", String(button === activeAnchor));
+  });
 }
 
 function validatorCell(text, className = "", title = text) {
