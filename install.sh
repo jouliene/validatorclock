@@ -122,6 +122,104 @@ json_array_from_csv() {
   printf '%s' "$output"
 }
 
+sync_existing_config_defaults() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "python3 is required to merge built-in chains into an existing config." >&2
+    echo "Install python3 or add the missing chain entries manually in: $CONFIG_PATH" >&2
+    exit 1
+  fi
+
+  python3 - "$CONFIG_PATH" <<'PY'
+import json
+import shutil
+import sys
+import time
+from pathlib import Path
+
+config_path = Path(sys.argv[1])
+default_chains = [
+    {
+        "id": "everscale",
+        "name": "Everscale",
+        "rpc": "https://jrpc.everwallet.net",
+        "color": "#6347F5",
+        "token_symbol": "EVER",
+        "rpc_label": "jrpc.everwallet.net",
+    },
+    {
+        "id": "tycho-testnet",
+        "name": "Tycho Testnet",
+        "rpc": "https://rpc-testnet.tychoprotocol.com",
+        "color": "#2ECC71",
+        "token_symbol": "TYCHO",
+        "rpc_label": "rpc-testnet.tychoprotocol.com",
+    },
+    {
+        "id": "ton",
+        "name": "TON",
+        "rpc": "https://jrpc-ton.broxus.com",
+        "color": "#4DB8FF",
+        "token_symbol": "TON",
+        "rpc_label": "jrpc-ton.broxus.com",
+    },
+]
+
+with config_path.open("r", encoding="utf-8") as fh:
+    config = json.load(fh)
+
+chains = config.setdefault("chains", [])
+if not isinstance(chains, list):
+    raise SystemExit(f"{config_path}: chains must be an array")
+
+by_id = {
+    chain.get("id"): chain
+    for chain in chains
+    if isinstance(chain, dict) and isinstance(chain.get("id"), str)
+}
+added = []
+updated = []
+
+for default in default_chains:
+    chain = by_id.get(default["id"])
+    if chain is None:
+        chains.append(default.copy())
+        added.append(default["id"])
+        continue
+
+    for key in ("name", "color", "token_symbol"):
+        if chain.get(key) != default[key]:
+            chain[key] = default[key]
+            updated.append(f"{default['id']}.{key}")
+
+    if not chain.get("rpc_label"):
+        chain["rpc_label"] = default["rpc_label"]
+        updated.append(f"{default['id']}.rpc_label")
+
+if not added and not updated:
+    print(f"Existing config already has built-in chains: {config_path}")
+    raise SystemExit(0)
+
+backup_path = config_path.with_name(
+    f"{config_path.name}.bak-{time.strftime('%Y%m%d%H%M%S')}"
+)
+shutil.copy2(config_path, backup_path)
+
+tmp_path = config_path.with_name(f".{config_path.name}.tmp")
+with tmp_path.open("w", encoding="utf-8") as fh:
+    json.dump(config, fh, indent=2)
+    fh.write("\n")
+
+tmp_path.chmod(config_path.stat().st_mode & 0o777)
+tmp_path.replace(config_path)
+
+if added:
+    print(f"Added built-in chains to existing config: {', '.join(added)}")
+if updated:
+    print(f"Updated built-in chain metadata: {', '.join(updated)}")
+print(f"Config backup: {backup_path}")
+PY
+}
+
 ensure_cargo() {
   if command -v cargo >/dev/null 2>&1; then
     return
@@ -173,6 +271,7 @@ build_release() {
 write_config_if_missing() {
   if [[ -f "$CONFIG_PATH" ]]; then
     echo "Keeping existing config: $CONFIG_PATH"
+    sync_existing_config_defaults
     return
   fi
 
