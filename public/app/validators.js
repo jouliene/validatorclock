@@ -215,6 +215,22 @@ function validatorHeaderCell(label, options = {}) {
     return cell;
   }
 
+  if (label === "Validator" && options.chainId === "ton") {
+    cell.classList.add("validator-address-heading");
+    const name = document.createElement("span");
+    name.textContent = "Validator";
+    const toggle = document.createElement("span");
+    toggle.className = "validator-source-mode-toggle validator-address-mode-toggle";
+    toggle.setAttribute("role", "group");
+    toggle.setAttribute("aria-label", "Validator address type");
+    toggle.append(
+      validatorAddressModeButton("ever", "HASH", options),
+      validatorAddressModeButton("ton", "BASE64", options)
+    );
+    cell.append(name, toggle);
+    return cell;
+  }
+
   if (label !== "History") {
     cell.textContent = label;
     return cell;
@@ -242,6 +258,23 @@ function validatorSourceModeButton(mode, label, options = {}) {
     event.stopPropagation();
     if (typeof options.onSourceDisplayModeChange === "function") {
       options.onSourceDisplayModeChange(mode);
+    }
+  });
+  return button;
+}
+
+function validatorAddressModeButton(type, label, options = {}) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "validator-source-mode-button validator-address-mode-button";
+  button.textContent = label;
+  button.title = type === "ever" ? "Show raw workchain:hash address" : "Show TON user-friendly base64 address";
+  button.setAttribute("aria-pressed", String((options.addressType || "ton") === type));
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof options.onAddressTypeChange === "function") {
+      options.onAddressTypeChange(type);
     }
   });
   return button;

@@ -251,6 +251,7 @@ function validatorRenderOptions(snapshot, extra = {}) {
   return {
     chainId: snapshot.chain.id,
     addressType: selectedAddressType(snapshot.chain.id),
+    onAddressTypeChange: setAddressType,
     sourceDisplayMode: selectedSourceDisplayMode(snapshot.chain.id),
     onSourceDisplayModeChange: setSourceDisplayMode,
     glossaryLabels: validatorGlossaryLabelsForSnapshot(snapshot),

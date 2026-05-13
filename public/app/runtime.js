@@ -61,42 +61,6 @@ function renderChainTabs() {
     button.addEventListener("click", () => selectChain(chain.id));
     tabs.appendChild(button);
   }
-
-  tabs.appendChild(networkGameTile());
-}
-
-function networkGameTile() {
-  const tile = document.createElement("span");
-  tile.id = "networkGameTile";
-  tile.className = "chain-tab network-game-tile";
-  tile.setAttribute("aria-label", "Reserved game area");
-  tile.style.setProperty("--chain-color", palette.gold);
-
-  const icon = document.createElement("span");
-  icon.className = "network-game-placeholder-icon";
-  icon.setAttribute("aria-hidden", "true");
-  icon.innerHTML = [
-    '<svg viewBox="0 0 24 24" focusable="false">',
-    '<path d="M7 18h10"></path>',
-    '<path d="M9 18v-4.5a3 3 0 0 1 6 0V18"></path>',
-    '<circle cx="12" cy="8" r="3"></circle>',
-    '<path d="M8.8 8h.01"></path>',
-    '<path d="M15.2 8h.01"></path>',
-    '</svg>',
-  ].join("");
-
-  const copy = document.createElement("span");
-  copy.className = "network-game-copy";
-  const result = document.createElement("strong");
-  result.className = "network-game-result";
-  result.textContent = "Game";
-  const score = document.createElement("span");
-  score.className = "network-game-score";
-  score.textContent = "soon";
-  copy.append(result, score);
-
-  tile.append(icon, copy);
-  return tile;
 }
 
 async function selectChain(chainId) {
@@ -261,7 +225,6 @@ function shuffleNetworkMessages(messages) {
 
 function renderNow() {
   const now = Math.trunc(Date.now() / 1000);
-  renderAddressFormatToolbar();
   renderRuntimeStatus(now);
   refreshStaleSnapshot(now);
 
@@ -275,51 +238,6 @@ function renderNow() {
   renderRoundPanelsIfNeeded(state.snapshot, model);
 }
 
-function renderAddressFormatToolbar() {
-  const toolbar = $("addressFormatToolbar");
-  const toggle = $("addressFormatToggle");
-  const sourceGroup = $("sourceDisplayGroup");
-  const sourceToggle = $("sourceDisplayToggle");
-  if (!toolbar || !toggle) {
-    return;
-  }
-
-  toolbar.hidden = !state.selectedChainId;
-  if (!state.selectedChainId) {
-    toggle.replaceChildren();
-    delete toggle.dataset.current;
-    sourceToggle?.replaceChildren();
-    delete sourceToggle?.dataset.current;
-    if (sourceGroup) {
-      sourceGroup.hidden = true;
-    }
-    return;
-  }
-
-  const addressType = selectedAddressType();
-  const currentKey = `${state.selectedChainId}:${addressType}`;
-  if (toggle.dataset.current !== currentKey || toggle.childElementCount === 0) {
-    toggle.dataset.current = currentKey;
-    toggle.replaceChildren(
-      addressFormatButton("ever", "EVER", "Raw workchain:hash address"),
-      addressFormatButton("ton", "TON", "TON user-friendly base64 address")
-    );
-  }
-
-  renderSourceDisplayToggle(sourceGroup, sourceToggle);
-}
-
-function addressFormatButton(type, label, title) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "address-format-button";
-  button.textContent = label;
-  button.title = title;
-  button.setAttribute("aria-pressed", String(selectedAddressType() === type));
-  button.addEventListener("click", () => setAddressType(type));
-  return button;
-}
-
 function setAddressType(type) {
   if ((type !== "ever" && type !== "ton") || !state.selectedChainId) {
     return;
@@ -330,49 +248,8 @@ function setAddressType(type) {
   } catch (error) {
     // The preference is optional; private browsing can reject storage writes.
   }
-  const toggle = $("addressFormatToggle");
-  if (toggle) {
-    delete toggle.dataset.current;
-  }
   state.roundRenderKey = null;
   renderNow();
-}
-
-function renderSourceDisplayToggle(sourceGroup, sourceToggle) {
-  if (!sourceGroup || !sourceToggle) {
-    return;
-  }
-
-  const visible = state.selectedChainId === "ton";
-  sourceGroup.hidden = !visible;
-  if (!visible) {
-    sourceToggle.replaceChildren();
-    delete sourceToggle.dataset.current;
-    return;
-  }
-
-  const sourceMode = selectedSourceDisplayMode();
-  const currentKey = `${state.selectedChainId}:${sourceMode}`;
-  if (sourceToggle.dataset.current === currentKey && sourceToggle.childElementCount > 0) {
-    return;
-  }
-
-  sourceToggle.dataset.current = currentKey;
-  sourceToggle.replaceChildren(
-    sourceDisplayButton("meta", "META", "Show TON source owner metadata"),
-    sourceDisplayButton("addr", "ADDR", "Show TON source address")
-  );
-}
-
-function sourceDisplayButton(mode, label, title) {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "address-format-button";
-  button.textContent = label;
-  button.title = title;
-  button.setAttribute("aria-pressed", String(selectedSourceDisplayMode() === mode));
-  button.addEventListener("click", () => setSourceDisplayMode(mode));
-  return button;
 }
 
 function setSourceDisplayMode(mode) {
@@ -384,10 +261,6 @@ function setSourceDisplayMode(mode) {
     window.localStorage?.setItem(SOURCE_DISPLAY_KEY, JSON.stringify(state.sourceDisplayModes));
   } catch (error) {
     // The preference is optional; private browsing can reject storage writes.
-  }
-  const toggle = $("sourceDisplayToggle");
-  if (toggle) {
-    delete toggle.dataset.current;
   }
   state.roundRenderKey = null;
   renderNow();
