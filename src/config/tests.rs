@@ -82,6 +82,28 @@ fn rejects_empty_and_missing_required_config_fields() {
 }
 
 #[test]
+fn rejects_unsafe_or_duplicate_chain_ids() {
+    let mut config = test_config();
+    config.chains[0].id = " ton".to_owned();
+    assert!(config.validate().is_err());
+
+    let mut config = test_config();
+    config.chains[0].id = "ton/mainnet".to_owned();
+    assert!(config.validate().is_err());
+
+    let mut config = test_config();
+    config.chains.push(ChainConfig {
+        id: "test".to_owned(),
+        name: "Duplicate Test".to_owned(),
+        rpc: "https://duplicate.example.com".to_owned(),
+        color: "#22c55e".to_owned(),
+        token_symbol: "TEST".to_owned(),
+        rpc_label: None,
+    });
+    assert!(config.validate().is_err());
+}
+
+#[test]
 fn validates_security_limits_directly() {
     let mut config = test_config();
     config.security.max_connections = 0;

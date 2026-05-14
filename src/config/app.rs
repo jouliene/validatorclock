@@ -1,7 +1,9 @@
 use super::{SecurityConfig, TlsConfig};
+use crate::history::round_history_chain_path;
 use crate::server;
 use anyhow::{Result, bail};
 use serde::Deserialize;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Deserialize)]
@@ -45,6 +47,8 @@ impl AppConfig {
         for chain in &self.chains {
             chain.validate()?;
         }
+        self.validate_chain_ids()?;
+        self.validate_history_paths()?;
 
         self.security.validate()?;
         self.tls.validate()?;
@@ -78,6 +82,49 @@ impl AppConfig {
         let mut path = self.cache_path.clone();
         path.set_file_name("validators_clock_validator_types.json");
         path
+    }
+
+    fn validate_chain_ids(&self) -> Result<()> {
+        let mut seen = HashSet::new();
+        for chain in &self.chains {
+            if chain.id.trim() != chain.id {
+                bail!(
+                    "chain id `{}` cannot contain leading or trailing whitespace",
+                    chain.id
+                );
+            }
+            if !chain
+                .id
+                .chars()
+                .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_'))
+            {
+                bail!(
+                    "chain id `{}` can only contain ASCII letters, digits, `-`, and `_`",
+                    chain.id
+                );
+            }
+            if !seen.insert(chain.id.as_str()) {
+                bail!("duplicate chain id `{}`", chain.id);
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_history_paths(&self) -> Result<()> {
+        let history_base_path = self.effective_history_path();
+        let mut paths = HashMap::<PathBuf, &str>::new();
+        for chain in &self.chains {
+            let path = round_history_chain_path(&history_base_path, &chain.id);
+            if let Some(existing_chain_id) = paths.insert(path.clone(), &chain.id) {
+                bail!(
+                    "chains `{}` and `{}` derive the same history path {}",
+                    existing_chain_id,
+                    chain.id,
+                    path.display()
+                );
+            }
+        }
+        Ok(())
     }
 }
 

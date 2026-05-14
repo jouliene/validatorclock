@@ -3,6 +3,49 @@ use crate::history::{RecentAbsentValidatorDto, RecentAbsentValidatorSourceDto};
 use crate::validator_types::{ValidatorSourceCacheEntry, ValidatorTypeCache, contract_type_name};
 use std::collections::HashSet;
 
+#[derive(Clone, Copy)]
+pub(super) enum ValidatorSourceKind {
+    Proxy,
+    SingleNominator,
+    NominatorPool,
+    ValidatorController,
+    WhalesPoolProxy,
+    HipoValidatorProxy,
+}
+
+impl ValidatorSourceKind {
+    pub(super) fn wallets_missing_source(
+        self,
+        cache: &ValidatorTypeCache,
+        chain_id: &str,
+        wallets: &[String],
+    ) -> Vec<String> {
+        wallets
+            .iter()
+            .filter_map(|wallet| {
+                let entry = cache.get(chain_id, wallet)?;
+                self.matches_contract_type(contract_type_name(&entry.repr_hash))
+                    .then(|| entry.source.is_none())
+                    .and_then(|missing| missing.then(|| wallet.clone()))
+            })
+            .collect()
+    }
+
+    fn matches_contract_type(self, contract_type: &str) -> bool {
+        match self {
+            Self::Proxy => matches!(contract_type, "DePoolProxy" | "StEverDePoolProxy"),
+            Self::SingleNominator => matches!(
+                contract_type,
+                "SingleNominatorV1_0" | "SingleNominatorV1_1" | "TonSingleNominatorPool"
+            ),
+            Self::NominatorPool => matches!(contract_type, "TonNominatorPool"),
+            Self::ValidatorController => matches!(contract_type, "ValidatorController"),
+            Self::WhalesPoolProxy => matches!(contract_type, "WhalesPoolProxy"),
+            Self::HipoValidatorProxy => matches!(contract_type, "HipoValidatorProxy"),
+        }
+    }
+}
+
 pub(super) fn validator_wallets(snapshot: &ClockSnapshot) -> Vec<String> {
     let mut seen = HashSet::new();
     let mut wallets = Vec::new();
@@ -120,102 +163,6 @@ pub(super) fn apply_validator_type_cache(
     }
 }
 
-pub(super) fn proxy_wallets_missing_source(
-    cache: &ValidatorTypeCache,
-    chain_id: &str,
-    wallets: &[String],
-) -> Vec<String> {
-    wallets
-        .iter()
-        .filter_map(|wallet| {
-            let entry = cache.get(chain_id, wallet)?;
-            is_proxy_contract_type(contract_type_name(&entry.repr_hash))
-                .then(|| entry.source.is_none())
-                .and_then(|missing| missing.then(|| wallet.clone()))
-        })
-        .collect()
-}
-
-pub(super) fn single_nominator_wallets_missing_source(
-    cache: &ValidatorTypeCache,
-    chain_id: &str,
-    wallets: &[String],
-) -> Vec<String> {
-    wallets
-        .iter()
-        .filter_map(|wallet| {
-            let entry = cache.get(chain_id, wallet)?;
-            is_single_nominator_contract_type(contract_type_name(&entry.repr_hash))
-                .then(|| entry.source.is_none())
-                .and_then(|missing| missing.then(|| wallet.clone()))
-        })
-        .collect()
-}
-
-pub(super) fn nominator_pool_wallets_missing_source(
-    cache: &ValidatorTypeCache,
-    chain_id: &str,
-    wallets: &[String],
-) -> Vec<String> {
-    wallets
-        .iter()
-        .filter_map(|wallet| {
-            let entry = cache.get(chain_id, wallet)?;
-            is_nominator_pool_contract_type(contract_type_name(&entry.repr_hash))
-                .then(|| entry.source.is_none())
-                .and_then(|missing| missing.then(|| wallet.clone()))
-        })
-        .collect()
-}
-
-pub(super) fn validator_controller_wallets_missing_source(
-    cache: &ValidatorTypeCache,
-    chain_id: &str,
-    wallets: &[String],
-) -> Vec<String> {
-    wallets
-        .iter()
-        .filter_map(|wallet| {
-            let entry = cache.get(chain_id, wallet)?;
-            is_validator_controller_contract_type(contract_type_name(&entry.repr_hash))
-                .then(|| entry.source.is_none())
-                .and_then(|missing| missing.then(|| wallet.clone()))
-        })
-        .collect()
-}
-
-pub(super) fn whales_pool_proxy_wallets_missing_source(
-    cache: &ValidatorTypeCache,
-    chain_id: &str,
-    wallets: &[String],
-) -> Vec<String> {
-    wallets
-        .iter()
-        .filter_map(|wallet| {
-            let entry = cache.get(chain_id, wallet)?;
-            is_whales_pool_proxy_contract_type(contract_type_name(&entry.repr_hash))
-                .then(|| entry.source.is_none())
-                .and_then(|missing| missing.then(|| wallet.clone()))
-        })
-        .collect()
-}
-
-pub(super) fn hipo_validator_proxy_wallets_missing_source(
-    cache: &ValidatorTypeCache,
-    chain_id: &str,
-    wallets: &[String],
-) -> Vec<String> {
-    wallets
-        .iter()
-        .filter_map(|wallet| {
-            let entry = cache.get(chain_id, wallet)?;
-            is_hipo_validator_proxy_contract_type(contract_type_name(&entry.repr_hash))
-                .then(|| entry.source.is_none())
-                .and_then(|missing| missing.then(|| wallet.clone()))
-        })
-        .collect()
-}
-
 fn validator_source_dto(source: &ValidatorSourceCacheEntry) -> ValidatorSourceDto {
     ValidatorSourceDto {
         address: source.address.clone(),
@@ -245,31 +192,4 @@ fn recent_absent_source_dto(source: &ValidatorSourceCacheEntry) -> RecentAbsentV
         address: source.address.clone(),
         contract_type_hash: source.repr_hash.clone(),
     }
-}
-
-fn is_proxy_contract_type(contract_type: &str) -> bool {
-    matches!(contract_type, "DePoolProxy" | "StEverDePoolProxy")
-}
-
-fn is_single_nominator_contract_type(contract_type: &str) -> bool {
-    matches!(
-        contract_type,
-        "SingleNominatorV1_0" | "SingleNominatorV1_1" | "TonSingleNominatorPool"
-    )
-}
-
-fn is_nominator_pool_contract_type(contract_type: &str) -> bool {
-    matches!(contract_type, "TonNominatorPool")
-}
-
-fn is_validator_controller_contract_type(contract_type: &str) -> bool {
-    matches!(contract_type, "ValidatorController")
-}
-
-fn is_whales_pool_proxy_contract_type(contract_type: &str) -> bool {
-    matches!(contract_type, "WhalesPoolProxy")
-}
-
-fn is_hipo_validator_proxy_contract_type(contract_type: &str) -> bool {
-    matches!(contract_type, "HipoValidatorProxy")
 }

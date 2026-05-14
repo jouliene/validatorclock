@@ -13,19 +13,22 @@ use self::nominator_pool_sources::fetch_nominator_pool_validator_sources;
 use self::proxy_sources::fetch_proxy_validator_sources;
 use self::single_nominator_sources::fetch_single_nominator_validator_sources;
 use self::validator_controller_sources::fetch_validator_controller_sources;
-use self::wallet_index::{
-    apply_validator_type_cache, hipo_validator_proxy_wallets_missing_source,
-    nominator_pool_wallets_missing_source, proxy_wallets_missing_source,
-    single_nominator_wallets_missing_source, validator_controller_wallets_missing_source,
-    validator_wallets, whales_pool_proxy_wallets_missing_source,
-};
+use self::wallet_index::{ValidatorSourceKind, apply_validator_type_cache, validator_wallets};
 use self::whales_pool_proxy_sources::fetch_whales_pool_proxy_sources;
-use super::ClockSnapshot;
+use super::{ClockSnapshot, ValidatorSourceDto};
 use crate::config::ChainConfig;
 use crate::state::AppState;
 use anyhow::Result;
 
 pub(super) const VALIDATOR_TYPE_FETCH_CONCURRENCY: usize = 8;
+const SOURCE_RESOLVERS: &[ValidatorSourceKind] = &[
+    ValidatorSourceKind::Proxy,
+    ValidatorSourceKind::SingleNominator,
+    ValidatorSourceKind::NominatorPool,
+    ValidatorSourceKind::ValidatorController,
+    ValidatorSourceKind::WhalesPoolProxy,
+    ValidatorSourceKind::HipoValidatorProxy,
+];
 
 pub(super) async fn update_validator_contract_type_hashes(
     state: &AppState,
@@ -57,104 +60,49 @@ pub(super) async fn update_validator_contract_type_hashes(
         }
     }
 
-    let missing_proxy_source_wallets = {
-        state
-            .with_validator_type_cache(|cache| {
-                apply_validator_type_cache(cache, &chain.id, snapshot);
-                proxy_wallets_missing_source(cache, &chain.id, &wallets)
-            })
-            .await
-    };
+    for resolver in SOURCE_RESOLVERS {
+        let missing_source_wallets = {
+            state
+                .with_validator_type_cache(|cache| {
+                    apply_validator_type_cache(cache, &chain.id, snapshot);
+                    resolver.wallets_missing_source(cache, &chain.id, &wallets)
+                })
+                .await
+        };
 
-    if !missing_proxy_source_wallets.is_empty() {
-        let fetched_sources =
-            fetch_proxy_validator_sources(chain, missing_proxy_source_wallets).await?;
-        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
-    }
-
-    let missing_single_nominator_source_wallets = {
-        state
-            .with_validator_type_cache(|cache| {
-                apply_validator_type_cache(cache, &chain.id, snapshot);
-                single_nominator_wallets_missing_source(cache, &chain.id, &wallets)
-            })
-            .await
-    };
-
-    if !missing_single_nominator_source_wallets.is_empty() {
-        let fetched_sources = fetch_single_nominator_validator_sources(
-            chain,
-            missing_single_nominator_source_wallets,
-        )
-        .await?;
-        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
-    }
-
-    let missing_nominator_pool_source_wallets = {
-        state
-            .with_validator_type_cache(|cache| {
-                apply_validator_type_cache(cache, &chain.id, snapshot);
-                nominator_pool_wallets_missing_source(cache, &chain.id, &wallets)
-            })
-            .await
-    };
-
-    if !missing_nominator_pool_source_wallets.is_empty() {
-        let fetched_sources =
-            fetch_nominator_pool_validator_sources(chain, missing_nominator_pool_source_wallets)
-                .await?;
-        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
-    }
-
-    let missing_validator_controller_source_wallets = {
-        state
-            .with_validator_type_cache(|cache| {
-                apply_validator_type_cache(cache, &chain.id, snapshot);
-                validator_controller_wallets_missing_source(cache, &chain.id, &wallets)
-            })
-            .await
-    };
-
-    if !missing_validator_controller_source_wallets.is_empty() {
-        let fetched_sources =
-            fetch_validator_controller_sources(chain, missing_validator_controller_source_wallets)
-                .await?;
-        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
-    }
-
-    let missing_whales_pool_proxy_source_wallets = {
-        state
-            .with_validator_type_cache(|cache| {
-                apply_validator_type_cache(cache, &chain.id, snapshot);
-                whales_pool_proxy_wallets_missing_source(cache, &chain.id, &wallets)
-            })
-            .await
-    };
-
-    if !missing_whales_pool_proxy_source_wallets.is_empty() {
-        let fetched_sources =
-            fetch_whales_pool_proxy_sources(chain, missing_whales_pool_proxy_source_wallets)
-                .await?;
-        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
-    }
-
-    let missing_hipo_validator_proxy_source_wallets = {
-        state
-            .with_validator_type_cache(|cache| {
-                apply_validator_type_cache(cache, &chain.id, snapshot);
-                hipo_validator_proxy_wallets_missing_source(cache, &chain.id, &wallets)
-            })
-            .await
-    };
-
-    if !missing_hipo_validator_proxy_source_wallets.is_empty() {
-        let fetched_sources =
-            fetch_hipo_validator_proxy_sources(chain, missing_hipo_validator_proxy_source_wallets)
-                .await?;
-        cache_validator_sources(state, chain, snapshot, fetched_sources).await;
+        if !missing_source_wallets.is_empty() {
+            let fetched_sources =
+                fetch_validator_sources(*resolver, chain, missing_source_wallets).await?;
+            cache_validator_sources(state, chain, snapshot, fetched_sources).await;
+        }
     }
 
     Ok(())
+}
+
+async fn fetch_validator_sources(
+    resolver: ValidatorSourceKind,
+    chain: &ChainConfig,
+    wallets: Vec<String>,
+) -> Result<Vec<(String, ValidatorSourceDto)>> {
+    match resolver {
+        ValidatorSourceKind::Proxy => fetch_proxy_validator_sources(chain, wallets).await,
+        ValidatorSourceKind::SingleNominator => {
+            fetch_single_nominator_validator_sources(chain, wallets).await
+        }
+        ValidatorSourceKind::NominatorPool => {
+            fetch_nominator_pool_validator_sources(chain, wallets).await
+        }
+        ValidatorSourceKind::ValidatorController => {
+            fetch_validator_controller_sources(chain, wallets).await
+        }
+        ValidatorSourceKind::WhalesPoolProxy => {
+            fetch_whales_pool_proxy_sources(chain, wallets).await
+        }
+        ValidatorSourceKind::HipoValidatorProxy => {
+            fetch_hipo_validator_proxy_sources(chain, wallets).await
+        }
+    }
 }
 
 async fn cache_validator_sources(
