@@ -1,23 +1,11 @@
 # Validators Clock
 
-Validators Clock is a web dashboard for TVM blockchains. It currently supports
-Everscale Mainnet, Tycho Testnet, and TON.
-
-It shows validator rounds, election timing, candidates, stakes, rewards, wallet
-types, and recent validator history.
+Web dashboard for Everscale, Tycho, and TON validator rounds, elections,
+stakes, rewards, wallet types, and recent validator history.
 
 ![Validators Clock screenshot](docs/validators-clock-screenshot.png)
 
 ## Run Locally
-
-Install Rust if you do not have it:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
-```
-
-Clone and run:
 
 ```bash
 cd ~
@@ -32,45 +20,18 @@ Open:
 http://127.0.0.1:8787
 ```
 
-Update local checkout:
+If Rust is missing:
 
 ```bash
-cd ~/validators_clock
-git pull --ff-only
-cargo run
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source "$HOME/.cargo/env"
 ```
 
-## Visual Check
+## Install On Ubuntu Server
 
-For local frontend checks, build the binary and capture mobile/desktop
-screenshots:
+Point DNS to the server first. Ports `80` and `443` must be open.
 
-```bash
-scripts/visual-check.sh
-```
-
-The script starts a temporary preview server, captures screenshots with
-Brave/Chromium/Chrome, and runs mobile geometry checks for horizontal overflow
-and validator-card alignment. Artifacts are written to:
-
-```text
-target/visual-check
-```
-
-Optional overrides:
-
-```bash
-VALIDATORS_CLOCK_VISUAL_PORT=18788 scripts/visual-check.sh
-VALIDATORS_CLOCK_VISUAL_OUT=/tmp/validators-clock-check scripts/visual-check.sh
-VALIDATORS_CLOCK_BROWSER=chromium scripts/visual-check.sh
-```
-
-## Install In Production
-
-Use an Ubuntu/systemd server. Point your domain DNS to the server first. Ports
-80 and 443 must be open.
-
-Install basic packages:
+Install packages:
 
 ```bash
 sudo apt update
@@ -86,37 +47,41 @@ cd validators_clock
 ./install.sh
 ```
 
-For another production domain:
+For another domain:
 
 ```bash
 VALIDATORS_CLOCK_PUBLIC_URL=https://your-domain.example ./install.sh
 ```
 
-The installer creates:
+`install.sh` checks Rust. If Rust is missing, it installs Rust with `rustup`.
+If Rust is already managed by `rustup`, it updates Rust before building.
 
-```text
-~/.cargo/bin/validators_clock
-~/.validators_clock/
-/etc/systemd/system/validators-clock.service
-```
-
-It does not overwrite existing history, cache, ACME, TLS, or config files in
-`~/.validators_clock`.
-
-If Rust is not installed, `./install.sh` installs it automatically with rustup.
+The script asks for `sudo` only for systemd work: installing the service file,
+reloading systemd, enabling the service, and restarting the service.
 
 ## Update Production
 
 ```bash
 cd ~/validators_clock
-git pull --ff-only origin main
-./install.sh
+./update.sh
 ```
+
+`update.sh` checks/updates Rust, runs:
+
+```bash
+git pull --ff-only origin main
+```
+
+and then runs `./install.sh`.
+
+`--ff-only` is intentional. It updates production only when Git can move
+straight to the GitHub version. Plain `git pull` can create a merge commit on
+the server if there are local changes.
 
 ## Check Production
 
 ```bash
-sudo systemctl status validators-clock.service --no-pager
+systemctl status validators-clock.service --no-pager
 curl -sS https://validatorsclock.xyz/api/status
 ```
 
@@ -127,15 +92,21 @@ sudo journalctl -u validators-clock.service -n 100 --no-pager
 sudo journalctl -u validators-clock.service -f
 ```
 
-## Runtime Data
+## Files
 
-Production data lives in:
+Installed binary:
+
+```text
+~/.cargo/bin/validators_clock
+```
+
+Production data:
 
 ```text
 ~/.validators_clock
 ```
 
-Important files:
+Important data files:
 
 ```text
 validators_clock.production.json

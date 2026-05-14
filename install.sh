@@ -12,12 +12,15 @@ Builds validators_clock, installs the binary to $HOME/.cargo/bin, creates a
 production runtime directory at $HOME/.validators_clock, installs/updates the
 systemd service, and restarts it.
 
-If cargo is missing, the script installs Rust with rustup first.
+The script checks Rust before building. If Rust is missing, it installs Rust
+with rustup. If Rust is already managed by rustup, it updates the toolchain.
 
 This script does not run git pull. Production update flow:
 
-  git pull --ff-only
-  ./install.sh
+  ./update.sh
+
+Sudo is needed for systemd only: installing the unit file, reloading systemd,
+enabling the service, and restarting the service.
 
 Environment overrides:
   VALIDATORS_CLOCK_STATE_DIR              default: $HOME/.validators_clock
@@ -27,6 +30,7 @@ Environment overrides:
   VALIDATORS_CLOCK_ACME_STAGING           default: false
   VALIDATORS_CLOCK_RUSTFLAGS              default: -C target-cpu=native
   VALIDATORS_CLOCK_NO_RESTART             set to 1 to skip restart
+  VALIDATORS_CLOCK_RUST_ALREADY_UPDATED   set to 1 if caller already updated Rust
 USAGE
 }
 
@@ -220,17 +224,27 @@ print(f"Config backup: {backup_path}")
 PY
 }
 
-ensure_cargo() {
-  if command -v cargo >/dev/null 2>&1; then
-    return
-  fi
-
+load_cargo_env() {
   if [[ -f "${HOME}/.cargo/env" ]]; then
     # shellcheck disable=SC1091
     source "${HOME}/.cargo/env"
   fi
+}
+
+ensure_rust() {
+  load_cargo_env
 
   if command -v cargo >/dev/null 2>&1; then
+    if [[ "${VALIDATORS_CLOCK_RUST_ALREADY_UPDATED:-0}" == "1" ]]; then
+      echo "Rust toolchain already checked by caller"
+      return
+    fi
+    if command -v rustup >/dev/null 2>&1; then
+      echo "Updating Rust toolchain"
+      rustup update
+    else
+      echo "Rust/Cargo found, but rustup was not found; skipping Rust toolchain update"
+    fi
     return
   fi
 
@@ -249,6 +263,9 @@ ensure_cargo() {
     echo "cargo is still not available after rustup install" >&2
     exit 1
   fi
+
+  echo "Updating Rust toolchain"
+  rustup update
 }
 
 build_release() {
@@ -407,7 +424,7 @@ chmod 700 "$STATE_DIR" "$ACME_DIR"
 
 write_config_if_missing
 
-ensure_cargo
+ensure_rust
 
 echo "Building release binary"
 build_release
@@ -416,6 +433,8 @@ tmp_binary="${BIN_PATH}.new"
 install -m 0755 "${REPO_DIR}/target/release/${APP_NAME}" "$tmp_binary"
 mv -f "$tmp_binary" "$BIN_PATH"
 echo "Installed binary: $BIN_PATH"
+
+echo "Sudo is required now to install/reload/restart the systemd service."
 
 write_systemd_service
 
@@ -426,5 +445,6 @@ if [[ "$NO_RESTART" == "1" ]]; then
   echo "Skipping restart because --no-restart or VALIDATORS_CLOCK_NO_RESTART=1 was set"
 else
   sudo systemctl restart "$SERVICE_NAME"
-  sudo systemctl status "$SERVICE_NAME" --no-pager --lines=20
+  echo "Restarted $SERVICE_NAME"
+  systemctl --no-pager --lines=20 status "$SERVICE_NAME" || true
 fi
