@@ -284,7 +284,6 @@ h1::after {
 }
 
 .election-time-card,
-.network-panel dl div,
 .chain-tab,
 .recent-round-empty,
 .round-stat {
@@ -325,8 +324,8 @@ h1::after {
   background: none;
   box-shadow: none;
   --network-accent: rgba(47, 147, 220, 0.82);
-  --network-accent-soft: rgba(47, 147, 220, 0.03);
-  --network-accent-line: rgba(47, 147, 220, 0.12);
+  --network-accent-soft: rgba(47, 147, 220, 0.032);
+  --network-accent-line: rgba(47, 147, 220, 0.13);
   --panel-glow: var(--network-accent-line);
 }
 
@@ -338,6 +337,7 @@ h1::after {
 .network-message-card {
   border: 1px solid rgba(170, 205, 230, 0.16);
   background:
+    radial-gradient(circle at 78% 48%, rgba(154, 196, 224, 0.045), transparent 40%),
     radial-gradient(circle at 100% 100%, rgba(45, 170, 235, 0.032), transparent 34%),
     linear-gradient(180deg, rgba(16, 24, 34, 0.9), rgba(5, 9, 14, 0.94));
   box-shadow:
@@ -348,6 +348,7 @@ h1::after {
 
 .network-card {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 12px;
   padding: 22px 22px 12px;
 }
@@ -391,11 +392,6 @@ h1::after {
 .network-message-card p.is-exiting {
   opacity: 0;
   transform: translateY(-5px);
-}
-
-.network-panel dl div {
-  grid-template-columns: 64px minmax(0, 1fr);
-  align-items: center;
 }
 
 .network-panel .chain-tabs {
@@ -665,78 +661,65 @@ dd {
   text-align: right;
 }
 
-.network-panel dl {
-  gap: 0;
-  align-content: start;
-  height: auto;
-  overflow: hidden;
-  border: 0;
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-}
-
-.network-panel dl div {
-  min-height: 43px;
-  padding: 0 13px;
-  align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.095);
-  border-left: 4px solid var(--network-accent);
-  background:
-    linear-gradient(90deg, var(--network-accent-soft), transparent 44%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.036), rgba(255, 255, 255, 0.014)),
-    rgba(255, 255, 255, 0.014);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.032);
-}
-
-.network-panel dl div + div {
-  margin-top: 9px;
-}
-
-.network-panel dl div:last-child {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.095);
-}
-
-.network-panel dt {
-  display: flex;
-  min-height: 0;
-  align-items: center;
-  color: rgba(169, 204, 228, 0.8);
-  font-size: 10.5px;
-  font-weight: 760;
-  line-height: 1.2;
-}
-
-.network-panel dd {
-  display: flex;
-  min-height: 0;
-  align-items: center;
-  justify-content: flex-end;
-  color: rgba(245, 247, 251, 0.94);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 1.2;
-}
-
 .date-stack {
   display: grid;
   gap: 3px;
 }
 
-#metricRpc {
-  overflow: visible;
-  overflow-wrap: normal;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 650;
-}
-
 .chain-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   align-items: start;
-  gap: 10px;
+  gap: 9px;
   margin-bottom: 18px;
+}
+
+.network-selector-layout {
+  display: grid;
+  grid-template-columns: minmax(136px, 0.82fr) minmax(0, 1.18fr);
+  gap: 14px;
+  align-items: stretch;
+  min-height: 184px;
+}
+
+.network-portrait {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.network-portrait::before {
+  content: "";
+  position: absolute;
+  inset: -2% -6% -9% -8%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(204, 230, 246, 0.08), transparent 28%),
+    radial-gradient(circle at 58% 58%, rgba(47, 147, 220, 0.06), transparent 45%);
+  filter: blur(3px);
+}
+
+.network-portrait img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  object-position: 46% 38%;
+  opacity: 0.98;
+  transform: scale(1.12) translate(-1px, 1px);
+  mix-blend-mode: lighten;
+  filter:
+    brightness(1.06)
+    contrast(1.04)
+    saturate(0.96)
+    drop-shadow(0 14px 22px rgba(0, 0, 0, 0.36));
+  -webkit-mask-image: radial-gradient(ellipse at 52% 46%, #000 0 58%, rgba(0, 0, 0, 0.84) 72%, transparent 100%);
+  mask-image: radial-gradient(ellipse at 52% 46%, #000 0 58%, rgba(0, 0, 0, 0.84) 72%, transparent 100%);
 }
 
 .chain-tab {
@@ -2029,13 +2012,13 @@ dd {
   }
 
   .election-panel {
-    order: 2;
+    order: 3;
     width: 100%;
     padding: 15px;
   }
 
   .network-panel {
-    order: 3;
+    order: 2;
     width: 100%;
     grid-template-rows: auto auto;
     gap: 10px;
@@ -2081,7 +2064,13 @@ dd {
   .chain-tabs {
     grid-template-columns: 1fr;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
+  }
+
+  .network-selector-layout {
+    grid-template-columns: minmax(118px, 0.88fr) minmax(0, 1.12fr);
+    gap: 10px;
+    min-height: 158px;
   }
 
   .chain-tab {
@@ -2105,33 +2094,8 @@ dd {
     flex-basis: 24px;
   }
 
-  .network-panel dl {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .network-panel dl div {
-    grid-column: auto;
-    grid-template-columns: 1fr;
-    gap: 5px;
-    min-width: 0;
-    min-height: 50px;
-    padding: 8px 12px;
-  }
-
-  .network-panel dd {
-    min-width: 0;
-    justify-content: flex-start;
-    overflow: hidden;
-    text-align: left;
-    text-overflow: ellipsis;
-  }
-
-  #metricRpc {
-    font-size: 12px;
-    overflow-wrap: anywhere;
-    text-align: left;
-    white-space: normal;
+  .network-portrait {
+    min-height: 158px;
   }
 
   #metricStatus {

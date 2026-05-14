@@ -31,12 +31,13 @@ function renderChainTabs() {
   tabs.replaceChildren();
 
   for (const chain of state.chains) {
+    const isSelected = chain.id === state.selectedChainId;
     const button = document.createElement("button");
     button.type = "button";
     button.className = "chain-tab";
     button.setAttribute("role", "tab");
-    button.setAttribute("aria-selected", String(chain.id === state.selectedChainId));
-    button.style.setProperty("--chain-color", chain.color || palette.blue);
+    button.setAttribute("aria-selected", String(isSelected));
+    button.style.setProperty("--chain-color", palette.blue);
 
     const main = document.createElement("span");
     main.className = "chain-tab-main";
@@ -54,13 +55,20 @@ function renderChainTabs() {
       mark.classList.add("chain-swatch");
     }
 
-    main.append(mark, document.createTextNode(chain.name));
+    main.append(mark, document.createTextNode(chainTabLabel(chain)));
 
     button.append(main);
 
     button.addEventListener("click", () => selectChain(chain.id));
     tabs.appendChild(button);
   }
+}
+
+function chainTabLabel(chain) {
+  if (chain.id === "tycho-testnet") {
+    return "Tycho";
+  }
+  return chain.name;
 }
 
 async function selectChain(chainId) {
@@ -71,6 +79,7 @@ async function selectChain(chainId) {
   if (cachedSnapshot) {
     state.snapshot = cachedSnapshot;
     setError(cachedSnapshot.warning || "");
+    renderChainTabs();
     renderNow();
   } else {
     state.snapshot = null;
@@ -104,6 +113,7 @@ async function loadClock(force = false) {
     state.snapshotsByChain.set(chainId, snapshot);
     state.roundRenderKey = null;
     setError(snapshot.warning || "");
+    renderChainTabs();
     renderNow();
     updateStaleSnapshotRetry(chainId, snapshot);
   } finally {

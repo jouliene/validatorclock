@@ -1,8 +1,7 @@
 function renderMetrics(snapshot, model, now) {
-  $("metricRpc").textContent = snapshot.chain.rpc_label;
   $("metricStatus").textContent = model.status;
   applyRoundAccent(snapshot.current_set.round_color);
-  applyNetworkAccent(snapshot.chain.id);
+  applyNetworkAccent();
   renderDateStack($("metricRound"), snapshot.current_set.utime_since, snapshot.current_set.utime_until);
   $("metricRoundEndsIn").textContent = formatDurationPrecise(Math.max(0, snapshot.current_set.utime_until - now));
   renderDateStack($("metricElections"), model.electionsStart, model.electionsEnd);
@@ -30,17 +29,17 @@ function applyRoundAccent(color) {
     : "rgba(47, 147, 220, 0.11)");
 }
 
-function applyNetworkAccent(chainId) {
+function applyNetworkAccent() {
   const panel = $("networkPanel");
   if (!panel) {
     return;
   }
-  const accents = {
-    everscale: ["rgba(99, 71, 245, 0.82)", "rgba(99, 71, 245, 0.032)", "rgba(99, 71, 245, 0.13)"],
-    "tycho-testnet": ["rgba(46, 204, 113, 0.78)", "rgba(46, 204, 113, 0.03)", "rgba(46, 204, 113, 0.12)"],
-    ton: ["rgba(77, 184, 255, 0.82)", "rgba(77, 184, 255, 0.032)", "rgba(77, 184, 255, 0.13)"],
-  };
-  const [accent, soft, line] = accents[chainId] || accents.ton;
+  const accents = [
+    "rgba(47, 147, 220, 0.82)",
+    "rgba(47, 147, 220, 0.032)",
+    "rgba(47, 147, 220, 0.13)",
+  ];
+  const [accent, soft, line] = accents;
   panel.style.setProperty("--network-accent", accent);
   panel.style.setProperty("--network-accent-soft", soft);
   panel.style.setProperty("--network-accent-line", line);
