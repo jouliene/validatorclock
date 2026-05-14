@@ -72,7 +72,9 @@ cd ~/validators_clock
 git pull --ff-only origin main
 ```
 
-and then runs `./install.sh`.
+then builds and installs the new binary. It does not recreate the systemd
+service. For normal updates, it restarts the already-existing service without
+sudo by stopping the current app process and letting systemd start it again.
 
 `--ff-only` is intentional. It updates production only when Git can move
 straight to the GitHub version. Plain `git pull` can create a merge commit on

@@ -2,16 +2,19 @@
 set -euo pipefail
 
 UPDATE_BRANCH="${VALIDATORS_CLOCK_UPDATE_BRANCH:-main}"
+SERVICE_NAME="${VALIDATORS_CLOCK_SERVICE_NAME:-validators-clock.service}"
 
 usage() {
   cat <<'USAGE'
 Usage: ./update.sh
 
 Updates this production checkout from GitHub, updates the Rust toolchain,
-rebuilds validators_clock, installs the new binary, and restarts systemd.
+rebuilds validators_clock, installs the new binary, and restarts the existing
+service without sudo.
 
 Environment overrides:
   VALIDATORS_CLOCK_UPDATE_BRANCH default: main
+  VALIDATORS_CLOCK_SERVICE_NAME  default: validators-clock.service
   all install.sh environment overrides are also supported
 USAGE
 }
@@ -79,6 +82,50 @@ ensure_rust() {
   rustup update
 }
 
+restart_existing_service_without_sudo() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    echo "systemctl was not found; binary is updated but service was not restarted." >&2
+    return 1
+  fi
+
+  local old_pid
+  old_pid="$(systemctl show "$SERVICE_NAME" --property MainPID --value 2>/dev/null || true)"
+
+  if [[ ! "$old_pid" =~ ^[0-9]+$ || "$old_pid" -le 1 ]]; then
+    echo "No running MainPID found for $SERVICE_NAME." >&2
+    echo "Binary is updated, but starting the system service requires:" >&2
+    echo "  sudo systemctl start $SERVICE_NAME" >&2
+    return 1
+  fi
+
+  echo "Restarting $SERVICE_NAME without sudo"
+  echo "Stopping process $old_pid; systemd Restart=always will start the new binary"
+  if ! kill "$old_pid"; then
+    echo "Could not stop process $old_pid without sudo." >&2
+    echo "Binary is updated, but applying it now requires:" >&2
+    echo "  sudo systemctl restart $SERVICE_NAME" >&2
+    return 1
+  fi
+
+  local attempt
+  local new_pid
+  local state
+  for attempt in {1..20}; do
+    sleep 0.5
+    state="$(systemctl is-active "$SERVICE_NAME" 2>/dev/null || true)"
+    new_pid="$(systemctl show "$SERVICE_NAME" --property MainPID --value 2>/dev/null || true)"
+    if [[ "$state" == "active" && "$new_pid" =~ ^[0-9]+$ && "$new_pid" -gt 1 && "$new_pid" != "$old_pid" ]]; then
+      echo "$SERVICE_NAME restarted with PID $new_pid"
+      systemctl --no-pager --lines=12 status "$SERVICE_NAME" || true
+      return 0
+    fi
+  done
+
+  echo "Timed out waiting for $SERVICE_NAME to restart." >&2
+  systemctl --no-pager --lines=20 status "$SERVICE_NAME" || true
+  return 1
+}
+
 current_branch="$(git branch --show-current)"
 if [[ "$current_branch" != "$UPDATE_BRANCH" ]]; then
   echo "This checkout is on branch '$current_branch', but update branch is '$UPDATE_BRANCH'." >&2
@@ -98,4 +145,6 @@ echo "Updating Git checkout with fast-forward only"
 git pull --ff-only origin "$UPDATE_BRANCH"
 
 echo "Installing updated release"
-VALIDATORS_CLOCK_RUST_ALREADY_UPDATED=1 ./install.sh
+VALIDATORS_CLOCK_RUST_ALREADY_UPDATED=1 VALIDATORS_CLOCK_NO_SYSTEMD=1 ./install.sh
+
+restart_existing_service_without_sudo

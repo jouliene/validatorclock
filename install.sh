@@ -6,7 +6,7 @@ APP_NAME="validators_clock"
 
 usage() {
   cat <<'USAGE'
-Usage: ./install.sh [--no-restart]
+Usage: ./install.sh [--no-restart] [--no-systemd]
 
 Builds validators_clock, installs the binary to $HOME/.cargo/bin, creates a
 production runtime directory at $HOME/.validators_clock, installs/updates the
@@ -22,6 +22,10 @@ This script does not run git pull. Production update flow:
 Sudo is needed for systemd only: installing the unit file, reloading systemd,
 enabling the service, and restarting the service.
 
+For normal production updates without sudo, use:
+
+  ./update.sh
+
 Environment overrides:
   VALIDATORS_CLOCK_STATE_DIR              default: $HOME/.validators_clock
   VALIDATORS_CLOCK_PUBLIC_URL             default: https://validatorsclock.xyz
@@ -30,11 +34,13 @@ Environment overrides:
   VALIDATORS_CLOCK_ACME_STAGING           default: false
   VALIDATORS_CLOCK_RUSTFLAGS              default: -C target-cpu=native
   VALIDATORS_CLOCK_NO_RESTART             set to 1 to skip restart
+  VALIDATORS_CLOCK_NO_SYSTEMD             set to 1 to skip all systemd/sudo work
   VALIDATORS_CLOCK_RUST_ALREADY_UPDATED   set to 1 if caller already updated Rust
 USAGE
 }
 
 NO_RESTART="${VALIDATORS_CLOCK_NO_RESTART:-0}"
+NO_SYSTEMD="${VALIDATORS_CLOCK_NO_SYSTEMD:-0}"
 
 while (($#)); do
   case "$1" in
@@ -44,6 +50,9 @@ while (($#)); do
       ;;
     --no-restart)
       NO_RESTART=1
+      ;;
+    --no-systemd)
+      NO_SYSTEMD=1
       ;;
     *)
       echo "unknown argument: $1" >&2
@@ -60,7 +69,7 @@ if [[ "${EUID}" -eq 0 ]]; then
   exit 1
 fi
 
-if ! command -v systemctl >/dev/null 2>&1; then
+if [[ "$NO_SYSTEMD" != "1" ]] && ! command -v systemctl >/dev/null 2>&1; then
   echo "systemctl is required but was not found in PATH" >&2
   exit 1
 fi
@@ -433,6 +442,11 @@ tmp_binary="${BIN_PATH}.new"
 install -m 0755 "${REPO_DIR}/target/release/${APP_NAME}" "$tmp_binary"
 mv -f "$tmp_binary" "$BIN_PATH"
 echo "Installed binary: $BIN_PATH"
+
+if [[ "$NO_SYSTEMD" == "1" ]]; then
+  echo "Skipping systemd work because --no-systemd or VALIDATORS_CLOCK_NO_SYSTEMD=1 was set"
+  exit 0
+fi
 
 echo "Sudo is required now to install/reload/restart the systemd service."
 
