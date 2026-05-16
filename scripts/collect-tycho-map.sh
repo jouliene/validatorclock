@@ -7,11 +7,9 @@ set -euo pipefail
 # Required commands: tycho, jq, curl.
 #
 # Common production usage:
-#   TYCHO_MAP_OUTPUT=/var/lib/validators-clock/tycho_nodes.json \
-#   VALIDATORS_CLOCK_URL=http://127.0.0.1:8787 \
-#   scripts/collect-tycho-map.sh
+#   scripts/collect-tycho-map.sh --config /path/to/tycho-map.env
 #
-# Useful env vars:
+# Useful config/env vars:
 #   TYCHO_BIN                  tycho binary path, default: tycho
 #   VALIDATORS_CLOCK_URL       validators_clock base URL, default: http://127.0.0.1:8787
 #   TYCHO_MAP_CHAIN_ID         chain id for clock API, default: tycho-testnet
@@ -24,6 +22,64 @@ set -euo pipefail
 #   TYCHO_MAP_ACTIVE_ONLY      1 to require current validator filter, 0 for all peers, default: 1
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+usage() {
+  cat <<'USAGE'
+Usage: scripts/collect-tycho-map.sh [--config PATH]
+
+Collects Tycho overlay peers, filters active validators, enriches IPs with
+geo data, and writes a Tycho map nodes JSON/JS file.
+
+Options:
+  --config PATH  Source shell-style KEY=value settings before running.
+  --help, -h     Show this help.
+
+Config keys:
+  TYCHO_BIN
+  VALIDATORS_CLOCK_URL
+  TYCHO_MAP_CHAIN_ID
+  TYCHO_MAP_OUTPUT
+  TYCHO_MAP_FORMAT
+  TYCHO_MAP_GEO_CACHE
+  TYCHO_MAP_GEO_PROVIDER
+  TYCHO_MAP_OVERLAYS
+  TYCHO_MAP_OVERLAY_SCOPE
+  TYCHO_MAP_ACTIVE_ONLY
+USAGE
+}
+
+CONFIG_PATH=""
+while (($#)); do
+  case "$1" in
+    --config)
+      if [[ $# -lt 2 || -z "$2" ]]; then
+        echo "--config requires a path" >&2
+        exit 2
+      fi
+      CONFIG_PATH="$2"
+      shift 2
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+done
+
+if [[ -n "${CONFIG_PATH}" ]]; then
+  if [[ ! -r "${CONFIG_PATH}" ]]; then
+    echo "Config file is not readable: ${CONFIG_PATH}" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  source "${CONFIG_PATH}"
+fi
+
 TYCHO_BIN="${TYCHO_BIN:-tycho}"
 VALIDATORS_CLOCK_URL="${VALIDATORS_CLOCK_URL:-http://127.0.0.1:8787}"
 TYCHO_MAP_CHAIN_ID="${TYCHO_MAP_CHAIN_ID:-tycho-testnet}"
