@@ -55,6 +55,7 @@ const state = {
   staleRetryTimer: null,
   staleRetryKey: null,
   clockLoading: false,
+  tychoMapOpen: false,
   clockRequestSeq: 0,
   lastClockRefreshAttempt: 0,
   roundRenderKey: null,

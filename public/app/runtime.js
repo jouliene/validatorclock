@@ -62,6 +62,8 @@ function renderChainTabs() {
     button.addEventListener("click", () => selectChain(chain.id));
     tabs.appendChild(button);
   }
+
+  updateTychoMapAvailability();
 }
 
 function chainTabLabel(chain) {
