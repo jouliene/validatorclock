@@ -9,6 +9,7 @@ use axum::body::{Body, to_bytes};
 use axum::http::header;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use serde_json::Value;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -547,6 +548,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         refresh_timeout_seconds: 90,
         cache_path: PathBuf::from("cache.json"),
         history_path: None,
+        tycho_map_nodes_path: None,
         security: SecurityConfig {
             allowed_hosts,
             ..SecurityConfig::default()
@@ -564,4 +566,97 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
             rpc_label: None,
         }],
     }
+}
+
+#[tokio::test]
+async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
+    let mut config = test_config(Vec::new());
+    config.chains.push(ChainConfig {
+        id: "tycho-testnet".to_owned(),
+        name: "Tycho".to_owned(),
+        rpc: "https://tycho.example.com".to_owned(),
+        color: "#58c9f6".to_owned(),
+        token_symbol: "TYCHO".to_owned(),
+        rpc_label: None,
+    });
+    let state = Arc::new(AppState::new(Arc::new(config)));
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/tycho-testnet/map")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
+    let body = response_json(response).await;
+    assert!(body.as_array().unwrap().len() > 0);
+    assert!(body[0]["peer"].is_string());
+    assert!(body[0]["ip"].is_string());
+}
+
+#[tokio::test]
+async fn app_router_serves_configured_tycho_map_file() {
+    let map_path = std::env::temp_dir().join(format!(
+        "validators_clock_tycho_map_test_{}_{}.json",
+        std::process::id(),
+        now_sec_for_test()
+    ));
+    fs::write(
+        &map_path,
+        r#"[{"peer":"validator-public-key","ip":"203.0.113.10","city":"Test City","country":"Testland","isp":"Test ISP","lat":1.25,"lon":2.5}]"#,
+    )
+    .unwrap();
+
+    let mut config = test_config(Vec::new());
+    config.tycho_map_nodes_path = Some(map_path.clone());
+    config.chains.push(ChainConfig {
+        id: "tycho-testnet".to_owned(),
+        name: "Tycho".to_owned(),
+        rpc: "https://tycho.example.com".to_owned(),
+        color: "#58c9f6".to_owned(),
+        token_symbol: "TYCHO".to_owned(),
+        rpc_label: None,
+    });
+    let state = Arc::new(AppState::new(Arc::new(config)));
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/tycho-testnet/map")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(body.as_array().unwrap().len(), 1);
+    assert_eq!(body[0]["peer"], "validator-public-key");
+    assert_eq!(body[0]["ip"], "203.0.113.10");
+
+    let _ = fs::remove_file(map_path);
+}
+
+#[tokio::test]
+async fn app_router_rejects_map_for_non_tycho_chain() {
+    let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/test/map")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body = response_json(response).await;
+    assert_eq!(body["code"], "map_not_available");
 }

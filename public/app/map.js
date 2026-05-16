@@ -13,6 +13,7 @@ const TYCHO_MAP_DEFAULT_OPTIONS = {
 let mapLibrePromise = null;
 let tychoMap = null;
 let tychoMapLoaded = false;
+let tychoMapNodes = null;
 const tychoMapPopups = new Set();
 
 function setupTychoMapControls() {
@@ -94,6 +95,8 @@ function syncTychoMapPanel() {
 }
 
 async function loadTychoMap() {
+  await loadTychoMapNodes();
+
   if (tychoMapLoaded) {
     if (tychoMap) {
       tychoMap.resize();
@@ -106,6 +109,23 @@ async function loadTychoMap() {
   renderTychoMap();
   tychoMapLoaded = true;
   showTychoMapStatus("");
+}
+
+async function loadTychoMapNodes() {
+  if (tychoMapNodes) {
+    return tychoMapNodes;
+  }
+
+  try {
+    const nodes = await fetchJson(`/api/chains/${TYCHO_MAP_CHAIN_ID}/map`);
+    tychoMapNodes = Array.isArray(nodes) ? nodes : [];
+  } catch (error) {
+    console.warn("Using bundled Tycho map nodes", error);
+    tychoMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+  }
+
+  updateTychoMapSummary();
+  return tychoMapNodes;
 }
 
 function ensureMapLibre() {
@@ -144,7 +164,7 @@ function renderTychoMap() {
     return;
   }
 
-  const rawNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+  const rawNodes = tychoMapNodes || (Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : []);
   const locationGroups = groupNodesByLocation(rawNodes);
   const features = locationGroups.map((group) => ({
     type: "Feature",
@@ -456,7 +476,7 @@ function updateTychoMapSummary() {
     return;
   }
 
-  const nodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+  const nodes = tychoMapNodes || (Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : []);
   const locations = groupNodesByLocation(nodes).length;
   summary.textContent = `${nodes.length} nodes / ${locations} locations`;
 }

@@ -19,6 +19,8 @@ pub(crate) struct AppConfig {
     #[serde(default)]
     pub(crate) history_path: Option<PathBuf>,
     #[serde(default)]
+    pub(crate) tycho_map_nodes_path: Option<PathBuf>,
+    #[serde(default)]
     pub(crate) security: SecurityConfig,
     #[serde(default)]
     pub(crate) tls: TlsConfig,
@@ -42,6 +44,13 @@ impl AppConfig {
             .is_some_and(|path| path.as_os_str().is_empty())
         {
             bail!("history_path cannot be empty when set");
+        }
+        if self
+            .tycho_map_nodes_path
+            .as_ref()
+            .is_some_and(|path| path.as_os_str().is_empty())
+        {
+            bail!("tycho_map_nodes_path cannot be empty when set");
         }
 
         for chain in &self.chains {

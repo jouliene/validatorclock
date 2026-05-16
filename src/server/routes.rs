@@ -1,5 +1,5 @@
 use super::acme::{acme_challenge, redirect_to_https};
-use super::api::{chain_clock, health, list_chains, not_found, status};
+use super::api::{chain_clock, chain_map, health, list_chains, not_found, status};
 use super::assets::{
     app_js, everscale_logo, index, jokes_json, smoking_man_png, styles, ton_logo, tycho_logo,
 };
@@ -34,6 +34,7 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/api/status", get(status))
         .route("/api/chains", get(list_chains))
         .route("/api/chains/{chain_id}/clock", get(chain_clock))
+        .route("/api/chains/{chain_id}/map", get(chain_map))
         .fallback(not_found)
         .with_state(state)
         .layer(layers)

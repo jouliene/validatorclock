@@ -1,14 +1,19 @@
+use super::assets::fallback_tycho_nodes_json;
 use super::security::{json_error, query_forces_refresh};
 use crate::chain::{chains_response, get_chain_snapshot_cached_first, runtime_status};
 use crate::state::AppState;
+use anyhow::{Context, Result, bail};
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde_json::json;
+use serde_json::{Value, json};
 use std::collections::HashMap;
+use std::io::ErrorKind;
 use std::sync::Arc;
 use tracing::error;
+
+const TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
 
 pub(super) async fn health() -> impl IntoResponse {
     Json(json!({ "status": "ok" }))
@@ -57,6 +62,64 @@ pub(super) async fn chain_clock(
             )
         }
     }
+}
+
+pub(super) async fn chain_map(
+    State(state): State<Arc<AppState>>,
+    Path(chain_id): Path<String>,
+) -> Response {
+    if state.config.chain(&chain_id).is_none() {
+        return json_error(
+            StatusCode::NOT_FOUND,
+            "unknown_chain",
+            &format!("unknown chain id `{chain_id}`"),
+        );
+    }
+    if chain_id != TYCHO_MAP_CHAIN_ID {
+        return json_error(
+            StatusCode::NOT_FOUND,
+            "map_not_available",
+            "validator map is available for Tycho only",
+        );
+    }
+
+    match load_tycho_map_nodes(&state).await {
+        Ok(nodes) => Json(nodes).into_response(),
+        Err(error) => {
+            error!(error = ?error, "tycho map request failed");
+            json_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "tycho_map_failed",
+                "failed to load Tycho validator map",
+            )
+        }
+    }
+}
+
+async fn load_tycho_map_nodes(state: &AppState) -> Result<Value> {
+    if let Some(path) = &state.config.tycho_map_nodes_path {
+        match std::fs::read_to_string(path) {
+            Ok(body) => {
+                let value = serde_json::from_str(&body)
+                    .with_context(|| format!("failed to parse {}", path.display()))?;
+                return ensure_map_nodes_array(value);
+            }
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
+            Err(error) => {
+                return Err(error).with_context(|| format!("failed to read {}", path.display()));
+            }
+        }
+    }
+
+    let value = fallback_tycho_nodes_json().context("failed to parse bundled Tycho map nodes")?;
+    ensure_map_nodes_array(value)
+}
+
+fn ensure_map_nodes_array(value: Value) -> Result<Value> {
+    if !value.is_array() {
+        bail!("Tycho map nodes payload must be a JSON array");
+    }
+    Ok(value)
 }
 
 pub(super) async fn not_found() -> Response {
