@@ -594,7 +594,7 @@ async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
     let body = response_json(response).await;
-    assert!(body.as_array().unwrap().len() > 0);
+    assert!(!body.as_array().unwrap().is_empty());
     assert!(body[0]["peer"].is_string());
     assert!(body[0]["ip"].is_string());
 }
