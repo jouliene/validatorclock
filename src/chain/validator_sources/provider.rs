@@ -477,3 +477,33 @@ enum TonCenterCallError {
     RateLimited(anyhow::Error),
     Other(anyhow::Error),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_toncenter_json_rpc_endpoint() {
+        assert!(is_toncenter_endpoint(
+            "https://toncenter.com/api/v2/jsonRPC"
+        ));
+        assert!(!is_toncenter_endpoint("https://jrpc-ton.broxus.com"));
+    }
+
+    #[test]
+    fn derives_v3_account_states_endpoint() {
+        assert_eq!(
+            account_states_endpoint("https://toncenter.com/api/v2/jsonRPC"),
+            "https://toncenter.com/api/v3/accountStates"
+        );
+        assert_eq!(
+            account_states_endpoint("https://toncenter.com/api/v2/jsonRPC/"),
+            "https://toncenter.com/api/v3/accountStates"
+        );
+    }
+
+    #[test]
+    fn normalizes_account_state_cache_keys() {
+        assert_eq!(address_key("-1:EF7EBD"), "-1:ef7ebd");
+    }
+}

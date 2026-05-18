@@ -44,8 +44,11 @@ pub(crate) struct ChainMeta {
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ClockSnapshot {
     pub(crate) chain: ChainMeta,
+    // Internal endpoint that produced this snapshot. It is intentionally not
+    // serialized; enrichment uses it so fallback data does not call a failed
+    // primary RPC.
     #[serde(skip)]
-    pub(crate) selected_rpc: Option<String>,
+    pub(crate) selected_endpoint: Option<String>,
     pub(crate) fetched_at: u64,
     pub(crate) global_id: i32,
     pub(crate) seqno: u32,

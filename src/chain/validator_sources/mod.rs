@@ -41,8 +41,9 @@ pub(super) async fn update_validator_contract_type_hashes(
     if wallets.is_empty() {
         return Ok(());
     }
-    let selected_rpc = snapshot.selected_rpc.as_deref().unwrap_or(&chain.rpc);
-    let provider = ValidatorSourceProvider::new(&chain.id, selected_rpc)?;
+    let selected_endpoint = snapshot.selected_endpoint.as_deref().unwrap_or(&chain.rpc);
+    let provider = ValidatorSourceProvider::new(&chain.id, selected_endpoint)?;
+    let mut cache_changed = false;
 
     let missing_wallets = {
         state
@@ -60,7 +61,8 @@ pub(super) async fn update_validator_contract_type_hashes(
     if !missing_wallets.is_empty() {
         let fetched =
             fetch_validator_contract_type_hashes(&chain.id, &provider, missing_wallets).await?;
-        cache_validator_contract_type_hashes(state, chain, snapshot, fetched).await;
+        cache_changed |=
+            cache_validator_contract_type_hashes(state, &chain.id, snapshot, fetched).await;
     }
 
     for resolver in SOURCE_RESOLVERS {
@@ -77,8 +79,16 @@ pub(super) async fn update_validator_contract_type_hashes(
             let fetched_sources =
                 fetch_validator_sources(*resolver, &chain.id, &provider, missing_source_wallets)
                     .await?;
-            cache_validator_sources(state, chain, snapshot, fetched_sources).await;
+            cache_changed |=
+                cache_validator_sources(state, &chain.id, snapshot, fetched_sources).await;
         }
+    }
+
+    if cache_changed {
+        let cache_to_save = state.with_validator_type_cache(Clone::clone).await;
+        state
+            .save_validator_type_cache_background(cache_to_save)
+            .await;
     }
 
     Ok(())
@@ -114,63 +124,51 @@ async fn fetch_validator_sources(
 
 async fn cache_validator_sources(
     state: &AppState,
-    chain: &ChainConfig,
+    chain_id: &str,
     snapshot: &mut ClockSnapshot,
     fetched_sources: Vec<(String, super::ValidatorSourceDto)>,
-) {
+) -> bool {
     if fetched_sources.is_empty() {
-        return;
+        return false;
     }
 
-    let cache_to_save = state
+    state
         .update_validator_type_cache(|cache| {
             let mut changed = false;
             for (wallet, source) in fetched_sources {
                 changed |= cache.insert_source(
-                    &chain.id,
+                    chain_id,
                     &wallet,
                     source.address,
                     source.contract_type_hash,
                 );
             }
-            apply_validator_type_cache(cache, &chain.id, snapshot);
-            changed.then(|| cache.clone())
+            apply_validator_type_cache(cache, chain_id, snapshot);
+            changed
         })
-        .await;
-
-    if let Some(cache_to_save) = cache_to_save {
-        state
-            .save_validator_type_cache_background(cache_to_save)
-            .await;
-    }
+        .await
 }
 
 async fn cache_validator_contract_type_hashes(
     state: &AppState,
-    chain: &ChainConfig,
+    chain_id: &str,
     snapshot: &mut ClockSnapshot,
     fetched: Vec<(String, String)>,
-) {
+) -> bool {
     if fetched.is_empty() {
-        return;
+        return false;
     }
 
-    let cache_to_save = state
+    state
         .update_validator_type_cache(|cache| {
             let mut changed = false;
             for (wallet, repr_hash) in fetched {
-                changed |= cache.insert(&chain.id, &wallet, repr_hash);
+                changed |= cache.insert(chain_id, &wallet, repr_hash);
             }
-            apply_validator_type_cache(cache, &chain.id, snapshot);
-            changed.then(|| cache.clone())
+            apply_validator_type_cache(cache, chain_id, snapshot);
+            changed
         })
-        .await;
-
-    if let Some(cache_to_save) = cache_to_save {
-        state
-            .save_validator_type_cache_background(cache_to_save)
-            .await;
-    }
+        .await
 }
 
 pub(super) async fn apply_cached_validator_contract_type_hashes(

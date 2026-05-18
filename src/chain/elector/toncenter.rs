@@ -83,7 +83,7 @@ pub(super) async fn fetch_chain_snapshot(
 
     Ok(ClockSnapshot {
         chain: super::snapshot::chain_meta_with_rpc(chain, endpoint),
-        selected_rpc: Some(endpoint.to_owned()),
+        selected_endpoint: Some(endpoint.to_owned()),
         fetched_at: observed_at,
         global_id: TON_MAINNET_GLOBAL_ID,
         seqno: masterchain.last.seqno,
