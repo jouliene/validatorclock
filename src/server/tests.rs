@@ -546,7 +546,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         listen: "127.0.0.1:8787".to_owned(),
         refresh_seconds: 60,
         refresh_timeout_seconds: 90,
-        cache_path: PathBuf::from("cache.json"),
+        cache_path: temp_state_path("cache"),
         history_path: None,
         tycho_map_nodes_path: None,
         security: SecurityConfig {
@@ -567,6 +567,18 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
             rpc_label: None,
         }],
     }
+}
+
+fn temp_state_path(name: &str) -> PathBuf {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    std::env::temp_dir().join(format!(
+        "validators_clock_server_test_{name}_{}_{}.json",
+        std::process::id(),
+        nonce
+    ))
 }
 
 async fn cache_tycho_snapshot(state: &AppState, public_keys: &[&str]) {

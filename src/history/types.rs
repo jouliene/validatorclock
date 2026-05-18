@@ -3,7 +3,7 @@ use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum ParticipationStatus {
     Participated,
@@ -11,13 +11,13 @@ pub(crate) enum ParticipationStatus {
     Unknown,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ValidatorParticipationDto {
     pub(super) round: u32,
     pub(super) status: ParticipationStatus,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct RecentAbsentValidatorDto {
     pub(crate) public_key: String,
     pub(crate) wallet: Option<String>,
@@ -31,7 +31,7 @@ pub(crate) struct RecentAbsentValidatorDto {
     pub(crate) history: Vec<ValidatorParticipationDto>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct RecentAbsentValidatorSourceDto {
     pub(crate) address: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]

@@ -32,7 +32,7 @@ pub(super) struct ChainRuntimeStatusDto {
     pub(super) last_error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ChainMeta {
     pub(super) id: String,
     pub(super) name: String,
@@ -41,7 +41,7 @@ pub(crate) struct ChainMeta {
     pub(super) rpc_label: String,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ClockSnapshot {
     pub(crate) chain: ChainMeta,
     // Internal endpoint that produced this snapshot. It is intentionally not
@@ -70,7 +70,7 @@ impl ClockSnapshot {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ElectionTimingsDto {
     pub(super) validators_elected_for: u32,
     pub(super) elections_start_before: u32,
@@ -78,7 +78,7 @@ pub(crate) struct ElectionTimingsDto {
     pub(super) stake_held_for: u32,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ValidatorSetDto {
     pub(crate) utime_since: u32,
     pub(crate) utime_until: u32,
@@ -100,7 +100,7 @@ pub(crate) enum RoundColor {
     Green,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ValidatorDto {
     pub(crate) public_key: String,
     pub(crate) adnl_addr: Option<String>,
@@ -115,18 +115,18 @@ pub(crate) struct ValidatorDto {
     pub(crate) history: Vec<ValidatorParticipationDto>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ValidatorSourceDto {
     pub(crate) address: String,
     pub(crate) contract_type_hash: Option<String>,
 }
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 pub(crate) struct ElectionDto {
     pub(crate) candidates: Vec<ElectionCandidateDto>,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ElectionCandidateDto {
     pub(crate) public_key: String,
     pub(super) stake: String,
@@ -169,7 +169,7 @@ pub(super) struct ValidatorRoundData {
     pub(super) total_weight_raw: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct CacheEntry {
     pub(super) fetched_at: u64,
     pub(super) snapshot: ClockSnapshot,

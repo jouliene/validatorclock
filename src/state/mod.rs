@@ -13,13 +13,15 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tracing::info;
 
 pub(crate) struct AppState {
     pub(crate) config: Arc<AppConfig>,
     started_at: SystemTime,
     cache: RwLock<HashMap<String, CacheEntry>>,
+    cache_path: PathBuf,
+    cache_save_lock: Mutex<()>,
     chain_status: RwLock<HashMap<String, ChainRuntimeStatus>>,
     validator_type_cache_path: PathBuf,
     validator_type_cache: RwLock<ValidatorTypeCache>,
@@ -41,13 +43,16 @@ impl AppState {
         );
 
         history::log_chain_history_paths(&config, &round_history_path);
+        let cache = cache::load_initial_cache(&config.cache_path, &config.chains);
         let validator_type_cache = validator_types::load_initial_cache(&validator_type_cache_path);
         let round_history = history::load_initial_store(&config, &round_history_path);
 
         Self {
             config: Arc::clone(&config),
             started_at: SystemTime::now(),
-            cache: RwLock::new(HashMap::new()),
+            cache: RwLock::new(cache),
+            cache_path: config.cache_path.clone(),
+            cache_save_lock: Mutex::new(()),
             chain_status: RwLock::new(HashMap::new()),
             validator_type_cache: RwLock::new(validator_type_cache),
             validator_type_cache_path,
