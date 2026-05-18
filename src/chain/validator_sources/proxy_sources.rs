@@ -1,11 +1,10 @@
 use super::super::ValidatorSourceDto;
-use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
 use super::contract_types::account_contract_code_hash;
 use super::provider::ValidatorSourceProvider;
+use super::wallet_tasks::fetch_wallet_tasks;
 use anyhow::Result;
 use std::sync::OnceLock;
-use tokio::task::JoinSet;
-use tracing::{debug, warn};
+use tracing::debug;
 use tycho_types::abi::{AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
 use tycho_types::models::{MsgInfo, StdAddr, Transaction};
@@ -30,49 +29,16 @@ pub(super) async fn fetch_proxy_validator_sources(
     provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
-    let mut fetched = Vec::new();
-
-    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
-        let mut tasks = JoinSet::new();
-        for wallet in chunk {
-            let provider = provider.clone();
-            let wallet = wallet.clone();
-            tasks.spawn(async move {
-                let result = discover_proxy_validator_source(&provider, &wallet).await;
-                (wallet, result)
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            match result {
-                Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
-                Ok((wallet, Ok(None))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        "proxy validator source not found"
-                    );
-                }
-                Ok((wallet, Err(error))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        error = ?error,
-                        "failed to discover proxy validator source"
-                    );
-                }
-                Err(error) => {
-                    warn!(
-                        chain_id = %chain_id,
-                        error = ?error,
-                        "proxy validator source task failed"
-                    );
-                }
-            }
-        }
-    }
-
-    Ok(fetched)
+    Ok(fetch_wallet_tasks(
+        chain_id,
+        provider,
+        wallets,
+        Some("proxy validator source not found"),
+        "failed to discover proxy validator source",
+        "proxy validator source task failed",
+        |provider, wallet| async move { discover_proxy_validator_source(&provider, &wallet).await },
+    )
+    .await)
 }
 
 async fn discover_proxy_validator_source(

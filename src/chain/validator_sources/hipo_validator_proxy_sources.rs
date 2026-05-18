@@ -1,9 +1,7 @@
 use super::super::ValidatorSourceDto;
-use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
 use super::provider::ValidatorSourceProvider;
+use super::wallet_tasks::fetch_wallet_tasks;
 use anyhow::{Context, Result, bail};
-use tokio::task::JoinSet;
-use tracing::{debug, warn};
 use tycho_types::cell::{Cell, Load};
 use tycho_types::models::StdAddr;
 
@@ -12,49 +10,20 @@ pub(super) async fn fetch_hipo_validator_proxy_sources(
     provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
-    let mut fetched = Vec::new();
-
-    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
-        let mut tasks = JoinSet::new();
-        for wallet in chunk {
-            let provider = provider.clone();
-            let wallet = wallet.clone();
-            tasks.spawn(async move {
-                let result = discover_hipo_validator_proxy_source(&provider, &wallet).await;
-                (wallet, result)
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            match result {
-                Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
-                Ok((wallet, Ok(None))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        "Hipo validator proxy source not found"
-                    );
-                }
-                Ok((wallet, Err(error))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        error = ?error,
-                        "failed to discover Hipo validator proxy source"
-                    );
-                }
-                Err(error) => {
-                    warn!(
-                        chain_id = %chain_id,
-                        error = ?error,
-                        "Hipo validator proxy source task failed"
-                    );
-                }
-            }
-        }
-    }
-
-    Ok(fetched)
+    Ok(
+        fetch_wallet_tasks(
+            chain_id,
+            provider,
+            wallets,
+            Some("Hipo validator proxy source not found"),
+            "failed to discover Hipo validator proxy source",
+            "Hipo validator proxy source task failed",
+            |provider, wallet| async move {
+                discover_hipo_validator_proxy_source(&provider, &wallet).await
+            },
+        )
+        .await,
+    )
 }
 
 async fn discover_hipo_validator_proxy_source(

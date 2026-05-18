@@ -1,8 +1,6 @@
-use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
 use super::provider::ValidatorSourceProvider;
+use super::wallet_tasks::fetch_wallet_tasks;
 use anyhow::Result;
-use tokio::task::JoinSet;
-use tracing::{debug, warn};
 
 pub(super) async fn fetch_validator_contract_type_hashes(
     chain_id: &str,
@@ -13,42 +11,20 @@ pub(super) async fn fetch_validator_contract_type_hashes(
         return Ok(fetched);
     }
 
-    let mut fetched = Vec::new();
-
-    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
-        let mut tasks = JoinSet::new();
-        for wallet in chunk {
-            let provider = provider.clone();
-            let wallet = wallet.clone();
-            tasks.spawn(async move {
-                let result = account_contract_code_hash(&provider, &wallet).await;
-                (wallet, result)
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            match result {
-                Ok((wallet, Ok(repr_hash))) => fetched.push((wallet, repr_hash)),
-                Ok((wallet, Err(error))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        error = ?error,
-                        "failed to fetch validator contract type hash"
-                    );
-                }
-                Err(error) => {
-                    warn!(
-                        chain_id = %chain_id,
-                        error = ?error,
-                        "validator contract type hash task failed"
-                    );
-                }
-            }
-        }
-    }
-
-    Ok(fetched)
+    Ok(fetch_wallet_tasks(
+        chain_id,
+        provider,
+        wallets,
+        None,
+        "failed to fetch validator contract type hash",
+        "validator contract type hash task failed",
+        |provider, wallet| async move {
+            account_contract_code_hash(&provider, &wallet)
+                .await
+                .map(Some)
+        },
+    )
+    .await)
 }
 
 pub(super) async fn account_contract_code_hash(

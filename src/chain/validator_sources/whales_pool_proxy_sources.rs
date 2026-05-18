@@ -1,9 +1,7 @@
 use super::super::ValidatorSourceDto;
-use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
 use super::provider::ValidatorSourceProvider;
+use super::wallet_tasks::fetch_wallet_tasks;
 use anyhow::{Context, Result};
-use tokio::task::JoinSet;
-use tracing::{debug, warn};
 use tycho_types::cell::{Cell, Load};
 use tycho_types::models::StdAddr;
 
@@ -12,49 +10,20 @@ pub(super) async fn fetch_whales_pool_proxy_sources(
     provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
-    let mut fetched = Vec::new();
-
-    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
-        let mut tasks = JoinSet::new();
-        for wallet in chunk {
-            let provider = provider.clone();
-            let wallet = wallet.clone();
-            tasks.spawn(async move {
-                let result = discover_whales_pool_proxy_source(&provider, &wallet).await;
-                (wallet, result)
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            match result {
-                Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
-                Ok((wallet, Ok(None))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        "whales pool proxy source not found"
-                    );
-                }
-                Ok((wallet, Err(error))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        error = ?error,
-                        "failed to discover whales pool proxy source"
-                    );
-                }
-                Err(error) => {
-                    warn!(
-                        chain_id = %chain_id,
-                        error = ?error,
-                        "whales pool proxy source task failed"
-                    );
-                }
-            }
-        }
-    }
-
-    Ok(fetched)
+    Ok(
+        fetch_wallet_tasks(
+            chain_id,
+            provider,
+            wallets,
+            Some("whales pool proxy source not found"),
+            "failed to discover whales pool proxy source",
+            "whales pool proxy source task failed",
+            |provider, wallet| async move {
+                discover_whales_pool_proxy_source(&provider, &wallet).await
+            },
+        )
+        .await,
+    )
 }
 
 async fn discover_whales_pool_proxy_source(

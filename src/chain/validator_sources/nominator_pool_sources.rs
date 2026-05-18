@@ -1,10 +1,8 @@
 use super::super::ValidatorSourceDto;
 use super::super::util::masterchain_hash_address;
-use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
 use super::provider::ValidatorSourceProvider;
+use super::wallet_tasks::fetch_wallet_tasks;
 use anyhow::{Context, Result};
-use tokio::task::JoinSet;
-use tracing::{debug, warn};
 use tycho_types::cell::{Cell, Load};
 use tycho_types::num::Tokens;
 
@@ -13,49 +11,18 @@ pub(super) async fn fetch_nominator_pool_validator_sources(
     provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
-    let mut fetched = Vec::new();
-
-    for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
-        let mut tasks = JoinSet::new();
-        for wallet in chunk {
-            let provider = provider.clone();
-            let wallet = wallet.clone();
-            tasks.spawn(async move {
-                let result = discover_nominator_pool_validator_source(&provider, &wallet).await;
-                (wallet, result)
-            });
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            match result {
-                Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
-                Ok((wallet, Ok(None))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        "nominator pool validator source not found"
-                    );
-                }
-                Ok((wallet, Err(error))) => {
-                    debug!(
-                        chain_id = %chain_id,
-                        wallet,
-                        error = ?error,
-                        "failed to discover nominator pool validator source"
-                    );
-                }
-                Err(error) => {
-                    warn!(
-                        chain_id = %chain_id,
-                        error = ?error,
-                        "nominator pool validator source task failed"
-                    );
-                }
-            }
-        }
-    }
-
-    Ok(fetched)
+    Ok(fetch_wallet_tasks(
+        chain_id,
+        provider,
+        wallets,
+        Some("nominator pool validator source not found"),
+        "failed to discover nominator pool validator source",
+        "nominator pool validator source task failed",
+        |provider, wallet| async move {
+            discover_nominator_pool_validator_source(&provider, &wallet).await
+        },
+    )
+    .await)
 }
 
 async fn discover_nominator_pool_validator_source(

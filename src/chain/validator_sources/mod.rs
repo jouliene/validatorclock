@@ -6,6 +6,7 @@ mod proxy_sources;
 mod single_nominator_sources;
 mod validator_controller_sources;
 mod wallet_index;
+mod wallet_tasks;
 mod whales_pool_proxy_sources;
 
 use self::contract_types::fetch_validator_contract_type_hashes;
