@@ -2623,6 +2623,7 @@ dependencies = [
  "hyper-util",
  "instant-acme",
  "minik2",
+ "reqwest",
  "rustls",
  "rustls-pemfile",
  "serde",

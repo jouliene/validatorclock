@@ -10,6 +10,7 @@ hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 instant-acme = { version = "0.8", default-features = false, features = ["hyper-rustls", "rcgen", "ring"] }
 minik2 = { git = "https://github.com/jouliene/minik2", rev = "3cf2fc733805343c918525ec080b189e2cccfe42" }
+reqwest = { version = "0.13", features = ["json"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
 rustls-pemfile = "2"
 serde = { version = "1", features = ["derive"] }

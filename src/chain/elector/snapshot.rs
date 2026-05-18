@@ -7,16 +7,20 @@ use std::collections::HashMap;
 
 impl From<&ChainConfig> for ChainMeta {
     fn from(chain: &ChainConfig) -> Self {
-        Self {
-            id: chain.id.clone(),
-            name: chain.name.clone(),
-            color: chain.color.clone(),
-            token_symbol: chain.token_symbol.clone(),
-            rpc_label: chain
-                .rpc_label
-                .clone()
-                .unwrap_or_else(|| endpoint_label(&chain.rpc)),
-        }
+        chain_meta_with_rpc(chain, &chain.rpc)
+    }
+}
+
+pub(super) fn chain_meta_with_rpc(chain: &ChainConfig, rpc: &str) -> ChainMeta {
+    ChainMeta {
+        id: chain.id.clone(),
+        name: chain.name.clone(),
+        color: chain.color.clone(),
+        token_symbol: chain.token_symbol.clone(),
+        rpc_label: chain
+            .rpc_label
+            .clone()
+            .unwrap_or_else(|| endpoint_label(rpc)),
     }
 }
 

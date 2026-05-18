@@ -142,6 +142,8 @@ pub(crate) struct ChainConfig {
     pub(crate) id: String,
     pub(crate) name: String,
     pub(crate) rpc: String,
+    #[serde(default)]
+    pub(crate) rpc_fallbacks: Vec<String>,
     #[serde(default = "default_chain_color")]
     pub(crate) color: String,
     #[serde(default = "default_token_symbol")]
@@ -160,6 +162,13 @@ impl ChainConfig {
         }
         if self.rpc.trim().is_empty() {
             bail!("chain `{}` has empty rpc", self.id);
+        }
+        if self
+            .rpc_fallbacks
+            .iter()
+            .any(|fallback| fallback.trim().is_empty())
+        {
+            bail!("chain `{}` has empty rpc fallback", self.id);
         }
         Ok(())
     }

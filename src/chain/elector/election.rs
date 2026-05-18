@@ -1,16 +1,20 @@
 use super::super::util::{hex_lower, masterchain_hash_address};
 use super::super::{ElectionCandidateDto, ElectionDto};
 use anyhow::Result;
-use minik2::{Config, Elector, Transport};
+use minik2::{Config, Elector, ElectorData, Transport};
 
 pub(super) async fn fetch_election(transport: &Transport, config: &Config) -> Result<ElectionDto> {
     let elector = Elector::from_config(transport, config)?;
     let data = elector.get_data().await?;
+    Ok(election_from_elector_data(&data))
+}
+
+pub(super) fn election_from_elector_data(data: &ElectorData) -> ElectionDto {
     let Some(current) = data.current_election() else {
-        return Ok(ElectionDto::default());
+        return ElectionDto::default();
     };
 
-    Ok(ElectionDto {
+    ElectionDto {
         candidates: current
             .members
             .iter()
@@ -28,5 +32,5 @@ pub(super) async fn fetch_election(transport: &Transport, config: &Config) -> Re
                 history: Vec::new(),
             })
             .collect(),
-    })
+    }
 }

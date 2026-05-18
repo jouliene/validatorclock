@@ -285,9 +285,12 @@ cat > "${TMP_DIR}/visual-check.json" <<JSON
       "id": "ton",
       "name": "TON",
       "rpc": "https://jrpc-ton.broxus.com",
+      "rpc_fallbacks": [
+        "https://toncenter.com/api/v2/jsonRPC"
+      ],
       "color": "#4DB8FF",
       "token_symbol": "TON",
-      "rpc_label": "jrpc-ton.broxus.com"
+      "rpc_label": "jrpc-ton.broxus.com + toncenter.com"
     }
   ]
 }

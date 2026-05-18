@@ -1,11 +1,12 @@
 mod election;
 mod frozen;
 mod snapshot;
+mod toncenter;
 
 use super::util::now_sec;
-use super::{ChainMeta, ClockSnapshot, ElectionTimingsDto, ValidatorSetDto};
+use super::{ClockSnapshot, ElectionTimingsDto, ValidatorSetDto};
 use crate::config::ChainConfig;
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use election::fetch_election;
 use frozen::fetch_frozen_validator_round_data;
 use minik2::{Config, Transport, ValidatorSet};
@@ -14,8 +15,56 @@ use std::env;
 use tracing::debug;
 
 pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSnapshot> {
-    let transport = Transport::jrpc(&chain.rpc)
-        .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
+    match fetch_chain_snapshot_from_jrpc(chain, &chain.rpc, None).await {
+        Ok(snapshot) => Ok(snapshot),
+        Err(primary_error) => {
+            if chain.rpc_fallbacks.is_empty() {
+                return Err(primary_error);
+            }
+
+            let primary_error = primary_error.to_string();
+            let mut fallback_errors = Vec::new();
+            for fallback in &chain.rpc_fallbacks {
+                let warning = format!(
+                    "using fallback RPC `{}`; primary RPC `{}` failed: {}",
+                    super::util::endpoint_label(fallback),
+                    super::util::endpoint_label(&chain.rpc),
+                    primary_error
+                );
+                let result = if toncenter::is_toncenter_endpoint(fallback) {
+                    toncenter::fetch_chain_snapshot(chain, fallback, &primary_error).await
+                } else {
+                    fetch_chain_snapshot_from_jrpc(chain, fallback, Some(warning)).await
+                };
+
+                match result {
+                    Ok(snapshot) => return Ok(snapshot),
+                    Err(error) => {
+                        fallback_errors.push(format!(
+                            "{}: {}",
+                            super::util::endpoint_label(fallback),
+                            error
+                        ));
+                    }
+                }
+            }
+
+            Err(anyhow!(
+                "primary RPC failed: {}; fallback RPCs failed: {}",
+                primary_error,
+                fallback_errors.join("; ")
+            ))
+        }
+    }
+}
+
+async fn fetch_chain_snapshot_from_jrpc(
+    chain: &ChainConfig,
+    rpc: &str,
+    warning: Option<String>,
+) -> Result<ClockSnapshot> {
+    let transport =
+        Transport::jrpc(rpc).with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
     let config = Config::fetch(&transport)
         .await
         .with_context(|| format!("failed to fetch config from `{}`", chain.id))?;
@@ -43,7 +92,7 @@ pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSna
     };
 
     Ok(ClockSnapshot {
-        chain: ChainMeta::from(chain),
+        chain: snapshot::chain_meta_with_rpc(chain, rpc),
         fetched_at: observed_at,
         global_id: config.global_id(),
         seqno: config.seqno(),
@@ -71,7 +120,7 @@ pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSna
             )
         }),
         election,
-        warning: None,
+        warning,
     })
 }
 

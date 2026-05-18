@@ -171,9 +171,12 @@ default_chains = [
         "id": "ton",
         "name": "TON",
         "rpc": "https://jrpc-ton.broxus.com",
+        "rpc_fallbacks": [
+            "https://toncenter.com/api/v2/jsonRPC",
+        ],
         "color": "#4DB8FF",
         "token_symbol": "TON",
-        "rpc_label": "jrpc-ton.broxus.com",
+        "rpc_label": "jrpc-ton.broxus.com + toncenter.com",
     },
 ]
 
@@ -207,6 +210,18 @@ for default in default_chains:
     if not chain.get("rpc_label"):
         chain["rpc_label"] = default["rpc_label"]
         updated.append(f"{default['id']}.rpc_label")
+
+    default_fallbacks = default.get("rpc_fallbacks") or []
+    if default_fallbacks:
+        fallbacks = chain.get("rpc_fallbacks")
+        if not isinstance(fallbacks, list):
+            chain["rpc_fallbacks"] = list(default_fallbacks)
+            updated.append(f"{default['id']}.rpc_fallbacks")
+        else:
+            for fallback in default_fallbacks:
+                if fallback not in fallbacks:
+                    fallbacks.append(fallback)
+                    updated.append(f"{default['id']}.rpc_fallbacks")
 
 if not added and not updated:
     print(f"Existing config already has built-in chains: {config_path}")
@@ -363,9 +378,12 @@ write_config_if_missing() {
       "id": "ton",
       "name": "TON",
       "rpc": "https://jrpc-ton.broxus.com",
+      "rpc_fallbacks": [
+        "https://toncenter.com/api/v2/jsonRPC"
+      ],
       "color": "#4DB8FF",
       "token_symbol": "TON",
-      "rpc_label": "jrpc-ton.broxus.com"
+      "rpc_label": "jrpc-ton.broxus.com + toncenter.com"
     }
   ]
 }

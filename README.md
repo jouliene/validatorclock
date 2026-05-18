@@ -20,6 +20,13 @@ Open:
 http://127.0.0.1:8787
 ```
 
+The default TON config keeps Broxus as the primary RPC and uses TON Center as a
+fallback. If you have a TON Center key, set it before starting the app:
+
+```bash
+export VALIDATORS_CLOCK_TONCENTER_API_KEY=your-key
+```
+
 If Rust is missing:
 
 ```bash

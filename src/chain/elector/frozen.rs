@@ -5,6 +5,7 @@ use minik2::{Config, CurrentElectionData, Elector, FpTokens, HashBytes, Ref, Tra
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;
 use tycho_types::abi::{AbiType, AbiValue, AbiVersion, FromAbi, WithAbiType};
+use tycho_types::cell::Cell;
 use tycho_types::models::account::AccountState;
 use tycho_types::num::Tokens;
 
@@ -42,11 +43,16 @@ pub(super) async fn fetch_frozen_validator_round_data(
     config: &Config,
 ) -> Result<HashMap<u32, ValidatorRoundData>> {
     let data = fetch_full_elector_data(transport, config).await?;
-    Ok(data
-        .past_elections
+    Ok(frozen_validator_round_data_from_full_elector_data(&data))
+}
+
+fn frozen_validator_round_data_from_full_elector_data(
+    data: &FullElectorData,
+) -> HashMap<u32, ValidatorRoundData> {
+    data.past_elections
         .iter()
         .map(|(stake_at, election)| (*stake_at, validator_round_data_from_frozen(election)))
-        .collect())
+        .collect()
 }
 
 async fn fetch_full_elector_data(
@@ -64,6 +70,10 @@ async fn fetch_full_elector_data(
     };
     let data = state_init.data.as_ref().context("elector data is empty")?;
 
+    parse_full_elector_data(data)
+}
+
+fn parse_full_elector_data(data: &Cell) -> Result<FullElectorData> {
     AbiValue::load_partial(
         full_elector_data_abi(),
         AbiVersion::V2_1,

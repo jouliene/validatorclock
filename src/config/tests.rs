@@ -6,6 +6,7 @@ fn test_chain() -> ChainConfig {
         id: "test".to_owned(),
         name: "Test".to_owned(),
         rpc: "https://example.com".to_owned(),
+        rpc_fallbacks: Vec::new(),
         color: "#38bdf8".to_owned(),
         token_symbol: "TEST".to_owned(),
         rpc_label: None,
@@ -84,6 +85,10 @@ fn rejects_empty_and_missing_required_config_fields() {
     let mut config = test_config();
     config.chains[0].rpc = " ".to_owned();
     assert!(config.validate().is_err());
+
+    let mut config = test_config();
+    config.chains[0].rpc_fallbacks = vec![" ".to_owned()];
+    assert!(config.validate().is_err());
 }
 
 #[test]
@@ -101,6 +106,7 @@ fn rejects_unsafe_or_duplicate_chain_ids() {
         id: "test".to_owned(),
         name: "Duplicate Test".to_owned(),
         rpc: "https://duplicate.example.com".to_owned(),
+        rpc_fallbacks: Vec::new(),
         color: "#22c55e".to_owned(),
         token_symbol: "TEST".to_owned(),
         rpc_label: None,
