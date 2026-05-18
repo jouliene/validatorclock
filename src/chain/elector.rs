@@ -2,6 +2,7 @@ mod election;
 mod frozen;
 mod snapshot;
 mod toncenter;
+mod toncenter_stack;
 
 use super::util::now_sec;
 use super::{ClockSnapshot, ElectionTimingsDto, ValidatorSetDto};
