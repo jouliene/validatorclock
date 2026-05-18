@@ -89,7 +89,7 @@ async function selectChain(chainId) {
   }
   renderRuntimeStatus(Math.trunc(Date.now() / 1000));
   await loadClock(false);
-  await loadRuntimeStatus();
+  loadRuntimeStatus();
 }
 
 async function loadClock(force = false) {
@@ -97,40 +97,93 @@ async function loadClock(force = false) {
   if (!chainId) {
     return;
   }
-  if (state.clockLoading && !force) {
-    return;
-  }
 
-  const suffix = force ? "?refresh=1" : "";
   const requestSeq = state.clockRequestSeq + 1;
   state.clockRequestSeq = requestSeq;
   state.clockLoading = true;
   state.lastClockRefreshAttempt = Math.trunc(Date.now() / 1000);
   try {
-    const snapshot = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/clock${suffix}`);
+    const snapshot = await fetchClockSnapshot(chainId, force);
     if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
       return;
     }
-    state.snapshot = snapshot;
-    state.snapshotsByChain.set(chainId, snapshot);
-    if (chainId === TYCHO_MAP_CHAIN_ID) {
-      await refreshTychoMapNodesForSnapshot();
-    } else {
-      state.tychoMappedPeers = null;
-      state.tychoFakePeers = null;
-    }
-    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
-      return;
-    }
-    state.roundRenderKey = null;
-    setError(snapshot.warning || "");
-    renderChainTabs();
-    renderNow();
-    updateStaleSnapshotRetry(chainId, snapshot);
+    await applySelectedClockSnapshot(chainId, snapshot, requestSeq);
   } finally {
-    if (requestSeq === state.clockRequestSeq) {
-      state.clockLoading = false;
+    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+      return;
     }
+    state.clockLoading = false;
+  }
+}
+
+function clockSnapshotUrl(chainId, force = false) {
+  const suffix = force ? "?refresh=1" : "";
+  return `/api/chains/${encodeURIComponent(chainId)}/clock${suffix}`;
+}
+
+function fetchClockSnapshot(chainId, force = false) {
+  if (!force) {
+    const pending = state.clockFetchesByChain.get(chainId);
+    if (pending) {
+      return pending;
+    }
+  }
+
+  const request = fetchJson(clockSnapshotUrl(chainId, force)).finally(() => {
+    if (state.clockFetchesByChain.get(chainId) === request) {
+      state.clockFetchesByChain.delete(chainId);
+    }
+  });
+
+  if (!force) {
+    state.clockFetchesByChain.set(chainId, request);
+  }
+
+  return request;
+}
+
+async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
+  if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+    return;
+  }
+
+  state.snapshot = snapshot;
+  state.snapshotsByChain.set(chainId, snapshot);
+  if (chainId === TYCHO_MAP_CHAIN_ID) {
+    await refreshTychoMapNodesForSnapshot();
+  } else {
+    state.tychoMappedPeers = null;
+    state.tychoFakePeers = null;
+  }
+  if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+    return;
+  }
+  state.roundRenderKey = null;
+  setError(snapshot.warning || "");
+  renderChainTabs();
+  renderNow();
+  updateStaleSnapshotRetry(chainId, snapshot);
+}
+
+function prefetchChainSnapshots() {
+  for (const chain of state.chains) {
+    if (!chain.id || chain.id === state.selectedChainId) {
+      continue;
+    }
+    prefetchChainSnapshot(chain.id);
+  }
+}
+
+async function prefetchChainSnapshot(chainId) {
+  if (state.snapshotsByChain.has(chainId)) {
+    return;
+  }
+
+  try {
+    const snapshot = await fetchClockSnapshot(chainId, false);
+    state.snapshotsByChain.set(chainId, snapshot);
+  } catch (error) {
+    console.warn(`Unable to prefetch ${chainId} clock snapshot`, error);
   }
 }
 

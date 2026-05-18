@@ -3,9 +3,10 @@ async function boot() {
     startNetworkMessages();
     await loadChains();
     setupTychoMapControls();
-    await loadRuntimeStatus();
-    await loadClock(true);
-    await loadRuntimeStatus();
+    loadRuntimeStatus();
+    window.setTimeout(prefetchChainSnapshots, 0);
+    await loadClock(false);
+    loadRuntimeStatus();
     startTimers();
   } catch (error) {
     setError(error.message);

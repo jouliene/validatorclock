@@ -59,6 +59,7 @@ const state = {
   runtimeStatus: null,
   snapshot: null,
   snapshotsByChain: new Map(),
+  clockFetchesByChain: new Map(),
   pollTimer: null,
   statusTimer: null,
   drawTimer: null,
