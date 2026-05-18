@@ -1834,7 +1834,8 @@ dd {
 }
 
 .validator-source-direct,
-.validator-source-unknown {
+.validator-source-unknown,
+.validator-source-fake {
   display: inline-flex;
   min-height: 22px;
   align-items: center;
@@ -1852,6 +1853,17 @@ dd {
   border-color: rgba(154, 166, 184, 0.22);
   background: rgba(154, 166, 184, 0.055);
   color: rgba(195, 204, 216, 0.84);
+}
+
+.validator-source-fake {
+  border-color: rgba(255, 91, 105, 0.46);
+  background:
+    linear-gradient(180deg, rgba(255, 91, 105, 0.17), rgba(155, 26, 45, 0.15)),
+    rgba(255, 70, 88, 0.08);
+  color: rgba(255, 218, 222, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(255, 91, 105, 0.07);
 }
 
 .validator-row .validator-id,
@@ -2710,6 +2722,7 @@ dd {
   }
 
   .validator-row .validator-source.is-detail,
+  .validator-row .validator-source.is-fake,
   .validator-row .validator-cell.validator-id,
   .validator-row .validator-cell.validator-history,
   .validator-row .validator-cell.validator-stake,
@@ -2726,6 +2739,7 @@ dd {
   }
 
   .validator-row .validator-source.is-detail::before,
+  .validator-row .validator-source.is-fake::before,
   .validator-row .validator-cell.validator-id::before,
   .validator-row .validator-cell.validator-history::before,
   .validator-row .validator-cell.validator-stake::before,
@@ -2741,7 +2755,8 @@ dd {
     text-transform: uppercase;
   }
 
-  .validator-row.has-source-detail {
+  .validator-row.has-source-detail,
+  .validator-row.has-source-fake {
     grid-template-areas:
       "type type type"
       "source source source"
@@ -2764,7 +2779,8 @@ dd {
       "lastseen lastseen lastseen";
   }
 
-  .validator-table.is-absent .validator-row.has-source-detail {
+  .validator-table.is-absent .validator-row.has-source-detail,
+  .validator-table.is-absent .validator-row.has-source-fake {
     grid-template-areas:
       "type type type"
       "source source source"

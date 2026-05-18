@@ -113,6 +113,15 @@ async function loadClock(force = false) {
     }
     state.snapshot = snapshot;
     state.snapshotsByChain.set(chainId, snapshot);
+    if (chainId === TYCHO_MAP_CHAIN_ID) {
+      await refreshTychoMapNodesForSnapshot();
+    } else {
+      state.tychoMappedPeers = null;
+      state.tychoFakePeers = null;
+    }
+    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+      return;
+    }
     state.roundRenderKey = null;
     setError(snapshot.warning || "");
     renderChainTabs();

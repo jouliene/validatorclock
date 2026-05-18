@@ -303,6 +303,18 @@ function validatorSourceCell(validator, options = {}) {
   const cell = document.createElement("div");
   const sourceKind = validatorSourceKind(validator, options);
   cell.className = `validator-cell validator-source is-${sourceKind}`;
+  if (isFakeTychoValidator(validator, options)) {
+    const fake = document.createElement("span");
+    fake.className = "validator-source-fake";
+    fake.textContent = "Fake Node";
+    setValidatorTooltip(
+      fake,
+      options.fakeSourceTooltip || "No reachable Tycho node IP is published for this validator public key."
+    );
+    cell.appendChild(fake);
+    return cell;
+  }
+
   const source = validator && validator.source;
   if (source && source.address) {
     const formatted = formatDisplayAddress(source.address, options);
@@ -362,6 +374,10 @@ function validatorSourceCell(validator, options = {}) {
 }
 
 function validatorSourceKind(validator, options = {}) {
+  if (isFakeTychoValidator(validator, options)) {
+    return "fake";
+  }
+
   const source = validator && validator.source;
   if (source && source.address) {
     return "detail";
@@ -373,6 +389,18 @@ function validatorSourceKind(validator, options = {}) {
     return "detail";
   }
   return "unknown";
+}
+
+function isFakeTychoValidator(validator, options = {}) {
+  if (options.chainId !== TYCHO_MAP_CHAIN_ID) {
+    return false;
+  }
+  if (!(options.fakeValidatorPeers instanceof Set)) {
+    return false;
+  }
+
+  const publicKey = String(validator?.public_key || "").toLowerCase();
+  return Boolean(publicKey) && options.fakeValidatorPeers.has(publicKey);
 }
 
 function shouldDisplayTonSourceMetadata(validator, options = {}) {

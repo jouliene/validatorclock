@@ -116,6 +116,16 @@ async function loadTychoMapNodes() {
     return tychoMapNodes;
   }
 
+  return refreshTychoMapNodesForSnapshot();
+}
+
+async function refreshTychoMapNodesForSnapshot() {
+  if (state.selectedChainId !== TYCHO_MAP_CHAIN_ID) {
+    state.tychoMappedPeers = null;
+    state.tychoFakePeers = null;
+    return [];
+  }
+
   try {
     const nodes = await fetchJson(`/api/chains/${TYCHO_MAP_CHAIN_ID}/map`);
     tychoMapNodes = Array.isArray(nodes) ? nodes : [];
@@ -125,8 +135,32 @@ async function loadTychoMapNodes() {
   }
 
   tychoMapNodes = filterTychoMapNodesToCurrentValidators(tychoMapNodes);
+  state.tychoMappedPeers = tychoMappedPeerSet(tychoMapNodes);
+  state.tychoFakePeers = tychoFakePeerSet(state.snapshot?.current_set?.validators, state.tychoMappedPeers);
+  rememberTychoFakePeers(state.snapshot?.current_set, state.tychoFakePeers);
   updateTychoMapSummary();
+  refreshTychoMapSource();
   return tychoMapNodes;
+}
+
+function tychoMappedPeerSet(nodes) {
+  return new Set(
+    (Array.isArray(nodes) ? nodes : [])
+      .map((node) => String(node.peer || "").toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function tychoFakePeerSet(validators, mappedPeers) {
+  if (!Array.isArray(validators) || !(mappedPeers instanceof Set)) {
+    return null;
+  }
+
+  return new Set(
+    validators
+      .map((validator) => String(validator.public_key || "").toLowerCase())
+      .filter((publicKey) => publicKey && !mappedPeers.has(publicKey))
+  );
 }
 
 function filterTychoMapNodesToCurrentValidators(nodes) {
@@ -180,22 +214,7 @@ function renderTychoMap() {
     return;
   }
 
-  const rawNodes = tychoMapNodes || (Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : []);
-  const locationGroups = groupNodesByLocation(rawNodes);
-  const features = locationGroups.map((group) => ({
-    type: "Feature",
-    geometry: {
-      type: "Point",
-      coordinates: [group.lon, group.lat]
-    },
-    properties: {
-      city: group.city,
-      country: group.country,
-      isp: group.isp,
-      node_count: group.nodes.length,
-      nodes_json: JSON.stringify(group.nodes)
-    }
-  }));
+  const features = tychoMapFeatures();
 
   tychoMap = new maplibregl.Map({
     container,
@@ -250,6 +269,37 @@ function renderTychoMap() {
   ]);
 
   tychoMap.on("load", () => addTychoNodeLayers(features));
+}
+
+function tychoMapFeatures() {
+  const rawNodes = tychoMapNodes || [];
+  const locationGroups = groupNodesByLocation(rawNodes);
+  return locationGroups.map((group) => ({
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [group.lon, group.lat]
+    },
+    properties: {
+      city: group.city,
+      country: group.country,
+      isp: group.isp,
+      node_count: group.nodes.length,
+      nodes_json: JSON.stringify(group.nodes)
+    }
+  }));
+}
+
+function refreshTychoMapSource() {
+  const source = tychoMap?.getSource("nodes");
+  if (!source) {
+    return;
+  }
+
+  source.setData({
+    type: "FeatureCollection",
+    features: tychoMapFeatures()
+  });
 }
 
 function addTychoNodeLayers(features) {
