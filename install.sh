@@ -428,8 +428,14 @@ echo "Runtime state: $STATE_DIR"
 echo "Binary: $BIN_PATH"
 echo "Config: $CONFIG_PATH"
 
+state_dir_exists=0
+[[ -d "$STATE_DIR" ]] && state_dir_exists=1
+
 mkdir -p "$BIN_DIR" "$STATE_DIR" "$ACME_DIR"
-chmod 700 "$STATE_DIR" "$ACME_DIR"
+if [[ "$state_dir_exists" == "0" ]]; then
+  chmod 700 "$STATE_DIR"
+fi
+chmod 700 "$ACME_DIR"
 
 write_config_if_missing
 
