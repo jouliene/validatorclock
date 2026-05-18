@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, anyhow, bail};
-use reqwest::{Client, StatusCode};
+use reqwest::{Client, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::env;
@@ -143,7 +143,19 @@ where
 }
 
 pub(super) fn is_toncenter_json_rpc_endpoint(endpoint: &str) -> bool {
-    endpoint.contains("toncenter.com/api/v2/jsonRPC")
+    let Ok(url) = Url::parse(endpoint.trim()) else {
+        return false;
+    };
+    if url.path().trim_end_matches('/') != "/api/v2/jsonRPC" {
+        return false;
+    }
+
+    let Some(host) = url.host_str() else {
+        return false;
+    };
+    host == "toncenter.com"
+        || host.ends_with(".toncenter.com")
+        || (cfg!(test) && matches!(host, "localhost" | "127.0.0.1" | "::1"))
 }
 
 #[derive(Debug)]
@@ -161,8 +173,17 @@ mod tests {
         assert!(is_toncenter_json_rpc_endpoint(
             "https://toncenter.com/api/v2/jsonRPC"
         ));
+        assert!(is_toncenter_json_rpc_endpoint(
+            "https://toncenter.com/api/v2/jsonRPC/"
+        ));
+        assert!(is_toncenter_json_rpc_endpoint(
+            "https://testnet.toncenter.com/api/v2/jsonRPC"
+        ));
         assert!(!is_toncenter_json_rpc_endpoint(
             "https://jrpc-ton.broxus.com"
+        ));
+        assert!(!is_toncenter_json_rpc_endpoint(
+            "https://example.com/toncenter.com/api/v2/jsonRPC"
         ));
     }
 }
