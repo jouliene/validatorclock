@@ -44,6 +44,8 @@ pub(crate) struct ChainMeta {
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ClockSnapshot {
     pub(crate) chain: ChainMeta,
+    #[serde(skip)]
+    pub(crate) selected_rpc: Option<String>,
     pub(crate) fetched_at: u64,
     pub(crate) global_id: i32,
     pub(crate) seqno: u32,

@@ -38,6 +38,7 @@ pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
             token_symbol: "TEST".to_owned(),
             rpc_label: "example.com".to_owned(),
         },
+        selected_rpc: Some("https://example.com".to_owned()),
         fetched_at: 123,
         global_id: 42,
         seqno: 7,

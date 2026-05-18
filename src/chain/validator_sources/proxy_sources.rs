@@ -1,9 +1,8 @@
 use super::super::ValidatorSourceDto;
 use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
 use super::contract_types::account_contract_code_hash;
-use crate::config::ChainConfig;
-use anyhow::{Context, Result};
-use minik2::{JrpcTransport, Transport};
+use super::provider::ValidatorSourceProvider;
+use anyhow::Result;
 use std::sync::OnceLock;
 use tokio::task::JoinSet;
 use tracing::{debug, warn};
@@ -27,22 +26,19 @@ struct ProxyProcessNewStakeInput {
 }
 
 pub(super) async fn fetch_proxy_validator_sources(
-    chain: &ChainConfig,
+    chain_id: &str,
+    provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
-    let rpc = JrpcTransport::new(&chain.rpc)
-        .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
-    let transport = Transport::from(&rpc);
     let mut fetched = Vec::new();
 
     for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
         let mut tasks = JoinSet::new();
         for wallet in chunk {
-            let rpc = rpc.clone();
-            let transport = transport.clone();
+            let provider = provider.clone();
             let wallet = wallet.clone();
             tasks.spawn(async move {
-                let result = discover_proxy_validator_source(&rpc, &transport, &wallet).await;
+                let result = discover_proxy_validator_source(&provider, &wallet).await;
                 (wallet, result)
             });
         }
@@ -52,14 +48,14 @@ pub(super) async fn fetch_proxy_validator_sources(
                 Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
                 Ok((wallet, Ok(None))) => {
                     debug!(
-                        chain_id = %chain.id,
+                        chain_id = %chain_id,
                         wallet,
                         "proxy validator source not found"
                     );
                 }
                 Ok((wallet, Err(error))) => {
                     debug!(
-                        chain_id = %chain.id,
+                        chain_id = %chain_id,
                         wallet,
                         error = ?error,
                         "failed to discover proxy validator source"
@@ -67,7 +63,7 @@ pub(super) async fn fetch_proxy_validator_sources(
                 }
                 Err(error) => {
                     warn!(
-                        chain_id = %chain.id,
+                        chain_id = %chain_id,
                         error = ?error,
                         "proxy validator source task failed"
                     );
@@ -80,14 +76,13 @@ pub(super) async fn fetch_proxy_validator_sources(
 }
 
 async fn discover_proxy_validator_source(
-    rpc: &JrpcTransport,
-    transport: &Transport,
+    provider: &ValidatorSourceProvider,
     proxy_wallet: &str,
 ) -> Result<Option<ValidatorSourceDto>> {
-    let Some(address) = scan_proxy_source_address(rpc, proxy_wallet).await? else {
+    let Some(address) = scan_proxy_source_address(provider, proxy_wallet).await? else {
         return Ok(None);
     };
-    let contract_type_hash = match account_contract_code_hash(transport, &address).await {
+    let contract_type_hash = match account_contract_code_hash(provider, &address).await {
         Ok(repr_hash) => Some(repr_hash),
         Err(error) => {
             debug!(
@@ -107,21 +102,19 @@ async fn discover_proxy_validator_source(
 }
 
 async fn scan_proxy_source_address(
-    rpc: &JrpcTransport,
+    provider: &ValidatorSourceProvider,
     proxy_wallet: &str,
 ) -> Result<Option<String>> {
-    let mut continuation = None::<String>;
+    let mut continuation_lt = None::<String>;
 
     for _ in 0..PROXY_SOURCE_TX_SCAN_MAX_PAGES {
-        let mut params = serde_json::json!({
-            "account": proxy_wallet,
-            "limit": PROXY_SOURCE_TX_SCAN_LIMIT,
-        });
-        if let Some(lt) = &continuation {
-            params["lastTransactionLt"] = serde_json::json!(lt);
-        }
-
-        let tx_bocs: Vec<String> = rpc.call("getTransactionsList", params).await?;
+        let tx_bocs = provider
+            .transaction_bocs(
+                proxy_wallet,
+                continuation_lt.as_deref(),
+                PROXY_SOURCE_TX_SCAN_LIMIT,
+            )
+            .await?;
         if tx_bocs.is_empty() {
             break;
         }
@@ -135,10 +128,10 @@ async fn scan_proxy_source_address(
             }
         }
 
-        if next_continuation.as_deref() == Some("0") || next_continuation == continuation {
+        if next_continuation.as_deref() == Some("0") || next_continuation == continuation_lt {
             break;
         }
-        continuation = next_continuation;
+        continuation_lt = next_continuation;
     }
 
     Ok(None)

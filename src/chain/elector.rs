@@ -93,6 +93,7 @@ async fn fetch_chain_snapshot_from_jrpc(
 
     Ok(ClockSnapshot {
         chain: snapshot::chain_meta_with_rpc(chain, rpc),
+        selected_rpc: Some(rpc.to_owned()),
         fetched_at: observed_at,
         global_id: config.global_id(),
         seqno: config.seqno(),

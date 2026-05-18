@@ -1,6 +1,7 @@
 mod contract_types;
 mod hipo_validator_proxy_sources;
 mod nominator_pool_sources;
+mod provider;
 mod proxy_sources;
 mod single_nominator_sources;
 mod validator_controller_sources;
@@ -10,6 +11,7 @@ mod whales_pool_proxy_sources;
 use self::contract_types::fetch_validator_contract_type_hashes;
 use self::hipo_validator_proxy_sources::fetch_hipo_validator_proxy_sources;
 use self::nominator_pool_sources::fetch_nominator_pool_validator_sources;
+use self::provider::ValidatorSourceProvider;
 use self::proxy_sources::fetch_proxy_validator_sources;
 use self::single_nominator_sources::fetch_single_nominator_validator_sources;
 use self::validator_controller_sources::fetch_validator_controller_sources;
@@ -39,6 +41,8 @@ pub(super) async fn update_validator_contract_type_hashes(
     if wallets.is_empty() {
         return Ok(());
     }
+    let selected_rpc = snapshot.selected_rpc.as_deref().unwrap_or(&chain.rpc);
+    let provider = ValidatorSourceProvider::new(&chain.id, selected_rpc)?;
 
     let missing_wallets = {
         state
@@ -54,10 +58,9 @@ pub(super) async fn update_validator_contract_type_hashes(
     };
 
     if !missing_wallets.is_empty() {
-        for chunk in missing_wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
-            let fetched = fetch_validator_contract_type_hashes(chain, chunk.to_vec()).await?;
-            cache_validator_contract_type_hashes(state, chain, snapshot, fetched).await;
-        }
+        let fetched =
+            fetch_validator_contract_type_hashes(&chain.id, &provider, missing_wallets).await?;
+        cache_validator_contract_type_hashes(state, chain, snapshot, fetched).await;
     }
 
     for resolver in SOURCE_RESOLVERS {
@@ -72,7 +75,8 @@ pub(super) async fn update_validator_contract_type_hashes(
 
         if !missing_source_wallets.is_empty() {
             let fetched_sources =
-                fetch_validator_sources(*resolver, chain, missing_source_wallets).await?;
+                fetch_validator_sources(*resolver, &chain.id, &provider, missing_source_wallets)
+                    .await?;
             cache_validator_sources(state, chain, snapshot, fetched_sources).await;
         }
     }
@@ -82,25 +86,28 @@ pub(super) async fn update_validator_contract_type_hashes(
 
 async fn fetch_validator_sources(
     resolver: ValidatorSourceKind,
-    chain: &ChainConfig,
+    chain_id: &str,
+    provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
     match resolver {
-        ValidatorSourceKind::Proxy => fetch_proxy_validator_sources(chain, wallets).await,
+        ValidatorSourceKind::Proxy => {
+            fetch_proxy_validator_sources(chain_id, provider, wallets).await
+        }
         ValidatorSourceKind::SingleNominator => {
-            fetch_single_nominator_validator_sources(chain, wallets).await
+            fetch_single_nominator_validator_sources(chain_id, provider, wallets).await
         }
         ValidatorSourceKind::NominatorPool => {
-            fetch_nominator_pool_validator_sources(chain, wallets).await
+            fetch_nominator_pool_validator_sources(chain_id, provider, wallets).await
         }
         ValidatorSourceKind::ValidatorController => {
-            fetch_validator_controller_sources(chain, wallets).await
+            fetch_validator_controller_sources(chain_id, provider, wallets).await
         }
         ValidatorSourceKind::WhalesPoolProxy => {
-            fetch_whales_pool_proxy_sources(chain, wallets).await
+            fetch_whales_pool_proxy_sources(chain_id, provider, wallets).await
         }
         ValidatorSourceKind::HipoValidatorProxy => {
-            fetch_hipo_validator_proxy_sources(chain, wallets).await
+            fetch_hipo_validator_proxy_sources(chain_id, provider, wallets).await
         }
     }
 }

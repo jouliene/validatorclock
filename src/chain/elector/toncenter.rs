@@ -83,6 +83,7 @@ pub(super) async fn fetch_chain_snapshot(
 
     Ok(ClockSnapshot {
         chain: super::snapshot::chain_meta_with_rpc(chain, endpoint),
+        selected_rpc: Some(endpoint.to_owned()),
         fetched_at: observed_at,
         global_id: TON_MAINNET_GLOBAL_ID,
         seqno: masterchain.last.seqno,
@@ -500,20 +501,21 @@ fn validator_round_data_from_frozen_dict_cell(
 
 fn dictionary_root_from_stack_cell(cell: &Cell) -> Result<Option<Cell>> {
     let mut slice = cell.as_slice()?;
-    if let Ok(root) = Option::<Cell>::load_from(&mut slice) {
-        if slice.is_data_empty() && slice.size_refs() == 0 {
-            return Ok(root);
-        }
+    if let Ok(root) = Option::<Cell>::load_from(&mut slice)
+        && slice.is_data_empty()
+        && slice.size_refs() == 0
+    {
+        return Ok(root);
     }
 
     Ok(Some(cell.clone()))
 }
 
 fn stack_entry_tuple(entry: &Value) -> Option<&[Value]> {
-    if let Some(items) = entry.as_array() {
-        if items.first()?.as_str()? == "tuple" {
-            return items.get(1)?.as_array().map(Vec::as_slice);
-        }
+    if let Some(items) = entry.as_array()
+        && items.first()?.as_str()? == "tuple"
+    {
+        return items.get(1)?.as_array().map(Vec::as_slice);
     }
 
     let object = entry.as_object()?;
@@ -529,14 +531,14 @@ fn stack_entry_tuple(entry: &Value) -> Option<&[Value]> {
 }
 
 fn stack_entry_list(entry: &Value) -> Option<&[Value]> {
-    if let Some(items) = entry.as_array() {
-        if items.first()?.as_str()? == "list" {
-            return items
-                .get(1)?
-                .get("elements")
-                .and_then(Value::as_array)
-                .map(Vec::as_slice);
-        }
+    if let Some(items) = entry.as_array()
+        && items.first()?.as_str()? == "list"
+    {
+        return items
+            .get(1)?
+            .get("elements")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice);
     }
 
     let object = entry.as_object()?;
@@ -552,10 +554,10 @@ fn stack_entry_list(entry: &Value) -> Option<&[Value]> {
 }
 
 fn stack_entry_number_text(entry: &Value) -> Option<&str> {
-    if let Some(items) = entry.as_array() {
-        if items.first()?.as_str()? == "num" {
-            return items.get(1)?.as_str();
-        }
+    if let Some(items) = entry.as_array()
+        && items.first()?.as_str()? == "num"
+    {
+        return items.get(1)?.as_str();
     }
 
     let object = entry.as_object()?;

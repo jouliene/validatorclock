@@ -1,29 +1,26 @@
 use super::super::ValidatorSourceDto;
 use super::VALIDATOR_TYPE_FETCH_CONCURRENCY;
-use crate::config::ChainConfig;
-use anyhow::{Context, Result, bail};
-use minik2::Transport;
+use super::provider::ValidatorSourceProvider;
+use anyhow::{Context, Result};
 use tokio::task::JoinSet;
 use tracing::{debug, warn};
 use tycho_types::cell::{Cell, Load};
 use tycho_types::models::StdAddr;
-use tycho_types::models::account::AccountState;
 
 pub(super) async fn fetch_whales_pool_proxy_sources(
-    chain: &ChainConfig,
+    chain_id: &str,
+    provider: &ValidatorSourceProvider,
     wallets: Vec<String>,
 ) -> Result<Vec<(String, ValidatorSourceDto)>> {
-    let transport = Transport::jrpc(&chain.rpc)
-        .with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
     let mut fetched = Vec::new();
 
     for chunk in wallets.chunks(VALIDATOR_TYPE_FETCH_CONCURRENCY) {
         let mut tasks = JoinSet::new();
         for wallet in chunk {
-            let transport = transport.clone();
+            let provider = provider.clone();
             let wallet = wallet.clone();
             tasks.spawn(async move {
-                let result = discover_whales_pool_proxy_source(&transport, &wallet).await;
+                let result = discover_whales_pool_proxy_source(&provider, &wallet).await;
                 (wallet, result)
             });
         }
@@ -33,14 +30,14 @@ pub(super) async fn fetch_whales_pool_proxy_sources(
                 Ok((wallet, Ok(Some(source)))) => fetched.push((wallet, source)),
                 Ok((wallet, Ok(None))) => {
                     debug!(
-                        chain_id = %chain.id,
+                        chain_id = %chain_id,
                         wallet,
                         "whales pool proxy source not found"
                     );
                 }
                 Ok((wallet, Err(error))) => {
                     debug!(
-                        chain_id = %chain.id,
+                        chain_id = %chain_id,
                         wallet,
                         error = ?error,
                         "failed to discover whales pool proxy source"
@@ -48,7 +45,7 @@ pub(super) async fn fetch_whales_pool_proxy_sources(
                 }
                 Err(error) => {
                     warn!(
-                        chain_id = %chain.id,
+                        chain_id = %chain_id,
                         error = ?error,
                         "whales pool proxy source task failed"
                     );
@@ -61,10 +58,10 @@ pub(super) async fn fetch_whales_pool_proxy_sources(
 }
 
 async fn discover_whales_pool_proxy_source(
-    transport: &Transport,
+    provider: &ValidatorSourceProvider,
     validator_wallet: &str,
 ) -> Result<Option<ValidatorSourceDto>> {
-    let pool = whales_pool_proxy_pool_address(transport, validator_wallet).await?;
+    let pool = whales_pool_proxy_pool_address(provider, validator_wallet).await?;
 
     Ok(Some(ValidatorSourceDto {
         address: pool,
@@ -73,22 +70,12 @@ async fn discover_whales_pool_proxy_source(
 }
 
 async fn whales_pool_proxy_pool_address(
-    transport: &Transport,
+    provider: &ValidatorSourceProvider,
     validator_wallet: &str,
 ) -> Result<String> {
-    let state = transport.get_account_state(validator_wallet).await?;
-    let account = state
-        .account()
-        .with_context(|| format!("account `{validator_wallet}` not found"))?;
-    let AccountState::Active(state_init) = &account.state else {
-        bail!("account `{validator_wallet}` is not active");
-    };
-    let data = state_init
-        .data
-        .as_ref()
-        .with_context(|| format!("account `{validator_wallet}` has no data"))?;
+    let data = provider.account_data(validator_wallet).await?;
 
-    parse_whales_pool_proxy_pool(data)
+    parse_whales_pool_proxy_pool(&data)
         .with_context(|| format!("failed to parse whales pool proxy data for `{validator_wallet}`"))
 }
 
