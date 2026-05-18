@@ -8,7 +8,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::ErrorKind;
 use std::sync::Arc;
 use tracing::error;
@@ -83,7 +83,7 @@ pub(super) async fn chain_map(
         );
     }
 
-    match load_tycho_map_nodes(&state).await {
+    match load_active_tycho_map_nodes(Arc::clone(&state)).await {
         Ok(nodes) => Json(nodes).into_response(),
         Err(error) => {
             error!(error = ?error, "tycho map request failed");
@@ -94,6 +94,12 @@ pub(super) async fn chain_map(
             )
         }
     }
+}
+
+async fn load_active_tycho_map_nodes(state: Arc<AppState>) -> Result<Value> {
+    let nodes = load_tycho_map_nodes(&state).await?;
+    let snapshot = get_chain_snapshot_cached_first(state, TYCHO_MAP_CHAIN_ID, false).await?;
+    filter_tycho_map_nodes_to_active_validators(nodes, &snapshot.current_set.validators)
 }
 
 async fn load_tycho_map_nodes(state: &AppState) -> Result<Value> {
@@ -120,6 +126,31 @@ fn ensure_map_nodes_array(value: Value) -> Result<Value> {
         bail!("Tycho map nodes payload must be a JSON array");
     }
     Ok(value)
+}
+
+fn filter_tycho_map_nodes_to_active_validators(
+    value: Value,
+    validators: &[crate::chain::ValidatorDto],
+) -> Result<Value> {
+    let active_peers = validators
+        .iter()
+        .map(|validator| validator.public_key.to_ascii_lowercase())
+        .collect::<HashSet<_>>();
+
+    let nodes = value
+        .as_array()
+        .context("Tycho map nodes payload must be a JSON array")?
+        .iter()
+        .filter(|node| {
+            node.get("peer")
+                .and_then(Value::as_str)
+                .map(|peer| active_peers.contains(&peer.to_ascii_lowercase()))
+                .unwrap_or(false)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    Ok(Value::Array(nodes))
 }
 
 pub(super) async fn not_found() -> Response {

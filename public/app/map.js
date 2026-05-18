@@ -124,8 +124,24 @@ async function loadTychoMapNodes() {
     tychoMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
   }
 
+  tychoMapNodes = filterTychoMapNodesToCurrentValidators(tychoMapNodes);
   updateTychoMapSummary();
   return tychoMapNodes;
+}
+
+function filterTychoMapNodesToCurrentValidators(nodes) {
+  const validators = state.snapshot?.current_set?.validators;
+  if (!Array.isArray(nodes) || !Array.isArray(validators)) {
+    return [];
+  }
+
+  const activePeers = new Set(
+    validators
+      .map((validator) => String(validator.public_key || "").toLowerCase())
+      .filter(Boolean)
+  );
+
+  return nodes.filter((node) => activePeers.has(String(node.peer || "").toLowerCase()));
 }
 
 function ensureMapLibre() {

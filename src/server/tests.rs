@@ -568,6 +568,24 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
     }
 }
 
+async fn cache_tycho_snapshot(state: &AppState, public_keys: &[&str]) {
+    let mut snapshot = test_clock_snapshot("tycho-testnet");
+    let template = snapshot.current_set.validators[0].clone();
+    snapshot.current_set.validators = public_keys
+        .iter()
+        .map(|public_key| {
+            let mut validator = template.clone();
+            validator.public_key = (*public_key).to_owned();
+            validator
+        })
+        .collect();
+    snapshot.current_set.total = snapshot.current_set.validators.len();
+    snapshot.current_set.main = snapshot.current_set.validators.len() as u16;
+    state
+        .store_cached_snapshot("tycho-testnet", now_sec_for_test(), snapshot)
+        .await;
+}
+
 #[tokio::test]
 async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
     let mut config = test_config(Vec::new());
@@ -580,6 +598,11 @@ async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
         rpc_label: None,
     });
     let state = Arc::new(AppState::new(Arc::new(config)));
+    cache_tycho_snapshot(
+        &state,
+        &["1778eb66b9386bcc37031cad14d73e4554413b23d16b4b680726375a622f3a5b"],
+    )
+    .await;
 
     let response = app_router(state)
         .oneshot(
@@ -594,8 +617,11 @@ async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
     assert_eq!(response.status(), StatusCode::OK);
     assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
     let body = response_json(response).await;
-    assert!(!body.as_array().unwrap().is_empty());
-    assert!(body[0]["peer"].is_string());
+    assert_eq!(body.as_array().unwrap().len(), 1);
+    assert_eq!(
+        body[0]["peer"],
+        "1778eb66b9386bcc37031cad14d73e4554413b23d16b4b680726375a622f3a5b"
+    );
     assert!(body[0]["ip"].is_string());
 }
 
@@ -608,7 +634,10 @@ async fn app_router_serves_configured_tycho_map_file() {
     ));
     fs::write(
         &map_path,
-        r#"[{"peer":"validator-public-key","ip":"203.0.113.10","city":"Test City","country":"Testland","isp":"Test ISP","lat":1.25,"lon":2.5}]"#,
+        r#"[
+            {"peer":"active-validator-public-key","ip":"203.0.113.10","city":"Test City","country":"Testland","isp":"Test ISP","lat":1.25,"lon":2.5},
+            {"peer":"inactive-validator-public-key","ip":"203.0.113.11","city":"Other City","country":"Testland","isp":"Test ISP","lat":3.25,"lon":4.5}
+        ]"#,
     )
     .unwrap();
 
@@ -623,6 +652,7 @@ async fn app_router_serves_configured_tycho_map_file() {
         rpc_label: None,
     });
     let state = Arc::new(AppState::new(Arc::new(config)));
+    cache_tycho_snapshot(&state, &["active-validator-public-key"]).await;
 
     let response = app_router(state)
         .oneshot(
@@ -637,7 +667,7 @@ async fn app_router_serves_configured_tycho_map_file() {
     assert_eq!(response.status(), StatusCode::OK);
     let body = response_json(response).await;
     assert_eq!(body.as_array().unwrap().len(), 1);
-    assert_eq!(body[0]["peer"], "validator-public-key");
+    assert_eq!(body[0]["peer"], "active-validator-public-key");
     assert_eq!(body[0]["ip"], "203.0.113.10");
 
     let _ = fs::remove_file(map_path);
