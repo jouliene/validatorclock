@@ -4,6 +4,7 @@ mod dto;
 mod elector;
 mod refresh;
 mod status;
+mod toncenter_client;
 mod util;
 mod validator_sources;
 
