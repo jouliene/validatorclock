@@ -13,6 +13,7 @@ mod logging;
 mod server;
 mod state;
 mod tls;
+mod tycho_map;
 mod validator_types;
 
 use state::AppState;

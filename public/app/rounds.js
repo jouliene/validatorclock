@@ -45,7 +45,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, current);
     renderValidators(list, current.validators, validatorRenderOptions(snapshot, {
       rewards: true,
-      fakeValidatorPeers: state.tychoFakePeers,
+      fakeValidatorPeers: tychoSetFakePeers(current) || state.tychoFakePeers,
       fakeSourceTooltip: "No reachable Tycho node IP is currently published for this validator public key.",
     }));
     return;
@@ -75,7 +75,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, previous);
     renderValidators(list, previous.validators, validatorRenderOptions(snapshot, {
       rewards: true,
-      fakeValidatorPeers: rememberedTychoFakePeers(previous),
+      fakeValidatorPeers: tychoSetFakePeers(previous) || rememberedTychoFakePeers(previous),
       fakeSourceTooltip: "No reachable Tycho node IP was published for this validator while this round was active.",
     }));
     return;
@@ -298,6 +298,19 @@ function rememberTychoFakePeers(round, fakePeers) {
 function rememberedTychoFakePeers(round) {
   const key = tychoRoundFakeKey(round);
   const peers = key ? state.tychoFakeValidatorsByRound[key] : null;
+  if (!Array.isArray(peers)) {
+    return null;
+  }
+
+  return new Set(
+    peers
+      .map((peer) => String(peer || "").toLowerCase())
+      .filter(Boolean)
+  );
+}
+
+function tychoSetFakePeers(round) {
+  const peers = round && round.fake_validator_peers;
   if (!Array.isArray(peers)) {
     return null;
   }

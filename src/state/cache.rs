@@ -2,6 +2,7 @@ use super::AppState;
 use crate::chain::{CacheEntry, ClockSnapshot, apply_cached_validator_types_to_snapshot};
 use crate::config::ChainConfig;
 use crate::fsutil::write_file_atomic;
+use crate::tycho_map::TYCHO_MAP_CHAIN_ID;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -77,6 +78,10 @@ impl AppState {
             (now.saturating_sub(entry.fetched_at()) < refresh_seconds)
                 .then(|| entry.snapshot().clone())?
         };
+        self.annotate_tycho_fake_validators(&mut snapshot);
+        if chain_id == TYCHO_MAP_CHAIN_ID && snapshot.current_set.fake_validator_status_known {
+            self.record_round_history(&mut snapshot, now).await;
+        }
         self.annotate_snapshot(chain_id, &mut snapshot).await;
         apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
         Some(snapshot)
@@ -87,6 +92,11 @@ impl AppState {
             let cache = self.cache.read().await;
             cache.get(chain_id).map(|entry| entry.snapshot().clone())?
         };
+        self.annotate_tycho_fake_validators(&mut snapshot);
+        let observed_at = snapshot.fetched_at();
+        if chain_id == TYCHO_MAP_CHAIN_ID && snapshot.current_set.fake_validator_status_known {
+            self.record_round_history(&mut snapshot, observed_at).await;
+        }
         self.annotate_snapshot(chain_id, &mut snapshot).await;
         apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
         Some(snapshot)

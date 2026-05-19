@@ -78,6 +78,8 @@ pub(super) struct StoredRound {
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub(super) struct StoredValidator {
     pub(super) wallet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) fake_node: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]

@@ -36,6 +36,25 @@ impl RoundHistoryStore {
             set.round_color,
             &current_validators,
         );
+        self.annotate_fake_validator_peers(chain_id, set);
+    }
+
+    fn annotate_fake_validator_peers(&self, chain_id: &str, set: &mut ValidatorSetDto) {
+        if set.fake_validator_status_known {
+            return;
+        }
+
+        let Some(stored) = self
+            .chains
+            .get(chain_id)
+            .and_then(|chain| chain.rounds.get(&set.round_id))
+            .filter(|stored| stored.has_fake_validator_status())
+        else {
+            return;
+        };
+
+        set.fake_validator_peers = stored.fake_validator_peers();
+        set.fake_validator_status_known = true;
     }
 
     fn annotate_election_candidates(&self, chain_id: &str, snapshot: &mut ClockSnapshot) {

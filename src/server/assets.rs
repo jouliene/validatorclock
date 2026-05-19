@@ -1,6 +1,5 @@
 use axum::http::header::{self, HeaderValue};
 use axum::response::{Html, IntoResponse};
-use serde_json::Value;
 
 const INDEX_HTML: &str = include_str!("../../public/index.html");
 const STYLES_CSS: &str = include_str!("../../public/styles.css");
@@ -39,16 +38,6 @@ const APP_JS_PARTS: &[&str] = &[
     APP_RUNTIME_JS,
     APP_ENTRY_JS,
 ];
-
-pub(super) fn fallback_tycho_nodes_json() -> Result<Value, serde_json::Error> {
-    let body = APP_TYCHO_NODES_JS
-        .trim()
-        .strip_prefix("window.TYCHO_NODES =")
-        .and_then(|body| body.trim().strip_suffix(';'))
-        .unwrap_or("[]");
-
-    serde_json::from_str(body.trim())
-}
 
 pub(super) async fn index() -> Html<String> {
     Html(INDEX_HTML.replace("__ASSET_VERSION__", &asset_version()))

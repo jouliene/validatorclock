@@ -91,6 +91,10 @@ pub(crate) struct ValidatorSetDto {
     pub(crate) total_reward: Option<String>,
     pub(crate) validators: Vec<ValidatorDto>,
     pub(crate) recent_absent_validators: Vec<RecentAbsentValidatorDto>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub(crate) fake_validator_peers: Vec<String>,
+    #[serde(default, skip)]
+    pub(crate) fake_validator_status_known: bool,
 }
 
 #[derive(Debug, Clone, Copy, Deserialize, Eq, PartialEq, Serialize)]

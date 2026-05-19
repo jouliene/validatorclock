@@ -42,6 +42,8 @@ fn set(round_id: u32, round_color: RoundColor, validators: Vec<&str>) -> Validat
         total_reward: None,
         validators: validators.into_iter().map(validator).collect(),
         recent_absent_validators: Vec::new(),
+        fake_validator_peers: Vec::new(),
+        fake_validator_status_known: false,
     }
 }
 
@@ -61,6 +63,7 @@ fn stored_round(set: &ValidatorSetDto, observed_at: u64, complete: bool) -> Stor
                     validator.public_key.clone(),
                     StoredValidator {
                         wallet: validator.wallet.clone(),
+                        fake_node: None,
                     },
                 )
             })

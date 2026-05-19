@@ -75,6 +75,8 @@ pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
                 history: Vec::new(),
             }],
             recent_absent_validators: Vec::new(),
+            fake_validator_peers: Vec::new(),
+            fake_validator_status_known: false,
         },
         previous_set: None,
         next_set: None,

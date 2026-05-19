@@ -192,3 +192,31 @@ fn recent_absent_validators_uses_wallet_identity() {
 
     assert!(absent.is_empty());
 }
+
+#[test]
+fn fake_validator_status_is_replayed_to_annotated_sets() {
+    let mut store = RoundHistoryStore::default();
+    store
+        .chains
+        .entry("test".to_owned())
+        .or_default()
+        .record_set(
+            &ValidatorSetDto {
+                fake_validator_peers: vec!["bob".to_owned()],
+                fake_validator_status_known: true,
+                ..set(10, RoundColor::Blue, vec!["alice", "bob"])
+            },
+            100,
+        );
+
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(12, RoundColor::Green, vec!["carol"]);
+    snapshot.previous_set = Some(set(10, RoundColor::Blue, vec!["alice", "bob"]));
+
+    store.annotate_snapshot("test", &mut snapshot);
+
+    assert_eq!(
+        snapshot.previous_set.unwrap().fake_validator_peers,
+        vec!["bob".to_owned()]
+    );
+}

@@ -77,6 +77,8 @@ impl ValidatorSetDto {
                 })
                 .collect(),
             recent_absent_validators: Vec::new(),
+            fake_validator_peers: Vec::new(),
+            fake_validator_status_known: false,
         }
     }
 
@@ -145,6 +147,8 @@ impl ValidatorSetDto {
             total_reward: round_data.total_reward.clone(),
             validators,
             recent_absent_validators: Vec::new(),
+            fake_validator_peers: Vec::new(),
+            fake_validator_status_known: false,
         })
     }
 }

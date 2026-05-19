@@ -1,19 +1,16 @@
-use super::assets::fallback_tycho_nodes_json;
 use super::security::{json_error, query_forces_refresh};
 use crate::chain::{chains_response, get_chain_snapshot_cached_first, runtime_status};
 use crate::state::AppState;
-use anyhow::{Context, Result, bail};
+use crate::tycho_map::{TYCHO_MAP_CHAIN_ID, filter_map_nodes_to_validators, load_tycho_map_nodes};
+use anyhow::Result;
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::{Value, json};
-use std::collections::{HashMap, HashSet};
-use std::io::ErrorKind;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::error;
-
-const TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
 
 pub(super) async fn health() -> impl IntoResponse {
     Json(json!({ "status": "ok" }))
@@ -97,60 +94,9 @@ pub(super) async fn chain_map(
 }
 
 async fn load_active_tycho_map_nodes(state: Arc<AppState>) -> Result<Value> {
-    let nodes = load_tycho_map_nodes(&state).await?;
+    let nodes = load_tycho_map_nodes(&state.config)?;
     let snapshot = get_chain_snapshot_cached_first(state, TYCHO_MAP_CHAIN_ID, false).await?;
-    filter_tycho_map_nodes_to_active_validators(nodes, &snapshot.current_set.validators)
-}
-
-async fn load_tycho_map_nodes(state: &AppState) -> Result<Value> {
-    if let Some(path) = &state.config.tycho_map_nodes_path {
-        match std::fs::read_to_string(path) {
-            Ok(body) => {
-                let value = serde_json::from_str(&body)
-                    .with_context(|| format!("failed to parse {}", path.display()))?;
-                return ensure_map_nodes_array(value);
-            }
-            Err(error) if error.kind() == ErrorKind::NotFound => {}
-            Err(error) => {
-                return Err(error).with_context(|| format!("failed to read {}", path.display()));
-            }
-        }
-    }
-
-    let value = fallback_tycho_nodes_json().context("failed to parse bundled Tycho map nodes")?;
-    ensure_map_nodes_array(value)
-}
-
-fn ensure_map_nodes_array(value: Value) -> Result<Value> {
-    if !value.is_array() {
-        bail!("Tycho map nodes payload must be a JSON array");
-    }
-    Ok(value)
-}
-
-fn filter_tycho_map_nodes_to_active_validators(
-    value: Value,
-    validators: &[crate::chain::ValidatorDto],
-) -> Result<Value> {
-    let active_peers = validators
-        .iter()
-        .map(|validator| validator.public_key.to_ascii_lowercase())
-        .collect::<HashSet<_>>();
-
-    let nodes = value
-        .as_array()
-        .context("Tycho map nodes payload must be a JSON array")?
-        .iter()
-        .filter(|node| {
-            node.get("peer")
-                .and_then(Value::as_str)
-                .map(|peer| active_peers.contains(&peer.to_ascii_lowercase()))
-                .unwrap_or(false)
-        })
-        .cloned()
-        .collect::<Vec<_>>();
-
-    Ok(Value::Array(nodes))
+    filter_map_nodes_to_validators(nodes, &snapshot.current_set.validators)
 }
 
 pub(super) async fn not_found() -> Response {

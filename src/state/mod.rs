@@ -2,6 +2,7 @@ mod acme;
 mod cache;
 mod history;
 mod runtime;
+mod tycho;
 mod validator_types;
 
 use self::runtime::ChainRuntimeStatus;

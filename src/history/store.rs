@@ -2,6 +2,7 @@ use super::{
     ChainRoundHistory, RoundHistoryRetention, RoundHistoryStore, StoredRound, StoredValidator,
 };
 use crate::chain::{ClockSnapshot, ValidatorSetDto};
+use std::collections::BTreeSet;
 
 impl RoundHistoryStore {
     pub(crate) fn merge_from(&mut self, other: RoundHistoryStore) -> bool {
@@ -74,6 +75,7 @@ impl ChainRoundHistory {
             return false;
         }
 
+        let fake_validator_peers = fake_validator_peer_set(set);
         let incoming = StoredRound {
             round_id: set.round_id,
             round_color: set.round_color,
@@ -89,6 +91,10 @@ impl ChainRoundHistory {
                         validator.public_key.clone(),
                         StoredValidator {
                             wallet: validator.wallet.clone(),
+                            fake_node: set.fake_validator_status_known.then_some(
+                                fake_validator_peers
+                                    .contains(&validator.public_key.to_ascii_lowercase()),
+                            ),
                         },
                     )
                 })
@@ -121,6 +127,20 @@ impl StoredRound {
             })
     }
 
+    pub(super) fn has_fake_validator_status(&self) -> bool {
+        self.validators
+            .values()
+            .any(|validator| validator.fake_node.is_some())
+    }
+
+    pub(super) fn fake_validator_peers(&self) -> Vec<String> {
+        self.validators
+            .iter()
+            .filter(|(_, validator)| validator.fake_node == Some(true))
+            .map(|(public_key, _)| public_key.clone())
+            .collect()
+    }
+
     fn merge_from(&mut self, other: StoredRound) -> bool {
         if !other.complete {
             return false;
@@ -137,19 +157,21 @@ impl StoredRound {
         if other_is_preferred {
             self.replace_with_preserved_wallets(other)
         } else {
-            self.merge_missing_wallets(other)
+            self.merge_missing_validator_data(other)
         }
     }
 
     fn replace_with_preserved_wallets(&mut self, mut replacement: StoredRound) -> bool {
         for (public_key, validator) in &mut replacement.validators {
-            if validator.wallet.is_none()
-                && let Some(wallet) = self
-                    .validators
-                    .get(public_key)
-                    .and_then(|existing| existing.wallet.clone())
-            {
-                validator.wallet = Some(wallet);
+            if let Some(existing) = self.validators.get(public_key) {
+                if validator.wallet.is_none()
+                    && let Some(wallet) = existing.wallet.clone()
+                {
+                    validator.wallet = Some(wallet);
+                }
+                if validator.fake_node.is_none() {
+                    validator.fake_node = existing.fake_node;
+                }
             }
         }
 
@@ -161,7 +183,7 @@ impl StoredRound {
         true
     }
 
-    fn merge_missing_wallets(&mut self, other: StoredRound) -> bool {
+    fn merge_missing_validator_data(&mut self, other: StoredRound) -> bool {
         let mut changed = false;
         let observed_at = other.observed_at;
         for (public_key, other_validator) in other.validators {
@@ -170,6 +192,13 @@ impl StoredRound {
                 && other_validator.wallet.is_some()
             {
                 validator.wallet = other_validator.wallet;
+                changed = true;
+            }
+            if let Some(validator) = self.validators.get_mut(&public_key)
+                && validator.fake_node.is_none()
+                && other_validator.fake_node.is_some()
+            {
+                validator.fake_node = other_validator.fake_node;
                 changed = true;
             }
         }
@@ -188,13 +217,25 @@ impl StoredRound {
             && self.validators == other.validators
     }
 
-    fn richness(&self) -> (usize, usize) {
+    fn richness(&self) -> (usize, usize, usize) {
         (
             self.validators.len(),
             self.validators
                 .values()
                 .filter(|validator| validator.wallet.is_some())
                 .count(),
+            self.validators
+                .values()
+                .filter(|validator| validator.fake_node.is_some())
+                .count(),
         )
     }
+}
+
+fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {
+    set.fake_validator_peers
+        .iter()
+        .map(|peer| peer.to_ascii_lowercase())
+        .filter(|peer| !peer.is_empty())
+        .collect()
 }

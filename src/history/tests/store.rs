@@ -110,6 +110,53 @@ fn complete_round_refresh_preserves_existing_wallets() {
 }
 
 #[test]
+fn complete_round_refresh_preserves_existing_fake_node_status() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    assert!(chain.record_set(
+        &ValidatorSetDto {
+            fake_validator_peers: vec!["alice".to_owned()],
+            fake_validator_status_known: true,
+            ..set(10, RoundColor::Blue, vec!["alice"])
+        },
+        100,
+    ));
+
+    assert!(!chain.record_set(&set(10, RoundColor::Blue, vec!["alice"]), 200));
+    let round = &chain.rounds[&10];
+
+    assert_eq!(round.validators["alice"].fake_node, Some(true));
+    assert_eq!(round.observed_at, 100);
+}
+
+#[test]
+fn complete_round_refresh_replaces_fake_node_status_when_known_again() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    assert!(chain.record_set(
+        &ValidatorSetDto {
+            fake_validator_peers: vec!["alice".to_owned()],
+            fake_validator_status_known: true,
+            ..set(10, RoundColor::Blue, vec!["alice"])
+        },
+        100,
+    ));
+
+    assert!(chain.record_set(
+        &ValidatorSetDto {
+            fake_validator_peers: Vec::new(),
+            fake_validator_status_known: true,
+            ..set(10, RoundColor::Blue, vec!["alice"])
+        },
+        200,
+    ));
+    let round = &chain.rounds[&10];
+
+    assert_eq!(round.validators["alice"].fake_node, Some(false));
+    assert_eq!(round.observed_at, 200);
+}
+
+#[test]
 fn recording_same_complete_round_is_not_dirty() {
     let mut store = RoundHistoryStore::default();
     let chain = store.chains.entry("test".to_owned()).or_default();
