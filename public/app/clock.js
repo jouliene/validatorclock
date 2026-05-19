@@ -109,24 +109,24 @@ function drawDefs(svg) {
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
   defs.innerHTML = `
     <filter id="roundGlow" x="-18%" y="-18%" width="136%" height="136%">
-      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000712" flood-opacity="0.46"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#36bdf6" flood-opacity="0.07"/>
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000712" flood-opacity="0.36"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#36bdf6" flood-opacity="0.035"/>
     </filter>
     <filter id="arcGlow" x="-28%" y="-28%" width="156%" height="156%">
-      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#ffd66a" flood-opacity="0.42"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#d69835" flood-opacity="0.2"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ffd66a" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#d69835" flood-opacity="0.11"/>
     </filter>
     <filter id="bezelShadow" x="-18%" y="-18%" width="136%" height="136%">
-      <feDropShadow dx="0" dy="24" stdDeviation="22" flood-color="#00040a" flood-opacity="0.62"/>
-      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#6fd4ff" flood-opacity="0.08"/>
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#00040a" flood-opacity="0.46"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#6fd4ff" flood-opacity="0.04"/>
     </filter>
     <filter id="needleShadow" x="-26%" y="-26%" width="152%" height="152%">
       <feDropShadow dx="0" dy="7" stdDeviation="6" flood-color="#02050a" flood-opacity="0.5"/>
       <feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#ff5361" flood-opacity="0.14"/>
     </filter>
     <radialGradient id="clockAura" cx="50%" cy="48%" r="50%">
-      <stop offset="0" stop-color="#193142" stop-opacity="0.2"/>
-      <stop offset="0.56" stop-color="#0e2333" stop-opacity="0.08"/>
+      <stop offset="0" stop-color="#193142" stop-opacity="0.11"/>
+      <stop offset="0.56" stop-color="#0e2333" stop-opacity="0.035"/>
       <stop offset="1" stop-color="#061018" stop-opacity="0"/>
     </radialGradient>
     <radialGradient id="bezelFace" cx="36%" cy="24%" r="78%">
@@ -288,9 +288,9 @@ function drawSeam(svg, center, innerRadius, outerRadius) {
 
 function drawArcEndpoint(svg, cx, cy, radius, angle, active) {
   const point = polar(cx, cy, radius, angle);
-  const glow = active ? 14 : 11;
+  const glow = active ? 11 : 8;
   const core = active ? 5.1 : 4.4;
-  drawCircle(svg, point.x, point.y, glow, "rgba(255, 214, 98, 0.13)", "none", 0);
+  drawCircle(svg, point.x, point.y, glow, "rgba(255, 214, 98, 0.09)", "none", 0);
   drawCircle(svg, point.x, point.y, core, "#ffe58a", "rgba(255, 255, 255, 0.92)", 1);
   drawSpark(svg, point.x, point.y, angle, active);
 }
@@ -299,8 +299,8 @@ function drawSpark(svg, x, y, angle, active) {
   const tangent = angle + Math.PI / 2;
   const radialSize = active ? 13 : 9;
   const tangentSize = active ? 10 : 7;
-  drawCenteredLine(svg, x, y, angle, radialSize, active ? "rgba(255, 244, 174, 0.62)" : "rgba(255, 232, 142, 0.34)", active ? 1.8 : 1.2);
-  drawCenteredLine(svg, x, y, tangent, tangentSize, active ? "rgba(255, 244, 174, 0.52)" : "rgba(255, 232, 142, 0.28)", active ? 1.5 : 1);
+  drawCenteredLine(svg, x, y, angle, radialSize, active ? "rgba(255, 244, 174, 0.46)" : "rgba(255, 232, 142, 0.24)", active ? 1.8 : 1.2);
+  drawCenteredLine(svg, x, y, tangent, tangentSize, active ? "rgba(255, 244, 174, 0.36)" : "rgba(255, 232, 142, 0.2)", active ? 1.5 : 1);
 }
 
 function drawNeedle(svg, cx, cy, radius, angle) {
