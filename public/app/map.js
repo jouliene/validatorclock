@@ -71,7 +71,8 @@ function setTychoMapOpen(open) {
   }
 
   loadTychoMap().catch((error) => {
-    showTychoMapStatus(`Unable to load map: ${error.message}`);
+    console.warn("Unable to load Tycho map", error);
+    showTychoMapStatus(formatTychoMapError(error), "error");
   });
 }
 
@@ -104,11 +105,11 @@ async function loadTychoMap() {
     return;
   }
 
-  showTychoMapStatus("Loading map");
+  showTychoMapStatus("Loading map", "loading");
   await ensureMapLibre();
   renderTychoMap();
   tychoMapLoaded = true;
-  showTychoMapStatus("");
+  showTychoMapStatus(tychoMapFeatures().length ? "" : "No mapped Tycho validators in the current set", "empty");
 }
 
 async function loadTychoMapNodes() {
@@ -613,13 +614,27 @@ function closeTychoMapPopups() {
   tychoMapPopups.clear();
 }
 
-function showTychoMapStatus(message) {
+function showTychoMapStatus(message, stateName = "info") {
   const status = $("tychoMapStatus");
   if (!status) {
     return;
   }
   status.hidden = !message;
+  status.dataset.state = stateName;
   status.textContent = message || "";
+}
+
+function formatTychoMapError(error) {
+  const message = String(error?.message || error || "");
+  if (/webgl|context/i.test(message)) {
+    return "Map rendering is unavailable in this browser session. WebGL could not be initialized.";
+  }
+
+  if (/assets failed to load/i.test(message)) {
+    return "Map assets could not be loaded. Check the network connection and try again.";
+  }
+
+  return "Map could not be loaded. Try again in a moment.";
 }
 
 function escapeHtml(value) {

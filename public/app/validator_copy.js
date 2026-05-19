@@ -8,6 +8,7 @@ function copyableValue(text, value, className, label) {
   textNode.textContent = text;
   const feedback = document.createElement("span");
   feedback.className = "validator-copy-feedback";
+  feedback.setAttribute("aria-live", "polite");
   feedback.textContent = "Copied";
   button.append(textNode, feedback);
   if (!value || value === "-") {

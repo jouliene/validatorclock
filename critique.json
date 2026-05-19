@@ -1,0 +1,26 @@
+{
+  "kind": "critique-panel",
+  "score": 4,
+  "axes": {
+    "clarity": {
+      "score": 4,
+      "notes": "Step 13 is a manual final polish pass. It fixes the visible cockpit/title pressure, restores Election countdown prominence, gives MAP a proper control footprint, and separates the open-map reset action from the title cluster."
+    },
+    "hierarchy": {
+      "score": 4,
+      "notes": "The clock remains the central instrument through the SVG gauge itself rather than a separate box. Election countdown values are readable again, MAP reads as an intentional control, and the open map header now has a clearer title/actions split."
+    },
+    "typography": {
+      "score": 4,
+      "notes": "Step 9 and Step 10 typography decisions are retained. Active and elections-open/election round badges remain text-only labels with existing color treatment."
+    },
+    "motion": {
+      "score": 5,
+      "notes": "No motion or interaction behavior changed. MAP controls, reset behavior, MapLibre interactions, countdown timers, Network message fades, copy feedback, hover states, and focus-visible states remain driven by existing code."
+    },
+    "brand": {
+      "score": 4,
+      "notes": "The premium dark sportcar dashboard direction remains intact: carbon cockpit shell, exposed gauge, stronger instrument numerals, deliberate MAP control, and restrained blue/green/gold/cyan semantic accents."
+    }
+  }
+}
