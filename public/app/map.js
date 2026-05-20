@@ -1,5 +1,5 @@
 const TYCHO_MAP_CHAIN_ID = "tycho-testnet";
-const MAP_CHAIN_IDS = new Set([TYCHO_MAP_CHAIN_ID, "ton"]);
+const MAP_CHAIN_IDS = new Set([TYCHO_MAP_CHAIN_ID, "ton", "everscale"]);
 const MAPLIBRE_JS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js";
 const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css";
 const TYCHO_MAP_DEFAULT_BOUNDS = [
