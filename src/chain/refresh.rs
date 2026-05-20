@@ -159,7 +159,7 @@ async fn get_chain_snapshot(
         Ok(mut snapshot) => {
             let fetched_at = snapshot.fetched_at;
             let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
-            state.annotate_tycho_fake_validators(&mut snapshot);
+            state.annotate_map_fake_validators(&mut snapshot);
             state.record_round_history(&mut snapshot, observed_at).await;
             apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
             state
@@ -276,6 +276,7 @@ mod tests {
     use axum::routing::{get, post};
     use minik2::{HashBytes, ValidatorSet};
     use serde_json::{Value, json};
+    use std::collections::HashMap;
     use std::num::NonZeroU16;
     use std::path::PathBuf;
     use std::sync::Arc;
@@ -297,6 +298,7 @@ mod tests {
             cache_path: state_dir.join("cache.json"),
             history_path: Some(state_dir.join("history.json")),
             tycho_map_nodes_path: None,
+            map_nodes_paths: HashMap::new(),
             security: SecurityConfig::default(),
             tls: TlsConfig::default(),
             chains: vec![ChainConfig {

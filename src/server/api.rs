@@ -1,7 +1,7 @@
 use super::security::{json_error, query_forces_refresh};
 use crate::chain::{chains_response, get_chain_snapshot_cached_first, runtime_status};
 use crate::state::AppState;
-use crate::tycho_map::{TYCHO_MAP_CHAIN_ID, filter_map_nodes_to_validators, load_tycho_map_nodes};
+use crate::tycho_map::{filter_map_nodes_to_validators, load_map_nodes};
 use anyhow::Result;
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -72,31 +72,30 @@ pub(super) async fn chain_map(
             &format!("unknown chain id `{chain_id}`"),
         );
     }
-    if chain_id != TYCHO_MAP_CHAIN_ID {
-        return json_error(
+    match load_active_map_nodes(Arc::clone(&state), &chain_id).await {
+        Ok(Some(nodes)) => Json(nodes).into_response(),
+        Ok(None) => json_error(
             StatusCode::NOT_FOUND,
             "map_not_available",
-            "validator map is available for Tycho only",
-        );
-    }
-
-    match load_active_tycho_map_nodes(Arc::clone(&state)).await {
-        Ok(nodes) => Json(nodes).into_response(),
+            "validator map is not available for this chain",
+        ),
         Err(error) => {
-            error!(error = ?error, "tycho map request failed");
+            error!(chain_id, error = ?error, "validator map request failed");
             json_error(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "tycho_map_failed",
-                "failed to load Tycho validator map",
+                "validator_map_failed",
+                "failed to load validator map",
             )
         }
     }
 }
 
-async fn load_active_tycho_map_nodes(state: Arc<AppState>) -> Result<Value> {
-    let nodes = load_tycho_map_nodes(&state.config)?;
-    let snapshot = get_chain_snapshot_cached_first(state, TYCHO_MAP_CHAIN_ID, false).await?;
-    filter_map_nodes_to_validators(nodes, &snapshot.current_set.validators)
+async fn load_active_map_nodes(state: Arc<AppState>, chain_id: &str) -> Result<Option<Value>> {
+    let Some(nodes) = load_map_nodes(&state.config, chain_id)? else {
+        return Ok(None);
+    };
+    let snapshot = get_chain_snapshot_cached_first(state, chain_id, false).await?;
+    filter_map_nodes_to_validators(nodes, &snapshot.current_set.validators).map(Some)
 }
 
 pub(super) async fn not_found() -> Response {

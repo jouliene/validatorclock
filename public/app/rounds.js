@@ -46,7 +46,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderValidators(list, current.validators, validatorRenderOptions(snapshot, {
       rewards: true,
       fakeValidatorPeers: tychoSetFakePeers(current) || state.tychoFakePeers,
-      fakeSourceTooltip: "No reachable Tycho node IP is currently published for this validator public key.",
+      fakeSourceTooltip: fakeValidatorTooltip(true),
     }));
     return;
   }
@@ -76,7 +76,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderValidators(list, previous.validators, validatorRenderOptions(snapshot, {
       rewards: true,
       fakeValidatorPeers: tychoSetFakePeers(previous) || rememberedTychoFakePeers(previous),
-      fakeSourceTooltip: "No reachable Tycho node IP was published for this validator while this round was active.",
+      fakeSourceTooltip: fakeValidatorTooltip(false),
     }));
     return;
   }
@@ -293,6 +293,12 @@ function rememberTychoFakePeers(round, fakePeers) {
   } catch (error) {
     console.warn("Unable to store Tycho fake validator status", error);
   }
+}
+
+function fakeValidatorTooltip(current) {
+  return current
+    ? "No reachable validator node IP is currently published for this validator public key."
+    : "No reachable validator node IP was published for this validator while this round was active.";
 }
 
 function rememberedTychoFakePeers(round) {

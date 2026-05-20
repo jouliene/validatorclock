@@ -1239,7 +1239,7 @@ dd {
 
 .tycho-map-panel .maplibregl-popup-content {
   width: max-content;
-  max-width: calc(100vw - 26px);
+  max-width: calc(100vw - 16px);
   max-height: min(460px, calc(100vh - 90px));
   overflow: auto;
   border: 1px solid rgba(154, 196, 224, 0.2);
@@ -1307,43 +1307,67 @@ dd {
 }
 
 .popup-node-list {
-  display: grid;
-  gap: 2px;
   width: max-content;
-  max-width: calc(100vw - 52px);
+  max-width: calc(100vw - 40px);
+  overflow-x: auto;
 }
 
-.popup-node-row {
-  display: grid;
-  grid-template-columns: max-content max-content max-content;
-  gap: 12px;
-  align-items: center;
-  justify-content: start;
+.popup-node-table {
+  width: max-content;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.popup-node-table th {
+  padding: 0 10px 6px 0;
+  color: rgba(161, 177, 197, 0.74);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.popup-node-table td {
   min-width: 0;
-  padding: 7px 0 0;
+  padding: 7px 10px 7px 0;
   border-top: 1px solid rgba(154, 196, 224, 0.13);
+  vertical-align: middle;
+}
+
+.popup-node-table th:last-child,
+.popup-node-table td:last-child {
+  padding-right: 0;
 }
 
 .popup-ip {
   color: #dbe6ff;
   font-weight: 760;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .popup-isp {
-  min-width: 0;
   overflow: hidden;
   color: var(--muted);
-  text-overflow: clip;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.popup-peer {
+.popup-peer-cell {
   min-width: 0;
+}
+
+.popup-peer {
+  display: block;
+  width: 64ch;
+  min-width: 0;
+  max-width: none;
   overflow: visible;
   color: #b8c7ff;
   font-family: var(--font-mono);
-  font-size: 10.8px;
+  font-size: 10.2px;
   text-overflow: clip;
   white-space: nowrap;
 }
@@ -2752,13 +2776,14 @@ dd {
     height: var(--control-size);
   }
 
-  .popup-node-row {
-    grid-template-columns: 1fr;
-    gap: 2px;
+  .popup-node-list {
+    width: min(380px, calc(100vw - 40px));
   }
 
   .popup-peer {
-    overflow: hidden;
+    width: 64ch;
+    max-width: none;
+    overflow: visible;
     font-size: 9px;
     text-overflow: clip;
   }

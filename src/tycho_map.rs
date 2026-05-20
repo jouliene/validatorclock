@@ -9,6 +9,22 @@ pub(crate) const TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
 
 const APP_TYCHO_NODES_JS: &str = include_str!("../public/app/tycho_nodes.js");
 
+pub(crate) fn load_map_nodes(config: &AppConfig, chain_id: &str) -> Result<Option<Value>> {
+    if let Some(path) = config.map_nodes_paths.get(chain_id) {
+        let body = std::fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        let value = serde_json::from_str(&body)
+            .with_context(|| format!("failed to parse {}", path.display()))?;
+        return ensure_map_nodes_array(value).map(Some);
+    }
+
+    if chain_id == TYCHO_MAP_CHAIN_ID {
+        return load_tycho_map_nodes(config).map(Some);
+    }
+
+    Ok(None)
+}
+
 pub(crate) fn load_tycho_map_nodes(config: &AppConfig) -> Result<Value> {
     if let Some(path) = &config.tycho_map_nodes_path {
         match std::fs::read_to_string(path) {

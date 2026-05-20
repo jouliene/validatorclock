@@ -74,8 +74,10 @@ function chainTabLabel(chain) {
 }
 
 async function selectChain(chainId) {
+  const previousChainId = state.selectedChainId;
   state.selectedChainId = chainId;
   state.roundRenderKey = null;
+  resetTychoMapForChainChange(previousChainId, chainId);
   renderChainTabs();
   const cachedSnapshot = state.snapshotsByChain.get(chainId);
   if (cachedSnapshot) {
@@ -149,7 +151,7 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
 
   state.snapshot = snapshot;
   state.snapshotsByChain.set(chainId, snapshot);
-  if (chainId === TYCHO_MAP_CHAIN_ID) {
+  if (mapAvailableForChain(chainId)) {
     await refreshTychoMapNodesForSnapshot();
   } else {
     state.tychoMappedPeers = null;

@@ -4,6 +4,9 @@
   "refresh_timeout_seconds": 90,
   "cache_path": "validators_clock_cache.json",
   "tycho_map_nodes_path": "/home/admin/.validators_clock/tycho_map/tycho_nodes.json",
+  "map_nodes_paths": {
+    "ton": "/home/neo/RUST_CODE/validators_clock/.local_maps/ton_nodes.json"
+  },
   "chains": [
     {
       "id": "everscale",

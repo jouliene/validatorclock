@@ -1,4 +1,5 @@
 const TYCHO_MAP_CHAIN_ID = "tycho-testnet";
+const MAP_CHAIN_IDS = new Set([TYCHO_MAP_CHAIN_ID, "ton"]);
 const MAPLIBRE_JS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js";
 const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css";
 const TYCHO_MAP_DEFAULT_BOUNDS = [
@@ -9,11 +10,16 @@ const TYCHO_MAP_DEFAULT_OPTIONS = {
   padding: 45,
   maxZoom: 2.05
 };
+const TYCHO_MAP_MAX_ZOOM = 17;
+const TYCHO_MAP_CLUSTER_MAX_ZOOM = 15;
+const TYCHO_MAP_CLUSTER_RADIUS = 24;
+const TYCHO_MAP_LOCATION_PRECISION = 4;
 
 let mapLibrePromise = null;
 let tychoMap = null;
 let tychoMapLoaded = false;
 let tychoMapNodes = null;
+let tychoMapNodesChainId = null;
 const tychoMapPopups = new Set();
 
 function setupTychoMapControls() {
@@ -47,12 +53,13 @@ function updateTychoMapAvailability() {
     return;
   }
 
-  const available = state.selectedChainId === TYCHO_MAP_CHAIN_ID;
+  const available = mapAvailableForChain(state.selectedChainId);
+  updateTychoMapTitle();
   controls.hidden = false;
   toggle.disabled = !available;
   toggle.removeAttribute("title");
   delete toggle.dataset.tooltip;
-  toggle.setAttribute("aria-label", available ? "Show Tycho validator map" : "Map is available for Tycho only");
+  toggle.setAttribute("aria-label", available ? "Show validator map" : "Map is not available for this chain");
   toggle.setAttribute("aria-disabled", String(!available));
 
   if (!available && state.tychoMapOpen) {
@@ -63,10 +70,11 @@ function updateTychoMapAvailability() {
 }
 
 function setTychoMapOpen(open) {
-  state.tychoMapOpen = Boolean(open) && state.selectedChainId === TYCHO_MAP_CHAIN_ID;
+  state.tychoMapOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
   syncTychoMapPanel();
 
   if (!state.tychoMapOpen) {
+    closeTychoMapPopups();
     return;
   }
 
@@ -95,6 +103,17 @@ function syncTychoMapPanel() {
   }
 }
 
+function resetTychoMapForChainChange(previousChainId, nextChainId) {
+  if (previousChainId === nextChainId) {
+    return;
+  }
+
+  closeTychoMapPopups();
+  if (tychoMap) {
+    resetTychoMapView(0);
+  }
+}
+
 async function loadTychoMap() {
   await loadTychoMapNodes();
 
@@ -109,11 +128,14 @@ async function loadTychoMap() {
   await ensureMapLibre();
   renderTychoMap();
   tychoMapLoaded = true;
-  showTychoMapStatus(tychoMapFeatures().length ? "" : "No mapped Tycho validators in the current set", "empty");
+  showTychoMapStatus(
+    tychoMapFeatures().length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
+    "empty"
+  );
 }
 
 async function loadTychoMapNodes() {
-  if (tychoMapNodes) {
+  if (tychoMapNodes && tychoMapNodesChainId === state.selectedChainId) {
     return tychoMapNodes;
   }
 
@@ -121,27 +143,62 @@ async function loadTychoMapNodes() {
 }
 
 async function refreshTychoMapNodesForSnapshot() {
-  if (state.selectedChainId !== TYCHO_MAP_CHAIN_ID) {
+  const chainId = state.selectedChainId;
+  if (!mapAvailableForChain(chainId)) {
     state.tychoMappedPeers = null;
     state.tychoFakePeers = null;
+    tychoMapNodes = null;
+    tychoMapNodesChainId = null;
     return [];
   }
 
   try {
-    const nodes = await fetchJson(`/api/chains/${TYCHO_MAP_CHAIN_ID}/map`);
+    const nodes = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/map`);
     tychoMapNodes = Array.isArray(nodes) ? nodes : [];
   } catch (error) {
-    console.warn("Using bundled Tycho map nodes", error);
-    tychoMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+    if (chainId === TYCHO_MAP_CHAIN_ID) {
+      console.warn("Using bundled Tycho map nodes", error);
+      tychoMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+    } else {
+      console.warn(`Unable to load ${chainId} map nodes`, error);
+      tychoMapNodes = [];
+    }
   }
 
+  tychoMapNodesChainId = chainId;
   tychoMapNodes = filterTychoMapNodesToCurrentValidators(tychoMapNodes);
   state.tychoMappedPeers = tychoMappedPeerSet(tychoMapNodes);
   state.tychoFakePeers = tychoFakePeerSet(state.snapshot?.current_set?.validators, state.tychoMappedPeers);
-  rememberTychoFakePeers(state.snapshot?.current_set, state.tychoFakePeers);
+  if (chainId === TYCHO_MAP_CHAIN_ID) {
+    rememberTychoFakePeers(state.snapshot?.current_set, state.tychoFakePeers);
+  }
+  updateTychoMapTitle();
   updateTychoMapSummary();
   refreshTychoMapSource();
   return tychoMapNodes;
+}
+
+function mapAvailableForChain(chainId) {
+  return MAP_CHAIN_IDS.has(chainId);
+}
+
+function currentMapChain() {
+  return state.chains.find((chain) => chain.id === state.selectedChainId) || null;
+}
+
+function currentMapChainName() {
+  return currentMapChain()?.name || state.selectedChainId || "Validator";
+}
+
+function updateTychoMapTitle() {
+  const title = $("tychoMapTitleText");
+  const panel = $("tychoMapPanel");
+  const chainName = currentMapChainName();
+  const label = `${chainName} Validator Map`;
+  if (title) {
+    title.textContent = label;
+  }
+  panel?.setAttribute("aria-label", `${chainName} validator world map`);
 }
 
 function tychoMappedPeerSet(nodes) {
@@ -250,7 +307,7 @@ function renderTychoMap() {
     center: [5, 23],
     zoom: 1.75,
     minZoom: 1.35,
-    maxZoom: 10,
+    maxZoom: TYCHO_MAP_MAX_ZOOM,
     pitch: 0,
     bearing: 0,
     renderWorldCopies: false,
@@ -293,14 +350,23 @@ function tychoMapFeatures() {
 
 function refreshTychoMapSource() {
   const source = tychoMap?.getSource("nodes");
+  const features = tychoMapFeatures();
   if (!source) {
+    showTychoMapStatus(
+      features.length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
+      "empty"
+    );
     return;
   }
 
   source.setData({
     type: "FeatureCollection",
-    features: tychoMapFeatures()
+    features
   });
+  showTychoMapStatus(
+    features.length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
+    "empty"
+  );
 }
 
 function addTychoNodeLayers(features) {
@@ -311,8 +377,8 @@ function addTychoNodeLayers(features) {
       features
     },
     cluster: true,
-    clusterMaxZoom: 4,
-    clusterRadius: 14,
+    clusterMaxZoom: TYCHO_MAP_CLUSTER_MAX_ZOOM,
+    clusterRadius: TYCHO_MAP_CLUSTER_RADIUS,
     clusterProperties: {
       total_nodes: ["+", ["get", "node_count"]]
     }
@@ -474,6 +540,8 @@ function addTychoNodeLayers(features) {
   });
 
   tychoMap.on("click", "clusters", async (event) => {
+    event.preventDefault();
+
     const clusterFeatures = tychoMap.queryRenderedFeatures(event.point, {
       layers: ["clusters"]
     });
@@ -485,13 +553,42 @@ function addTychoNodeLayers(features) {
     const cluster = clusterFeatures[0];
     const clusterId = cluster.properties.cluster_id;
     const source = tychoMap.getSource("nodes");
-    const zoom = await source.getClusterExpansionZoom(clusterId);
+    const pointCount = Number(cluster.properties.point_count || 0);
+    const totalNodes = Number(cluster.properties.total_nodes || pointCount);
+    const leaves = await source.getClusterLeaves(clusterId, Math.max(pointCount, 1), 0);
+    const bounds = boundsForFeatures(leaves);
+    const zoom = Math.min(
+      TYCHO_MAP_MAX_ZOOM,
+      Math.max(tychoMap.getZoom() + 1.25, await source.getClusterExpansionZoom(clusterId))
+    );
 
-    tychoMap.easeTo({
-      center: cluster.geometry.coordinates,
-      zoom,
-      duration: 450
-    });
+    closeTychoMapPopups();
+    if (bounds) {
+      tychoMap.fitBounds(bounds, {
+        padding: clusterFitPadding(),
+        maxZoom: zoom,
+        duration: 450
+      });
+    } else {
+      tychoMap.easeTo({
+        center: cluster.geometry.coordinates,
+        zoom,
+        duration: 450
+      });
+    }
+
+    if (clusterLeavesAreTight(leaves)) {
+      window.setTimeout(() => {
+        trackTychoPopup(new maplibregl.Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: "720px"
+        }))
+          .setLngLat(cluster.geometry.coordinates)
+          .setHTML(clusterLeavesPopupHtml(pointCount, totalNodes, leaves))
+          .addTo(tychoMap);
+      }, 480);
+    }
   });
 
   tychoMap.on("contextmenu", "clusters", (event) => {
@@ -518,12 +615,22 @@ function groupNodesByLocation(nodes) {
   const grouped = new Map();
 
   for (const node of nodes) {
-    const key = `${node.lat},${node.lon}`;
+    const lat = Number(node.lat);
+    const lon = Number(node.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      continue;
+    }
+    const key = [
+      normalizeLocationPart(node.city),
+      normalizeLocationPart(node.country),
+      roundedLocationCoordinate(lat),
+      roundedLocationCoordinate(lon)
+    ].join("|");
 
     if (!grouped.has(key)) {
       grouped.set(key, {
-        lat: node.lat,
-        lon: node.lon,
+        lat: 0,
+        lon: 0,
         city: node.city,
         country: node.country,
         isp: node.isp,
@@ -531,10 +638,63 @@ function groupNodesByLocation(nodes) {
       });
     }
 
-    grouped.get(key).nodes.push(node);
+    const group = grouped.get(key);
+    group.lat += lat;
+    group.lon += lon;
+    group.nodes.push(node);
   }
 
-  return Array.from(grouped.values());
+  return Array.from(grouped.values()).map((group) => ({
+    ...group,
+    lat: group.lat / Math.max(group.nodes.length, 1),
+    lon: group.lon / Math.max(group.nodes.length, 1)
+  }));
+}
+
+function roundedLocationCoordinate(value) {
+  return Number(value).toFixed(TYCHO_MAP_LOCATION_PRECISION);
+}
+
+function normalizeLocationPart(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function boundsForFeatures(features) {
+  const bounds = new maplibregl.LngLatBounds();
+  let hasCoordinates = false;
+  for (const feature of Array.isArray(features) ? features : []) {
+    const coordinates = feature?.geometry?.coordinates;
+    if (!Array.isArray(coordinates) || coordinates.length < 2) {
+      continue;
+    }
+    const lon = Number(coordinates[0]);
+    const lat = Number(coordinates[1]);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      continue;
+    }
+    bounds.extend([lon, lat]);
+    hasCoordinates = true;
+  }
+  return hasCoordinates ? bounds : null;
+}
+
+function clusterFitPadding() {
+  const compact = tychoMap?.getContainer()?.clientWidth < 700;
+  return compact
+    ? { top: 70, right: 48, bottom: 70, left: 48 }
+    : { top: 92, right: 110, bottom: 92, left: 110 };
+}
+
+function clusterLeavesAreTight(features) {
+  const bounds = boundsForFeatures(features);
+  if (!bounds) {
+    return false;
+  }
+  const west = bounds.getWest();
+  const east = bounds.getEast();
+  const south = bounds.getSouth();
+  const north = bounds.getNorth();
+  return Math.abs(east - west) <= 0.0002 && Math.abs(north - south) <= 0.0002;
 }
 
 function updateTychoMapSummary() {
@@ -543,7 +703,12 @@ function updateTychoMapSummary() {
     return;
   }
 
-  const nodes = tychoMapNodes || (Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : []);
+  let nodes = [];
+  if (tychoMapNodes && tychoMapNodesChainId === state.selectedChainId) {
+    nodes = tychoMapNodes;
+  } else if (state.selectedChainId === TYCHO_MAP_CHAIN_ID && Array.isArray(window.TYCHO_NODES)) {
+    nodes = window.TYCHO_NODES;
+  }
   const locations = groupNodesByLocation(nodes).length;
   summary.textContent = `${nodes.length} nodes / ${locations} locations`;
 }
@@ -562,16 +727,7 @@ function locationPopupHtml(properties) {
   return `
     <div class="popup-title">${escapeHtml(properties.city)}, ${escapeHtml(properties.country)}</div>
     <div class="popup-muted">${nodeCount} validator${nodeCount === 1 ? "" : "s"} at this location</div>
-
-    <div class="popup-node-list">
-      ${nodes.map((node) => `
-      <div class="popup-node-row">
-        <div class="popup-ip">${escapeHtml(node.ip)}</div>
-        <div class="popup-isp">${escapeHtml(node.isp)}</div>
-        <code class="popup-peer">${escapeHtml(node.peer)}</code>
-      </div>
-      `).join("")}
-    </div>
+    ${nodeTableHtml(nodes)}
   `;
 }
 
@@ -583,6 +739,62 @@ function clusterPopupHtml(clusterPointCount, totalNodeCount) {
       <div class="popup-ip">${totalNodeCount} total nodes</div>
       <div class="popup-isp">Cluster</div>
       <div class="popup-peer">Click to zoom in</div>
+    </div>
+  `;
+}
+
+function clusterLeavesPopupHtml(clusterPointCount, totalNodeCount, leaves) {
+  const nodes = nodesFromClusterLeaves(leaves);
+  return `
+    <div class="popup-title">Node cluster</div>
+    <div class="popup-muted">${totalNodeCount} validators / ${clusterPointCount} locations</div>
+    ${nodeTableHtml(nodes)}
+  `;
+}
+
+function nodesFromClusterLeaves(leaves) {
+  return (Array.isArray(leaves) ? leaves : []).flatMap((leaf) => {
+    try {
+      return JSON.parse(leaf?.properties?.nodes_json || "[]");
+    } catch (error) {
+      return [];
+    }
+  });
+}
+
+function nodeTableHtml(nodes) {
+  const safeNodes = Array.isArray(nodes) ? nodes : [];
+  if (!safeNodes.length) {
+    return "";
+  }
+
+  return `
+    <div class="popup-node-list">
+      <table class="popup-node-table">
+        <colgroup>
+          <col class="popup-col-ip">
+          <col class="popup-col-isp">
+          <col class="popup-col-peer">
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col">IP</th>
+            <th scope="col">ISP</th>
+            <th scope="col">Validator pubkey</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${safeNodes.map((node) => `
+          <tr>
+            <td class="popup-ip">${escapeHtml(node.ip)}</td>
+            <td class="popup-isp">${escapeHtml(node.isp)}</td>
+            <td class="popup-peer-cell">
+              <code class="popup-peer" title="${escapeHtml(node.peer)}">${escapeHtml(node.peer)}</code>
+            </td>
+          </tr>
+          `).join("")}
+        </tbody>
+      </table>
     </div>
   `;
 }

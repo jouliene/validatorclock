@@ -1,4 +1,5 @@
 use super::*;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 fn test_chain() -> ChainConfig {
@@ -21,6 +22,7 @@ fn test_config() -> AppConfig {
         cache_path: PathBuf::from("/var/lib/validators_clock/cache.json"),
         history_path: None,
         tycho_map_nodes_path: None,
+        map_nodes_paths: HashMap::new(),
         security: SecurityConfig::default(),
         tls: TlsConfig::default(),
         chains: vec![test_chain()],
@@ -72,6 +74,12 @@ fn rejects_empty_and_missing_required_config_fields() {
 
     let mut config = test_config();
     config.tycho_map_nodes_path = Some(PathBuf::new());
+    assert!(config.validate().is_err());
+
+    let mut config = test_config();
+    config
+        .map_nodes_paths
+        .insert("ton".to_owned(), PathBuf::new());
     assert!(config.validate().is_err());
 
     let mut config = test_config();

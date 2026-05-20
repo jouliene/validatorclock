@@ -9,6 +9,7 @@ use axum::body::{Body, to_bytes};
 use axum::http::header;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -549,6 +550,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         cache_path: temp_state_path("cache"),
         history_path: None,
         tycho_map_nodes_path: None,
+        map_nodes_paths: HashMap::new(),
         security: SecurityConfig {
             allowed_hosts,
             ..SecurityConfig::default()
@@ -582,7 +584,11 @@ fn temp_state_path(name: &str) -> PathBuf {
 }
 
 async fn cache_tycho_snapshot(state: &AppState, public_keys: &[&str]) {
-    let mut snapshot = test_clock_snapshot("tycho-testnet");
+    cache_snapshot(state, "tycho-testnet", public_keys).await;
+}
+
+async fn cache_snapshot(state: &AppState, chain_id: &str, public_keys: &[&str]) {
+    let mut snapshot = test_clock_snapshot(chain_id);
     let template = snapshot.current_set.validators[0].clone();
     snapshot.current_set.validators = public_keys
         .iter()
@@ -595,7 +601,7 @@ async fn cache_tycho_snapshot(state: &AppState, public_keys: &[&str]) {
     snapshot.current_set.total = snapshot.current_set.validators.len();
     snapshot.current_set.main = snapshot.current_set.validators.len() as u16;
     state
-        .store_cached_snapshot("tycho-testnet", now_sec_for_test(), snapshot)
+        .store_cached_snapshot(chain_id, now_sec_for_test(), snapshot)
         .await;
 }
 
@@ -689,7 +695,116 @@ async fn app_router_serves_configured_tycho_map_file() {
 }
 
 #[tokio::test]
-async fn app_router_rejects_map_for_non_tycho_chain() {
+async fn app_router_serves_configured_ton_map_file() {
+    let map_path = std::env::temp_dir().join(format!(
+        "validators_clock_ton_map_test_{}_{}.json",
+        std::process::id(),
+        now_sec_for_test()
+    ));
+    fs::write(
+        &map_path,
+        r#"[
+            {"peer":"active-ton-validator","ip":"203.0.113.20","city":"TON City","country":"TONland","isp":"TON ISP","lat":5.25,"lon":6.5},
+            {"peer":"inactive-ton-validator","ip":"203.0.113.21","city":"Other City","country":"TONland","isp":"TON ISP","lat":7.25,"lon":8.5}
+        ]"#,
+    )
+    .unwrap();
+
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("ton".to_owned(), map_path.clone());
+    config.chains.push(ChainConfig {
+        id: "ton".to_owned(),
+        name: "TON".to_owned(),
+        rpc: "https://ton.example.com".to_owned(),
+        rpc_fallbacks: Vec::new(),
+        color: "#4DB8FF".to_owned(),
+        token_symbol: "TON".to_owned(),
+        rpc_label: None,
+    });
+    let state = Arc::new(AppState::new(Arc::new(config)));
+    cache_snapshot(&state, "ton", &["active-ton-validator"]).await;
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/ton/map")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(body.as_array().unwrap().len(), 1);
+    assert_eq!(body[0]["peer"], "active-ton-validator");
+    assert_eq!(body[0]["ip"], "203.0.113.20");
+
+    let _ = fs::remove_file(map_path);
+}
+
+#[tokio::test]
+async fn app_router_marks_configured_ton_validators_without_map_ip_as_fake() {
+    let map_path = std::env::temp_dir().join(format!(
+        "validators_clock_ton_fake_map_test_{}_{}.json",
+        std::process::id(),
+        now_sec_for_test()
+    ));
+    fs::write(
+        &map_path,
+        r#"[
+            {"peer":"mapped-ton-validator","ip":"203.0.113.20","city":"TON City","country":"TONland","isp":"TON ISP","lat":5.25,"lon":6.5}
+        ]"#,
+    )
+    .unwrap();
+
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("ton".to_owned(), map_path.clone());
+    config.chains.push(ChainConfig {
+        id: "ton".to_owned(),
+        name: "TON".to_owned(),
+        rpc: "https://ton.example.com".to_owned(),
+        rpc_fallbacks: Vec::new(),
+        color: "#4DB8FF".to_owned(),
+        token_symbol: "TON".to_owned(),
+        rpc_label: None,
+    });
+    let state = Arc::new(AppState::new(Arc::new(config)));
+    cache_snapshot(
+        &state,
+        "ton",
+        &["mapped-ton-validator", "missing-ton-validator"],
+    )
+    .await;
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/ton/clock")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(
+        body["current_set"]["fake_validator_peers"]
+            .as_array()
+            .unwrap(),
+        &vec![Value::String("missing-ton-validator".to_owned())]
+    );
+
+    let _ = fs::remove_file(map_path);
+}
+
+#[tokio::test]
+async fn app_router_rejects_map_for_chain_without_map_file() {
     let state = Arc::new(AppState::new(Arc::new(test_config(Vec::new()))));
     let response = app_router(state)
         .oneshot(

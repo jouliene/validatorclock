@@ -1,26 +1,32 @@
 use super::AppState;
 use crate::chain::{ClockSnapshot, ValidatorSetDto};
-use crate::tycho_map::{TYCHO_MAP_CHAIN_ID, load_tycho_map_nodes, mapped_peer_set};
+use crate::tycho_map::{load_map_nodes, mapped_peer_set};
 use std::collections::HashSet;
 use tracing::warn;
 
 impl AppState {
-    pub(crate) fn annotate_tycho_fake_validators(&self, snapshot: &mut ClockSnapshot) {
-        if snapshot.chain_id() != TYCHO_MAP_CHAIN_ID {
-            return;
-        }
-
-        let nodes = match load_tycho_map_nodes(&self.config) {
-            Ok(nodes) => nodes,
+    pub(crate) fn annotate_map_fake_validators(&self, snapshot: &mut ClockSnapshot) {
+        let chain_id = snapshot.chain_id();
+        let nodes = match load_map_nodes(&self.config, chain_id) {
+            Ok(Some(nodes)) => nodes,
+            Ok(None) => return,
             Err(error) => {
-                warn!(error = ?error, "failed to load Tycho map nodes for fake validator annotation");
+                warn!(
+                    chain_id,
+                    error = ?error,
+                    "failed to load map nodes for fake validator annotation"
+                );
                 return;
             }
         };
         let mapped_peers = match mapped_peer_set(&nodes) {
             Ok(mapped_peers) => mapped_peers,
             Err(error) => {
-                warn!(error = ?error, "failed to read Tycho map peers for fake validator annotation");
+                warn!(
+                    chain_id,
+                    error = ?error,
+                    "failed to read map peers for fake validator annotation"
+                );
                 return;
             }
         };

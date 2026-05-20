@@ -21,6 +21,8 @@ pub(crate) struct AppConfig {
     #[serde(default)]
     pub(crate) tycho_map_nodes_path: Option<PathBuf>,
     #[serde(default)]
+    pub(crate) map_nodes_paths: HashMap<String, PathBuf>,
+    #[serde(default)]
     pub(crate) security: SecurityConfig,
     #[serde(default)]
     pub(crate) tls: TlsConfig,
@@ -51,6 +53,14 @@ impl AppConfig {
             .is_some_and(|path| path.as_os_str().is_empty())
         {
             bail!("tycho_map_nodes_path cannot be empty when set");
+        }
+        for (chain_id, path) in &self.map_nodes_paths {
+            if chain_id.trim().is_empty() {
+                bail!("map_nodes_paths cannot contain an empty chain id");
+            }
+            if path.as_os_str().is_empty() {
+                bail!("map_nodes_paths entry for `{chain_id}` cannot be empty");
+            }
         }
 
         for chain in &self.chains {

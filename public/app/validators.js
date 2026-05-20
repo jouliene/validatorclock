@@ -303,7 +303,7 @@ function validatorSourceCell(validator, options = {}) {
   const cell = document.createElement("div");
   const sourceKind = validatorSourceKind(validator, options);
   cell.className = `validator-cell validator-source is-${sourceKind}`;
-  if (isFakeTychoValidator(validator, options)) {
+  if (isFakeMapValidator(validator, options)) {
     const fake = document.createElement("span");
     fake.className = "validator-source-fake";
     fake.textContent = "Fake Node";
@@ -374,7 +374,7 @@ function validatorSourceCell(validator, options = {}) {
 }
 
 function validatorSourceKind(validator, options = {}) {
-  if (isFakeTychoValidator(validator, options)) {
+  if (isFakeMapValidator(validator, options)) {
     return "fake";
   }
 
@@ -391,8 +391,8 @@ function validatorSourceKind(validator, options = {}) {
   return "unknown";
 }
 
-function isFakeTychoValidator(validator, options = {}) {
-  if (options.chainId !== TYCHO_MAP_CHAIN_ID) {
+function isFakeMapValidator(validator, options = {}) {
+  if (!validatorMapAvailableForChain(options.chainId)) {
     return false;
   }
   if (!(options.fakeValidatorPeers instanceof Set)) {
@@ -401,6 +401,13 @@ function isFakeTychoValidator(validator, options = {}) {
 
   const publicKey = String(validator?.public_key || "").toLowerCase();
   return Boolean(publicKey) && options.fakeValidatorPeers.has(publicKey);
+}
+
+function validatorMapAvailableForChain(chainId) {
+  if (typeof mapAvailableForChain === "function") {
+    return mapAvailableForChain(chainId);
+  }
+  return chainId === TYCHO_MAP_CHAIN_ID;
 }
 
 function shouldDisplayTonSourceMetadata(validator, options = {}) {
