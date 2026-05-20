@@ -307,10 +307,7 @@ function validatorSourceCell(validator, options = {}) {
     const fake = document.createElement("span");
     fake.className = "validator-source-fake";
     fake.textContent = "Fake Node";
-    setValidatorTooltip(
-      fake,
-      options.fakeSourceTooltip || "No reachable Tycho node IP is published for this validator public key."
-    );
+    setValidatorTooltip(fake, fakeValidatorTooltipLines(validator, options));
     cell.appendChild(fake);
     return cell;
   }
@@ -401,6 +398,29 @@ function isFakeMapValidator(validator, options = {}) {
 
   const publicKey = String(validator?.public_key || "").toLowerCase();
   return Boolean(publicKey) && options.fakeValidatorPeers.has(publicKey);
+}
+
+function fakeValidatorTooltipLines(validator, options = {}) {
+  const lines = [
+    options.fakeSourceTooltip || "No reachable validator node IP is published for this validator public key.",
+  ];
+
+  const source = validator && validator.source;
+  if (source && source.address) {
+    const role = validatorSourceRole(validator);
+    const formatted = formatDisplayAddress(source.address, options);
+    if (role) {
+      lines.push(`Source: ${role}`);
+    }
+    lines.push(...formatted.tooltip);
+
+    const contractHash = source.contract_type_hash || validator?.contract_type_hash;
+    if (contractHash) {
+      lines.push(`Contract HASH: ${contractHash}`);
+    }
+  }
+
+  return lines;
 }
 
 function validatorMapAvailableForChain(chainId) {
@@ -538,6 +558,12 @@ function validatorSourceRole(validator) {
   }
   if (validator.contract_type === "HipoValidatorProxy") {
     return "Hipo Treasury";
+  }
+  if (validator.contract_type === "DePoolProxy") {
+    return "DePool address";
+  }
+  if (validator.contract_type === "StEverDePoolProxy") {
+    return "Staked EVER DePool address";
   }
   if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1" || validator.contract_type === "TonSingleNominatorPool") {
     return "Owner address";
