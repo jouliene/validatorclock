@@ -146,7 +146,6 @@ async function refreshTychoMapNodesForSnapshot() {
   const chainId = state.selectedChainId;
   if (!mapAvailableForChain(chainId)) {
     state.tychoMappedPeers = null;
-    state.tychoFakePeers = null;
     tychoMapNodes = null;
     tychoMapNodesChainId = null;
     return [];
@@ -168,10 +167,6 @@ async function refreshTychoMapNodesForSnapshot() {
   tychoMapNodesChainId = chainId;
   tychoMapNodes = filterTychoMapNodesToCurrentValidators(tychoMapNodes);
   state.tychoMappedPeers = tychoMappedPeerSet(tychoMapNodes);
-  state.tychoFakePeers = tychoFakePeerSet(state.snapshot?.current_set?.validators, state.tychoMappedPeers);
-  if (chainId === TYCHO_MAP_CHAIN_ID) {
-    rememberTychoFakePeers(state.snapshot?.current_set, state.tychoFakePeers);
-  }
   updateTychoMapTitle();
   updateTychoMapSummary();
   refreshTychoMapSource();
@@ -206,18 +201,6 @@ function tychoMappedPeerSet(nodes) {
     (Array.isArray(nodes) ? nodes : [])
       .map((node) => String(node.peer || "").toLowerCase())
       .filter(Boolean)
-  );
-}
-
-function tychoFakePeerSet(validators, mappedPeers) {
-  if (!Array.isArray(validators) || !(mappedPeers instanceof Set)) {
-    return null;
-  }
-
-  return new Set(
-    validators
-      .map((validator) => String(validator.public_key || "").toLowerCase())
-      .filter((publicKey) => publicKey && !mappedPeers.has(publicKey))
   );
 }
 

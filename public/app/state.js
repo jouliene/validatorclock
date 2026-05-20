@@ -1,6 +1,5 @@
 const ADDRESS_TYPE_KEY = "validators-clock-address-type";
 const SOURCE_DISPLAY_KEY = "validators-clock-source-display";
-const TYCHO_FAKE_VALIDATORS_KEY = "validators-clock-tycho-fake-validators";
 
 function initialAddressTypes() {
   try {
@@ -41,15 +40,6 @@ function selectedSourceDisplayMode(chainId = state.selectedChainId) {
   return state.sourceDisplayModes[chainId] || defaultSourceDisplayMode(chainId);
 }
 
-function initialTychoFakeValidators() {
-  try {
-    const stored = JSON.parse(window.localStorage?.getItem(TYCHO_FAKE_VALIDATORS_KEY) || "{}");
-    return stored && typeof stored === "object" && !Array.isArray(stored) ? stored : {};
-  } catch (error) {
-    return {};
-  }
-}
-
 const state = {
   chains: [],
   selectedChainId: null,
@@ -68,8 +58,6 @@ const state = {
   clockLoading: false,
   tychoMapOpen: false,
   tychoMappedPeers: null,
-  tychoFakePeers: null,
-  tychoFakeValidatorsByRound: initialTychoFakeValidators(),
   clockRequestSeq: 0,
   lastClockRefreshAttempt: 0,
   roundRenderKey: null,

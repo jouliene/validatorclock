@@ -45,7 +45,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, current);
     renderValidators(list, current.validators, validatorRenderOptions(snapshot, {
       rewards: true,
-      fakeValidatorPeers: tychoSetFakePeers(current) || state.tychoFakePeers,
+      fakeValidatorPeers: tychoSetFakePeers(current),
       fakeSourceTooltip: fakeValidatorTooltip(true),
     }));
     return;
@@ -75,7 +75,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, previous);
     renderValidators(list, previous.validators, validatorRenderOptions(snapshot, {
       rewards: true,
-      fakeValidatorPeers: tychoSetFakePeers(previous) || rememberedTychoFakePeers(snapshot, previous),
+      fakeValidatorPeers: tychoSetFakePeers(previous),
       fakeSourceTooltip: fakeValidatorTooltip(false),
     }));
     return;
@@ -267,56 +267,10 @@ function validatorRenderOptions(snapshot, extra = {}) {
   };
 }
 
-function tychoRoundFakeKey(round) {
-  if (!round) {
-    return "";
-  }
-  return [
-    round.utime_since,
-    round.round_id,
-    round.round_color,
-  ].join(":");
-}
-
-function rememberTychoFakePeers(round, fakePeers) {
-  const key = tychoRoundFakeKey(round);
-  if (!key || !(fakePeers instanceof Set)) {
-    return;
-  }
-
-  state.tychoFakeValidatorsByRound[key] = Array.from(fakePeers).sort();
-  try {
-    window.localStorage?.setItem(
-      TYCHO_FAKE_VALIDATORS_KEY,
-      JSON.stringify(state.tychoFakeValidatorsByRound)
-    );
-  } catch (error) {
-    console.warn("Unable to store Tycho fake validator status", error);
-  }
-}
-
 function fakeValidatorTooltip(current) {
   return current
     ? "No reachable validator node IP is currently published for this validator public key."
     : "No reachable validator node IP was published for this validator while this round was active.";
-}
-
-function rememberedTychoFakePeers(snapshot, round) {
-  if (snapshot.chain.id !== TYCHO_MAP_CHAIN_ID) {
-    return null;
-  }
-
-  const key = tychoRoundFakeKey(round);
-  const peers = key ? state.tychoFakeValidatorsByRound[key] : null;
-  if (!Array.isArray(peers)) {
-    return null;
-  }
-
-  return new Set(
-    peers
-      .map((peer) => String(peer || "").toLowerCase())
-      .filter(Boolean)
-  );
 }
 
 function tychoSetFakePeers(round) {
