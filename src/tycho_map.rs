@@ -6,8 +6,10 @@ use std::collections::HashSet;
 use std::io::ErrorKind;
 
 pub(crate) const TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
+pub(crate) const TON_MAP_CHAIN_ID: &str = "ton";
 
 const APP_TYCHO_NODES_JS: &str = include_str!("../public/app/tycho_nodes.js");
+const APP_TON_NODES_JSON: &str = include_str!("../public/app/ton_nodes.json");
 
 pub(crate) fn load_map_nodes(config: &AppConfig, chain_id: &str) -> Result<Option<Value>> {
     if let Some(path) = config.map_nodes_paths.get(chain_id) {
@@ -20,6 +22,11 @@ pub(crate) fn load_map_nodes(config: &AppConfig, chain_id: &str) -> Result<Optio
 
     if chain_id == TYCHO_MAP_CHAIN_ID {
         return load_tycho_map_nodes(config).map(Some);
+    }
+
+    if chain_id == TON_MAP_CHAIN_ID {
+        let value = fallback_ton_nodes_json().context("failed to parse bundled TON map nodes")?;
+        return ensure_map_nodes_array(value).map(Some);
     }
 
     Ok(None)
@@ -52,6 +59,10 @@ pub(crate) fn fallback_tycho_nodes_json() -> Result<Value, serde_json::Error> {
         .unwrap_or("[]");
 
     serde_json::from_str(body.trim())
+}
+
+pub(crate) fn fallback_ton_nodes_json() -> Result<Value, serde_json::Error> {
+    serde_json::from_str(APP_TON_NODES_JSON.trim())
 }
 
 pub(crate) fn filter_map_nodes_to_validators(

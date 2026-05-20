@@ -646,6 +646,47 @@ async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
 }
 
 #[tokio::test]
+async fn app_router_serves_bundled_ton_map_when_no_file_is_configured() {
+    let mut config = test_config(Vec::new());
+    config.chains.push(ChainConfig {
+        id: "ton".to_owned(),
+        name: "TON".to_owned(),
+        rpc: "https://ton.example.com".to_owned(),
+        rpc_fallbacks: Vec::new(),
+        color: "#4DB8FF".to_owned(),
+        token_symbol: "TON".to_owned(),
+        rpc_label: None,
+    });
+    let state = Arc::new(AppState::new(Arc::new(config)));
+    cache_snapshot(
+        &state,
+        "ton",
+        &["63345c7d7dbcc14f8bce8811cf3fba41981ec0d80d4bfc6c5e089fb82f867a5e"],
+    )
+    .await;
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/ton/map")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
+    let body = response_json(response).await;
+    assert_eq!(body.as_array().unwrap().len(), 1);
+    assert_eq!(
+        body[0]["peer"],
+        "63345c7d7dbcc14f8bce8811cf3fba41981ec0d80d4bfc6c5e089fb82f867a5e"
+    );
+    assert!(body[0]["ip"].is_string());
+}
+
+#[tokio::test]
 async fn app_router_serves_configured_tycho_map_file() {
     let map_path = std::env::temp_dir().join(format!(
         "validators_clock_tycho_map_test_{}_{}.json",
