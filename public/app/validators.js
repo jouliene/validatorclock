@@ -283,19 +283,19 @@ function validatorSourceTypeCell(validator, options = {}) {
       : validatorTypeTooltipLines(type.label);
   setValidatorTooltip(
     badge,
-    fake ? fakeValidatorTooltipLines(validator, options) : tooltipLines
+    fake ? fakeValidatorTypeTooltipLines(type.label, tooltipLines, options) : tooltipLines
   );
   badges.appendChild(badge);
 
   if (fake) {
-    badges.appendChild(validatorFakeNodeBadge(validator, options));
+    badges.appendChild(validatorFakeNodeBadge(type.label, tooltipLines, options));
   }
 
   cell.appendChild(badges);
   return cell;
 }
 
-function validatorFakeNodeBadge(validator, options = {}) {
+function validatorFakeNodeBadge(typeLabel, tooltipLines, options = {}) {
   const badge = document.createElement("span");
   badge.className = "validator-map-fake-badge";
   badge.setAttribute("aria-label", "FAKE NODE");
@@ -307,7 +307,7 @@ function validatorFakeNodeBadge(validator, options = {}) {
   detail.textContent = "NODE";
 
   badge.append(primary, detail);
-  setValidatorTooltip(badge, fakeValidatorTooltipLines(validator, options));
+  setValidatorTooltip(badge, fakeValidatorTypeTooltipLines(typeLabel, tooltipLines, options));
   return badge;
 }
 
@@ -382,7 +382,7 @@ function validatorSourceCell(validator, options = {}) {
         "validator source address"
       );
       const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-      setValidatorTooltip(metadata, validatorSourceMetadataTooltipLines(validator, meta, formatted, contractHash));
+      setValidatorTooltip(metadata, validatorSourceMetadataTooltipLines(validator, meta, contractHash));
       cell.appendChild(metadata);
       return cell;
     }
@@ -394,7 +394,7 @@ function validatorSourceCell(validator, options = {}) {
       "validator source address"
     );
     const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-    setValidatorTooltip(address, validatorSourceTooltipLines(validator, formatted, contractHash, options));
+    setValidatorTooltip(address, validatorSourceTooltipLines(validator, contractHash));
     cell.appendChild(address);
     return cell;
   }
@@ -454,11 +454,17 @@ function isFakeMapValidator(validator, options = {}) {
   return Boolean(publicKey) && options.fakeValidatorPeers.has(publicKey);
 }
 
-function fakeValidatorTooltipLines(validator, options = {}) {
+function fakeValidatorTypeTooltipLines(typeLabel, tooltipLines, options = {}) {
   const lines = [
     validatorTooltipDangerLine(options.fakeSourceTooltip || "No reachable validator node IP is published for this validator public key."),
   ];
-  lines.push(...validatorIdentityTooltipLines(validator));
+  if (typeLabel === UNKNOWN_VALIDATOR_TYPE.label) {
+    lines.push("Unknown");
+  } else if (Array.isArray(tooltipLines) && tooltipLines.length > 0) {
+    lines.push(...tooltipLines);
+  } else {
+    lines.push(typeLabel || "Unknown");
+  }
   return lines;
 }
 
@@ -562,7 +568,7 @@ function sourceMetadataClass(label) {
     .replace(/^-|-$/g, "") || "unknown";
 }
 
-function validatorSourceTooltipLines(validator, formatted, contractHash = "", options = {}) {
+function validatorSourceTooltipLines(validator, contractHash = "") {
   const role = validatorSourceRole(validator);
   const lines = [];
   if (contractHash) {
@@ -571,20 +577,16 @@ function validatorSourceTooltipLines(validator, formatted, contractHash = "", op
   if (role) {
     lines.push(`Source: ${role}`);
   }
-  if (options.chainId === "ton") {
-    lines.push(...formatted.tooltip);
-  }
   return lines;
 }
 
-function validatorSourceMetadataTooltipLines(validator, meta, formatted, contractHash = "") {
+function validatorSourceMetadataTooltipLines(validator, meta, contractHash = "") {
   const role = validatorSourceRole(validator);
   const lines = role ? [`Source: ${role}`] : [];
   lines.push(`Owner: ${meta.name || meta.label}`);
   if (meta.detail) {
     lines.push(`Metadata: ${meta.detail}`);
   }
-  lines.push(...formatted.tooltip);
   if (contractHash) {
     lines.push(`Contract HASH: ${contractHash}`);
   }
