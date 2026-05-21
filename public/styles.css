@@ -1975,11 +1975,10 @@ dd {
 }
 
 .validator-row .validator-stake,
-.validator-header .validator-stake,
-.validator-header .validator-rewards,
 .validator-row .validator-rewards,
-.validator-header .validator-weight,
-.validator-row .validator-weight {
+.validator-row .validator-weight,
+.validator-header .validator-rewards,
+.validator-header .validator-weight {
   justify-self: stretch;
   text-align: right;
 }
@@ -1987,9 +1986,14 @@ dd {
 .validator-header .validator-source-type,
 .validator-header .validator-source,
 .validator-header .validator-id,
-.validator-header .validator-history {
+.validator-header .validator-history,
+.validator-header .validator-stake {
   justify-self: stretch;
   text-align: center;
+}
+
+.validator-header .validator-stake {
+  transform: translateX(8px);
 }
 
 .validator-table.is-absent .validator-header .validator-seen,
