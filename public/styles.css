@@ -1807,7 +1807,7 @@ dd {
 }
 
 .validator-table.is-absent {
-  --validator-grid-columns: 26px minmax(68px, 0.56fr) minmax(108px, 0.9fr) minmax(122px, 1fr) minmax(88px, 0.78fr) minmax(130px, 1fr);
+  --validator-grid-columns: 26px minmax(64px, 0.48fr) minmax(96px, 0.72fr) minmax(112px, 0.82fr) minmax(84px, 0.66fr) minmax(190px, 1.48fr);
   min-width: 0;
 }
 
@@ -2658,7 +2658,7 @@ dd {
   }
 
   .validator-table.is-absent {
-    --validator-grid-columns: 24px minmax(64px, 0.52fr) minmax(86px, 0.82fr) minmax(92px, 0.9fr) minmax(80px, 0.7fr) minmax(110px, 0.92fr);
+    --validator-grid-columns: 24px minmax(60px, 0.44fr) minmax(76px, 0.62fr) minmax(84px, 0.7fr) minmax(74px, 0.58fr) minmax(186px, 1.5fr);
   }
 }
 
@@ -2670,7 +2670,7 @@ dd {
   }
 
   .validator-table.is-absent {
-    --validator-grid-columns: 22px minmax(62px, 0.54fr) minmax(68px, 0.72fr) minmax(74px, 0.82fr) minmax(66px, 0.64fr) minmax(94px, 0.88fr);
+    --validator-grid-columns: 22px minmax(58px, 0.44fr) minmax(64px, 0.58fr) minmax(72px, 0.66fr) minmax(62px, 0.54fr) minmax(168px, 1.45fr);
   }
 
   .validator-address,
