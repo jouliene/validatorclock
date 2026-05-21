@@ -2,6 +2,8 @@ let validatorTypeGlossaryPopover = null;
 let validatorTypeGlossaryAnchor = null;
 let validatorHoverTooltip = null;
 let validatorHoverTooltipTarget = null;
+let validatorFakePhaseTimer = null;
+const VALIDATOR_TOOLTIP_DANGER_PREFIX = "[danger]";
 
 function renderValidators(container, validators, options = {}) {
   const table = document.createElement("div");
@@ -10,13 +12,17 @@ function renderValidators(container, validators, options = {}) {
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
-    row.className = `validator-row has-source-${validatorSourceKind(validator, options)}`;
+    const sourceKind = validatorSourceKind(validator, options);
+    row.className = `validator-row has-source-${sourceKind}`;
+    if (isFakeMapValidator(validator, options)) {
+      row.classList.add("is-map-fake");
+    }
 
     row.append(
       validatorCell(String(index + 1), "validator-index"),
-      validatorSourceTypeCell(validator),
+      validatorSourceTypeCell(validator, options),
       validatorSourceCell(validator, options),
-      validatorIdentityCell(validatorWalletAddress(validator), options),
+      validatorIdentityCell(validator, options),
       validatorHistoryCell(validator.history),
       validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number validator-stake", validator.stake || ""),
       validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number validator-rewards", validator.reward || ""),
@@ -39,12 +45,16 @@ function renderRecentAbsentValidators(container, validators, options = {}) {
 
   validators.forEach((validator, index) => {
     const row = document.createElement("div");
-    row.className = `validator-row has-source-${validatorSourceKind(validator, options)}`;
+    const sourceKind = validatorSourceKind(validator, options);
+    row.className = `validator-row has-source-${sourceKind}`;
+    if (isFakeMapValidator(validator, options)) {
+      row.classList.add("is-map-fake");
+    }
     row.append(
       validatorCell(String(index + 1), "validator-index"),
-      validatorSourceTypeCell(validator),
+      validatorSourceTypeCell(validator, options),
       validatorSourceCell(validator, options),
-      validatorIdentityCell(validator.wallet || validator.public_key, options),
+      validatorIdentityCell(validator, options, true),
       validatorHistoryCell(validator.history),
       validatorCell(formatSeenRounds(validator), "validator-number validator-seen-rounds validator-seen", String(validator.last_seen_round || ""))
     );
@@ -235,29 +245,77 @@ function historyStatusLabel(status) {
   return "unknown";
 }
 
-function validatorSourceTypeCell(validator) {
+function validatorSourceTypeCell(validator, options = {}) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-source-type";
   const type = displayedValidatorType(validator);
   const hash = type.hash;
+  const fake = isFakeMapValidator(validator, options);
+
+  const badges = document.createElement("span");
+  badges.className = "validator-type-badges";
 
   const badge = document.createElement("span");
   badge.className = `validator-type-badge is-${type.className}`;
-  badge.appendChild(validatorBadgeText(type.label));
-  if (hash) {
-    setValidatorTooltip(badge, validatorTypeTooltipLines(type.label, hash));
-  } else if (validator && validator.contract_type_hash) {
-    setValidatorTooltip(badge, validatorTypeTooltipLines(type.label, validator.contract_type_hash));
+  if (fake) {
+    ensureValidatorFakePhaseTicker();
+    badge.classList.add("is-map-fake");
+    badge.append(
+      validatorBadgeText(type.label, "validator-type-badge-primary"),
+      validatorBadgeText("FAKE NODE", "validator-type-badge-fake")
+    );
   } else {
-    setValidatorTooltip(badge, validatorTypeTooltipLines(type.label));
+    badge.appendChild(validatorBadgeText(type.label));
   }
-  cell.appendChild(badge);
+
+  const tooltipLines = hash
+    ? validatorTypeTooltipLines(type.label, hash)
+    : validator && validator.contract_type_hash
+      ? validatorTypeTooltipLines(type.label, validator.contract_type_hash)
+      : validatorTypeTooltipLines(type.label);
+  setValidatorTooltip(
+    badge,
+    fake ? fakeValidatorTooltipLines(validator, options) : tooltipLines
+  );
+  badges.appendChild(badge);
+
+  if (fake) {
+    badges.appendChild(validatorFakeNodeBadge(validator, options));
+  }
+
+  cell.appendChild(badges);
   return cell;
 }
 
-function validatorBadgeText(label) {
+function validatorFakeNodeBadge(validator, options = {}) {
+  const badge = document.createElement("span");
+  badge.className = "validator-map-fake-badge";
+  badge.setAttribute("aria-label", "FAKE NODE");
+
+  const primary = document.createElement("span");
+  primary.textContent = "FAKE";
+  const detail = document.createElement("span");
+  detail.className = "validator-map-fake-detail";
+  detail.textContent = "NODE";
+
+  badge.append(primary, detail);
+  setValidatorTooltip(badge, fakeValidatorTooltipLines(validator, options));
+  return badge;
+}
+
+function ensureValidatorFakePhaseTicker() {
+  if (validatorFakePhaseTimer != null) {
+    return;
+  }
+
+  validatorFakePhaseTimer = window.setInterval(() => {
+    document.documentElement.classList.toggle("validator-fake-phase");
+  }, 1800);
+}
+
+function validatorBadgeText(label, className = "") {
   const text = document.createElement("span");
-  text.className = "validator-type-badge-text";
+  text.className = `validator-type-badge-text ${className}`.trim();
   text.textContent = label;
   return text;
 }
@@ -303,14 +361,6 @@ function validatorSourceCell(validator, options = {}) {
   const cell = document.createElement("div");
   const sourceKind = validatorSourceKind(validator, options);
   cell.className = `validator-cell validator-source is-${sourceKind}`;
-  if (isFakeMapValidator(validator, options)) {
-    const fake = document.createElement("span");
-    fake.className = "validator-source-fake";
-    fake.textContent = "Fake Node";
-    setValidatorTooltip(fake, fakeValidatorTooltipLines(validator, options));
-    cell.appendChild(fake);
-    return cell;
-  }
 
   const source = validator && validator.source;
   if (source && source.address) {
@@ -336,7 +386,7 @@ function validatorSourceCell(validator, options = {}) {
       "validator source address"
     );
     const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-    setValidatorTooltip(address, validatorSourceTooltipLines(validator, formatted, contractHash));
+    setValidatorTooltip(address, validatorSourceTooltipLines(validator, formatted, contractHash, options));
     cell.appendChild(address);
     return cell;
   }
@@ -371,10 +421,6 @@ function validatorSourceCell(validator, options = {}) {
 }
 
 function validatorSourceKind(validator, options = {}) {
-  if (isFakeMapValidator(validator, options)) {
-    return "fake";
-  }
-
   const source = validator && validator.source;
   if (source && source.address) {
     return "detail";
@@ -402,25 +448,14 @@ function isFakeMapValidator(validator, options = {}) {
 
 function fakeValidatorTooltipLines(validator, options = {}) {
   const lines = [
-    options.fakeSourceTooltip || "No reachable validator node IP is published for this validator public key.",
+    validatorTooltipDangerLine(options.fakeSourceTooltip || "No reachable validator node IP is published for this validator public key."),
   ];
-
-  const source = validator && validator.source;
-  if (source && source.address) {
-    const role = validatorSourceRole(validator);
-    const formatted = formatDisplayAddress(source.address, options);
-    if (role) {
-      lines.push(`Source: ${role}`);
-    }
-    lines.push(...formatted.tooltip);
-
-    const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-    if (contractHash) {
-      lines.push(`Contract HASH: ${contractHash}`);
-    }
-  }
-
+  lines.push(...validatorIdentityTooltipLines(validator));
   return lines;
+}
+
+function validatorTooltipDangerLine(text) {
+  return `${VALIDATOR_TOOLTIP_DANGER_PREFIX}${text}`;
 }
 
 function validatorMapAvailableForChain(chainId) {
@@ -519,12 +554,17 @@ function sourceMetadataClass(label) {
     .replace(/^-|-$/g, "") || "unknown";
 }
 
-function validatorSourceTooltipLines(validator, formatted, contractHash = "") {
+function validatorSourceTooltipLines(validator, formatted, contractHash = "", options = {}) {
   const role = validatorSourceRole(validator);
-  const lines = role ? [`Source: ${role}`] : [];
-  lines.push(...formatted.tooltip);
+  const lines = [];
   if (contractHash) {
     lines.push(`Contract HASH: ${contractHash}`);
+  }
+  if (role) {
+    lines.push(`Source: ${role}`);
+  }
+  if (options.chainId === "ton") {
+    lines.push(...formatted.tooltip);
   }
   return lines;
 }
@@ -607,12 +647,12 @@ function validatorTypeGlossaryEntry(label) {
 
 function validatorTypeTooltipLines(label, contractHash = "") {
   const entry = validatorTypeGlossaryEntry(label);
-  const lines = [`Type: ${label}`];
-  if (entry) {
-    lines.push(`Name: ${entry.name}`);
-  }
+  const lines = [];
   if (contractHash) {
     lines.push(`Contract HASH: ${contractHash}`);
+  }
+  if (entry) {
+    lines.push(`Name: ${entry.name}`);
   }
   return lines;
 }
@@ -806,19 +846,24 @@ function buildValidatorTooltip(content) {
   for (const line of content.split("\n")) {
     const row = document.createElement("div");
     row.className = "validator-hover-tooltip-row";
-    const separatorIndex = line.indexOf(":");
+    const isDanger = line.startsWith(VALIDATOR_TOOLTIP_DANGER_PREFIX);
+    const displayLine = isDanger ? line.slice(VALIDATOR_TOOLTIP_DANGER_PREFIX.length).trim() : line;
+    if (isDanger) {
+      row.classList.add("is-danger");
+    }
+    const separatorIndex = displayLine.indexOf(":");
     if (separatorIndex > 0) {
       const label = document.createElement("span");
       label.className = "validator-hover-tooltip-label";
-      label.textContent = line.slice(0, separatorIndex + 1);
+      label.textContent = displayLine.slice(0, separatorIndex + 1);
       const value = document.createElement("span");
       value.className = "validator-hover-tooltip-value";
-      value.textContent = line.slice(separatorIndex + 1).trim();
+      value.textContent = displayLine.slice(separatorIndex + 1).trim();
       row.append(label, value);
     } else {
       const value = document.createElement("span");
       value.className = "validator-hover-tooltip-value";
-      value.textContent = line;
+      value.textContent = displayLine;
       row.append(value);
     }
     tooltip.appendChild(row);
@@ -866,14 +911,41 @@ function validatorCell(text, className = "", title = text) {
   return cell;
 }
 
-function validatorIdentityCell(wallet, options = {}) {
+function validatorIdentityCell(validator, options = {}, fallbackToPublicKey = false) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-id";
-  const formatted = formatDisplayAddress(wallet, options);
+  const identity = validatorIdentityValue(validator, fallbackToPublicKey);
+  const formatted = formatDisplayAddress(identity, options);
   const address = copyableValue(formatted.text, formatted.value, "validator-address", "validator wallet address");
-  setValidatorTooltip(address, formatted.tooltip);
+  setValidatorTooltip(address, validatorIdentityTooltipLines(validator));
   cell.append(address);
   return cell;
+}
+
+function validatorIdentityValue(validator, fallbackToPublicKey = false) {
+  if (validator?.wallet) {
+    return validatorWalletAddress(validator);
+  }
+  return fallbackToPublicKey ? (validator?.public_key || "-") : "-";
+}
+
+function validatorIdentityTooltipLines(validator) {
+  return [
+    `Validator Pubkey: ${validator?.public_key || "Unknown"}`,
+    `Contract HASH: ${validator?.contract_type_hash || "Unknown"}`,
+    `Type: ${validatorContractDisplayName(validator)}`,
+  ];
+}
+
+function validatorContractDisplayName(validator) {
+  const typeName = validator?.contract_type || "";
+  if (typeName && typeName !== "Unknown") {
+    return VALIDATOR_CONTRACT_TYPE_NAMES[typeName] || typeName;
+  }
+
+  const displayed = displayedValidatorType(validator);
+  const entry = validatorTypeGlossaryEntry(displayed.label);
+  return entry?.name || "Unknown";
 }
 
 function emptyState(text) {

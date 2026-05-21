@@ -31,6 +31,21 @@ const VALIDATOR_CONTRACT_TYPES = {
   HipoValidatorProxy: { label: "HIPO", className: "hipo" },
 };
 
+const VALIDATOR_CONTRACT_TYPE_NAMES = {
+  EverWallet: "Ever Wallet",
+  DePoolProxy: "DePool Proxy",
+  StEverDePoolProxy: "StEverDePool Proxy",
+  SingleNominatorV1_1: "Single Nominator v1.1",
+  SingleNominatorV1_0: "Single Nominator v1.0",
+  TonSingleNominatorPool: "TON Single Nominator Pool",
+  TonNominatorPool: "TON Nominator Pool",
+  ValidatorController: "TON Liquid Staking Controller",
+  TonWalletV1R3: "TON Wallet V1 R3",
+  TonVestingWallet: "TON Vesting Wallet",
+  WhalesPoolProxy: "TON Whales Pool Proxy",
+  HipoValidatorProxy: "Hipo Validator Proxy",
+};
+
 const VALIDATOR_SOURCE_TYPES = {
   "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe": {
     label: "StDEPOOL",

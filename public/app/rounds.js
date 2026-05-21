@@ -33,12 +33,15 @@ function renderRoundPanel(color, snapshot, model) {
   const meta = $(`${color}RoundMeta`);
   const badge = $(`${color}RoundBadge`);
   const stats = $(`${color}RoundStats`);
+  const panel = document.querySelector(`.round-${color}`);
   list.replaceChildren();
   stats.replaceChildren();
   meta.replaceChildren();
   badge.className = "round-badge";
+  panel?.classList.remove("is-active-round", "is-secondary-round");
 
   if (isActive) {
+    panel?.classList.add("is-active-round");
     renderRoundMeta(meta, current, snapshot);
     badge.textContent = "active";
     badge.classList.add("is-active");
@@ -52,6 +55,7 @@ function renderRoundPanel(color, snapshot, model) {
   }
 
   if (isNext) {
+    panel?.classList.add("is-secondary-round");
     renderRoundMeta(meta, next, snapshot);
     badge.textContent = "elected";
     renderRoundStats(stats, next);
@@ -60,6 +64,7 @@ function renderRoundPanel(color, snapshot, model) {
   }
 
   if (model.inElections && candidates.length > 0) {
+    panel?.classList.add("is-secondary-round");
     renderRoundMeta(meta, electionRoundMeta(snapshot), snapshot);
     badge.textContent = "elections open";
     badge.classList.add("is-election");
@@ -69,6 +74,7 @@ function renderRoundPanel(color, snapshot, model) {
   }
 
   if (previous) {
+    panel?.classList.add("is-secondary-round");
     renderRoundMeta(meta, previous, snapshot);
     badge.textContent = "previous";
     badge.classList.add("is-previous");
@@ -81,6 +87,7 @@ function renderRoundPanel(color, snapshot, model) {
     return;
   }
 
+  panel?.classList.add("is-secondary-round");
   renderWaitingMeta(meta, color);
   badge.textContent = "waiting";
   renderEmptyStats(stats);

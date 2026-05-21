@@ -71,7 +71,7 @@ function formatDisplayAddress(address, options = {}) {
     return { text: "-", value: "-", title: "-", tooltip: [] };
   }
 
-  const friendly = toTonUserFriendlyAddress(raw);
+  const friendly = options.chainId === "ton" ? toTonUserFriendlyAddress(raw) : "";
   const tooltip = addressTooltipLines(raw, friendly);
 
   if (options.addressType === "ton") {
