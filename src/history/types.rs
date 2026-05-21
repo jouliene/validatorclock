@@ -15,6 +15,8 @@ pub(crate) enum ParticipationStatus {
 pub(crate) struct ValidatorParticipationDto {
     pub(super) round: u32,
     pub(super) status: ParticipationStatus,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub(super) fake_node: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -95,6 +97,10 @@ fn default_complete_history_round() -> bool {
 
 fn is_complete_history_round(complete: &bool) -> bool {
     *complete
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 fn deserialize_stored_validators<'de, D>(

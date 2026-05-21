@@ -2408,18 +2408,49 @@ dd {
 }
 
 .validator-history-dot {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 10px;
+  position: relative;
+  display: inline-flex;
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(154, 166, 184, 0.62);
   border-radius: 50%;
   background: transparent;
+  color: transparent;
+  font-family: var(--font-sans);
+  font-size: 7.5px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .validator-history-dot.is-participated {
   border-color: rgba(50, 175, 104, 0.68);
   background: rgba(50, 175, 104, 0.84);
   box-shadow: 0 0 0 2px rgba(50, 175, 104, 0.04);
+}
+
+.validator-history-dot.is-participated.is-fake-node {
+  width: 11px;
+  height: 11px;
+  flex-basis: 11px;
+  border-color: rgba(50, 175, 104, 0.86);
+  background: rgba(50, 175, 104, 0.92);
+  color: transparent;
+  text-shadow: none;
+}
+
+.validator-history-dot.is-participated.is-fake-node::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 60%;
+  border-radius: 999px;
+  background: rgba(255, 58, 76, 0.98);
+  transform: translate(-50%, -50%);
 }
 
 .validator-history-dot.is-missed {
@@ -3250,9 +3281,9 @@ dd {
   }
 
   .validator-history-dot {
-    width: 10px;
-    height: 10px;
-    flex-basis: 10px;
+    width: 11px;
+    height: 11px;
+    flex-basis: 11px;
   }
 }
 

@@ -173,6 +173,34 @@ fn participation_matches_rotated_public_keys_by_wallet() {
 }
 
 #[test]
+fn participation_marks_fake_node_rounds() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    chain.record_set(
+        &ValidatorSetDto {
+            fake_validator_peers: vec!["alice".to_owned()],
+            fake_validator_status_known: true,
+            ..set(10, RoundColor::Blue, vec!["alice", "bob"])
+        },
+        100,
+    );
+
+    let alice_history = store.same_color_participation("test", 10, RoundColor::Blue, "alice", None);
+    let bob_history = store.same_color_participation("test", 10, RoundColor::Blue, "bob", None);
+
+    assert!(matches!(
+        alice_history[4].status,
+        ParticipationStatus::Participated
+    ));
+    assert!(alice_history[4].fake_node);
+    assert!(matches!(
+        bob_history[4].status,
+        ParticipationStatus::Participated
+    ));
+    assert!(!bob_history[4].fake_node);
+}
+
+#[test]
 fn recent_absent_validators_uses_wallet_identity() {
     let mut store = RoundHistoryStore::default();
     let chain = store.chains.entry("test".to_owned()).or_default();

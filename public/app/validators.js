@@ -221,12 +221,20 @@ function validatorHistoryCell(history) {
   for (const point of points.slice(0, 5)) {
     const dot = document.createElement("span");
     const status = point.status || "unknown";
-    dot.className = `validator-history-dot is-${status}`;
+    const fakeNode = status === "participated" && point.fake_node === true;
+    dot.className = `validator-history-dot is-${status}${fakeNode ? " is-fake-node" : ""}`;
+    if (fakeNode) {
+      dot.setAttribute("aria-label", "Fake Node participation");
+    }
     setValidatorTooltip(
       dot,
       point.round == null
         ? "Round: unknown"
-        : [`Round: ${point.round}`, `Status: ${historyStatusLabel(status)}`]
+        : [
+            `Round: ${point.round}`,
+            `Status: ${historyStatusLabel(status)}`,
+            ...(fakeNode ? ["Node: Fake Node"] : []),
+          ]
     );
     dots.appendChild(dot);
   }

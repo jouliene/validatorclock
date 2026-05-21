@@ -87,20 +87,27 @@ impl RoundHistoryStore {
         RoundWindow::ending_at(round_id)
             .rounds()
             .map(|round| {
-                let status = chain
+                let (status, fake_node) = chain
                     .and_then(|chain| chain.rounds.get(&round))
                     .filter(|stored| stored.round_color == round_color)
                     .map(|stored| {
                         if stored.contains_identity(public_key, wallet) {
-                            ParticipationStatus::Participated
+                            (
+                                ParticipationStatus::Participated,
+                                stored.fake_node_for_identity(public_key, wallet),
+                            )
                         } else if stored.complete {
-                            ParticipationStatus::Missed
+                            (ParticipationStatus::Missed, false)
                         } else {
-                            ParticipationStatus::Unknown
+                            (ParticipationStatus::Unknown, false)
                         }
                     })
-                    .unwrap_or(ParticipationStatus::Unknown);
-                ValidatorParticipationDto { round, status }
+                    .unwrap_or((ParticipationStatus::Unknown, false));
+                ValidatorParticipationDto {
+                    round,
+                    status,
+                    fake_node,
+                }
             })
             .collect()
     }

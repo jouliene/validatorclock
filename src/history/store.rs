@@ -127,6 +127,21 @@ impl StoredRound {
             })
     }
 
+    pub(super) fn fake_node_for_identity(&self, public_key: &str, wallet: Option<&str>) -> bool {
+        self.validators
+            .get(public_key)
+            .and_then(|validator| validator.fake_node)
+            .or_else(|| {
+                wallet.and_then(|wallet| {
+                    self.validators
+                        .values()
+                        .find(|validator| validator.wallet.as_deref() == Some(wallet))
+                        .and_then(|validator| validator.fake_node)
+                })
+            })
+            .unwrap_or(false)
+    }
+
     pub(super) fn has_fake_validator_status(&self) -> bool {
         self.validators
             .values()
