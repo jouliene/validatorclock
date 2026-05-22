@@ -127,16 +127,31 @@
             </span>
             <span id="tychoMapTitleText">Validator Map</span>
           </h2>
-          <button id="tychoMapReset" class="map-reset-button" type="button" aria-label="Reset map view">
-            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <path d="M21 12a9 9 0 0 1-15.74 5.96L3 16"></path>
-              <path d="M3 21v-5h5"></path>
-              <path d="M3 12A9 9 0 0 1 18.74 6.04L21 8"></path>
-              <path d="M21 3v5h-5"></path>
-            </svg>
-          </button>
+          <div class="tycho-map-toolbar">
+            <div class="tycho-map-meta" aria-label="Active validator map set">
+              <span id="tychoMapRoundBadge" class="tycho-map-meta-item tycho-map-round-badge">
+                <span class="tycho-map-meta-label">ROUND:</span>
+                <strong id="tychoMapRoundValue" class="tycho-map-meta-value tycho-map-round-value">-</strong>
+              </span>
+              <span class="tycho-map-meta-item">
+                <span class="tycho-map-meta-label">NODES:</span>
+                <strong id="tychoMapNodeCount" class="tycho-map-meta-value tycho-map-count-value">0</strong>
+              </span>
+              <span class="tycho-map-meta-item">
+                <span class="tycho-map-meta-label">LOCATIONS:</span>
+                <strong id="tychoMapLocationCount" class="tycho-map-meta-value tycho-map-count-value">0</strong>
+              </span>
+            </div>
+            <button id="tychoMapReset" class="map-reset-button" type="button" aria-label="Reset map view">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M21 12a9 9 0 0 1-15.74 5.96L3 16"></path>
+                <path d="M3 21v-5h5"></path>
+                <path d="M3 12A9 9 0 0 1 18.74 6.04L21 8"></path>
+                <path d="M21 3v5h-5"></path>
+              </svg>
+            </button>
+          </div>
         </div>
-        <span id="tychoMapSummary" class="tycho-map-summary">-</span>
       </div>
       <div class="tycho-map-shell">
         <div id="tychoNodeMap" class="tycho-map-canvas"></div>

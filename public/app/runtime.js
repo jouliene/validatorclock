@@ -88,6 +88,7 @@ async function selectChain(chainId) {
   } else {
     state.snapshot = null;
     clearClock();
+    updateTychoMapRoundBadge();
   }
   renderRuntimeStatus(Math.trunc(Date.now() / 1000));
   await loadClock(false);
@@ -311,6 +312,7 @@ function renderNow() {
   const model = buildClockModel(state.snapshot, now);
   drawClock(model);
   renderMetrics(state.snapshot, model, now);
+  updateTychoMapRoundBadge();
   renderRoundPanelsIfNeeded(state.snapshot, model);
 }
 

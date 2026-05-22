@@ -45,6 +45,7 @@ function setupTychoMapControls() {
   });
 
   updateTychoMapAvailability();
+  updateTychoMapRoundBadge();
   updateTychoMapSummary();
 }
 
@@ -57,6 +58,7 @@ function updateTychoMapAvailability() {
 
   const available = mapAvailableForChain(state.selectedChainId);
   updateTychoMapTitle();
+  updateTychoMapRoundBadge();
   controls.hidden = false;
   toggle.disabled = !available;
   toggle.removeAttribute("title");
@@ -198,6 +200,28 @@ function updateTychoMapTitle() {
     title.textContent = label;
   }
   panel?.setAttribute("aria-label", `${chainName} validator world map`);
+}
+
+function updateTychoMapRoundBadge() {
+  const badge = $("tychoMapRoundBadge");
+  const value = $("tychoMapRoundValue");
+  if (!badge || !value) {
+    return;
+  }
+
+  const roundColor = String(state.snapshot?.current_set?.round_color || "").toLowerCase();
+  const available = mapAvailableForChain(state.selectedChainId) && (roundColor === "blue" || roundColor === "green");
+  badge.classList.toggle("is-blue", roundColor === "blue");
+  badge.classList.toggle("is-green", roundColor === "green");
+  if (!available) {
+    value.textContent = "-";
+    badge.removeAttribute("aria-label");
+    return;
+  }
+
+  const label = roundColor === "blue" ? "BLUE (EVEN)" : "GREEN (ODD)";
+  value.textContent = label;
+  badge.setAttribute("aria-label", `Round: ${label}`);
 }
 
 function tychoMappedPeerSet(nodes) {
@@ -749,8 +773,10 @@ function clusterLeavesAreTight(features) {
 }
 
 function updateTychoMapSummary() {
+  const nodeCount = $("tychoMapNodeCount");
+  const locationCount = $("tychoMapLocationCount");
   const summary = $("tychoMapSummary");
-  if (!summary) {
+  if (!nodeCount && !locationCount && !summary) {
     return;
   }
 
@@ -761,7 +787,15 @@ function updateTychoMapSummary() {
     nodes = window.TYCHO_NODES;
   }
   const locations = groupNodesByLocation(nodes).length;
-  summary.textContent = `${nodes.length} nodes / ${locations} locations`;
+  if (nodeCount) {
+    nodeCount.textContent = String(nodes.length);
+  }
+  if (locationCount) {
+    locationCount.textContent = String(locations);
+  }
+  if (summary) {
+    summary.textContent = `${nodes.length} nodes / ${locations} locations`;
+  }
 }
 
 function locationPopupHtml(properties) {

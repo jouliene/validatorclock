@@ -1050,15 +1050,14 @@ dd {
 }
 
 .tycho-map-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 12px;
   padding: 18px 20px 14px;
 }
 
 .tycho-map-titlebar {
-  display: contents;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -1076,22 +1075,97 @@ dd {
   text-transform: uppercase;
 }
 
+.tycho-map-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tycho-map-meta {
+  display: inline-grid;
+  grid-template-columns: 156px 96px 122px;
+  min-height: 38px;
+  overflow: hidden;
+  border: 1px solid rgba(154, 196, 224, 0.15);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.01)),
+    rgba(0, 0, 0, 0.16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.tycho-map-meta-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 0 12px;
+  border-left: 1px solid rgba(154, 196, 224, 0.12);
+  white-space: nowrap;
+}
+
+.tycho-map-meta-item:first-child {
+  border-left: 0;
+}
+
+.tycho-map-meta-label {
+  color: rgba(151, 171, 194, 0.9);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.tycho-map-meta-value {
+  min-width: 0;
+  color: rgba(224, 235, 246, 0.9);
+  font-size: 12px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.tycho-map-round-value {
+  --map-round-color: rgba(132, 205, 240, 0.86);
+  min-width: 88px;
+  color: color-mix(in srgb, var(--map-round-color) 70%, white 22%);
+}
+
+.tycho-map-round-badge.is-blue .tycho-map-round-value {
+  --map-round-color: rgba(132, 205, 240, 0.9);
+}
+
+.tycho-map-round-badge.is-green .tycho-map-round-value {
+  --map-round-color: rgba(134, 232, 166, 0.88);
+}
+
+.tycho-map-count-value {
+  min-width: 3ch;
+  text-align: right;
+}
+
 .map-reset-button {
   position: relative;
   display: inline-grid;
   width: 40px;
-  height: 40px;
+  height: 38px;
   flex: 0 0 40px;
   place-items: center;
-  border: 1px solid rgba(154, 196, 224, 0.18);
+  border: 1px solid rgba(154, 196, 224, 0.16);
   border-radius: var(--radius-md);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.012)),
-    rgba(7, 11, 17, 0.9);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+    rgba(0, 0, 0, 0.16);
   color: var(--text);
   cursor: pointer;
   box-shadow:
-    0 10px 26px rgba(0, 0, 0, 0.18),
+    0 10px 24px rgba(0, 0, 0, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
   transition: var(--transition-control);
 }
@@ -1128,21 +1202,6 @@ dd {
   height: 22px;
   stroke-width: 1.75;
   filter: drop-shadow(0 0 2px rgba(91, 191, 239, 0.06));
-}
-
-.tycho-map-summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 12px;
-  border: 1px solid rgba(154, 196, 224, 0.13);
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.14);
-  color: rgba(190, 205, 222, 0.8);
-  font-size: 12px;
-  font-weight: 580;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 .tycho-map-shell {
@@ -2887,25 +2946,59 @@ dd {
 
   .tycho-map-heading {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     padding: var(--rhythm-mobile-pad);
   }
 
   .tycho-map-titlebar {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
     gap: 10px;
-    justify-content: space-between;
+  }
+
+  .tycho-map-titlebar h2 {
+    min-width: 0;
+  }
+
+  .tycho-map-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--control-size);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .tycho-map-meta {
+    width: 100%;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr) minmax(0, 1fr);
+    min-height: var(--control-size);
+  }
+
+  .tycho-map-meta-item {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 5px;
+    padding: 0 8px;
+  }
+
+  .tycho-map-meta-label {
+    font-size: 9px;
+  }
+
+  .tycho-map-meta-value {
+    font-size: 11px;
+  }
+
+  .tycho-map-round-value {
+    min-width: 0;
   }
 
   .map-reset-button {
     width: var(--control-size);
     height: var(--control-size);
     flex-basis: var(--control-size);
-  }
-
-  .tycho-map-summary {
-    text-align: left;
   }
 
   .tycho-map-shell {
