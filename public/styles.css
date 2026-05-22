@@ -1241,7 +1241,8 @@ dd {
   width: max-content;
   max-width: calc(100vw - 16px);
   max-height: min(460px, calc(100vh - 90px));
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   border: 1px solid rgba(154, 196, 224, 0.2);
   border-top-color: rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -1310,6 +1311,11 @@ dd {
   width: max-content;
   max-width: calc(100vw - 40px);
   overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.popup-node-list::-webkit-scrollbar {
+  display: none;
 }
 
 .popup-node-table {
