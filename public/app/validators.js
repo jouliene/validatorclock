@@ -276,11 +276,16 @@ function validatorSourceTypeCell(validator, options = {}) {
     badge.appendChild(validatorBadgeText(type.label));
   }
 
-  const tooltipLines = hash
-    ? validatorTypeTooltipLines(type.label, hash)
-    : validator && validator.contract_type_hash
-      ? validatorTypeTooltipLines(type.label, validator.contract_type_hash)
-      : validatorTypeTooltipLines(type.label);
+  const contractHash = hash || validator?.contract_type_hash || "";
+  const missingLocationLine = fake
+    ? validatorTooltipDangerLine(options.fakeSourceTooltip || "Validator node IP not detected.")
+    : "";
+  const tooltipLines = withValidatorLocationTooltipLines(
+    validator,
+    validatorTypeTooltipLines(type.label, contractHash),
+    options,
+    missingLocationLine
+  );
   setValidatorTooltip(
     badge,
     fake ? fakeValidatorTypeTooltipLines(type.label, tooltipLines, options) : tooltipLines
@@ -454,18 +459,57 @@ function isFakeMapValidator(validator, options = {}) {
   return Boolean(publicKey) && options.fakeValidatorPeers.has(publicKey);
 }
 
-function fakeValidatorTypeTooltipLines(typeLabel, tooltipLines, options = {}) {
-  const lines = [
-    validatorTooltipDangerLine(options.fakeSourceTooltip || "No reachable validator node IP is published for this validator public key."),
+function fakeValidatorTypeTooltipLines(typeLabel, tooltipLines) {
+  return Array.isArray(tooltipLines) && tooltipLines.length > 0
+    ? tooltipLines
+    : validatorTypeTooltipLines(typeLabel);
+}
+
+function withValidatorLocationTooltipLines(validator, tooltipLines, options = {}, missingLocationLine = "") {
+  return [
+    ...(Array.isArray(tooltipLines) ? tooltipLines : []),
+    ...validatorLocationTooltipLines(validator, options, missingLocationLine),
   ];
-  if (typeLabel === UNKNOWN_VALIDATOR_TYPE.label) {
-    lines.push("Unknown");
-  } else if (Array.isArray(tooltipLines) && tooltipLines.length > 0) {
-    lines.push(...tooltipLines);
-  } else {
-    lines.push(typeLabel || "Unknown");
+}
+
+function validatorLocationTooltipLines(validator, options = {}, missingLocationLine = "") {
+  const node = validatorMapNode(validator, options);
+  if (!node) {
+    const line = String(missingLocationLine || "").trim();
+    return line ? ["Location:", line] : [];
   }
-  return lines;
+
+  const lines = ["Location:"];
+  const ip = String(node.ip || "").trim();
+  const isp = String(node.isp || "").trim();
+  const place = [node.city, node.country]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean)
+    .join(", ");
+
+  if (ip) {
+    lines.push(`IP: ${ip}`);
+  }
+  if (isp) {
+    lines.push(`ISP: ${isp}`);
+  }
+  if (place) {
+    lines.push(`Place: ${place}`);
+  }
+
+  if (lines.length > 1) {
+    return lines;
+  }
+  const line = String(missingLocationLine || "").trim();
+  return line ? ["Location:", line] : [];
+}
+
+function validatorMapNode(validator, options = {}) {
+  const peer = String(validator?.public_key || "").toLowerCase();
+  if (!peer || !(options.mapNodesByPeer instanceof Map)) {
+    return null;
+  }
+  return options.mapNodesByPeer.get(peer) || null;
 }
 
 function validatorTooltipDangerLine(text) {
@@ -657,14 +701,15 @@ function validatorTypeGlossaryEntry(label) {
 
 function validatorTypeTooltipLines(label, contractHash = "") {
   const entry = validatorTypeGlossaryEntry(label);
-  const lines = [];
-  if (contractHash) {
-    lines.push(`Contract HASH: ${contractHash}`);
-  }
-  if (entry) {
-    lines.push(`Name: ${entry.name}`);
-  }
-  return lines;
+  const hash = String(contractHash || "").trim();
+  const normalizedLabel = String(label || "").trim();
+  const name = entry?.name || (normalizedLabel && normalizedLabel !== UNKNOWN_VALIDATOR_TYPE.label
+    ? normalizedLabel
+    : "Unknown");
+  return [
+    `Contract HASH: ${hash || "Unknown"}`,
+    `Name: ${name}`,
+  ];
 }
 
 function toggleValidatorTypeGlossary(anchor) {

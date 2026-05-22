@@ -148,6 +148,7 @@ async function refreshTychoMapNodesForSnapshot() {
   const chainId = state.selectedChainId;
   if (!mapAvailableForChain(chainId)) {
     state.tychoMappedPeers = null;
+    state.tychoMapNodesByPeer = null;
     tychoMapNodes = null;
     tychoMapNodesChainId = null;
     return [];
@@ -169,6 +170,7 @@ async function refreshTychoMapNodesForSnapshot() {
   tychoMapNodesChainId = chainId;
   tychoMapNodes = filterTychoMapNodesToCurrentValidators(tychoMapNodes);
   state.tychoMappedPeers = tychoMappedPeerSet(tychoMapNodes);
+  state.tychoMapNodesByPeer = tychoMapNodeMapByPeer(tychoMapNodes);
   updateTychoMapTitle();
   updateTychoMapSummary();
   refreshTychoMapSource();
@@ -204,6 +206,17 @@ function tychoMappedPeerSet(nodes) {
       .map((node) => String(node.peer || "").toLowerCase())
       .filter(Boolean)
   );
+}
+
+function tychoMapNodeMapByPeer(nodes) {
+  const byPeer = new Map();
+  for (const node of Array.isArray(nodes) ? nodes : []) {
+    const peer = String(node.peer || "").toLowerCase();
+    if (peer) {
+      byPeer.set(peer, node);
+    }
+  }
+  return byPeer;
 }
 
 function filterTychoMapNodesToCurrentValidators(nodes) {

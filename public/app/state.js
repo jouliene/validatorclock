@@ -58,6 +58,7 @@ const state = {
   clockLoading: false,
   tychoMapOpen: false,
   tychoMappedPeers: null,
+  tychoMapNodesByPeer: null,
   clockRequestSeq: 0,
   lastClockRefreshAttempt: 0,
   roundRenderKey: null,

@@ -155,6 +155,7 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
     await refreshTychoMapNodesForSnapshot();
   } else {
     state.tychoMappedPeers = null;
+    state.tychoMapNodesByPeer = null;
   }
   if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
     return;

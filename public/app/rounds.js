@@ -270,14 +270,13 @@ function validatorRenderOptions(snapshot, extra = {}) {
     sourceDisplayMode: selectedSourceDisplayMode(snapshot.chain.id),
     onSourceDisplayModeChange: setSourceDisplayMode,
     glossaryLabels: validatorGlossaryLabelsForSnapshot(snapshot),
+    mapNodesByPeer: state.tychoMapNodesByPeer,
     ...extra,
   };
 }
 
-function fakeValidatorTooltip(current) {
-  return current
-    ? "No reachable validator node IP is currently published for this validator public key."
-    : "No reachable validator node IP was published for this validator while this round was active.";
+function fakeValidatorTooltip() {
+  return "Validator node IP not detected.";
 }
 
 function tychoSetFakePeers(round) {
