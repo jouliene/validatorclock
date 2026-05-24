@@ -2,7 +2,11 @@ pub(super) const INDEX_HTML: &str = include_str!("../../../public/index.html");
 pub(super) const STYLES_CSS: &str = include_str!("../../../public/styles.css");
 pub(super) const APP_STATE_JS: &str = include_str!("../../../public/app/state.js");
 pub(super) const APP_API_JS: &str = include_str!("../../../public/app/api.js");
-pub(super) const APP_FORMAT_JS: &str = include_str!("../../../public/app/format.js");
+pub(super) const APP_FORMAT_ADDRESSES_JS: &str =
+    include_str!("../../../public/app/format_addresses.js");
+pub(super) const APP_FORMAT_NUMBERS_JS: &str =
+    include_str!("../../../public/app/format_numbers.js");
+pub(super) const APP_FORMAT_DATES_JS: &str = include_str!("../../../public/app/format_dates.js");
 pub(super) const APP_CLOCK_MODEL_JS: &str = include_str!("../../../public/app/clock_model.js");
 pub(super) const APP_CLOCK_DEFS_JS: &str = include_str!("../../../public/app/clock_defs.js");
 pub(super) const APP_CLOCK_SVG_JS: &str = include_str!("../../../public/app/clock_svg.js");
@@ -78,7 +82,9 @@ pub(super) const JOKES_JSON: &str = include_str!("../../../public/jokes.json");
 pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_STATE_JS,
     APP_API_JS,
-    APP_FORMAT_JS,
+    APP_FORMAT_ADDRESSES_JS,
+    APP_FORMAT_NUMBERS_JS,
+    APP_FORMAT_DATES_JS,
     APP_CLOCK_MODEL_JS,
     APP_CLOCK_DEFS_JS,
     APP_CLOCK_SVG_JS,
