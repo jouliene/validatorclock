@@ -21,6 +21,11 @@ pub(super) const APP_VALIDATOR_TYPES_JS: &str =
 pub(super) const APP_VALIDATORS_JS: &str = include_str!("../../../public/app/validators.js");
 pub(super) const APP_VALIDATOR_COPY_JS: &str =
     include_str!("../../../public/app/validator_copy.js");
+pub(super) const APP_ROUNDS_META_JS: &str = include_str!("../../../public/app/rounds_meta.js");
+pub(super) const APP_ROUNDS_OPTIONS_JS: &str =
+    include_str!("../../../public/app/rounds_options.js");
+pub(super) const APP_ROUNDS_RECENT_JS: &str = include_str!("../../../public/app/rounds_recent.js");
+pub(super) const APP_ROUNDS_STATS_JS: &str = include_str!("../../../public/app/rounds_stats.js");
 pub(super) const APP_ROUNDS_JS: &str = include_str!("../../../public/app/rounds.js");
 pub(super) const APP_TYCHO_NODES_JS: &str = include_str!("../../../public/app/tycho_nodes.js");
 pub(super) const APP_MAP_JS: &str = include_str!("../../../public/app/map.js");
@@ -62,6 +67,10 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_VALIDATOR_TYPES_JS,
     APP_VALIDATORS_JS,
     APP_VALIDATOR_COPY_JS,
+    APP_ROUNDS_META_JS,
+    APP_ROUNDS_OPTIONS_JS,
+    APP_ROUNDS_RECENT_JS,
+    APP_ROUNDS_STATS_JS,
     APP_ROUNDS_JS,
     APP_TYCHO_NODES_JS,
     APP_MAP_JS,
