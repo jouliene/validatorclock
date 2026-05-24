@@ -1,8 +1,8 @@
-use crate::chain::ValidatorDto;
+use crate::chain::{ValidatorDto, ValidatorMapNodeDto};
 use crate::config::AppConfig;
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::ErrorKind;
 use std::path::Path;
 use std::time::UNIX_EPOCH;
@@ -116,15 +116,12 @@ pub(crate) fn filter_map_nodes_to_validators(
         .map(|validator| validator.public_key.to_ascii_lowercase())
         .collect::<HashSet<_>>();
 
-    let nodes = value
-        .as_array()
-        .context("Tycho map nodes payload must be a JSON array")?
+    let nodes = map_nodes_array(&value)?
         .iter()
         .filter(|node| {
-            node.get("peer")
-                .and_then(Value::as_str)
-                .map(|peer| active_peers.contains(&peer.to_ascii_lowercase()))
-                .unwrap_or(false)
+            map_node_peer(node)
+                .map(|peer| active_peers.contains(&peer))
+                .unwrap_or_default()
         })
         .cloned()
         .collect::<Vec<_>>();
@@ -132,20 +129,45 @@ pub(crate) fn filter_map_nodes_to_validators(
     Ok(Value::Array(nodes))
 }
 
-pub(crate) fn mapped_peer_set(value: &Value) -> Result<HashSet<String>> {
-    Ok(value
-        .as_array()
-        .context("Tycho map nodes payload must be a JSON array")?
+pub(crate) fn map_nodes_by_peer(value: &Value) -> Result<HashMap<String, ValidatorMapNodeDto>> {
+    Ok(map_nodes_array(value)?
         .iter()
-        .filter_map(|node| node.get("peer").and_then(Value::as_str))
-        .map(str::to_ascii_lowercase)
-        .filter(|peer| !peer.is_empty())
+        .filter_map(|node| {
+            map_node_peer(node).map(|peer| {
+                (
+                    peer,
+                    ValidatorMapNodeDto {
+                        ip: string_field(node, "ip"),
+                        isp: string_field(node, "isp"),
+                        city: string_field(node, "city"),
+                        country: string_field(node, "country"),
+                    },
+                )
+            })
+        })
         .collect())
 }
 
 fn ensure_map_nodes_array(value: Value) -> Result<Value> {
-    if !value.is_array() {
-        bail!("Tycho map nodes payload must be a JSON array");
-    }
+    map_nodes_array(&value)?;
     Ok(value)
+}
+
+fn map_nodes_array(value: &Value) -> Result<&[Value]> {
+    value
+        .as_array()
+        .map(Vec::as_slice)
+        .context("validator map nodes payload must be a JSON array")
+}
+
+fn map_node_peer(node: &Value) -> Option<String> {
+    string_field(node, "peer").map(|peer| peer.to_ascii_lowercase())
+}
+
+fn string_field(node: &Value, field: &str) -> Option<String> {
+    node.get(field)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
 }

@@ -1,7 +1,6 @@
 use super::AppState;
 use crate::chain::{ClockSnapshot, ValidatorMapNodeDto, ValidatorSetDto};
-use crate::validator_map::{load_map_nodes_with_metadata, mapped_peer_set};
-use serde_json::Value;
+use crate::validator_map::{load_map_nodes_with_metadata, map_nodes_by_peer};
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
@@ -26,22 +25,20 @@ impl AppState {
                 return;
             }
         };
-        let mapped_peers = match mapped_peer_set(&payload.nodes) {
-            Ok(mapped_peers) => mapped_peers,
+        let map_nodes = match map_nodes_by_peer(&payload.nodes) {
+            Ok(map_nodes) => map_nodes,
             Err(error) => {
                 warn!(
                     chain_id,
                     error = ?error,
-                    "failed to read map peers for fake validator annotation"
+                    "failed to read map nodes for fake validator annotation"
                 );
                 return;
             }
         };
+        let mapped_peers = map_nodes.keys().cloned().collect::<HashSet<_>>();
 
-        annotate_set_with_map_nodes(
-            &mut snapshot.current_set,
-            &map_nodes_by_peer(&payload.nodes),
-        );
+        annotate_set_with_map_nodes(&mut snapshot.current_set, &map_nodes);
         annotate_set_with_fake_validators(
             &mut snapshot.current_set,
             &mapped_peers,
@@ -102,35 +99,6 @@ fn annotate_set_with_map_nodes(
             validator.map_node = Some(map_node.clone());
         }
     }
-}
-
-fn map_nodes_by_peer(nodes: &Value) -> HashMap<String, ValidatorMapNodeDto> {
-    nodes
-        .as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|node| {
-            let peer = node.get("peer")?.as_str()?.to_ascii_lowercase();
-            (!peer.is_empty()).then(|| (peer, validator_map_node(node)))
-        })
-        .collect()
-}
-
-fn validator_map_node(node: &Value) -> ValidatorMapNodeDto {
-    ValidatorMapNodeDto {
-        ip: string_field(node, "ip"),
-        isp: string_field(node, "isp"),
-        city: string_field(node, "city"),
-        country: string_field(node, "country"),
-    }
-}
-
-fn string_field(node: &Value, field: &str) -> Option<String> {
-    node.get(field)
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_owned)
 }
 
 #[cfg(test)]
