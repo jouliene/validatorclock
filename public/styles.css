@@ -1,3 +1,4 @@
+/* Design tokens */
 :root {
   color-scheme: dark;
   --bg: #04070b;
@@ -56,6 +57,7 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 
+/* Base layout */
 * {
   box-sizing: border-box;
 }
@@ -225,6 +227,7 @@ h1::after {
   font-variant-numeric: tabular-nums;
 }
 
+/* Dashboard shell */
 .top-grid {
   position: relative;
   display: grid;
@@ -606,6 +609,7 @@ h2 {
   filter: drop-shadow(0 0 3px rgba(91, 191, 239, 0.09));
 }
 
+/* Election timing */
 .status-display {
   display: grid;
   margin-bottom: 12px;
@@ -779,6 +783,7 @@ dd {
   gap: 4px;
 }
 
+/* Network selector */
 .chain-tabs {
   display: grid;
   grid-template-columns: 1fr;
@@ -916,6 +921,7 @@ dd {
   background: var(--chain-color, var(--blue));
 }
 
+/* Validator map */
 .map-controls {
   display: flex;
   justify-content: center;
@@ -1437,6 +1443,7 @@ dd {
   white-space: nowrap;
 }
 
+/* Round panels */
 .rounds-grid,
 .recent-rounds-grid {
   display: grid;
@@ -1845,6 +1852,7 @@ dd {
   white-space: nowrap;
 }
 
+/* Validator tables */
 .validator-list {
   overflow-x: hidden;
   padding-bottom: 0;
@@ -2619,6 +2627,7 @@ dd {
   font-weight: 560;
 }
 
+/* Status messages */
 .empty-state {
   padding: 18px;
   border: 1px solid var(--table-line);
@@ -2641,6 +2650,7 @@ dd {
   color: #ffd2d2;
 }
 
+/* Responsive layout */
 @media (max-width: 1220px) {
   .top-grid {
     display: grid;
