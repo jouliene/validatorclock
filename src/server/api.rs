@@ -1,7 +1,7 @@
 use super::security::{json_error, query_forces_refresh};
 use crate::chain::{chains_response, get_chain_snapshot_cached_first, runtime_status};
 use crate::state::AppState;
-use crate::tycho_map::{filter_map_nodes_to_validators, load_map_nodes};
+use crate::validator_map::{filter_map_nodes_to_validators, load_map_nodes};
 use anyhow::Result;
 use axum::Json;
 use axum::extract::{Path, Query, State};

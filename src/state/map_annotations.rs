@@ -1,6 +1,6 @@
 use super::AppState;
 use crate::chain::{ClockSnapshot, ValidatorMapNodeDto, ValidatorSetDto};
-use crate::tycho_map::{load_map_nodes_with_metadata, mapped_peer_set};
+use crate::validator_map::{load_map_nodes_with_metadata, mapped_peer_set};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
