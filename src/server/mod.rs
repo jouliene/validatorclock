@@ -11,6 +11,7 @@ mod acme;
 mod api;
 mod assets;
 mod connection;
+mod responses;
 mod routes;
 mod security;
 

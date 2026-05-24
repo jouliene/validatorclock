@@ -1,13 +1,11 @@
 use crate::config::AppConfig;
+use crate::server::responses::json_error;
 use crate::state::AppState;
-use axum::Json;
 use axum::extract::{Request, State};
 use axum::http::header::{self, HeaderName, HeaderValue};
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use serde::Serialize;
-use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
 
@@ -91,23 +89,6 @@ fn add_common_headers(headers: &mut HeaderMap) {
     );
 }
 
-#[derive(Serialize)]
-struct ApiError<'a> {
-    error: &'a str,
-    code: &'a str,
-}
-
-pub(super) fn json_error(status: StatusCode, code: &str, message: &str) -> Response {
-    (
-        status,
-        Json(ApiError {
-            error: message,
-            code,
-        }),
-    )
-        .into_response()
-}
-
 pub(super) fn redirect_location(public_url: &str, target: &str) -> String {
     format!("{}{}", public_url.trim_end_matches('/'), target)
 }
@@ -167,10 +148,4 @@ pub(super) fn request_host_allowed(headers: &HeaderMap, config: &AppConfig) -> b
         .iter()
         .filter_map(|host| normalize_host(host))
         .any(|allowed| allowed == host)
-}
-
-pub(super) fn query_forces_refresh(query: &HashMap<String, String>) -> bool {
-    query
-        .get("refresh")
-        .is_some_and(|value| matches!(value.as_str(), "1" | "true" | "yes"))
 }

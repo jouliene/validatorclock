@@ -1,8 +1,9 @@
 use super::acme::{acme_challenge, redirect_to_https};
-use super::api::{chain_clock, chain_map, health, list_chains, not_found, status};
+use super::api::{chain_clock, chain_map, health, list_chains, status};
 use super::assets::{
     app_js, everscale_logo, index, jokes_json, smoking_man_png, styles, ton_logo, tycho_logo,
 };
+use super::responses::not_found;
 use super::security::{add_security_headers, enforce_allowed_host, handle_options};
 use crate::state::AppState;
 use axum::Router;
