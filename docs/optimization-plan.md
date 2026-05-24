@@ -11,6 +11,7 @@ cleanup commits unless a bug is found during verification.
 - Split chain refresh background scheduling/logging out of the cache-first snapshot path.
 - Split validator source provider implementations into separate JRPC and TON Center modules.
 - Split TON Center stack parsing helpers out of election/round data assembly.
+- Split fake-validator map annotation policy out of map-node annotation.
 - Removed stale validator source fake styles after fake-node rendering moved to `is-map-fake`.
 - Added section markers to `public/styles.css` so future CSS changes can stay scoped.
 
@@ -29,8 +30,7 @@ cleanup commits unless a bug is found during verification.
    - remove only verified-dead selectors;
    - consider CSS modularization later if the asset embedding path is updated safely.
 2. Re-audit Rust backend hotspots:
-   - `src/history/store.rs`;
-   - `src/state/map_annotations.rs`.
+   - `src/history/store.rs`.
 3. Revisit scripts only after frontend/backend code is stable:
    - `scripts/collect-tycho-map.sh`;
    - `scripts/visual-check.sh`;

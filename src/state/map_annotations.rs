@@ -4,17 +4,14 @@ use crate::validator_map::{load_map_nodes_with_metadata, map_nodes_by_peer};
 use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
-const NEW_SET_FAKE_STATUS_GRACE_SECONDS: u64 = 5 * 60;
+mod fake_status;
+
+use fake_status::update_set_fake_validator_status;
 
 struct ValidatorMapAnnotations {
     nodes_by_peer: HashMap<String, ValidatorMapNodeDto>,
     mapped_peers: HashSet<String>,
     updated_at: Option<u64>,
-}
-
-enum FakeValidatorStatusUpdate {
-    Deferred,
-    Known(Vec<String>),
 }
 
 impl AppState {
@@ -71,67 +68,12 @@ fn annotate_set_with_validator_map(
     observed_at: u64,
 ) {
     annotate_set_with_map_nodes(set, &annotations.nodes_by_peer);
-    let fake_status_update = fake_validator_status_update(
+    update_set_fake_validator_status(
         set,
         &annotations.mapped_peers,
         annotations.updated_at,
         observed_at,
     );
-    update_fake_validator_status(set, fake_status_update);
-}
-
-fn fake_validator_status_update(
-    set: &ValidatorSetDto,
-    mapped_peers: &HashSet<String>,
-    map_nodes_updated_at: Option<u64>,
-    observed_at: u64,
-) -> FakeValidatorStatusUpdate {
-    if should_defer_fake_validator_status(set, map_nodes_updated_at, observed_at) {
-        return FakeValidatorStatusUpdate::Deferred;
-    }
-
-    FakeValidatorStatusUpdate::Known(fake_validator_peers(set, mapped_peers))
-}
-
-fn update_fake_validator_status(set: &mut ValidatorSetDto, update: FakeValidatorStatusUpdate) {
-    match update {
-        FakeValidatorStatusUpdate::Deferred => {
-            set.fake_validator_peers.clear();
-            set.fake_validator_status_known = false;
-        }
-        FakeValidatorStatusUpdate::Known(fake_peers) => {
-            set.fake_validator_peers = fake_peers;
-            set.fake_validator_status_known = true;
-        }
-    }
-}
-
-fn fake_validator_peers(set: &ValidatorSetDto, mapped_peers: &HashSet<String>) -> Vec<String> {
-    let mut fake_peers = set
-        .validators
-        .iter()
-        .map(|validator| validator.public_key.to_ascii_lowercase())
-        .filter(|public_key| !public_key.is_empty() && !mapped_peers.contains(public_key))
-        .collect::<Vec<_>>();
-    fake_peers.sort();
-    fake_peers.dedup();
-    fake_peers
-}
-
-fn should_defer_fake_validator_status(
-    set: &ValidatorSetDto,
-    map_nodes_updated_at: Option<u64>,
-    observed_at: u64,
-) -> bool {
-    let set_started_at = u64::from(set.utime_since);
-    if observed_at.saturating_sub(set_started_at) >= NEW_SET_FAKE_STATUS_GRACE_SECONDS {
-        return false;
-    }
-
-    match map_nodes_updated_at {
-        Some(updated_at) => updated_at < set_started_at,
-        None => true,
-    }
 }
 
 fn annotate_set_with_map_nodes(
@@ -165,10 +107,6 @@ mod tests {
         snapshot.current_set
     }
 
-    fn mapped_peers(peers: &[&str]) -> HashSet<String> {
-        peers.iter().map(|peer| (*peer).to_owned()).collect()
-    }
-
     fn map_node(ip: &str) -> ValidatorMapNodeDto {
         ValidatorMapNodeDto {
             ip: Some(ip.to_owned()),
@@ -176,17 +114,6 @@ mod tests {
             city: Some("Example City".to_owned()),
             country: Some("Example Country".to_owned()),
         }
-    }
-
-    fn apply_fake_status(
-        set: &mut ValidatorSetDto,
-        mapped_peers: &HashSet<String>,
-        map_nodes_updated_at: Option<u64>,
-        observed_at: u64,
-    ) {
-        let update =
-            fake_validator_status_update(set, mapped_peers, map_nodes_updated_at, observed_at);
-        update_fake_validator_status(set, update);
     }
 
     #[test]
@@ -199,38 +126,5 @@ mod tests {
 
         assert_eq!(set.validators[0].map_node, Some(map_node));
         assert_eq!(set.validators[1].map_node, None);
-    }
-
-    #[test]
-    fn fake_validator_status_is_deferred_during_new_set_grace_for_stale_map() {
-        let mut set = validator_set_with_peers(&["mapped", "missing"]);
-        set.utime_since = 1_000;
-
-        apply_fake_status(&mut set, &mapped_peers(&["mapped"]), Some(999), 1_120);
-
-        assert!(!set.fake_validator_status_known);
-        assert!(set.fake_validator_peers.is_empty());
-    }
-
-    #[test]
-    fn fake_validator_status_is_known_during_grace_after_map_refresh() {
-        let mut set = validator_set_with_peers(&["mapped", "missing"]);
-        set.utime_since = 1_000;
-
-        apply_fake_status(&mut set, &mapped_peers(&["mapped"]), Some(1_030), 1_120);
-
-        assert!(set.fake_validator_status_known);
-        assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);
-    }
-
-    #[test]
-    fn fake_validator_status_is_known_after_new_set_grace_expires() {
-        let mut set = validator_set_with_peers(&["mapped", "missing"]);
-        set.utime_since = 1_000;
-
-        apply_fake_status(&mut set, &mapped_peers(&["mapped"]), Some(999), 1_301);
-
-        assert!(set.fake_validator_status_known);
-        assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);
     }
 }
