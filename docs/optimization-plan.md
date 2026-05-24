@@ -7,7 +7,7 @@ cleanup commits unless a bug is found during verification.
 
 - Split server API handlers, static asset serving, and chain config handling into focused modules.
 - Split history/state tests into module-level files and added shared test helpers where useful.
-- Split frontend runtime, clock, round rendering, validator rendering, validator type/source helpers, map rendering, and formatting helpers into smaller files.
+- Split frontend runtime, clock, round rendering, validator rendering, validator type/source helpers, map rendering, map feature grouping, and formatting helpers into smaller files.
 - Removed stale validator source fake styles after fake-node rendering moved to `is-map-fake`.
 - Added section markers to `public/styles.css` so future CSS changes can stay scoped.
 
@@ -25,8 +25,8 @@ cleanup commits unless a bug is found during verification.
    - keep `styles.css` behavior stable;
    - remove only verified-dead selectors;
    - consider CSS modularization later if the asset embedding path is updated safely.
-2. Review map data and popup modules:
-   - keep location grouping, clustering, popup HTML, and map view concerns separated;
+2. Review map popup modules:
+   - keep popup HTML and popup lifecycle concerns separated;
    - add tests or visual checks around popup content where practical.
 3. Re-audit Rust backend hotspots:
    - `src/chain/validator_sources/provider.rs`;
