@@ -2127,8 +2127,7 @@ dd {
 }
 
 .validator-source-direct,
-.validator-source-unknown,
-.validator-source-fake {
+.validator-source-unknown {
   display: inline-flex;
   min-height: 22px;
   align-items: center;
@@ -2148,7 +2147,6 @@ dd {
   color: rgba(195, 204, 216, 0.84);
 }
 
-.validator-source-fake,
 .validator-map-fake-badge {
   border-color: rgba(255, 91, 105, 0.46);
   background:
@@ -3284,7 +3282,6 @@ dd {
   }
 
   .validator-row .validator-source.is-detail,
-  .validator-row .validator-source.is-fake,
   .validator-row .validator-cell.validator-id,
   .validator-row .validator-cell.validator-history,
   .validator-row .validator-cell.validator-stake,
@@ -3302,7 +3299,6 @@ dd {
   }
 
   .validator-row .validator-source.is-detail::before,
-  .validator-row .validator-source.is-fake::before,
   .validator-row .validator-cell.validator-id::before,
   .validator-row .validator-cell.validator-history::before,
   .validator-row .validator-cell.validator-stake::before,
@@ -3319,8 +3315,7 @@ dd {
     text-transform: uppercase;
   }
 
-  .validator-row.has-source-detail,
-  .validator-row.has-source-fake {
+  .validator-row.has-source-detail {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-areas:
       "type type type type type type"
@@ -3343,8 +3338,7 @@ dd {
       "lastseen lastseen lastseen";
   }
 
-  .validator-table.is-absent .validator-row.has-source-detail,
-  .validator-table.is-absent .validator-row.has-source-fake {
+  .validator-table.is-absent .validator-row.has-source-detail {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-areas:
       "type type type type type type"
