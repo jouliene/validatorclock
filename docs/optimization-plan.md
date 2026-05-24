@@ -14,6 +14,7 @@ cleanup commits unless a bug is found during verification.
 - Split fake-validator map annotation policy out of map-node annotation.
 - Split stored-round merge/identity logic out of history store orchestration.
 - Added a reusable frontend JavaScript syntax check script and wired it into CI.
+- Added a reusable shell script syntax check and wired it into CI.
 - Removed stale validator source fake styles after fake-node rendering moved to `is-map-fake`.
 - Added section markers to `public/styles.css` so future CSS changes can stay scoped.
 
@@ -32,9 +33,7 @@ cleanup commits unless a bug is found during verification.
    - remove only verified-dead selectors;
    - consider CSS modularization later if the asset embedding path is updated safely.
 2. Revisit scripts only after frontend/backend code is stable:
-   - `scripts/collect-tycho-map.sh`;
-   - `scripts/visual-check.sh`;
-   - deployment/install scripts only with extra caution.
+   - production/deployment scripts only with extra caution.
 3. Improve CI coverage:
    - consider a non-browser static check for embedded asset order;
    - keep full visual checks local unless CI has a reliable browser environment.
