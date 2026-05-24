@@ -10,6 +10,7 @@ cleanup commits unless a bug is found during verification.
 - Split frontend runtime, clock, round rendering, validator rendering, validator type/source helpers, map rendering, map feature grouping, map popup state, and formatting helpers into smaller files.
 - Split chain refresh background scheduling/logging out of the cache-first snapshot path.
 - Split validator source provider implementations into separate JRPC and TON Center modules.
+- Split TON Center stack parsing helpers out of election/round data assembly.
 - Removed stale validator source fake styles after fake-node rendering moved to `is-map-fake`.
 - Added section markers to `public/styles.css` so future CSS changes can stay scoped.
 
@@ -28,7 +29,6 @@ cleanup commits unless a bug is found during verification.
    - remove only verified-dead selectors;
    - consider CSS modularization later if the asset embedding path is updated safely.
 2. Re-audit Rust backend hotspots:
-   - `src/chain/elector/toncenter_stack.rs`;
    - `src/history/store.rs`;
    - `src/state/map_annotations.rs`.
 3. Revisit scripts only after frontend/backend code is stable:
