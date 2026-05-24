@@ -147,42 +147,65 @@ async fn get_chain_snapshot(
         .ok_or_else(|| anyhow!("unknown chain id `{chain_id}`"))?;
     state.record_refresh_attempt(chain_id, now).await;
 
+    match refresh_chain_with_timeout(state, chain).await {
+        Ok(snapshot) => {
+            Ok(finalize_refreshed_snapshot(state, chain, chain_id, now, snapshot).await)
+        }
+        Err(error) => cached_snapshot_after_refresh_failure(state, chain_id, now, error).await,
+    }
+}
+
+async fn refresh_chain_with_timeout(
+    state: &AppState,
+    chain: &ChainConfig,
+) -> Result<ClockSnapshot> {
     let timeout_seconds = state.config.refresh_timeout_seconds;
-    let refresh_result = timeout(
+    timeout(
         Duration::from_secs(timeout_seconds),
         fetch_chain_snapshot_with_validator_types(state, chain),
     )
     .await
-    .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {timeout_seconds}s")));
+    .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {timeout_seconds}s")))
+}
 
-    match refresh_result {
-        Ok(mut snapshot) => {
-            let fetched_at = snapshot.fetched_at;
-            let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
-            state.annotate_map_fake_validators(&mut snapshot, observed_at);
-            state.record_round_history(&mut snapshot, observed_at).await;
-            apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
-            state
-                .store_cached_snapshot(chain_id, now, snapshot.clone())
-                .await;
-            state.record_refresh_success(chain_id, fetched_at).await;
-            Ok(snapshot)
-        }
-        Err(error) => {
-            let error_message = error.to_string();
-            state
-                .record_refresh_failure(chain_id, now, error_message)
-                .await;
-            if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
-                snapshot.warning = Some(format!(
-                    "using cached data from {}; refresh failed: {error}",
-                    snapshot.fetched_at
-                ));
-                return Ok(snapshot);
-            }
-            Err(error)
-        }
+async fn finalize_refreshed_snapshot(
+    state: &AppState,
+    chain: &ChainConfig,
+    chain_id: &str,
+    cache_checked_at: u64,
+    mut snapshot: ClockSnapshot,
+) -> ClockSnapshot {
+    let fetched_at = snapshot.fetched_at;
+    let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
+    state.annotate_map_fake_validators(&mut snapshot, observed_at);
+    state.record_round_history(&mut snapshot, observed_at).await;
+    apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
+    state
+        .store_cached_snapshot(chain_id, cache_checked_at, snapshot.clone())
+        .await;
+    state.record_refresh_success(chain_id, fetched_at).await;
+    snapshot
+}
+
+async fn cached_snapshot_after_refresh_failure(
+    state: &AppState,
+    chain_id: &str,
+    failed_at: u64,
+    error: anyhow::Error,
+) -> Result<ClockSnapshot> {
+    let error_message = error.to_string();
+    state
+        .record_refresh_failure(chain_id, failed_at, error_message)
+        .await;
+    if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
+        snapshot.warning = Some(refresh_failed_cache_warning(snapshot.fetched_at, &error));
+        return Ok(snapshot);
     }
+    Err(error)
+}
+
+fn refresh_failed_cache_warning(fetched_at: u64, error: &anyhow::Error) -> String {
+    format!("using cached data from {fetched_at}; refresh failed: {error}")
 }
 
 pub(crate) async fn get_chain_snapshot_cached_first(
@@ -202,16 +225,17 @@ pub(crate) async fn get_chain_snapshot_cached_first(
         }
 
         if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
-            snapshot.warning = Some(format!(
-                "using cached data from {}; {STALE_REFRESH_WARNING}",
-                snapshot.fetched_at
-            ));
+            snapshot.warning = Some(stale_cache_refresh_warning(snapshot.fetched_at));
             spawn_stale_snapshot_refresh(Arc::clone(&state), chain_id.to_owned(), now).await;
             return Ok(snapshot);
         }
     }
 
     get_chain_snapshot(&state, chain_id, force_refresh).await
+}
+
+fn stale_cache_refresh_warning(fetched_at: u64) -> String {
+    format!("using cached data from {fetched_at}; {STALE_REFRESH_WARNING}")
 }
 
 async fn spawn_stale_snapshot_refresh(state: Arc<AppState>, chain_id: String, now: u64) {
