@@ -11,6 +11,8 @@ const APP_METRICS_JS: &str = include_str!("../../public/app/metrics.js");
 const APP_VALIDATOR_METADATA_JS: &str = include_str!("../../public/app/validator_metadata.js");
 const APP_VALIDATOR_TOOLTIPS_JS: &str = include_str!("../../public/app/validator_tooltips.js");
 const APP_VALIDATOR_LOCATIONS_JS: &str = include_str!("../../public/app/validator_locations.js");
+const APP_VALIDATOR_SOURCES_JS: &str = include_str!("../../public/app/validator_sources.js");
+const APP_VALIDATOR_TYPES_JS: &str = include_str!("../../public/app/validator_types.js");
 const APP_VALIDATORS_JS: &str = include_str!("../../public/app/validators.js");
 const APP_VALIDATOR_COPY_JS: &str = include_str!("../../public/app/validator_copy.js");
 const APP_ROUNDS_JS: &str = include_str!("../../public/app/rounds.js");
@@ -37,6 +39,8 @@ const APP_JS_PARTS: &[&str] = &[
     APP_VALIDATOR_METADATA_JS,
     APP_VALIDATOR_TOOLTIPS_JS,
     APP_VALIDATOR_LOCATIONS_JS,
+    APP_VALIDATOR_SOURCES_JS,
+    APP_VALIDATOR_TYPES_JS,
     APP_VALIDATORS_JS,
     APP_VALIDATOR_COPY_JS,
     APP_ROUNDS_JS,
@@ -68,6 +72,8 @@ pub(super) fn asset_version() -> String {
             APP_VALIDATOR_METADATA_JS.as_bytes(),
             APP_VALIDATOR_TOOLTIPS_JS.as_bytes(),
             APP_VALIDATOR_LOCATIONS_JS.as_bytes(),
+            APP_VALIDATOR_SOURCES_JS.as_bytes(),
+            APP_VALIDATOR_TYPES_JS.as_bytes(),
             APP_VALIDATORS_JS.as_bytes(),
             APP_VALIDATOR_COPY_JS.as_bytes(),
             APP_ROUNDS_JS.as_bytes(),
