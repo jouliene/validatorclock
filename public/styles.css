@@ -1132,17 +1132,17 @@ dd {
 }
 
 .tycho-map-round-value {
-  --map-round-color: rgba(132, 205, 240, 0.86);
+  --round-color: #2f93dc;
   min-width: 88px;
-  color: color-mix(in srgb, var(--map-round-color) 70%, white 22%);
+  color: color-mix(in srgb, var(--round-color) 68%, white 26%);
 }
 
 .tycho-map-round-badge.is-blue .tycho-map-round-value {
-  --map-round-color: rgba(132, 205, 240, 0.9);
+  --round-color: #2f93dc;
 }
 
 .tycho-map-round-badge.is-green .tycho-map-round-value {
-  --map-round-color: rgba(134, 232, 166, 0.88);
+  --round-color: #32af68;
 }
 
 .tycho-map-count-value {
@@ -2465,7 +2465,6 @@ dd {
   overflow-wrap: anywhere;
 }
 
-.validator-hover-tooltip-row.is-danger .validator-hover-tooltip-label,
 .validator-hover-tooltip-row.is-danger .validator-hover-tooltip-value {
   color: rgba(255, 116, 128, 0.98);
 }

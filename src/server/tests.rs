@@ -810,6 +810,7 @@ async fn app_router_marks_configured_ton_validators_without_map_ip_as_fake() {
     .unwrap();
 
     let mut config = test_config(Vec::new());
+    config.history_path = Some(temp_state_path("history_fake_grace"));
     config
         .map_nodes_paths
         .insert("ton".to_owned(), map_path.clone());

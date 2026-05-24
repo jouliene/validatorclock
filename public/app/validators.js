@@ -476,7 +476,7 @@ function validatorLocationTooltipLines(validator, options = {}, missingLocationL
   const node = validatorMapNode(validator, options);
   if (!node) {
     const line = String(missingLocationLine || "").trim();
-    return line ? ["Location:", line] : [];
+    return line ? [missingLocationTooltipLine(line)] : [];
   }
 
   const lines = ["Location:"];
@@ -501,7 +501,15 @@ function validatorLocationTooltipLines(validator, options = {}, missingLocationL
     return lines;
   }
   const line = String(missingLocationLine || "").trim();
-  return line ? ["Location:", line] : [];
+  return line ? [missingLocationTooltipLine(line)] : [];
+}
+
+function missingLocationTooltipLine(line) {
+  if (line.startsWith(VALIDATOR_TOOLTIP_DANGER_PREFIX)) {
+    const text = line.slice(VALIDATOR_TOOLTIP_DANGER_PREFIX.length).trim();
+    return validatorTooltipDangerLine(`Location: ${text}`);
+  }
+  return `Location: ${line}`;
 }
 
 function validatorMapNode(validator, options = {}) {
@@ -862,8 +870,10 @@ function setValidatorTooltip(element, content) {
   }
 
   element.dataset.validatorTooltip = tooltip;
+  element.classList.add("has-validator-tooltip");
   element.addEventListener("mouseenter", handleValidatorTooltipEnter);
   element.addEventListener("focus", handleValidatorTooltipEnter);
+  element.addEventListener("pointerdown", handleValidatorTooltipPointerDown);
   element.addEventListener("mouseleave", hideValidatorTooltip);
   element.addEventListener("blur", hideValidatorTooltip);
 }
@@ -882,6 +892,30 @@ function handleValidatorTooltipEnter(event) {
   showValidatorTooltip(event.currentTarget);
 }
 
+function handleValidatorTooltipPointerDown(event) {
+  if (!isTouchLikePointer(event) || isTooltipButton(event.currentTarget)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (validatorHoverTooltipTarget === event.currentTarget) {
+    hideValidatorTooltip();
+    return;
+  }
+
+  showValidatorTooltip(event.currentTarget);
+}
+
+function isTouchLikePointer(event) {
+  return event.pointerType === "touch" || event.pointerType === "pen";
+}
+
+function isTooltipButton(target) {
+  return target instanceof HTMLButtonElement;
+}
+
 function showValidatorTooltip(target) {
   const content = target?.dataset?.validatorTooltip || "";
   if (!content) {
@@ -895,6 +929,7 @@ function showValidatorTooltip(target) {
   positionValidatorTooltip();
   window.addEventListener("resize", hideValidatorTooltip);
   window.addEventListener("scroll", hideValidatorTooltip, true);
+  document.addEventListener("pointerdown", handleValidatorTooltipOutsidePointerDown, true);
 }
 
 function buildValidatorTooltip(content) {
@@ -958,6 +993,14 @@ function hideValidatorTooltip() {
   validatorHoverTooltipTarget = null;
   window.removeEventListener("resize", hideValidatorTooltip);
   window.removeEventListener("scroll", hideValidatorTooltip, true);
+  document.removeEventListener("pointerdown", handleValidatorTooltipOutsidePointerDown, true);
+}
+
+function handleValidatorTooltipOutsidePointerDown(event) {
+  if (validatorHoverTooltipTarget?.contains(event.target)) {
+    return;
+  }
+  hideValidatorTooltip();
 }
 
 function validatorCell(text, className = "", title = text) {

@@ -127,18 +127,26 @@ async function evaluateForWidth(wsUrl, width) {
       const source = row?.querySelector(".validator-source");
       const validator = row?.querySelector(".validator-id");
       const history = row?.querySelector(".validator-history");
+      const badge = row?.querySelector(".validator-type-badge");
       const metrics = Array.from(row?.querySelectorAll(".validator-stake, .validator-rewards, .validator-weight") || []).map(rect);
       const sourceRect = source && rect(source);
       const sourceVisible = Boolean(sourceRect && sourceRect.width > 0);
-      if (validator && history && metrics.length === 3 && (source?.classList.contains("is-detail") ? sourceVisible : true)) {
+      if (badge && validator && history && metrics.length === 3 && (source?.classList.contains("is-detail") ? sourceVisible : true)) {
         const focusTarget = validator.querySelector(".validator-copy:not([disabled])") || validator;
         focusTarget.focus();
+        badge.dispatchEvent(new PointerEvent("pointerdown", {
+          bubbles: true,
+          cancelable: true,
+          pointerType: "touch"
+        }));
+        const touchTooltip = document.querySelector(".validator-hover-tooltip");
         resolve({
           ready: true,
           innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
           roundsGrid: getComputedStyle(document.querySelector(".rounds-grid")).gridTemplateColumns,
           focusedRowShadow: getComputedStyle(row).boxShadow,
+          touchTooltipText: touchTooltip?.textContent || "",
           source: sourceVisible ? sourceRect : null,
           validator: rect(validator),
           history: rect(history),
@@ -154,6 +162,7 @@ async function evaluateForWidth(wsUrl, width) {
           rowCount: document.querySelectorAll(".validator-row").length,
           sourceFound: Boolean(source),
           sourceVisible,
+          badgeFound: Boolean(badge),
           validatorFound: Boolean(validator),
           historyFound: Boolean(history),
           metricCount: metrics.length
@@ -247,6 +256,9 @@ function assertSplitRow(name, left, right) {
     }
     if (result.focusedRowShadow !== "none") {
       throw new Error(`Validator row focus shadow is visible at ${width}px: ${result.focusedRowShadow}`);
+    }
+    if (!String(result.touchTooltipText || "").trim()) {
+      throw new Error(`Validator type touch tooltip did not open at ${width}px`);
     }
     if (result.source) {
       assertSplitRow(`source/validator at ${width}px`, result.source, result.validator);
