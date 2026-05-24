@@ -3,6 +3,9 @@ pub(super) const STYLES_CSS: &str = include_str!("../../../public/styles.css");
 pub(super) const APP_STATE_JS: &str = include_str!("../../../public/app/state.js");
 pub(super) const APP_API_JS: &str = include_str!("../../../public/app/api.js");
 pub(super) const APP_FORMAT_JS: &str = include_str!("../../../public/app/format.js");
+pub(super) const APP_CLOCK_MODEL_JS: &str = include_str!("../../../public/app/clock_model.js");
+pub(super) const APP_CLOCK_DEFS_JS: &str = include_str!("../../../public/app/clock_defs.js");
+pub(super) const APP_CLOCK_SVG_JS: &str = include_str!("../../../public/app/clock_svg.js");
 pub(super) const APP_CLOCK_JS: &str = include_str!("../../../public/app/clock.js");
 pub(super) const APP_METRICS_JS: &str = include_str!("../../../public/app/metrics.js");
 pub(super) const APP_VALIDATOR_METADATA_JS: &str =
@@ -47,6 +50,9 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_STATE_JS,
     APP_API_JS,
     APP_FORMAT_JS,
+    APP_CLOCK_MODEL_JS,
+    APP_CLOCK_DEFS_JS,
+    APP_CLOCK_SVG_JS,
     APP_CLOCK_JS,
     APP_METRICS_JS,
     APP_VALIDATOR_METADATA_JS,
