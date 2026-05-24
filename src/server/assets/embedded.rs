@@ -32,6 +32,12 @@ pub(super) const APP_VALIDATOR_TYPE_BADGES_JS: &str =
     include_str!("../../../public/app/validator_type_badges.js");
 pub(super) const APP_VALIDATOR_TYPE_GLOSSARY_JS: &str =
     include_str!("../../../public/app/validator_type_glossary.js");
+pub(super) const APP_VALIDATOR_HEADERS_JS: &str =
+    include_str!("../../../public/app/validator_headers.js");
+pub(super) const APP_VALIDATOR_HISTORY_JS: &str =
+    include_str!("../../../public/app/validator_history.js");
+pub(super) const APP_VALIDATOR_IDENTITY_JS: &str =
+    include_str!("../../../public/app/validator_identity.js");
 pub(super) const APP_VALIDATORS_JS: &str = include_str!("../../../public/app/validators.js");
 pub(super) const APP_VALIDATOR_COPY_JS: &str =
     include_str!("../../../public/app/validator_copy.js");
@@ -86,6 +92,9 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_VALIDATOR_TYPE_TOOLTIPS_JS,
     APP_VALIDATOR_TYPE_BADGES_JS,
     APP_VALIDATOR_TYPE_GLOSSARY_JS,
+    APP_VALIDATOR_HEADERS_JS,
+    APP_VALIDATOR_HISTORY_JS,
+    APP_VALIDATOR_IDENTITY_JS,
     APP_VALIDATORS_JS,
     APP_VALIDATOR_COPY_JS,
     APP_ROUNDS_META_JS,
