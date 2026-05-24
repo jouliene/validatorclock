@@ -52,6 +52,10 @@ pub(super) const APP_MAP_JS: &str = include_str!("../../../public/app/map.js");
 pub(super) const APP_MAP_DATA_JS: &str = include_str!("../../../public/app/map_data.js");
 pub(super) const APP_MAP_GEOMETRY_JS: &str = include_str!("../../../public/app/map_geometry.js");
 pub(super) const APP_MAP_POPUPS_JS: &str = include_str!("../../../public/app/map_popups.js");
+pub(super) const APP_MAP_STYLE_JS: &str = include_str!("../../../public/app/map_style.js");
+pub(super) const APP_MAP_EVENTS_JS: &str = include_str!("../../../public/app/map_events.js");
+pub(super) const APP_MAP_LAYERS_JS: &str = include_str!("../../../public/app/map_layers.js");
+pub(super) const APP_MAP_VIEW_JS: &str = include_str!("../../../public/app/map_view.js");
 pub(super) const APP_MAP_CONTROLS_JS: &str = include_str!("../../../public/app/map_controls.js");
 pub(super) const APP_MAP_RENDER_JS: &str = include_str!("../../../public/app/map_render.js");
 pub(super) const APP_RUNTIME_STATUS_JS: &str =
@@ -107,6 +111,10 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_MAP_DATA_JS,
     APP_MAP_GEOMETRY_JS,
     APP_MAP_POPUPS_JS,
+    APP_MAP_STYLE_JS,
+    APP_MAP_EVENTS_JS,
+    APP_MAP_LAYERS_JS,
+    APP_MAP_VIEW_JS,
     APP_MAP_CONTROLS_JS,
     APP_MAP_RENDER_JS,
     APP_RUNTIME_STATUS_JS,
