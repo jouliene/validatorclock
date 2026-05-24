@@ -22,6 +22,8 @@ pub(super) const APP_ROUNDS_JS: &str = include_str!("../../../public/app/rounds.
 pub(super) const APP_TYCHO_NODES_JS: &str = include_str!("../../../public/app/tycho_nodes.js");
 pub(super) const APP_MAP_JS: &str = include_str!("../../../public/app/map.js");
 pub(super) const APP_MAP_DATA_JS: &str = include_str!("../../../public/app/map_data.js");
+pub(super) const APP_MAP_GEOMETRY_JS: &str = include_str!("../../../public/app/map_geometry.js");
+pub(super) const APP_MAP_POPUPS_JS: &str = include_str!("../../../public/app/map_popups.js");
 pub(super) const APP_MAP_CONTROLS_JS: &str = include_str!("../../../public/app/map_controls.js");
 pub(super) const APP_MAP_RENDER_JS: &str = include_str!("../../../public/app/map_render.js");
 pub(super) const APP_RUNTIME_JS: &str = include_str!("../../../public/app/runtime.js");
@@ -49,6 +51,8 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_TYCHO_NODES_JS,
     APP_MAP_JS,
     APP_MAP_DATA_JS,
+    APP_MAP_GEOMETRY_JS,
+    APP_MAP_POPUPS_JS,
     APP_MAP_CONTROLS_JS,
     APP_MAP_RENDER_JS,
     APP_RUNTIME_JS,
