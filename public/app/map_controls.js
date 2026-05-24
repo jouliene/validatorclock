@@ -1,38 +1,38 @@
-function setupTychoMapControls() {
+function setupValidatorMapControls() {
   const controls = $("mapControls");
-  const toggle = $("tychoMapToggle");
-  const reset = $("tychoMapReset");
+  const toggle = $("validatorMapToggle");
+  const reset = $("validatorMapReset");
   if (!controls || !toggle) {
     return;
   }
 
   controls.addEventListener("click", (event) => {
-    const mapToggle = event.target.closest("#tychoMapToggle");
+    const mapToggle = event.target.closest("#validatorMapToggle");
     if (!mapToggle || mapToggle.disabled) {
       return;
     }
-    setTychoMapOpen(!state.tychoMapOpen);
+    setValidatorMapOpen(!state.validatorMapOpen);
   });
 
   reset?.addEventListener("click", () => {
-    resetTychoMapView(450);
+    resetValidatorMapView(450);
   });
 
-  updateTychoMapAvailability();
-  updateTychoMapRoundBadge();
-  updateTychoMapSummary();
+  updateValidatorMapAvailability();
+  updateValidatorMapRoundBadge();
+  updateValidatorMapSummary();
 }
 
-function updateTychoMapAvailability() {
+function updateValidatorMapAvailability() {
   const controls = $("mapControls");
-  const toggle = $("tychoMapToggle");
+  const toggle = $("validatorMapToggle");
   if (!controls || !toggle) {
     return;
   }
 
   const available = mapAvailableForChain(state.selectedChainId);
-  updateTychoMapTitle();
-  updateTychoMapRoundBadge();
+  updateValidatorMapTitle();
+  updateValidatorMapRoundBadge();
   controls.hidden = false;
   toggle.disabled = !available;
   toggle.removeAttribute("title");
@@ -40,61 +40,61 @@ function updateTychoMapAvailability() {
   toggle.setAttribute("aria-label", available ? "Show validator map" : "Map is not available for this chain");
   toggle.setAttribute("aria-disabled", String(!available));
 
-  if (!available && state.tychoMapOpen) {
-    setTychoMapOpen(false);
+  if (!available && state.validatorMapOpen) {
+    setValidatorMapOpen(false);
   } else {
-    syncTychoMapPanel();
+    syncValidatorMapPanel();
   }
 }
 
-function setTychoMapOpen(open) {
-  state.tychoMapOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
-  syncTychoMapPanel();
+function setValidatorMapOpen(open) {
+  state.validatorMapOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
+  syncValidatorMapPanel();
 
-  if (!state.tychoMapOpen) {
-    closeTychoMapPopups();
+  if (!state.validatorMapOpen) {
+    closeValidatorMapPopups();
     return;
   }
 
-  loadTychoMap().catch((error) => {
-    console.warn("Unable to load Tycho map", error);
-    showTychoMapStatus(formatTychoMapError(error), "error");
+  loadValidatorMap().catch((error) => {
+    console.warn("Unable to load validator map", error);
+    showValidatorMapStatus(formatValidatorMapError(error), "error");
   });
 }
 
-function syncTychoMapPanel() {
-  const panel = $("tychoMapPanel");
-  const toggle = $("tychoMapToggle");
-  const reset = $("tychoMapReset");
+function syncValidatorMapPanel() {
+  const panel = $("validatorMapPanel");
+  const toggle = $("validatorMapToggle");
+  const reset = $("validatorMapReset");
   if (!panel || !toggle) {
     return;
   }
 
-  panel.hidden = !state.tychoMapOpen;
-  toggle.setAttribute("aria-expanded", String(state.tychoMapOpen));
+  panel.hidden = !state.validatorMapOpen;
+  toggle.setAttribute("aria-expanded", String(state.validatorMapOpen));
   if (reset) {
-    reset.disabled = !state.tychoMapOpen;
+    reset.disabled = !state.validatorMapOpen;
   }
 
-  if (state.tychoMapOpen && tychoMap) {
-    window.setTimeout(() => tychoMap.resize(), 0);
+  if (state.validatorMapOpen && validatorMap) {
+    window.setTimeout(() => validatorMap.resize(), 0);
   }
 }
 
-function resetTychoMapForChainChange(previousChainId, nextChainId) {
+function resetValidatorMapForChainChange(previousChainId, nextChainId) {
   if (previousChainId === nextChainId) {
     return;
   }
 
-  closeTychoMapPopups();
-  if (tychoMap) {
-    resetTychoMapView(0);
+  closeValidatorMapPopups();
+  if (validatorMap) {
+    resetValidatorMapView(0);
   }
 }
 
-function updateTychoMapTitle() {
-  const title = $("tychoMapTitleText");
-  const panel = $("tychoMapPanel");
+function updateValidatorMapTitle() {
+  const title = $("validatorMapTitleText");
+  const panel = $("validatorMapPanel");
   const chainName = currentMapChainName();
   const label = `${chainName} Validator Map`;
   if (title) {
@@ -103,9 +103,9 @@ function updateTychoMapTitle() {
   panel?.setAttribute("aria-label", `${chainName} validator world map`);
 }
 
-function updateTychoMapRoundBadge() {
-  const badge = $("tychoMapRoundBadge");
-  const value = $("tychoMapRoundValue");
+function updateValidatorMapRoundBadge() {
+  const badge = $("validatorMapRoundBadge");
+  const value = $("validatorMapRoundValue");
   if (!badge || !value) {
     return;
   }
@@ -125,18 +125,18 @@ function updateTychoMapRoundBadge() {
   badge.setAttribute("aria-label", `Round: ${label}`);
 }
 
-function updateTychoMapSummary() {
-  const nodeCount = $("tychoMapNodeCount");
-  const locationCount = $("tychoMapLocationCount");
-  const summary = $("tychoMapSummary");
+function updateValidatorMapSummary() {
+  const nodeCount = $("validatorMapNodeCount");
+  const locationCount = $("validatorMapLocationCount");
+  const summary = $("validatorMapSummary");
   if (!nodeCount && !locationCount && !summary) {
     return;
   }
 
   let nodes = [];
-  if (tychoMapNodes && tychoMapNodesChainId === state.selectedChainId) {
-    nodes = tychoMapNodes;
-  } else if (state.selectedChainId === TYCHO_MAP_CHAIN_ID && Array.isArray(window.TYCHO_NODES)) {
+  if (validatorMapNodes && validatorMapNodesChainId === state.selectedChainId) {
+    nodes = validatorMapNodes;
+  } else if (state.selectedChainId === BUNDLED_TYCHO_MAP_CHAIN_ID && Array.isArray(window.TYCHO_NODES)) {
     nodes = window.TYCHO_NODES;
   }
   const locations = groupNodesByLocation(nodes).length;
@@ -151,8 +151,8 @@ function updateTychoMapSummary() {
   }
 }
 
-function showTychoMapStatus(message, stateName = "info") {
-  const status = $("tychoMapStatus");
+function showValidatorMapStatus(message, stateName = "info") {
+  const status = $("validatorMapStatus");
   if (!status) {
     return;
   }
@@ -161,7 +161,7 @@ function showTychoMapStatus(message, stateName = "info") {
   status.textContent = message || "";
 }
 
-function formatTychoMapError(error) {
+function formatValidatorMapError(error) {
   const message = String(error?.message || error || "");
   if (/webgl|context/i.test(message)) {
     return "Map rendering is unavailable in this browser session. WebGL could not be initialized.";

@@ -61,5 +61,5 @@ function validatorMapAvailableForChain(chainId) {
   if (typeof mapAvailableForChain === "function") {
     return mapAvailableForChain(chainId);
   }
-  return chainId === TYCHO_MAP_CHAIN_ID;
+  return chainId === BUNDLED_TYCHO_MAP_CHAIN_ID;
 }

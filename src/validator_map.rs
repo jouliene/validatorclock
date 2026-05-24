@@ -8,8 +8,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub(crate) const TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
-pub(crate) const TON_MAP_CHAIN_ID: &str = "ton";
+pub(crate) const BUNDLED_TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
+pub(crate) const BUNDLED_TON_MAP_CHAIN_ID: &str = "ton";
 
 const APP_TYCHO_NODES_JS: &str = include_str!("../public/app/tycho_nodes.js");
 const APP_TON_NODES_JSON: &str = include_str!("../public/app/ton_nodes.json");
@@ -52,11 +52,11 @@ pub(crate) fn load_map_nodes_with_metadata(
         return load_map_nodes_file(path).map(Some);
     }
 
-    if chain_id == TYCHO_MAP_CHAIN_ID {
+    if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID {
         return load_tycho_map_nodes_with_metadata(config).map(Some);
     }
 
-    if chain_id == TON_MAP_CHAIN_ID {
+    if chain_id == BUNDLED_TON_MAP_CHAIN_ID {
         let value = fallback_ton_nodes_json().context("failed to parse bundled TON map nodes")?;
         let nodes = ensure_map_nodes_array(value)?;
         return Ok(Some(MapNodesPayload {

@@ -1,42 +1,40 @@
-async function loadTychoMapNodes() {
-  if (tychoMapNodes && tychoMapNodesChainId === state.selectedChainId) {
-    return tychoMapNodes;
+async function loadValidatorMapNodes() {
+  if (validatorMapNodes && validatorMapNodesChainId === state.selectedChainId) {
+    return validatorMapNodes;
   }
 
-  return refreshTychoMapNodesForSnapshot();
+  return refreshValidatorMapNodesForSnapshot();
 }
 
-async function refreshTychoMapNodesForSnapshot() {
+async function refreshValidatorMapNodesForSnapshot() {
   const chainId = state.selectedChainId;
   if (!mapAvailableForChain(chainId)) {
-    state.tychoMappedPeers = null;
-    state.tychoMapNodesByPeer = null;
-    tychoMapNodes = null;
-    tychoMapNodesChainId = null;
+    state.validatorMapNodesByPeer = null;
+    validatorMapNodes = null;
+    validatorMapNodesChainId = null;
     return [];
   }
 
   try {
     const nodes = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/map`);
-    tychoMapNodes = Array.isArray(nodes) ? nodes : [];
+    validatorMapNodes = Array.isArray(nodes) ? nodes : [];
   } catch (error) {
-    if (chainId === TYCHO_MAP_CHAIN_ID) {
+    if (chainId === BUNDLED_TYCHO_MAP_CHAIN_ID) {
       console.warn("Using bundled Tycho map nodes", error);
-      tychoMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+      validatorMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
     } else {
       console.warn(`Unable to load ${chainId} map nodes`, error);
-      tychoMapNodes = [];
+      validatorMapNodes = [];
     }
   }
 
-  tychoMapNodesChainId = chainId;
-  tychoMapNodes = filterTychoMapNodesToCurrentValidators(tychoMapNodes);
-  state.tychoMappedPeers = tychoMappedPeerSet(tychoMapNodes);
-  state.tychoMapNodesByPeer = tychoMapNodeMapByPeer(tychoMapNodes);
-  updateTychoMapTitle();
-  updateTychoMapSummary();
-  refreshTychoMapSource();
-  return tychoMapNodes;
+  validatorMapNodesChainId = chainId;
+  validatorMapNodes = filterValidatorMapNodesToCurrentValidators(validatorMapNodes);
+  state.validatorMapNodesByPeer = validatorMapNodeMapByPeer(validatorMapNodes);
+  updateValidatorMapTitle();
+  updateValidatorMapSummary();
+  refreshValidatorMapSource();
+  return validatorMapNodes;
 }
 
 function mapAvailableForChain(chainId) {
@@ -51,15 +49,7 @@ function currentMapChainName() {
   return currentMapChain()?.name || state.selectedChainId || "Validator";
 }
 
-function tychoMappedPeerSet(nodes) {
-  return new Set(
-    (Array.isArray(nodes) ? nodes : [])
-      .map((node) => String(node.peer || "").toLowerCase())
-      .filter(Boolean)
-  );
-}
-
-function tychoMapNodeMapByPeer(nodes) {
+function validatorMapNodeMapByPeer(nodes) {
   const byPeer = new Map();
   for (const node of Array.isArray(nodes) ? nodes : []) {
     const peer = String(node.peer || "").toLowerCase();
@@ -70,7 +60,7 @@ function tychoMapNodeMapByPeer(nodes) {
   return byPeer;
 }
 
-function filterTychoMapNodesToCurrentValidators(nodes) {
+function filterValidatorMapNodesToCurrentValidators(nodes) {
   const validators = state.snapshot?.current_set?.validators;
   if (!Array.isArray(nodes) || !Array.isArray(validators)) {
     return [];
@@ -85,8 +75,8 @@ function filterTychoMapNodesToCurrentValidators(nodes) {
   return nodes.filter((node) => activePeers.has(String(node.peer || "").toLowerCase()));
 }
 
-function tychoMapFeatures() {
-  const rawNodes = tychoMapNodes || [];
+function validatorMapFeatures() {
+  const rawNodes = validatorMapNodes || [];
   const locationGroups = groupNodesByLocation(rawNodes);
   return locationGroups.map((group) => ({
     type: "Feature",
@@ -156,7 +146,7 @@ function findMatchingLocationGroup(groups, cityKey, countryKey, ispKey, lat, lon
     }
 
     const distanceKm = distanceToLocationGroupKm(group, lat, lon);
-    if (distanceKm <= TYCHO_MAP_CLOSE_LOCATION_RADIUS_KM) {
+    if (distanceKm <= VALIDATOR_MAP_CLOSE_LOCATION_RADIUS_KM) {
       return group;
     }
 
@@ -165,7 +155,7 @@ function findMatchingLocationGroup(groups, cityKey, countryKey, ispKey, lat, lon
       countryKey &&
       ispKey &&
       group.ispKeys.has(ispKey) &&
-      distanceKm <= TYCHO_MAP_PROVIDER_CITY_RADIUS_KM
+      distanceKm <= VALIDATOR_MAP_PROVIDER_CITY_RADIUS_KM
     ) {
       return group;
     }
@@ -194,7 +184,7 @@ function distanceBetweenCoordinatesKm(latA, lonA, latB, lonB) {
   const haversine = Math.sin(deltaLat / 2) ** 2
     + Math.cos(startLat) * Math.cos(endLat) * Math.sin(deltaLon / 2) ** 2;
 
-  return 2 * TYCHO_MAP_EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(haversine)));
+  return 2 * VALIDATOR_MAP_EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(haversine)));
 }
 
 function degreesToRadians(value) {

@@ -63,7 +63,7 @@ function renderChainTabs() {
     tabs.appendChild(button);
   }
 
-  updateTychoMapAvailability();
+  updateValidatorMapAvailability();
 }
 
 function chainTabLabel(chain) {
@@ -77,7 +77,7 @@ async function selectChain(chainId) {
   const previousChainId = state.selectedChainId;
   state.selectedChainId = chainId;
   state.roundRenderKey = null;
-  resetTychoMapForChainChange(previousChainId, chainId);
+  resetValidatorMapForChainChange(previousChainId, chainId);
   renderChainTabs();
   const cachedSnapshot = state.snapshotsByChain.get(chainId);
   if (cachedSnapshot) {
@@ -88,7 +88,7 @@ async function selectChain(chainId) {
   } else {
     state.snapshot = null;
     clearClock();
-    updateTychoMapRoundBadge();
+    updateValidatorMapRoundBadge();
   }
   renderRuntimeStatus(Math.trunc(Date.now() / 1000));
   await loadClock(false);
@@ -153,10 +153,9 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
   state.snapshot = snapshot;
   state.snapshotsByChain.set(chainId, snapshot);
   if (mapAvailableForChain(chainId)) {
-    await refreshTychoMapNodesForSnapshot();
+    await refreshValidatorMapNodesForSnapshot();
   } else {
-    state.tychoMappedPeers = null;
-    state.tychoMapNodesByPeer = null;
+    state.validatorMapNodesByPeer = null;
   }
   if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
     return;
@@ -312,7 +311,7 @@ function renderNow() {
   const model = buildClockModel(state.snapshot, now);
   drawClock(model);
   renderMetrics(state.snapshot, model, now);
-  updateTychoMapRoundBadge();
+  updateValidatorMapRoundBadge();
   renderRoundPanelsIfNeeded(state.snapshot, model);
 }
 

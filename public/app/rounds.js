@@ -48,7 +48,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, current);
     renderValidators(list, current.validators, validatorRenderOptions(snapshot, {
       rewards: true,
-      fakeValidatorPeers: tychoSetFakePeers(current),
+      fakeValidatorPeers: fakeValidatorPeerSet(current),
       fakeSourceTooltip: fakeValidatorTooltip(true),
     }));
     return;
@@ -81,7 +81,7 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, previous);
     renderValidators(list, previous.validators, validatorRenderOptions(snapshot, {
       rewards: true,
-      fakeValidatorPeers: tychoSetFakePeers(previous),
+      fakeValidatorPeers: fakeValidatorPeerSet(previous),
       fakeSourceTooltip: fakeValidatorTooltip(false),
     }));
     return;
@@ -270,7 +270,7 @@ function validatorRenderOptions(snapshot, extra = {}) {
     sourceDisplayMode: selectedSourceDisplayMode(snapshot.chain.id),
     onSourceDisplayModeChange: setSourceDisplayMode,
     glossaryLabels: validatorGlossaryLabelsForSnapshot(snapshot),
-    mapNodesByPeer: state.tychoMapNodesByPeer,
+    mapNodesByPeer: state.validatorMapNodesByPeer,
     ...extra,
   };
 }
@@ -279,7 +279,7 @@ function fakeValidatorTooltip() {
   return "Validator node IP not detected.";
 }
 
-function tychoSetFakePeers(round) {
+function fakeValidatorPeerSet(round) {
   const peers = round && round.fake_validator_peers;
   if (!Array.isArray(peers)) {
     return null;

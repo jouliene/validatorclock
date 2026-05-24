@@ -2,7 +2,7 @@ async function boot() {
   try {
     startNetworkMessages();
     await loadChains();
-    setupTychoMapControls();
+    setupValidatorMapControls();
     loadRuntimeStatus();
     window.setTimeout(prefetchChainSnapshots, 0);
     await loadClock(false);

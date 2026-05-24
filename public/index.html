@@ -102,7 +102,7 @@
     </main>
 
     <section id="mapControls" class="map-controls" aria-label="Validator map controls" hidden>
-      <button id="tychoMapToggle" class="map-toggle" type="button" aria-expanded="false" aria-controls="tychoMapPanel">
+      <button id="validatorMapToggle" class="map-toggle" type="button" aria-expanded="false" aria-controls="validatorMapPanel">
         <span class="map-toggle-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
             <circle cx="12" cy="12" r="6.8"></circle>
@@ -114,9 +114,9 @@
       </button>
     </section>
 
-    <section id="tychoMapPanel" class="tycho-map-panel" aria-label="Validator world map" hidden>
-      <div class="tycho-map-heading">
-        <div class="tycho-map-titlebar">
+    <section id="validatorMapPanel" class="validator-map-panel" aria-label="Validator world map" hidden>
+      <div class="validator-map-heading">
+        <div class="validator-map-titlebar">
           <h2>
             <span class="panel-avatar map-avatar" aria-hidden="true">
               <svg class="map-route" viewBox="0 0 24 24" focusable="false">
@@ -125,24 +125,24 @@
                 <circle cx="12" cy="12" r="2.15"></circle>
               </svg>
             </span>
-            <span id="tychoMapTitleText">Validator Map</span>
+            <span id="validatorMapTitleText">Validator Map</span>
           </h2>
-          <div class="tycho-map-toolbar">
-            <div class="tycho-map-meta" aria-label="Active validator map set">
-              <span id="tychoMapRoundBadge" class="tycho-map-meta-item tycho-map-round-badge">
-                <span class="tycho-map-meta-label">ROUND:</span>
-                <strong id="tychoMapRoundValue" class="tycho-map-meta-value tycho-map-round-value">-</strong>
+          <div class="validator-map-toolbar">
+            <div class="validator-map-meta" aria-label="Active validator map set">
+              <span id="validatorMapRoundBadge" class="validator-map-meta-item validator-map-round-badge">
+                <span class="validator-map-meta-label">ROUND:</span>
+                <strong id="validatorMapRoundValue" class="validator-map-meta-value validator-map-round-value">-</strong>
               </span>
-              <span class="tycho-map-meta-item">
-                <span class="tycho-map-meta-label">NODES:</span>
-                <strong id="tychoMapNodeCount" class="tycho-map-meta-value tycho-map-count-value">0</strong>
+              <span class="validator-map-meta-item">
+                <span class="validator-map-meta-label">NODES:</span>
+                <strong id="validatorMapNodeCount" class="validator-map-meta-value validator-map-count-value">0</strong>
               </span>
-              <span class="tycho-map-meta-item">
-                <span class="tycho-map-meta-label">LOCATIONS:</span>
-                <strong id="tychoMapLocationCount" class="tycho-map-meta-value tycho-map-count-value">0</strong>
+              <span class="validator-map-meta-item">
+                <span class="validator-map-meta-label">LOCATIONS:</span>
+                <strong id="validatorMapLocationCount" class="validator-map-meta-value validator-map-count-value">0</strong>
               </span>
             </div>
-            <button id="tychoMapReset" class="map-reset-button" type="button" aria-label="Reset map view">
+            <button id="validatorMapReset" class="map-reset-button" type="button" aria-label="Reset map view">
               <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M21 12a9 9 0 0 1-15.74 5.96L3 16"></path>
                 <path d="M3 21v-5h5"></path>
@@ -153,9 +153,9 @@
           </div>
         </div>
       </div>
-      <div class="tycho-map-shell">
-        <div id="tychoNodeMap" class="tycho-map-canvas"></div>
-        <div id="tychoMapStatus" class="tycho-map-status">Loading map</div>
+      <div class="validator-map-shell">
+        <div id="validatorMapCanvas" class="validator-map-canvas"></div>
+        <div id="validatorMapStatus" class="validator-map-status">Loading map</div>
       </div>
     </section>
 

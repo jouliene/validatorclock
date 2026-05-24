@@ -1,19 +1,19 @@
-async function loadTychoMap() {
-  await loadTychoMapNodes();
+async function loadValidatorMap() {
+  await loadValidatorMapNodes();
 
-  if (tychoMapLoaded) {
-    if (tychoMap) {
-      tychoMap.resize();
+  if (validatorMapLoaded) {
+    if (validatorMap) {
+      validatorMap.resize();
     }
     return;
   }
 
-  showTychoMapStatus("Loading map", "loading");
+  showValidatorMapStatus("Loading map", "loading");
   await ensureMapLibre();
-  renderTychoMap();
-  tychoMapLoaded = true;
-  showTychoMapStatus(
-    tychoMapFeatures().length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
+  renderValidatorMap();
+  validatorMapLoaded = true;
+  showValidatorMapStatus(
+    validatorMapFeatures().length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
     "empty"
   );
 }
@@ -48,15 +48,15 @@ function ensureMapLibre() {
   return mapLibrePromise;
 }
 
-function renderTychoMap() {
-  const container = $("tychoNodeMap");
+function renderValidatorMap() {
+  const container = $("validatorMapCanvas");
   if (!container || !window.maplibregl) {
     return;
   }
 
-  const features = tychoMapFeatures();
+  const features = validatorMapFeatures();
 
-  tychoMap = new maplibregl.Map({
+  validatorMap = new maplibregl.Map({
     container,
     style: {
       version: 8,
@@ -89,33 +89,33 @@ function renderTychoMap() {
     center: [5, 23],
     zoom: 1.75,
     minZoom: 1.35,
-    maxZoom: TYCHO_MAP_MAX_ZOOM,
+    maxZoom: VALIDATOR_MAP_MAX_ZOOM,
     pitch: 0,
     bearing: 0,
     renderWorldCopies: false,
     attributionControl: false
   });
 
-  tychoMap.addControl(new maplibregl.NavigationControl({
+  validatorMap.addControl(new maplibregl.NavigationControl({
     showCompass: false,
     visualizePitch: false
   }), "bottom-right");
 
-  tychoMap.dragRotate.disable();
-  tychoMap.touchZoomRotate.disableRotation();
-  tychoMap.setMaxBounds([
+  validatorMap.dragRotate.disable();
+  validatorMap.touchZoomRotate.disableRotation();
+  validatorMap.setMaxBounds([
     [-179.9, -58],
     [179.9, 75]
   ]);
 
-  tychoMap.on("load", () => addTychoNodeLayers(features));
+  validatorMap.on("load", () => addValidatorNodeLayers(features));
 }
 
-function refreshTychoMapSource() {
-  const source = tychoMap?.getSource("nodes");
-  const features = tychoMapFeatures();
+function refreshValidatorMapSource() {
+  const source = validatorMap?.getSource("nodes");
+  const features = validatorMapFeatures();
   if (!source) {
-    showTychoMapStatus(
+    showValidatorMapStatus(
       features.length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
       "empty"
     );
@@ -126,28 +126,28 @@ function refreshTychoMapSource() {
     type: "FeatureCollection",
     features
   });
-  showTychoMapStatus(
+  showValidatorMapStatus(
     features.length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
     "empty"
   );
 }
 
-function addTychoNodeLayers(features) {
-  tychoMap.addSource("nodes", {
+function addValidatorNodeLayers(features) {
+  validatorMap.addSource("nodes", {
     type: "geojson",
     data: {
       type: "FeatureCollection",
       features
     },
     cluster: true,
-    clusterMaxZoom: TYCHO_MAP_CLUSTER_MAX_ZOOM,
-    clusterRadius: TYCHO_MAP_CLUSTER_RADIUS,
+    clusterMaxZoom: VALIDATOR_MAP_CLUSTER_MAX_ZOOM,
+    clusterRadius: VALIDATOR_MAP_CLUSTER_RADIUS,
     clusterProperties: {
       total_nodes: ["+", ["get", "node_count"]]
     }
   });
 
-  tychoMap.addLayer({
+  validatorMap.addLayer({
     id: "clusters-halo",
     type: "circle",
     source: "nodes",
@@ -170,7 +170,7 @@ function addTychoNodeLayers(features) {
     }
   });
 
-  tychoMap.addLayer({
+  validatorMap.addLayer({
     id: "clusters",
     type: "circle",
     source: "nodes",
@@ -194,7 +194,7 @@ function addTychoNodeLayers(features) {
     }
   });
 
-  tychoMap.addLayer({
+  validatorMap.addLayer({
     id: "cluster-count",
     type: "symbol",
     source: "nodes",
@@ -211,7 +211,7 @@ function addTychoNodeLayers(features) {
     }
   });
 
-  tychoMap.addLayer({
+  validatorMap.addLayer({
     id: "node-halo",
     type: "circle",
     source: "nodes",
@@ -231,7 +231,7 @@ function addTychoNodeLayers(features) {
     }
   });
 
-  tychoMap.addLayer({
+  validatorMap.addLayer({
     id: "node-points",
     type: "circle",
     source: "nodes",
@@ -252,7 +252,7 @@ function addTychoNodeLayers(features) {
     }
   });
 
-  tychoMap.addLayer({
+  validatorMap.addLayer({
     id: "location-count",
     type: "symbol",
     source: "nodes",
@@ -273,39 +273,39 @@ function addTychoNodeLayers(features) {
     }
   });
 
-  tychoMap.on("mouseenter", "node-points", () => {
-    tychoMap.getCanvas().style.cursor = "pointer";
+  validatorMap.on("mouseenter", "node-points", () => {
+    validatorMap.getCanvas().style.cursor = "pointer";
   });
 
-  tychoMap.on("mouseleave", "node-points", () => {
-    tychoMap.getCanvas().style.cursor = "grab";
+  validatorMap.on("mouseleave", "node-points", () => {
+    validatorMap.getCanvas().style.cursor = "grab";
   });
 
-  tychoMap.on("mouseenter", "clusters", () => {
-    tychoMap.getCanvas().style.cursor = "pointer";
+  validatorMap.on("mouseenter", "clusters", () => {
+    validatorMap.getCanvas().style.cursor = "pointer";
   });
 
-  tychoMap.on("mouseleave", "clusters", () => {
-    tychoMap.getCanvas().style.cursor = "grab";
+  validatorMap.on("mouseleave", "clusters", () => {
+    validatorMap.getCanvas().style.cursor = "grab";
   });
 
-  tychoMap.on("click", "node-points", (event) => {
+  validatorMap.on("click", "node-points", (event) => {
     const feature = event.features[0];
 
-    trackTychoPopup(new maplibregl.Popup({
+    trackValidatorMapPopup(new maplibregl.Popup({
       closeButton: true,
       closeOnClick: true,
       maxWidth: "720px"
     }))
       .setLngLat(feature.geometry.coordinates)
       .setHTML(locationPopupHtml(feature.properties))
-      .addTo(tychoMap);
+      .addTo(validatorMap);
   });
 
-  tychoMap.on("click", "clusters", async (event) => {
+  validatorMap.on("click", "clusters", async (event) => {
     event.preventDefault();
 
-    const clusterFeatures = tychoMap.queryRenderedFeatures(event.point, {
+    const clusterFeatures = validatorMap.queryRenderedFeatures(event.point, {
       layers: ["clusters"]
     });
 
@@ -315,25 +315,25 @@ function addTychoNodeLayers(features) {
 
     const cluster = clusterFeatures[0];
     const clusterId = cluster.properties.cluster_id;
-    const source = tychoMap.getSource("nodes");
+    const source = validatorMap.getSource("nodes");
     const pointCount = Number(cluster.properties.point_count || 0);
     const totalNodes = Number(cluster.properties.total_nodes || pointCount);
     const leaves = await source.getClusterLeaves(clusterId, Math.max(pointCount, 1), 0);
     const bounds = boundsForFeatures(leaves);
     const zoom = Math.min(
-      TYCHO_MAP_MAX_ZOOM,
-      Math.max(tychoMap.getZoom() + 1.25, await source.getClusterExpansionZoom(clusterId))
+      VALIDATOR_MAP_MAX_ZOOM,
+      Math.max(validatorMap.getZoom() + 1.25, await source.getClusterExpansionZoom(clusterId))
     );
 
-    closeTychoMapPopups();
+    closeValidatorMapPopups();
     if (bounds) {
-      tychoMap.fitBounds(bounds, {
+      validatorMap.fitBounds(bounds, {
         padding: clusterFitPadding(),
         maxZoom: zoom,
         duration: 450
       });
     } else {
-      tychoMap.easeTo({
+      validatorMap.easeTo({
         center: cluster.geometry.coordinates,
         zoom,
         duration: 450
@@ -342,36 +342,36 @@ function addTychoNodeLayers(features) {
 
     if (clusterLeavesAreTight(leaves)) {
       window.setTimeout(() => {
-        trackTychoPopup(new maplibregl.Popup({
+        trackValidatorMapPopup(new maplibregl.Popup({
           closeButton: true,
           closeOnClick: true,
           maxWidth: "720px"
         }))
           .setLngLat(cluster.geometry.coordinates)
           .setHTML(clusterLeavesPopupHtml(pointCount, totalNodes, leaves))
-          .addTo(tychoMap);
+          .addTo(validatorMap);
       }, 480);
     }
   });
 
-  tychoMap.on("contextmenu", "clusters", (event) => {
+  validatorMap.on("contextmenu", "clusters", (event) => {
     event.preventDefault();
 
     const cluster = event.features[0];
     const pointCount = cluster.properties.point_count;
     const totalNodes = cluster.properties.total_nodes || pointCount;
 
-    trackTychoPopup(new maplibregl.Popup({
+    trackValidatorMapPopup(new maplibregl.Popup({
       closeButton: true,
       closeOnClick: true,
       maxWidth: "420px"
     }))
       .setLngLat(cluster.geometry.coordinates)
       .setHTML(clusterPopupHtml(pointCount, totalNodes))
-      .addTo(tychoMap);
+      .addTo(validatorMap);
   });
 
-  resetTychoMapView(0);
+  resetValidatorMapView(0);
 }
 
 function boundsForFeatures(features) {
@@ -394,7 +394,7 @@ function boundsForFeatures(features) {
 }
 
 function clusterFitPadding() {
-  const compact = tychoMap?.getContainer()?.clientWidth < 700;
+  const compact = validatorMap?.getContainer()?.clientWidth < 700;
   return compact
     ? { top: 70, right: 48, bottom: 70, left: 48 }
     : { top: 92, right: 110, bottom: 92, left: 110 };
@@ -498,31 +498,31 @@ function nodeTableHtml(nodes) {
   `;
 }
 
-function resetTychoMapView(duration = 450) {
-  if (!tychoMap) {
+function resetValidatorMapView(duration = 450) {
+  if (!validatorMap) {
     return;
   }
 
-  closeTychoMapPopups();
-  tychoMap.fitBounds(TYCHO_MAP_DEFAULT_BOUNDS, {
-    ...TYCHO_MAP_DEFAULT_OPTIONS,
+  closeValidatorMapPopups();
+  validatorMap.fitBounds(VALIDATOR_MAP_DEFAULT_BOUNDS, {
+    ...VALIDATOR_MAP_DEFAULT_OPTIONS,
     duration
   });
 }
 
-function trackTychoPopup(popup) {
-  tychoMapPopups.add(popup);
+function trackValidatorMapPopup(popup) {
+  validatorMapPopups.add(popup);
   popup.on("close", () => {
-    tychoMapPopups.delete(popup);
+    validatorMapPopups.delete(popup);
   });
   return popup;
 }
 
-function closeTychoMapPopups() {
-  for (const popup of Array.from(tychoMapPopups)) {
+function closeValidatorMapPopups() {
+  for (const popup of Array.from(validatorMapPopups)) {
     popup.remove();
   }
-  tychoMapPopups.clear();
+  validatorMapPopups.clear();
 }
 
 function escapeHtml(value) {
