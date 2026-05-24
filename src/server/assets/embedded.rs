@@ -26,6 +26,15 @@ pub(super) const APP_MAP_GEOMETRY_JS: &str = include_str!("../../../public/app/m
 pub(super) const APP_MAP_POPUPS_JS: &str = include_str!("../../../public/app/map_popups.js");
 pub(super) const APP_MAP_CONTROLS_JS: &str = include_str!("../../../public/app/map_controls.js");
 pub(super) const APP_MAP_RENDER_JS: &str = include_str!("../../../public/app/map_render.js");
+pub(super) const APP_RUNTIME_STATUS_JS: &str =
+    include_str!("../../../public/app/runtime_status.js");
+pub(super) const APP_RUNTIME_CHAINS_JS: &str =
+    include_str!("../../../public/app/runtime_chains.js");
+pub(super) const APP_RUNTIME_CLOCK_JS: &str = include_str!("../../../public/app/runtime_clock.js");
+pub(super) const APP_RUNTIME_MESSAGES_JS: &str =
+    include_str!("../../../public/app/runtime_messages.js");
+pub(super) const APP_RUNTIME_SETTINGS_JS: &str =
+    include_str!("../../../public/app/runtime_settings.js");
 pub(super) const APP_RUNTIME_JS: &str = include_str!("../../../public/app/runtime.js");
 pub(super) const APP_ENTRY_JS: &str = include_str!("../../../public/app.js");
 pub(super) const EVERSCALE_LOGO_SVG: &str = include_str!("../../../public/brands/everscale.svg");
@@ -55,6 +64,11 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_MAP_POPUPS_JS,
     APP_MAP_CONTROLS_JS,
     APP_MAP_RENDER_JS,
+    APP_RUNTIME_STATUS_JS,
+    APP_RUNTIME_CHAINS_JS,
+    APP_RUNTIME_CLOCK_JS,
+    APP_RUNTIME_MESSAGES_JS,
+    APP_RUNTIME_SETTINGS_JS,
     APP_RUNTIME_JS,
     APP_ENTRY_JS,
 ];
