@@ -13,6 +13,7 @@ cleanup commits unless a bug is found during verification.
 - Split TON Center stack parsing helpers out of election/round data assembly.
 - Split fake-validator map annotation policy out of map-node annotation.
 - Split stored-round merge/identity logic out of history store orchestration.
+- Added a reusable frontend JavaScript syntax check script and wired it into CI.
 - Removed stale validator source fake styles after fake-node rendering moved to `is-map-fake`.
 - Added section markers to `public/styles.css` so future CSS changes can stay scoped.
 
@@ -35,6 +36,5 @@ cleanup commits unless a bug is found during verification.
    - `scripts/visual-check.sh`;
    - deployment/install scripts only with extra caution.
 3. Improve CI coverage:
-   - add JS syntax checking for all `public/app/*.js`;
    - consider a non-browser static check for embedded asset order;
    - keep full visual checks local unless CI has a reliable browser environment.
