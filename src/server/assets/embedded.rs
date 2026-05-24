@@ -14,6 +14,14 @@ pub(super) const APP_VALIDATOR_TOOLTIPS_JS: &str =
     include_str!("../../../public/app/validator_tooltips.js");
 pub(super) const APP_VALIDATOR_LOCATIONS_JS: &str =
     include_str!("../../../public/app/validator_locations.js");
+pub(super) const APP_VALIDATOR_SOURCE_CONTROLS_JS: &str =
+    include_str!("../../../public/app/validator_source_controls.js");
+pub(super) const APP_VALIDATOR_SOURCE_MODEL_JS: &str =
+    include_str!("../../../public/app/validator_source_model.js");
+pub(super) const APP_VALIDATOR_SOURCE_METADATA_JS: &str =
+    include_str!("../../../public/app/validator_source_metadata.js");
+pub(super) const APP_VALIDATOR_SOURCE_TOOLTIPS_JS: &str =
+    include_str!("../../../public/app/validator_source_tooltips.js");
 pub(super) const APP_VALIDATOR_SOURCES_JS: &str =
     include_str!("../../../public/app/validator_sources.js");
 pub(super) const APP_VALIDATOR_TYPE_MODEL_JS: &str =
@@ -69,6 +77,10 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_VALIDATOR_METADATA_JS,
     APP_VALIDATOR_TOOLTIPS_JS,
     APP_VALIDATOR_LOCATIONS_JS,
+    APP_VALIDATOR_SOURCE_CONTROLS_JS,
+    APP_VALIDATOR_SOURCE_MODEL_JS,
+    APP_VALIDATOR_SOURCE_METADATA_JS,
+    APP_VALIDATOR_SOURCE_TOOLTIPS_JS,
     APP_VALIDATOR_SOURCES_JS,
     APP_VALIDATOR_TYPE_MODEL_JS,
     APP_VALIDATOR_TYPE_TOOLTIPS_JS,
