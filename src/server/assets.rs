@@ -16,6 +16,9 @@ const APP_VALIDATOR_COPY_JS: &str = include_str!("../../public/app/validator_cop
 const APP_ROUNDS_JS: &str = include_str!("../../public/app/rounds.js");
 const APP_TYCHO_NODES_JS: &str = include_str!("../../public/app/tycho_nodes.js");
 const APP_MAP_JS: &str = include_str!("../../public/app/map.js");
+const APP_MAP_DATA_JS: &str = include_str!("../../public/app/map_data.js");
+const APP_MAP_CONTROLS_JS: &str = include_str!("../../public/app/map_controls.js");
+const APP_MAP_RENDER_JS: &str = include_str!("../../public/app/map_render.js");
 const APP_RUNTIME_JS: &str = include_str!("../../public/app/runtime.js");
 const APP_ENTRY_JS: &str = include_str!("../../public/app.js");
 const EVERSCALE_LOGO_SVG: &str = include_str!("../../public/brands/everscale.svg");
@@ -39,6 +42,9 @@ const APP_JS_PARTS: &[&str] = &[
     APP_ROUNDS_JS,
     APP_TYCHO_NODES_JS,
     APP_MAP_JS,
+    APP_MAP_DATA_JS,
+    APP_MAP_CONTROLS_JS,
+    APP_MAP_RENDER_JS,
     APP_RUNTIME_JS,
     APP_ENTRY_JS,
 ];
@@ -67,6 +73,9 @@ pub(super) fn asset_version() -> String {
             APP_ROUNDS_JS.as_bytes(),
             APP_TYCHO_NODES_JS.as_bytes(),
             APP_MAP_JS.as_bytes(),
+            APP_MAP_DATA_JS.as_bytes(),
+            APP_MAP_CONTROLS_JS.as_bytes(),
+            APP_MAP_RENDER_JS.as_bytes(),
             APP_RUNTIME_JS.as_bytes(),
             APP_ENTRY_JS.as_bytes(),
             EVERSCALE_LOGO_SVG.as_bytes(),
