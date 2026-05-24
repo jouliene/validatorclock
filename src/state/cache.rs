@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
 
 const SNAPSHOT_CACHE_VERSION: u32 = 1;
@@ -77,7 +78,7 @@ impl AppState {
             (now.saturating_sub(entry.fetched_at()) < refresh_seconds)
                 .then(|| entry.snapshot().clone())?
         };
-        self.annotate_map_fake_validators(&mut snapshot);
+        self.annotate_map_fake_validators(&mut snapshot, now);
         if snapshot.current_set.fake_validator_status_known {
             self.record_round_history(&mut snapshot, now).await;
         }
@@ -91,8 +92,8 @@ impl AppState {
             let cache = self.cache.read().await;
             cache.get(chain_id).map(|entry| entry.snapshot().clone())?
         };
-        self.annotate_map_fake_validators(&mut snapshot);
-        let observed_at = snapshot.fetched_at();
+        let observed_at = now_sec().unwrap_or_else(|| snapshot.fetched_at());
+        self.annotate_map_fake_validators(&mut snapshot, observed_at);
         if snapshot.current_set.fake_validator_status_known {
             self.record_round_history(&mut snapshot, observed_at).await;
         }
@@ -138,6 +139,13 @@ impl AppState {
             }
         }
     }
+}
+
+fn now_sec() -> Option<u64> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_secs())
 }
 
 #[cfg(test)]

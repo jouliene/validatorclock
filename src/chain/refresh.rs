@@ -159,7 +159,7 @@ async fn get_chain_snapshot(
         Ok(mut snapshot) => {
             let fetched_at = snapshot.fetched_at;
             let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
-            state.annotate_map_fake_validators(&mut snapshot);
+            state.annotate_map_fake_validators(&mut snapshot, observed_at);
             state.record_round_history(&mut snapshot, observed_at).await;
             apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
             state

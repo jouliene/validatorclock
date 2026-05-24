@@ -1,4 +1,4 @@
-use crate::chain::RoundColor;
+use crate::chain::{RoundColor, ValidatorMapNodeDto};
 use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -23,6 +23,8 @@ pub(crate) struct ValidatorParticipationDto {
 pub(crate) struct RecentAbsentValidatorDto {
     pub(crate) public_key: String,
     pub(crate) wallet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) map_node: Option<ValidatorMapNodeDto>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) source: Option<RecentAbsentValidatorSourceDto>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -80,6 +82,8 @@ pub(super) struct StoredRound {
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub(super) struct StoredValidator {
     pub(super) wallet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) map_node: Option<ValidatorMapNodeDto>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) fake_node: Option<bool>,
 }

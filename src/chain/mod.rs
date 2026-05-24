@@ -10,8 +10,8 @@ mod validator_sources;
 
 pub(crate) use dto::{
     CacheEntry, ChainMeta, ChainsResponse, ClockSnapshot, ElectionCandidateDto, ElectionDto,
-    ElectionTimingsDto, RoundColor, RuntimeStatusResponse, ValidatorDto, ValidatorSetDto,
-    ValidatorSourceDto,
+    ElectionTimingsDto, RoundColor, RuntimeStatusResponse, ValidatorDto, ValidatorMapNodeDto,
+    ValidatorSetDto, ValidatorSourceDto,
 };
 pub(crate) use elector::fetch_chain_snapshot;
 pub(crate) use refresh::{get_chain_snapshot_cached_first, spawn_background_refresh};
@@ -63,6 +63,7 @@ pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
                 public_key: "validator-key".to_owned(),
                 adnl_addr: Some("adnl".to_owned()),
                 wallet: Some("-1:wallet".to_owned()),
+                map_node: None,
                 source: None,
                 contract_type: Some("EverWallet".to_owned()),
                 contract_type_hash: Some(

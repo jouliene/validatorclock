@@ -21,6 +21,11 @@ impl RoundHistoryStore {
         let current_validators = ValidatorIdentitySet::from_validators(&set.validators);
 
         for validator in &mut set.validators {
+            if validator.map_node.is_none() {
+                validator.map_node = self
+                    .stored_validator(chain_id, set.round_id, &validator.public_key)
+                    .and_then(|stored| stored.map_node.clone());
+            }
             validator.history = self.same_color_participation(
                 chain_id,
                 set.round_id,
@@ -150,10 +155,14 @@ impl RoundHistoryStore {
                         if summary.wallet.is_none() {
                             summary.wallet = validator.wallet.clone();
                         }
+                        if validator.map_node.is_some() {
+                            summary.map_node = validator.map_node.clone();
+                        }
                     })
                     .or_insert_with(|| RecentAbsentValidatorDto {
                         public_key: public_key.clone(),
                         wallet: validator.wallet.clone(),
+                        map_node: validator.map_node.clone(),
                         source: None,
                         contract_type: None,
                         contract_type_hash: None,
@@ -182,6 +191,18 @@ impl RoundHistoryStore {
                 .then_with(|| a.public_key.cmp(&b.public_key))
         });
         recent
+    }
+
+    fn stored_validator(
+        &self,
+        chain_id: &str,
+        round_id: u32,
+        public_key: &str,
+    ) -> Option<&super::StoredValidator> {
+        self.chains
+            .get(chain_id)
+            .and_then(|chain| chain.rounds.get(&round_id))
+            .and_then(|round| round.validators.get(public_key))
     }
 }
 

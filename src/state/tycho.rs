@@ -1,14 +1,21 @@
 use super::AppState;
-use crate::chain::{ClockSnapshot, ValidatorSetDto};
-use crate::tycho_map::{load_map_nodes, mapped_peer_set};
-use std::collections::HashSet;
+use crate::chain::{ClockSnapshot, ValidatorMapNodeDto, ValidatorSetDto};
+use crate::tycho_map::{load_map_nodes_with_metadata, mapped_peer_set};
+use serde_json::Value;
+use std::collections::{HashMap, HashSet};
 use tracing::warn;
 
+const FAKE_VALIDATOR_GRACE_SECONDS: u64 = 5 * 60;
+
 impl AppState {
-    pub(crate) fn annotate_map_fake_validators(&self, snapshot: &mut ClockSnapshot) {
+    pub(crate) fn annotate_map_fake_validators(
+        &self,
+        snapshot: &mut ClockSnapshot,
+        observed_at: u64,
+    ) {
         let chain_id = snapshot.chain_id();
-        let nodes = match load_map_nodes(&self.config, chain_id) {
-            Ok(Some(nodes)) => nodes,
+        let payload = match load_map_nodes_with_metadata(&self.config, chain_id) {
+            Ok(Some(payload)) => payload,
             Ok(None) => return,
             Err(error) => {
                 warn!(
@@ -19,7 +26,7 @@ impl AppState {
                 return;
             }
         };
-        let mapped_peers = match mapped_peer_set(&nodes) {
+        let mapped_peers = match mapped_peer_set(&payload.nodes) {
             Ok(mapped_peers) => mapped_peers,
             Err(error) => {
                 warn!(
@@ -31,11 +38,31 @@ impl AppState {
             }
         };
 
-        annotate_set_with_fake_validators(&mut snapshot.current_set, &mapped_peers);
+        annotate_set_with_map_nodes(
+            &mut snapshot.current_set,
+            &map_nodes_by_peer(&payload.nodes),
+        );
+        annotate_set_with_fake_validators(
+            &mut snapshot.current_set,
+            &mapped_peers,
+            payload.updated_at,
+            observed_at,
+        );
     }
 }
 
-fn annotate_set_with_fake_validators(set: &mut ValidatorSetDto, mapped_peers: &HashSet<String>) {
+fn annotate_set_with_fake_validators(
+    set: &mut ValidatorSetDto,
+    mapped_peers: &HashSet<String>,
+    map_nodes_updated_at: Option<u64>,
+    observed_at: u64,
+) {
+    if should_defer_fake_validator_status(set, map_nodes_updated_at, observed_at) {
+        set.fake_validator_peers.clear();
+        set.fake_validator_status_known = false;
+        return;
+    }
+
     let mut fake_peers = set
         .validators
         .iter()
@@ -47,4 +74,118 @@ fn annotate_set_with_fake_validators(set: &mut ValidatorSetDto, mapped_peers: &H
 
     set.fake_validator_peers = fake_peers;
     set.fake_validator_status_known = true;
+}
+
+fn should_defer_fake_validator_status(
+    set: &ValidatorSetDto,
+    map_nodes_updated_at: Option<u64>,
+    observed_at: u64,
+) -> bool {
+    let set_started_at = u64::from(set.utime_since);
+    if observed_at.saturating_sub(set_started_at) >= FAKE_VALIDATOR_GRACE_SECONDS {
+        return false;
+    }
+
+    match map_nodes_updated_at {
+        Some(updated_at) => updated_at < set_started_at,
+        None => true,
+    }
+}
+
+fn annotate_set_with_map_nodes(
+    set: &mut ValidatorSetDto,
+    map_nodes: &HashMap<String, ValidatorMapNodeDto>,
+) {
+    for validator in &mut set.validators {
+        let public_key = validator.public_key.to_ascii_lowercase();
+        if let Some(map_node) = map_nodes.get(&public_key) {
+            validator.map_node = Some(map_node.clone());
+        }
+    }
+}
+
+fn map_nodes_by_peer(nodes: &Value) -> HashMap<String, ValidatorMapNodeDto> {
+    nodes
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|node| {
+            let peer = node.get("peer")?.as_str()?.to_ascii_lowercase();
+            (!peer.is_empty()).then(|| (peer, validator_map_node(node)))
+        })
+        .collect()
+}
+
+fn validator_map_node(node: &Value) -> ValidatorMapNodeDto {
+    ValidatorMapNodeDto {
+        ip: string_field(node, "ip"),
+        isp: string_field(node, "isp"),
+        city: string_field(node, "city"),
+        country: string_field(node, "country"),
+    }
+}
+
+fn string_field(node: &Value, field: &str) -> Option<String> {
+    node.get(field)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::chain::test_clock_snapshot;
+
+    fn validator_set_with_peers(peers: &[&str]) -> ValidatorSetDto {
+        let mut snapshot = test_clock_snapshot("ton");
+        let template = snapshot.current_set.validators[0].clone();
+        snapshot.current_set.validators = peers
+            .iter()
+            .map(|peer| {
+                let mut validator = template.clone();
+                validator.public_key = (*peer).to_owned();
+                validator
+            })
+            .collect();
+        snapshot.current_set
+    }
+
+    fn mapped_peers(peers: &[&str]) -> HashSet<String> {
+        peers.iter().map(|peer| (*peer).to_owned()).collect()
+    }
+
+    #[test]
+    fn fake_validator_status_is_deferred_during_new_set_grace_for_stale_map() {
+        let mut set = validator_set_with_peers(&["mapped", "missing"]);
+        set.utime_since = 1_000;
+
+        annotate_set_with_fake_validators(&mut set, &mapped_peers(&["mapped"]), Some(999), 1_120);
+
+        assert!(!set.fake_validator_status_known);
+        assert!(set.fake_validator_peers.is_empty());
+    }
+
+    #[test]
+    fn fake_validator_status_is_known_during_grace_after_map_refresh() {
+        let mut set = validator_set_with_peers(&["mapped", "missing"]);
+        set.utime_since = 1_000;
+
+        annotate_set_with_fake_validators(&mut set, &mapped_peers(&["mapped"]), Some(1_030), 1_120);
+
+        assert!(set.fake_validator_status_known);
+        assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);
+    }
+
+    #[test]
+    fn fake_validator_status_is_known_after_new_set_grace_expires() {
+        let mut set = validator_set_with_peers(&["mapped", "missing"]);
+        set.utime_since = 1_000;
+
+        annotate_set_with_fake_validators(&mut set, &mapped_peers(&["mapped"]), Some(999), 1_301);
+
+        assert!(set.fake_validator_status_known);
+        assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);
+    }
 }

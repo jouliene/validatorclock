@@ -1,14 +1,14 @@
 use super::assets::asset_version;
 use super::routes::{app_router, challenge_redirect_router};
 use super::security::{normalize_host, redirect_location, request_host_allowed};
-use crate::chain::test_clock_snapshot;
+use crate::chain::{ClockSnapshot, test_clock_snapshot};
 use crate::config::{AcmeConfig, AppConfig, ChainConfig, SecurityConfig, TlsConfig};
 use crate::state::AppState;
 use crate::tls;
 use axum::body::{Body, to_bytes};
 use axum::http::header;
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
@@ -588,6 +588,13 @@ async fn cache_tycho_snapshot(state: &AppState, public_keys: &[&str]) {
 }
 
 async fn cache_snapshot(state: &AppState, chain_id: &str, public_keys: &[&str]) {
+    cache_snapshot_with(state, chain_id, public_keys, |_| {}).await;
+}
+
+async fn cache_snapshot_with<F>(state: &AppState, chain_id: &str, public_keys: &[&str], mutate: F)
+where
+    F: FnOnce(&mut ClockSnapshot),
+{
     let mut snapshot = test_clock_snapshot(chain_id);
     let template = snapshot.current_set.validators[0].clone();
     snapshot.current_set.validators = public_keys
@@ -600,6 +607,7 @@ async fn cache_snapshot(state: &AppState, chain_id: &str, public_keys: &[&str]) 
         .collect();
     snapshot.current_set.total = snapshot.current_set.validators.len();
     snapshot.current_set.main = snapshot.current_set.validators.len() as u16;
+    mutate(&mut snapshot);
     state
         .store_cached_snapshot(chain_id, now_sec_for_test(), snapshot)
         .await;
@@ -839,6 +847,84 @@ async fn app_router_marks_configured_ton_validators_without_map_ip_as_fake() {
             .as_array()
             .unwrap(),
         &vec![Value::String("missing-ton-validator".to_owned())]
+    );
+    assert_eq!(
+        body["current_set"]["validators"][0]["map_node"],
+        json!({
+            "ip": "203.0.113.20",
+            "isp": "TON ISP",
+            "city": "TON City",
+            "country": "TONland"
+        })
+    );
+
+    let _ = fs::remove_file(map_path);
+}
+
+#[tokio::test]
+async fn app_router_defers_fake_ton_validators_for_new_set_until_map_refresh() {
+    let map_path = std::env::temp_dir().join(format!(
+        "validators_clock_ton_fake_grace_map_test_{}_{}.json",
+        std::process::id(),
+        now_sec_for_test()
+    ));
+    fs::write(
+        &map_path,
+        r#"[
+            {"peer":"mapped-ton-validator","ip":"203.0.113.20","city":"TON City","country":"TONland","isp":"TON ISP","lat":5.25,"lon":6.5}
+        ]"#,
+    )
+    .unwrap();
+
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("ton".to_owned(), map_path.clone());
+    config.chains.push(ChainConfig {
+        id: "ton".to_owned(),
+        name: "TON".to_owned(),
+        rpc: "https://ton.example.com".to_owned(),
+        rpc_fallbacks: Vec::new(),
+        color: "#4DB8FF".to_owned(),
+        token_symbol: "TON".to_owned(),
+        rpc_label: None,
+    });
+    let state = Arc::new(AppState::new(Arc::new(config)));
+    cache_snapshot_with(
+        &state,
+        "ton",
+        &["mapped-ton-validator", "missing-ton-validator"],
+        |snapshot| {
+            snapshot.current_set.utime_since = u32::MAX;
+        },
+    )
+    .await;
+
+    let response = app_router(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/chains/ton/clock")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert!(
+        body["current_set"].get("fake_validator_peers").is_none(),
+        "unexpected fake peers: {}",
+        body["current_set"]["fake_validator_peers"]
+    );
+    assert_eq!(
+        body["current_set"]["validators"][0]["map_node"],
+        json!({
+            "ip": "203.0.113.20",
+            "isp": "TON ISP",
+            "city": "TON City",
+            "country": "TONland"
+        })
     );
 
     let _ = fs::remove_file(map_path);

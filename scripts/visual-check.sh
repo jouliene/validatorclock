@@ -112,7 +112,13 @@ async function evaluateForWidth(wsUrl, width) {
   const expression = `new Promise((resolve) => {
     const rect = (el) => {
       const r = el.getBoundingClientRect();
-      return { left: +r.left.toFixed(1), right: +r.right.toFixed(1), width: +r.width.toFixed(1) };
+      return {
+        left: +r.left.toFixed(1),
+        right: +r.right.toFixed(1),
+        top: +r.top.toFixed(1),
+        bottom: +r.bottom.toFixed(1),
+        width: +r.width.toFixed(1)
+      };
     };
     let attempts = 0;
     const collect = () => {
@@ -125,11 +131,14 @@ async function evaluateForWidth(wsUrl, width) {
       const sourceRect = source && rect(source);
       const sourceVisible = Boolean(sourceRect && sourceRect.width > 0);
       if (validator && history && metrics.length === 3 && (source?.classList.contains("is-detail") ? sourceVisible : true)) {
+        const focusTarget = validator.querySelector(".validator-copy:not([disabled])") || validator;
+        focusTarget.focus();
         resolve({
           ready: true,
           innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
           roundsGrid: getComputedStyle(document.querySelector(".rounds-grid")).gridTemplateColumns,
+          focusedRowShadow: getComputedStyle(row).boxShadow,
           source: sourceVisible ? sourceRect : null,
           validator: rect(validator),
           history: rect(history),
@@ -197,9 +206,26 @@ async function evaluateForWidth(wsUrl, width) {
   });
 }
 
+function closeEnough(a, b, tolerance = 1.5) {
+  return Math.abs(a - b) <= tolerance;
+}
+
 function assertAligned(name, a, b) {
-  if (!a || !b || a.left !== b.left || a.right !== b.right) {
+  if (!a || !b || !closeEnough(a.left, b.left) || !closeEnough(a.right, b.right)) {
     throw new Error(`${name} is not aligned: ${JSON.stringify({ a, b })}`);
+  }
+}
+
+function assertSameRow(name, a, b) {
+  if (!a || !b || !closeEnough(a.top, b.top) || !closeEnough(a.bottom, b.bottom)) {
+    throw new Error(`${name} is not on one row: ${JSON.stringify({ a, b })}`);
+  }
+}
+
+function assertSplitRow(name, left, right) {
+  assertSameRow(name, left, right);
+  if (left.right > right.left || !closeEnough(left.width, right.width)) {
+    throw new Error(`${name} is not split evenly: ${JSON.stringify({ left, right })}`);
   }
 }
 
@@ -219,12 +245,19 @@ function assertAligned(name, a, b) {
     if (result.scrollWidth !== result.innerWidth) {
       throw new Error(`Horizontal overflow at ${width}px: ${result.scrollWidth} > ${result.innerWidth}`);
     }
+    if (result.focusedRowShadow !== "none") {
+      throw new Error(`Validator row focus shadow is visible at ${width}px: ${result.focusedRowShadow}`);
+    }
     if (result.source) {
-      assertAligned(`source/validator at ${width}px`, result.source, result.validator);
+      assertSplitRow(`source/validator at ${width}px`, result.source, result.validator);
+      assertAligned(`source+validator/history at ${width}px`, {
+        left: result.source.left,
+        right: result.validator.right
+      }, result.history);
     } else {
       console.log(`Geometry ${width}px note: no visible source detail row in current data`);
+      assertAligned(`validator/history at ${width}px`, result.validator, result.history);
     }
-    assertAligned(`validator/history at ${width}px`, result.validator, result.history);
     const metricWidths = result.metrics.map((metric) => metric.width);
     if (new Set(metricWidths).size !== 1) {
       throw new Error(`Metric cards are uneven at ${width}px: ${metricWidths.join(", ")}`);

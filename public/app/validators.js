@@ -505,6 +505,10 @@ function validatorLocationTooltipLines(validator, options = {}, missingLocationL
 }
 
 function validatorMapNode(validator, options = {}) {
+  if (validator?.map_node && typeof validator.map_node === "object") {
+    return validator.map_node;
+  }
+
   const peer = String(validator?.public_key || "").toLowerCase();
   if (!peer || !(options.mapNodesByPeer instanceof Map)) {
     return null;

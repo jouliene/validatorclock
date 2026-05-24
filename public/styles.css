@@ -3034,30 +3034,34 @@ dd {
   }
 
   .election-time-card-header {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 8px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .countdown-block {
-    justify-items: start;
-    text-align: left;
+    min-width: max-content;
+    justify-items: end;
+    text-align: right;
   }
 
   .election-countdown {
     font-size: 16px;
-    text-align: left;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .date-row {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 3px;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    gap: 12px;
   }
 
   .date-value {
-    overflow-wrap: anywhere;
-    text-align: left;
+    overflow-wrap: normal;
+    text-align: right;
+    white-space: nowrap;
   }
 
   .rounds-grid,
@@ -3174,9 +3178,11 @@ dd {
 
   .validator-row:hover,
   .validator-row:focus-within {
-    box-shadow:
-      inset 3px 0 0 color-mix(in srgb, var(--round-color) 58%, white 6%),
-      inset 0 1px 0 rgba(255, 255, 255, 0.026);
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--round-color) 1.3%, transparent), transparent 52%),
+      var(--surface-card),
+      rgba(255, 255, 255, 0.01);
+    box-shadow: none;
   }
 
   .validator-row:last-child {
@@ -3316,12 +3322,12 @@ dd {
 
   .validator-row.has-source-detail,
   .validator-row.has-source-fake {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-areas:
-      "type type type"
-      "source source source"
-      "identity identity identity"
-      "history history history"
-      "stake reward weight";
+      "type type type type type type"
+      "source source source identity identity identity"
+      "history history history history history history"
+      "stake stake reward reward weight weight";
   }
 
   .validator-source.is-direct,
@@ -3340,12 +3346,12 @@ dd {
 
   .validator-table.is-absent .validator-row.has-source-detail,
   .validator-table.is-absent .validator-row.has-source-fake {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     grid-template-areas:
-      "type type type"
-      "source source source"
-      "identity identity identity"
-      "history history history"
-      "lastseen lastseen lastseen";
+      "type type type type type type"
+      "source source source identity identity identity"
+      "history history history history history history"
+      "lastseen lastseen lastseen lastseen lastseen lastseen";
   }
 
   .validator-table.is-absent .validator-row .validator-cell.validator-seen {

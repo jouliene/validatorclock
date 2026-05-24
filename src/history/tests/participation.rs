@@ -248,3 +248,43 @@ fn fake_validator_status_is_replayed_to_annotated_sets() {
         vec!["bob".to_owned()]
     );
 }
+
+#[test]
+fn map_node_is_replayed_to_annotated_sets() {
+    let mut store = RoundHistoryStore::default();
+    store
+        .chains
+        .entry("test".to_owned())
+        .or_default()
+        .record_set(
+            &ValidatorSetDto {
+                validators: vec![ValidatorDto {
+                    map_node: Some(map_node(
+                        "203.0.113.10",
+                        "Test ISP",
+                        "Test City",
+                        "Testland",
+                    )),
+                    ..validator("alice")
+                }],
+                ..set(10, RoundColor::Blue, Vec::new())
+            },
+            100,
+        );
+
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(12, RoundColor::Green, vec!["bob"]);
+    snapshot.previous_set = Some(set(10, RoundColor::Blue, vec!["alice"]));
+
+    store.annotate_snapshot("test", &mut snapshot);
+
+    assert_eq!(
+        snapshot.previous_set.unwrap().validators[0].map_node,
+        Some(map_node(
+            "203.0.113.10",
+            "Test ISP",
+            "Test City",
+            "Testland"
+        ))
+    );
+}

@@ -91,6 +91,7 @@ impl ChainRoundHistory {
                         validator.public_key.clone(),
                         StoredValidator {
                             wallet: validator.wallet.clone(),
+                            map_node: validator.map_node.clone(),
                             fake_node: set.fake_validator_status_known.then_some(
                                 fake_validator_peers
                                     .contains(&validator.public_key.to_ascii_lowercase()),
@@ -187,6 +188,9 @@ impl StoredRound {
                 if validator.fake_node.is_none() {
                     validator.fake_node = existing.fake_node;
                 }
+                if validator.map_node.is_none() {
+                    validator.map_node = existing.map_node.clone();
+                }
             }
         }
 
@@ -216,6 +220,13 @@ impl StoredRound {
                 validator.fake_node = other_validator.fake_node;
                 changed = true;
             }
+            if let Some(validator) = self.validators.get_mut(&public_key)
+                && validator.map_node.is_none()
+                && other_validator.map_node.is_some()
+            {
+                validator.map_node = other_validator.map_node;
+                changed = true;
+            }
         }
         if changed {
             self.observed_at = self.observed_at.max(observed_at);
@@ -232,7 +243,7 @@ impl StoredRound {
             && self.validators == other.validators
     }
 
-    fn richness(&self) -> (usize, usize, usize) {
+    fn richness(&self) -> (usize, usize, usize, usize) {
         (
             self.validators.len(),
             self.validators
@@ -242,6 +253,10 @@ impl StoredRound {
             self.validators
                 .values()
                 .filter(|validator| validator.fake_node.is_some())
+                .count(),
+            self.validators
+                .values()
+                .filter(|validator| validator.map_node.is_some())
                 .count(),
         )
     }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::chain::{RoundColor, ValidatorDto, ValidatorSetDto};
+use crate::chain::{RoundColor, ValidatorDto, ValidatorMapNodeDto, ValidatorSetDto};
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -18,6 +18,7 @@ fn validator_with_wallet(public_key: &str, wallet: Option<&str>) -> ValidatorDto
         public_key: public_key.to_owned(),
         adnl_addr: None,
         wallet: wallet.map(str::to_owned),
+        map_node: None,
         source: None,
         contract_type: None,
         contract_type_hash: None,
@@ -63,11 +64,21 @@ fn stored_round(set: &ValidatorSetDto, observed_at: u64, complete: bool) -> Stor
                     validator.public_key.clone(),
                     StoredValidator {
                         wallet: validator.wallet.clone(),
+                        map_node: validator.map_node.clone(),
                         fake_node: None,
                     },
                 )
             })
             .collect(),
+    }
+}
+
+fn map_node(ip: &str, isp: &str, city: &str, country: &str) -> ValidatorMapNodeDto {
+    ValidatorMapNodeDto {
+        ip: Some(ip.to_owned()),
+        isp: Some(isp.to_owned()),
+        city: Some(city.to_owned()),
+        country: Some(country.to_owned()),
     }
 }
 

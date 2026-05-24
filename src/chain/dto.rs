@@ -109,6 +109,8 @@ pub(crate) struct ValidatorDto {
     pub(crate) public_key: String,
     pub(crate) adnl_addr: Option<String>,
     pub(crate) wallet: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) map_node: Option<ValidatorMapNodeDto>,
     pub(crate) source: Option<ValidatorSourceDto>,
     pub(crate) contract_type: Option<String>,
     pub(crate) contract_type_hash: Option<String>,
@@ -117,6 +119,18 @@ pub(crate) struct ValidatorDto {
     pub(crate) weight: String,
     pub(crate) weight_percent: f64,
     pub(crate) history: Vec<ValidatorParticipationDto>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub(crate) struct ValidatorMapNodeDto {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) ip: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) isp: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) city: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) country: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
