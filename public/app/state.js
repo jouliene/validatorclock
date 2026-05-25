@@ -61,6 +61,7 @@ const state = {
   clockRequestSeq: 0,
   lastClockRefreshAttempt: 0,
   roundRenderKey: null,
+  selectedValidatorKey: null,
 };
 
 const palette = {

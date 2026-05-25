@@ -20,6 +20,7 @@ function renderRoundPanels(snapshot, model) {
   renderRoundPanel("blue", snapshot, model);
   renderRoundPanel("green", snapshot, model);
   renderRecentRoundPanels(snapshot, model);
+  syncSelectedValidatorRows({ clearMissing: true });
 }
 
 function renderRoundPanel(color, snapshot, model) {
@@ -48,6 +49,8 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, current);
     renderValidators(list, current.validators, validatorRenderOptions(snapshot, {
       rewards: true,
+      validatorSelectionScope: "active",
+      validatorSelectionColor: color,
       fakeValidatorPeers: fakeValidatorPeerSet(current),
       fakeSourceTooltip: fakeValidatorTooltip(true),
     }));
@@ -59,7 +62,11 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundMeta(meta, next, snapshot);
     badge.textContent = "elected";
     renderRoundStats(stats, next);
-    renderValidators(list, next.validators, validatorRenderOptions(snapshot, { rewards: true }));
+    renderValidators(list, next.validators, validatorRenderOptions(snapshot, {
+      rewards: true,
+      validatorSelectionScope: "next",
+      validatorSelectionColor: color,
+    }));
     return;
   }
 
@@ -69,7 +76,11 @@ function renderRoundPanel(color, snapshot, model) {
     badge.textContent = "elections open";
     badge.classList.add("is-election");
     renderCandidateStats(stats, candidates);
-    renderValidators(list, candidates, validatorRenderOptions(snapshot, { rewards: false }));
+    renderValidators(list, candidates, validatorRenderOptions(snapshot, {
+      rewards: false,
+      validatorSelectionScope: "candidate",
+      validatorSelectionColor: color,
+    }));
     return;
   }
 
@@ -81,6 +92,8 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundStats(stats, previous);
     renderValidators(list, previous.validators, validatorRenderOptions(snapshot, {
       rewards: true,
+      validatorSelectionScope: "previous",
+      validatorSelectionColor: color,
       fakeValidatorPeers: fakeValidatorPeerSet(previous),
       fakeSourceTooltip: fakeValidatorTooltip(false),
     }));

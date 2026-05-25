@@ -29,7 +29,9 @@ async function refreshValidatorMapNodesForSnapshot() {
   }
 
   validatorMapNodesChainId = chainId;
-  validatorMapNodes = filterValidatorMapNodesToCurrentValidators(validatorMapNodes);
+  validatorMapNodes = enrichValidatorMapNodes(
+    filterValidatorMapNodesToCurrentValidators(validatorMapNodes)
+  );
   state.validatorMapNodesByPeer = validatorMapNodeMapByPeer(validatorMapNodes);
   updateValidatorMapTitle();
   updateValidatorMapSummary();
@@ -73,4 +75,35 @@ function filterValidatorMapNodesToCurrentValidators(nodes) {
   );
 
   return nodes.filter((node) => activePeers.has(String(node.peer || "").toLowerCase()));
+}
+
+function enrichValidatorMapNodes(nodes) {
+  const validators = state.snapshot?.current_set?.validators;
+  if (!Array.isArray(nodes) || !Array.isArray(validators)) {
+    return [];
+  }
+
+  const validatorsByPeer = new Map();
+  validators.forEach((validator, index) => {
+    const peer = String(validator.public_key || "").toLowerCase();
+    if (peer) {
+      validatorsByPeer.set(peer, { validator, index });
+    }
+  });
+
+  return nodes.map((node) => {
+    const peer = String(node.peer || "").toLowerCase();
+    const match = validatorsByPeer.get(peer);
+    if (!match) {
+      return node;
+    }
+
+    const wallet = validatorWalletAddress(match.validator);
+    return {
+      ...node,
+      validator_row: match.index + 1,
+      validator_wallet: wallet === "-" ? "" : wallet,
+      validator_source: match.validator.source?.address || "",
+    };
+  });
 }

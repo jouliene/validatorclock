@@ -57,6 +57,9 @@ async function selectChain(chainId) {
   const previousChainId = state.selectedChainId;
   state.selectedChainId = chainId;
   state.roundRenderKey = null;
+  if (previousChainId !== chainId) {
+    setSelectedValidatorKey(null);
+  }
   resetValidatorMapForChainChange(previousChainId, chainId);
   renderChainTabs();
   const cachedSnapshot = state.snapshotsByChain.get(chainId);

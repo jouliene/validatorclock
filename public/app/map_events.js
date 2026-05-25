@@ -1,10 +1,58 @@
 function wireValidatorMapInteractions() {
   wireValidatorMapCursor("node-points");
   wireValidatorMapCursor("clusters");
+  wireValidatorMapPopupFocus();
 
   validatorMap.on("click", "node-points", handleValidatorNodeClick);
   validatorMap.on("click", "clusters", handleValidatorClusterClick);
   validatorMap.on("contextmenu", "clusters", handleValidatorClusterContextMenu);
+}
+
+function wireValidatorMapPopupFocus() {
+  if (validatorMapPopupFocusWired) {
+    return;
+  }
+
+  validatorMapPopupFocusWired = true;
+  document.addEventListener("click", handleValidatorMapPopupFocusClick);
+}
+
+function handleValidatorMapPopupFocusClick(event) {
+  const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+  const trigger = target?.closest(".popup-row-link[data-peer]");
+  if (!trigger) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  focusValidatorTableRow(trigger.dataset.peer);
+}
+
+function focusValidatorTableRow(peer) {
+  const normalizedPeer = String(peer || "").toLowerCase();
+  if (!normalizedPeer) {
+    return;
+  }
+
+  const row = document.querySelector(
+    `.round-panel.is-active-round .validator-row[data-validator-peer="${normalizedPeer}"]`
+  );
+  if (!row) {
+    return;
+  }
+
+  setSelectedValidatorKey(row.dataset.validatorSelectionKey);
+  row.focus({ preventScroll: true });
+  row.scrollIntoView({
+    behavior: prefersReducedMotion() ? "auto" : "smooth",
+    block: "center",
+    inline: "nearest",
+  });
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia?.("(prefers-reduced-motion: reduce)").matches || false;
 }
 
 function wireValidatorMapCursor(layerId) {

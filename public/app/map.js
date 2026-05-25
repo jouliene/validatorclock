@@ -22,5 +22,5 @@ let validatorMap = null;
 let validatorMapLoaded = false;
 let validatorMapNodes = null;
 let validatorMapNodesChainId = null;
+let validatorMapPopupFocusWired = false;
 const validatorMapPopups = new Set();
-

@@ -59,13 +59,15 @@ function nodeTableHtml(nodes) {
         <colgroup>
           <col class="popup-col-ip">
           <col class="popup-col-isp">
-          <col class="popup-col-peer">
+          <col class="popup-col-row">
+          <col class="popup-col-validator">
         </colgroup>
         <thead>
           <tr>
             <th scope="col">IP</th>
             <th scope="col">ISP</th>
-            <th scope="col">Validator pubkey</th>
+            <th scope="col">Row</th>
+            <th scope="col">Validator</th>
           </tr>
         </thead>
         <tbody>
@@ -73,15 +75,59 @@ function nodeTableHtml(nodes) {
           <tr>
             <td class="popup-ip">${escapeHtml(node.ip)}</td>
             <td class="popup-isp">${escapeHtml(node.isp)}</td>
-            <td class="popup-peer-cell">
-              <code class="popup-peer" title="${escapeHtml(node.peer)}">${escapeHtml(node.peer)}</code>
-            </td>
+            <td class="popup-row-cell">${nodeValidatorRowHtml(node)}</td>
+            <td class="popup-peer-cell">${nodeValidatorDetailsHtml(node)}</td>
           </tr>
           `).join("")}
         </tbody>
       </table>
     </div>
   `;
+}
+
+function nodeValidatorRowHtml(node) {
+  const peer = String(node?.peer || "");
+  const peerKey = peer.toLowerCase();
+  const row = Number(node?.validator_row || 0);
+  const rowLabel = row > 0 ? `#${row}` : "#-";
+
+  return `
+    <button class="popup-row-link" type="button" data-peer="${escapeHtml(peerKey)}" aria-label="Focus validator row ${escapeHtml(rowLabel)}">
+      ${escapeHtml(rowLabel)}
+    </button>
+  `;
+}
+
+function nodeValidatorDetailsHtml(node) {
+  const peer = String(node?.peer || "");
+  const wallet = String(node?.validator_wallet || "");
+  const address = nodeValidatorAddressDisplay(wallet);
+
+  return `
+    <div class="popup-validator-details">
+      <div class="popup-validator-detail">
+        <span class="popup-validator-label">Pubkey</span>
+        <code class="popup-validator-value">${escapeHtml(peer || "-")}</code>
+      </div>
+      <div class="popup-validator-detail">
+        <span class="popup-validator-label">Address</span>
+        <code class="popup-validator-value">${escapeHtml(address)}</code>
+      </div>
+    </div>
+  `;
+}
+
+function nodeValidatorAddressDisplay(wallet) {
+  const raw = String(wallet || "");
+  if (!raw) {
+    return "-";
+  }
+
+  const formatted = formatDisplayAddress(raw, {
+    chainId: state.selectedChainId,
+    addressType: selectedAddressType(state.selectedChainId),
+  });
+  return formatted.value || formatted.text || raw;
 }
 
 function escapeHtml(value) {

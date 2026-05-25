@@ -1375,8 +1375,11 @@ dd {
 .popup-node-list {
   width: max-content;
   max-width: calc(100vw - 40px);
+  max-height: min(52vh, 460px);
   overflow-x: auto;
+  overflow-y: auto;
   scrollbar-width: none;
+  scrollbar-color: rgba(154, 166, 184, 0.34) transparent;
 }
 
 .popup-node-list::-webkit-scrollbar {
@@ -1387,6 +1390,18 @@ dd {
   width: max-content;
   border-collapse: collapse;
   table-layout: auto;
+}
+
+.popup-col-ip {
+  width: 86px;
+}
+
+.popup-col-isp {
+  width: 82px;
+}
+
+.popup-col-row {
+  width: 38px;
 }
 
 .popup-node-table th {
@@ -1402,7 +1417,7 @@ dd {
 
 .popup-node-table td {
   min-width: 0;
-  padding: 7px 10px 7px 0;
+  padding: 5px 8px 5px 0;
   border-top: 1px solid rgba(154, 196, 224, 0.13);
   vertical-align: middle;
 }
@@ -1428,6 +1443,74 @@ dd {
 
 .popup-peer-cell {
   min-width: 0;
+}
+
+.popup-row-cell {
+  min-width: 0;
+  text-align: left;
+}
+
+.popup-row-link {
+  display: inline-flex;
+  min-width: 3ch;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(222, 232, 242, 0.88);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 10.4px;
+  font-weight: 760;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.popup-row-link:hover,
+.popup-row-link:focus-visible {
+  color: #d9e3ff;
+}
+
+.popup-row-link:focus-visible {
+  outline: 1px solid rgba(95, 217, 255, 0.58);
+  outline-offset: 3px;
+}
+
+.popup-validator-details {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.popup-validator-detail {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  line-height: 1.08;
+}
+
+.popup-validator-label {
+  color: rgba(161, 177, 197, 0.74);
+  font-size: 9.5px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.popup-validator-value {
+  min-width: 0;
+  overflow: visible;
+  overflow-wrap: normal;
+  color: #b8c7ff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.12;
+  text-overflow: clip;
+  white-space: nowrap;
+  word-break: normal;
 }
 
 .popup-peer {
@@ -1926,6 +2009,21 @@ dd {
     var(--table-row-hover);
   box-shadow:
     inset 3px 0 0 color-mix(in srgb, var(--round-color) 42%, white 5%),
+    0 0 0 1px color-mix(in srgb, var(--round-color) 18%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.validator-row:focus {
+  outline: none;
+}
+
+.validator-row.is-validator-selected {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--round-color) 2.8%, transparent), transparent 58%),
+    var(--table-row-hover);
+  box-shadow:
+    inset 3px 0 0 color-mix(in srgb, var(--round-color) 48%, white 5%),
+    0 0 0 1px color-mix(in srgb, var(--round-color) 24%, transparent),
     inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
@@ -3025,7 +3123,25 @@ dd {
   }
 
   .popup-node-list {
-    width: min(380px, calc(100vw - 40px));
+    width: max-content;
+    max-height: min(56vh, 430px);
+  }
+
+  .popup-col-ip {
+    width: 72px;
+  }
+
+  .popup-col-isp {
+    width: 54px;
+  }
+
+  .popup-col-row {
+    width: 32px;
+  }
+
+  .popup-node-table th,
+  .popup-node-table td {
+    padding-right: 6px;
   }
 
   .popup-peer {
@@ -3034,6 +3150,22 @@ dd {
     overflow: visible;
     font-size: 9px;
     text-overflow: clip;
+  }
+
+  .popup-validator-detail {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .popup-validator-label,
+  .popup-row-link,
+  .popup-validator-value {
+    font-size: 9px;
+  }
+
+  .popup-validator-value {
+    font-weight: 700;
+    line-height: 1.1;
   }
 
   #metricStatus {
@@ -3190,6 +3322,17 @@ dd {
       var(--surface-card),
       rgba(255, 255, 255, 0.01);
     box-shadow: none;
+  }
+
+  .validator-row.is-validator-selected {
+    border-color: color-mix(in srgb, var(--round-color) 62%, white 7%);
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--round-color) 3.5%, transparent), transparent 58%),
+      var(--surface-card),
+      rgba(255, 255, 255, 0.01);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--round-color) 35%, transparent),
+      0 0 18px color-mix(in srgb, var(--round-color) 16%, transparent);
   }
 
   .validator-row:last-child {

@@ -9,6 +9,7 @@ function setAddressType(type) {
     // The preference is optional; private browsing can reject storage writes.
   }
   state.roundRenderKey = null;
+  closeValidatorMapPopups();
   renderNow();
 }
 

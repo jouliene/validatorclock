@@ -51,6 +51,8 @@ function recentRoundPanel(color, validators, snapshot) {
   } else {
     renderRecentAbsentValidators(list, validators, {
       ...validatorRenderOptions(snapshot),
+      validatorSelectionScope: "recent",
+      validatorSelectionColor: color,
     });
   }
   section.appendChild(list);

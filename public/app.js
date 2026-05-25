@@ -3,6 +3,7 @@ async function boot() {
     startNetworkMessages();
     await loadChains();
     setupValidatorMapControls();
+    setupValidatorSelection();
     loadRuntimeStatus();
     window.setTimeout(prefetchChainSnapshots, 0);
     await loadClock(false);
