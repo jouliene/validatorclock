@@ -78,7 +78,9 @@ impl StoredRound {
                 if validator.fake_node.is_none() {
                     validator.fake_node = existing.fake_node;
                 }
-                if validator.map_node.is_none() {
+                if validator.fake_node == Some(true) {
+                    validator.map_node = None;
+                } else if validator.map_node.is_none() {
                     validator.map_node = existing.map_node.clone();
                 }
             }
@@ -96,26 +98,23 @@ impl StoredRound {
         let mut changed = false;
         let observed_at = other.observed_at;
         for (public_key, other_validator) in other.validators {
-            if let Some(validator) = self.validators.get_mut(&public_key)
-                && validator.wallet.is_none()
-                && other_validator.wallet.is_some()
-            {
-                validator.wallet = other_validator.wallet;
-                changed = true;
-            }
-            if let Some(validator) = self.validators.get_mut(&public_key)
-                && validator.fake_node.is_none()
-                && other_validator.fake_node.is_some()
-            {
-                validator.fake_node = other_validator.fake_node;
-                changed = true;
-            }
-            if let Some(validator) = self.validators.get_mut(&public_key)
-                && validator.map_node.is_none()
-                && other_validator.map_node.is_some()
-            {
-                validator.map_node = other_validator.map_node;
-                changed = true;
+            if let Some(validator) = self.validators.get_mut(&public_key) {
+                if validator.wallet.is_none() && other_validator.wallet.is_some() {
+                    validator.wallet = other_validator.wallet;
+                    changed = true;
+                }
+                if validator.fake_node.is_none() && other_validator.fake_node.is_some() {
+                    validator.fake_node = other_validator.fake_node;
+                    changed = true;
+                }
+                if validator.fake_node == Some(true) {
+                    if validator.map_node.take().is_some() {
+                        changed = true;
+                    }
+                } else if validator.map_node.is_none() && other_validator.map_node.is_some() {
+                    validator.map_node = other_validator.map_node;
+                    changed = true;
+                }
             }
         }
         if changed {

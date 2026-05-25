@@ -89,15 +89,20 @@ impl ChainRoundHistory {
                 .validators
                 .iter()
                 .map(|validator| {
+                    let public_key = validator.public_key.clone();
+                    let fake_node = set
+                        .fake_validator_status_known
+                        .then_some(fake_validator_peers.contains(&public_key.to_ascii_lowercase()));
                     (
-                        validator.public_key.clone(),
+                        public_key,
                         StoredValidator {
                             wallet: validator.wallet.clone(),
-                            map_node: validator.map_node.clone(),
-                            fake_node: set.fake_validator_status_known.then_some(
-                                fake_validator_peers
-                                    .contains(&validator.public_key.to_ascii_lowercase()),
-                            ),
+                            map_node: if fake_node == Some(true) {
+                                None
+                            } else {
+                                validator.map_node.clone()
+                            },
+                            fake_node,
                         },
                     )
                 })

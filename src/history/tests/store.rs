@@ -165,6 +165,41 @@ fn complete_round_refresh_preserves_existing_map_node() {
 }
 
 #[test]
+fn complete_round_refresh_removes_existing_map_node_when_validator_becomes_fake() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    assert!(chain.record_set(
+        &ValidatorSetDto {
+            validators: vec![ValidatorDto {
+                map_node: Some(map_node(
+                    "203.0.113.10",
+                    "Test ISP",
+                    "Test City",
+                    "Testland"
+                )),
+                ..validator("alice")
+            }],
+            ..set(10, RoundColor::Blue, Vec::new())
+        },
+        100,
+    ));
+
+    assert!(chain.record_set(
+        &ValidatorSetDto {
+            fake_validator_peers: vec!["alice".to_owned()],
+            fake_validator_status_known: true,
+            ..set(10, RoundColor::Blue, vec!["alice"])
+        },
+        200,
+    ));
+    let round = &chain.rounds[&10];
+
+    assert_eq!(round.validators["alice"].fake_node, Some(true));
+    assert_eq!(round.validators["alice"].map_node, None);
+    assert_eq!(round.observed_at, 200);
+}
+
+#[test]
 fn complete_round_refresh_replaces_fake_node_status_when_known_again() {
     let mut store = RoundHistoryStore::default();
     let chain = store.chains.entry("test".to_owned()).or_default();

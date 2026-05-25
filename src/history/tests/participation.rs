@@ -288,3 +288,48 @@ fn map_node_is_replayed_to_annotated_sets() {
         ))
     );
 }
+
+#[test]
+fn fake_validator_map_node_is_not_replayed_to_annotated_sets() {
+    let mut store = RoundHistoryStore::default();
+    store
+        .chains
+        .entry("test".to_owned())
+        .or_default()
+        .rounds
+        .insert(
+            10,
+            StoredRound {
+                round_id: 10,
+                round_color: RoundColor::Blue,
+                utime_since: 100,
+                utime_until: 110,
+                observed_at: 100,
+                complete: true,
+                validators: std::collections::BTreeMap::from([(
+                    "alice".to_owned(),
+                    StoredValidator {
+                        wallet: None,
+                        map_node: Some(map_node(
+                            "203.0.113.10",
+                            "Test ISP",
+                            "Test City",
+                            "Testland",
+                        )),
+                        fake_node: Some(true),
+                    },
+                )]),
+            },
+        );
+
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(12, RoundColor::Green, vec!["bob"]);
+    snapshot.previous_set = Some(set(10, RoundColor::Blue, vec!["alice"]));
+
+    store.annotate_snapshot("test", &mut snapshot);
+
+    let previous_set = snapshot.previous_set.unwrap();
+    assert_eq!(previous_set.fake_validator_peers, vec!["alice".to_owned()]);
+    assert_eq!(previous_set.validators[0].map_node, None);
+    assert!(previous_set.validators[0].history[4].fake_node);
+}

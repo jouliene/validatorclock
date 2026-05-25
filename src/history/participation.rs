@@ -19,11 +19,17 @@ impl RoundHistoryStore {
 
     fn annotate_set(&self, chain_id: &str, set: &mut ValidatorSetDto) {
         let current_validators = ValidatorIdentitySet::from_validators(&set.validators);
+        self.annotate_fake_validator_peers(chain_id, set);
+        let fake_validator_peers = fake_validator_peer_set(set);
 
         for validator in &mut set.validators {
-            if validator.map_node.is_none() {
+            let is_fake = fake_validator_peers.contains(&validator.public_key.to_ascii_lowercase());
+            if is_fake {
+                validator.map_node = None;
+            } else if validator.map_node.is_none() {
                 validator.map_node = self
                     .stored_validator(chain_id, set.round_id, &validator.public_key)
+                    .filter(|stored| stored.fake_node != Some(true))
                     .and_then(|stored| stored.map_node.clone());
             }
             validator.history = self.same_color_participation(
@@ -41,7 +47,6 @@ impl RoundHistoryStore {
             set.round_color,
             &current_validators,
         );
-        self.annotate_fake_validator_peers(chain_id, set);
     }
 
     fn annotate_fake_validator_peers(&self, chain_id: &str, set: &mut ValidatorSetDto) {
@@ -143,6 +148,9 @@ impl RoundHistoryStore {
                     continue;
                 }
 
+                let map_node = (validator.fake_node != Some(true))
+                    .then(|| validator.map_node.clone())
+                    .flatten();
                 let recent_key = validator
                     .wallet
                     .clone()
@@ -155,14 +163,14 @@ impl RoundHistoryStore {
                         if summary.wallet.is_none() {
                             summary.wallet = validator.wallet.clone();
                         }
-                        if validator.map_node.is_some() {
-                            summary.map_node = validator.map_node.clone();
+                        if map_node.is_some() {
+                            summary.map_node = map_node.clone();
                         }
                     })
                     .or_insert_with(|| RecentAbsentValidatorDto {
                         public_key: public_key.clone(),
                         wallet: validator.wallet.clone(),
-                        map_node: validator.map_node.clone(),
+                        map_node,
                         source: None,
                         contract_type: None,
                         contract_type_hash: None,
@@ -204,6 +212,14 @@ impl RoundHistoryStore {
             .and_then(|chain| chain.rounds.get(&round_id))
             .and_then(|round| round.validators.get(public_key))
     }
+}
+
+fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {
+    set.fake_validator_peers
+        .iter()
+        .map(|peer| peer.to_ascii_lowercase())
+        .filter(|peer| !peer.is_empty())
+        .collect()
 }
 
 pub(super) struct ValidatorIdentitySet {

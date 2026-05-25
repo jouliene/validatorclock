@@ -213,6 +213,73 @@ async fn app_router_marks_configured_ton_validators_without_map_ip_as_fake() {
 }
 
 #[tokio::test]
+async fn app_router_clears_stale_map_node_for_fake_validator() {
+    let map_path = temp_map_path("everscale_fake_stale_location");
+    fs::write(
+        &map_path,
+        r#"[
+            {"peer":"mapped-ever-validator","ip":"203.0.113.30","city":"EVER City","country":"EVERland","isp":"EVER ISP","lat":9.25,"lon":10.5}
+        ]"#,
+    )
+    .unwrap();
+
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("everscale".to_owned(), map_path.clone());
+    config.chains.push(test_chain_config(
+        "everscale",
+        "Everscale",
+        "#6347F5",
+        "EVER",
+    ));
+    let state = state_from_config(config);
+    cache_snapshot_with(
+        &state,
+        "everscale",
+        &["mapped-ever-validator", "missing-ever-validator"],
+        |snapshot| {
+            snapshot.current_set.validators[1].map_node = Some(crate::chain::ValidatorMapNodeDto {
+                ip: Some("198.51.100.99".to_owned()),
+                isp: Some("Old ISP".to_owned()),
+                city: Some("Old City".to_owned()),
+                country: Some("Oldland".to_owned()),
+            });
+        },
+    )
+    .await;
+
+    let response = app_response(state, "/api/chains/everscale/clock").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(
+        body["current_set"]["fake_validator_peers"]
+            .as_array()
+            .unwrap(),
+        &vec![Value::String("missing-ever-validator".to_owned())]
+    );
+    assert_eq!(
+        body["current_set"]["validators"][0]["map_node"],
+        json!({
+            "ip": "203.0.113.30",
+            "isp": "EVER ISP",
+            "city": "EVER City",
+            "country": "EVERland"
+        })
+    );
+    assert!(
+        body["current_set"]["validators"][1]
+            .get("map_node")
+            .is_none(),
+        "fake validator unexpectedly kept map_node: {}",
+        body["current_set"]["validators"][1]
+    );
+
+    let _ = fs::remove_file(map_path);
+}
+
+#[tokio::test]
 async fn app_router_defers_fake_ton_validators_for_new_set_until_map_refresh() {
     let map_path = temp_map_path("ton_fake_grace");
     fs::write(
