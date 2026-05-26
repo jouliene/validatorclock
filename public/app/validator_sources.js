@@ -14,8 +14,7 @@ function validatorSourceCell(validator, options = {}) {
         `validator-source-address validator-source-meta is-${meta.className}`,
         "validator source address"
       );
-      const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-      setValidatorTooltip(metadata, validatorSourceMetadataTooltipLines(validator, meta, contractHash));
+      setValidatorTooltip(metadata, validatorSourceMetadataTooltipLines(validator, meta, source));
       cell.appendChild(metadata);
       return cell;
     }
@@ -26,8 +25,7 @@ function validatorSourceCell(validator, options = {}) {
       "validator-source-address",
       "validator source address"
     );
-    const contractHash = source.contract_type_hash || validator?.contract_type_hash;
-    setValidatorTooltip(address, validatorSourceTooltipLines(validator, contractHash));
+    setValidatorTooltip(address, validatorSourceTooltipLines(validator, source));
     cell.appendChild(address);
     return cell;
   }

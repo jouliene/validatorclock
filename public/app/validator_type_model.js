@@ -8,10 +8,14 @@ function validatorContractType(typeName) {
 
 function displayedValidatorType(validator) {
   const hash = validator && validator.source && validator.source.contract_type_hash;
-  if (hash) {
+  if (hash && sourceTypeOverridesValidatorType(validator)) {
     return { ...validatorSourceType(hash), hash };
   }
   return { ...validatorContractType(validator && validator.contract_type), hash: "" };
+}
+
+function sourceTypeOverridesValidatorType(validator) {
+  return validator?.contract_type === "DePoolProxy" || validator?.contract_type === "StEverDePoolProxy";
 }
 
 function validatorGlossaryLabelsForSnapshot(snapshot) {

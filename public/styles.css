@@ -2343,7 +2343,8 @@ dd {
 }
 
 .validator-type-badge.is-stproxy,
-.validator-type-badge.is-stdepool {
+.validator-type-badge.is-stdepool,
+.validator-type-badge.is-stever {
   border-color: rgba(202, 168, 92, 0.38);
   background: rgba(202, 168, 92, 0.12);
   color: #d7c28f;

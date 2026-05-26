@@ -30,10 +30,7 @@ async fn discover_single_nominator_validator_source(
 ) -> Result<Option<ValidatorSourceDto>> {
     let owner = single_nominator_owner_address(provider, validator_wallet).await?;
 
-    Ok(Some(ValidatorSourceDto {
-        address: owner,
-        contract_type_hash: None,
-    }))
+    Ok(Some(ValidatorSourceDto::new(owner, None)))
 }
 
 async fn single_nominator_owner_address(

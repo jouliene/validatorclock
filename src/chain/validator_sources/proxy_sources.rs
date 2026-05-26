@@ -61,10 +61,7 @@ async fn discover_proxy_validator_source(
         }
     };
 
-    Ok(Some(ValidatorSourceDto {
-        address,
-        contract_type_hash,
-    }))
+    Ok(Some(ValidatorSourceDto::new(address, contract_type_hash)))
 }
 
 async fn scan_proxy_source_address(

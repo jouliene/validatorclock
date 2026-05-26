@@ -31,10 +31,7 @@ async fn discover_nominator_pool_validator_source(
 ) -> Result<Option<ValidatorSourceDto>> {
     let validator = nominator_pool_validator_address(provider, validator_wallet).await?;
 
-    Ok(Some(ValidatorSourceDto {
-        address: validator,
-        contract_type_hash: None,
-    }))
+    Ok(Some(ValidatorSourceDto::new(validator, None)))
 }
 
 async fn nominator_pool_validator_address(

@@ -32,10 +32,7 @@ async fn discover_validator_controller_source(
 ) -> Result<Option<ValidatorSourceDto>> {
     let pool = validator_controller_pool_address(provider, validator_wallet).await?;
 
-    Ok(Some(ValidatorSourceDto {
-        address: pool,
-        contract_type_hash: None,
-    }))
+    Ok(Some(ValidatorSourceDto::new(pool, None)))
 }
 
 async fn validator_controller_pool_address(

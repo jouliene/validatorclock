@@ -1,4 +1,5 @@
 use crate::history::{RecentAbsentValidatorDto, ValidatorParticipationDto};
+use crate::validator_types::contract_type_name;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -136,7 +137,25 @@ pub(crate) struct ValidatorMapNodeDto {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ValidatorSourceDto {
     pub(crate) address: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) contract_type: Option<String>,
+    #[serde(default)]
     pub(crate) contract_type_hash: Option<String>,
+}
+
+impl ValidatorSourceDto {
+    pub(crate) fn new(address: String, contract_type_hash: Option<String>) -> Self {
+        Self {
+            address,
+            contract_type: source_contract_type_name(contract_type_hash.as_deref()),
+            contract_type_hash,
+        }
+    }
+}
+
+pub(crate) fn source_contract_type_name(repr_hash: Option<&str>) -> Option<String> {
+    let name = contract_type_name(repr_hash?);
+    (name != "Unknown").then(|| name.to_owned())
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]

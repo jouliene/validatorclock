@@ -11,7 +11,7 @@ mod validator_sources;
 pub(crate) use dto::{
     CacheEntry, ChainMeta, ChainsResponse, ClockSnapshot, ElectionCandidateDto, ElectionDto,
     ElectionTimingsDto, RoundColor, RuntimeStatusResponse, ValidatorDto, ValidatorMapNodeDto,
-    ValidatorSetDto, ValidatorSourceDto,
+    ValidatorSetDto, ValidatorSourceDto, source_contract_type_name,
 };
 pub(crate) use elector::fetch_chain_snapshot;
 pub(crate) use refresh::{get_chain_snapshot_cached_first, spawn_background_refresh};

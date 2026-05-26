@@ -32,10 +32,7 @@ async fn discover_whales_pool_proxy_source(
 ) -> Result<Option<ValidatorSourceDto>> {
     let pool = whales_pool_proxy_pool_address(provider, validator_wallet).await?;
 
-    Ok(Some(ValidatorSourceDto {
-        address: pool,
-        contract_type_hash: None,
-    }))
+    Ok(Some(ValidatorSourceDto::new(pool, None)))
 }
 
 async fn whales_pool_proxy_pool_address(

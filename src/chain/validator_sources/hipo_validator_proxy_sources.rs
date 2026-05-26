@@ -32,10 +32,7 @@ async fn discover_hipo_validator_proxy_source(
 ) -> Result<Option<ValidatorSourceDto>> {
     let treasury = hipo_validator_proxy_treasury_address(provider, validator_wallet).await?;
 
-    Ok(Some(ValidatorSourceDto {
-        address: treasury,
-        contract_type_hash: None,
-    }))
+    Ok(Some(ValidatorSourceDto::new(treasury, None)))
 }
 
 async fn hipo_validator_proxy_treasury_address(

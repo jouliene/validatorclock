@@ -4,6 +4,7 @@ mod nominator_pool_sources;
 mod provider;
 mod proxy_sources;
 mod single_nominator_sources;
+mod st_ever_strategy_sources;
 mod validator_controller_sources;
 mod wallet_index;
 mod wallet_tasks;
@@ -15,6 +16,7 @@ use self::nominator_pool_sources::fetch_nominator_pool_validator_sources;
 use self::provider::ValidatorSourceProvider;
 use self::proxy_sources::fetch_proxy_validator_sources;
 use self::single_nominator_sources::fetch_single_nominator_validator_sources;
+use self::st_ever_strategy_sources::fetch_st_ever_strategy_sources;
 use self::validator_controller_sources::fetch_validator_controller_sources;
 use self::wallet_index::{ValidatorSourceKind, apply_validator_type_cache, validator_wallets};
 use self::whales_pool_proxy_sources::fetch_whales_pool_proxy_sources;
@@ -31,6 +33,7 @@ const SOURCE_RESOLVERS: &[ValidatorSourceKind] = &[
     ValidatorSourceKind::ValidatorController,
     ValidatorSourceKind::WhalesPoolProxy,
     ValidatorSourceKind::HipoValidatorProxy,
+    ValidatorSourceKind::StEverStrategy,
 ];
 
 pub(super) async fn update_validator_contract_type_hashes(
@@ -119,6 +122,9 @@ async fn fetch_validator_sources(
         }
         ValidatorSourceKind::HipoValidatorProxy => {
             fetch_hipo_validator_proxy_sources(chain_id, provider, wallets).await
+        }
+        ValidatorSourceKind::StEverStrategy => {
+            fetch_st_ever_strategy_sources(chain_id, provider, wallets).await
         }
     }
 }

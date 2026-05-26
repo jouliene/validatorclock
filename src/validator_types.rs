@@ -16,6 +16,10 @@ const KNOWN_CONTRACT_TYPES: &[(&str, &str)] = &[
         "StEverDePoolProxy",
     ),
     (
+        "0ac45261b93f5679c35bc4d2d059a759b24709492bb5e3d143d92931356fc0bb",
+        "StEverStrategy",
+    ),
+    (
         "c05938cde3cee21141caacc9e88d3b8f2a4a4bc3968cb3d455d83cd0498d4375",
         "DePoolProxy",
     ),
@@ -197,6 +201,10 @@ mod tests {
             "StEverDePoolProxy"
         );
         assert_eq!(
+            contract_type_name("0ac45261b93f5679c35bc4d2d059a759b24709492bb5e3d143d92931356fc0bb"),
+            "StEverStrategy"
+        );
+        assert_eq!(
             contract_type_name("c05938cde3cee21141caacc9e88d3b8f2a4a4bc3968cb3d455d83cd0498d4375"),
             "DePoolProxy"
         );
@@ -253,7 +261,7 @@ mod tests {
     #[test]
     fn maps_unknown_contract_type_hashes_to_unknown() {
         assert_eq!(
-            contract_type_name("0ac45261b93f5679c35bc4d2d059a759b24709492bb5e3d143d92931356fc0bb"),
+            contract_type_name("00005261b93f5679c35bc4d2d059a759b24709492bb5e3d143d92931356fc0bb"),
             "Unknown"
         );
     }

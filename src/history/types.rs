@@ -1,4 +1,4 @@
-use crate::chain::{RoundColor, ValidatorMapNodeDto};
+use crate::chain::{RoundColor, ValidatorMapNodeDto, source_contract_type_name};
 use serde::de::Deserializer;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -39,7 +39,19 @@ pub(crate) struct RecentAbsentValidatorDto {
 pub(crate) struct RecentAbsentValidatorSourceDto {
     pub(crate) address: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) contract_type: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) contract_type_hash: Option<String>,
+}
+
+impl RecentAbsentValidatorSourceDto {
+    pub(crate) fn new(address: String, contract_type_hash: Option<String>) -> Self {
+        Self {
+            address,
+            contract_type: source_contract_type_name(contract_type_hash.as_deref()),
+            contract_type_hash,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default, Eq, PartialEq, Serialize, Deserialize)]

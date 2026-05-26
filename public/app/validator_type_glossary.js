@@ -71,6 +71,7 @@ function glossaryBadgeClass(label) {
   if (label === "EVER") return "ever";
   if (label === "PROXY" || label === "DEPOOL") return "proxy";
   if (label === "StPROXY" || label === "StDEPOOL") return "stproxy";
+  if (label === "StEVER") return "stever";
   if (label === "SNOMv1.0" || label === "SNOMv1.1") return "snom";
   if (label === "SNPOOL") return "snpool";
   if (label === "NOMPOOL") return "nompool";

@@ -1,8 +1,15 @@
-function validatorSourceTooltipLines(validator, contractHash = "") {
+function validatorSourceTooltipLines(validator, source = null) {
   const role = validatorSourceRole(validator);
+  const sourceType = sourceContractDisplayName(source);
+  const sourceHash = source?.contract_type_hash || "";
   const lines = [];
-  if (contractHash) {
-    lines.push(`Contract HASH: ${contractHash}`);
+  if (sourceType) {
+    lines.push(`Source type: ${sourceType}`);
+  }
+  if (sourceHash) {
+    lines.push(`Source HASH: ${sourceHash}`);
+  } else if (validator?.contract_type_hash) {
+    lines.push(`Contract HASH: ${validator.contract_type_hash}`);
   }
   if (role) {
     lines.push(`Source: ${role}`);
@@ -10,15 +17,22 @@ function validatorSourceTooltipLines(validator, contractHash = "") {
   return lines;
 }
 
-function validatorSourceMetadataTooltipLines(validator, meta, contractHash = "") {
+function validatorSourceMetadataTooltipLines(validator, meta, source = null) {
   const role = validatorSourceRole(validator);
+  const sourceType = sourceContractDisplayName(source);
+  const sourceHash = source?.contract_type_hash || "";
   const lines = role ? [`Source: ${role}`] : [];
   lines.push(`Owner: ${meta.name || meta.label}`);
   if (meta.detail) {
     lines.push(`Metadata: ${meta.detail}`);
   }
-  if (contractHash) {
-    lines.push(`Contract HASH: ${contractHash}`);
+  if (sourceType) {
+    lines.push(`Source type: ${sourceType}`);
+  }
+  if (sourceHash) {
+    lines.push(`Source HASH: ${sourceHash}`);
+  } else if (validator?.contract_type_hash) {
+    lines.push(`Contract HASH: ${validator.contract_type_hash}`);
   }
   return lines;
 }
@@ -45,10 +59,18 @@ function validatorSourceRole(validator) {
   if (validator.contract_type === "StEverDePoolProxy") {
     return "Staked EVER DePool address";
   }
+  if (validator.contract_type === "StEverStrategy") {
+    return "Strategy controller";
+  }
   if (validator.contract_type === "SingleNominatorV1_0" || validator.contract_type === "SingleNominatorV1_1" || validator.contract_type === "TonSingleNominatorPool") {
     return "Owner address";
   }
   return "";
+}
+
+function sourceContractDisplayName(source) {
+  const typeName = source?.contract_type || "";
+  return typeName ? (VALIDATOR_CONTRACT_TYPE_NAMES[typeName] || typeName) : "";
 }
 
 function directValidatorTooltipLines(validator) {
