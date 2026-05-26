@@ -1,8 +1,12 @@
-function renderRoundStats(container, round) {
+function renderRoundStats(container, round, options = {}) {
   const totalStake = round.total_stake || sumTokenValues(round.validators, "stake");
   const totalReward = round.total_reward || sumTokenValues(round.validators, "reward");
   const stats = [
-    ["Validators", String(round.total)],
+    [
+      "Validators",
+      String(round.total),
+      options.showMapped ? mappedValidatorsDetail(round.validators, options.mapNodesByPeer) : "",
+    ],
     ["Total stake", formatStakeAmount(totalStake)],
     ["Total rewards", totalReward ? formatRewardAmount(totalReward) : "-"],
   ];
@@ -27,7 +31,7 @@ function renderEmptyStats(container) {
 }
 
 function renderStats(container, stats) {
-  for (const [label, value] of stats) {
+  for (const [label, value, detail] of stats) {
     const item = document.createElement("div");
     item.className = "round-stat";
     item.appendChild(roundStatIcon(label));
@@ -41,8 +45,33 @@ function renderStats(container, stats) {
     valueNode.title = value;
     copy.append(labelNode, valueNode);
     item.appendChild(copy);
+    if (detail) {
+      const detailNode = document.createElement("span");
+      detailNode.className = "round-stat-detail";
+      detailNode.textContent = detail;
+      item.appendChild(detailNode);
+    }
     container.appendChild(item);
   }
+}
+
+function mappedValidatorsDetail(validators, mapNodesByPeer) {
+  const mapped = mappedValidatorsCount(validators, mapNodesByPeer);
+  return `mapped: ${mapped}`;
+}
+
+function mappedValidatorsCount(validators, mapNodesByPeer) {
+  if (!Array.isArray(validators)) {
+    return 0;
+  }
+
+  return validators.filter((validator) => {
+    if (validator?.map_node) {
+      return true;
+    }
+    const peer = String(validator?.public_key || "").toLowerCase();
+    return peer && typeof mapNodesByPeer?.has === "function" && mapNodesByPeer.has(peer);
+  }).length;
 }
 
 function roundStatIcon(label) {

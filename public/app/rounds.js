@@ -46,7 +46,10 @@ function renderRoundPanel(color, snapshot, model) {
     renderRoundMeta(meta, current, snapshot);
     badge.textContent = "active";
     badge.classList.add("is-active");
-    renderRoundStats(stats, current);
+    renderRoundStats(stats, current, {
+      showMapped: true,
+      mapNodesByPeer: state.validatorMapNodesByPeer,
+    });
     renderValidators(list, current.validators, validatorRenderOptions(snapshot, {
       rewards: true,
       validatorSelectionScope: "active",

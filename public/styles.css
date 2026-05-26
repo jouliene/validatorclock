@@ -1874,6 +1874,7 @@ dd {
 }
 
 .round-stat {
+  position: relative;
   display: grid;
   grid-template-columns: var(--icon-panel-size) minmax(0, 1fr);
   gap: 10px;
@@ -1931,6 +1932,22 @@ dd {
   font-weight: 620;
   font-variant-numeric: tabular-nums;
   line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.round-stat-detail {
+  position: absolute;
+  right: 10px;
+  bottom: 5px;
+  max-width: calc(100% - 20px);
+  overflow: hidden;
+  color: rgba(178, 190, 207, 0.72);
+  font-size: 10.5px;
+  font-weight: 660;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -3338,6 +3355,10 @@ dd {
 
   .validator-row:last-child {
     border-bottom: 1px solid var(--table-line);
+  }
+
+  .validator-row.is-validator-selected:last-child {
+    border-bottom-color: color-mix(in srgb, var(--round-color) 62%, white 7%);
   }
 
   .validator-row .validator-cell {
