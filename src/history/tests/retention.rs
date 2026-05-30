@@ -27,6 +27,44 @@ fn retention_prunes_rounds_outside_visible_windows() {
 }
 
 #[test]
+fn snapshot_retention_keeps_previous_color_window_when_previous_set_is_missing() {
+    let mut store = RoundHistoryStore::default();
+    record_rounds(
+        &mut store,
+        "test",
+        &[
+            27153, 27154, 27155, 27156, 27157, 27158, 27159, 27160, 27161, 27162,
+        ],
+    );
+
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(27162, RoundColor::Blue, vec!["alice"]);
+    snapshot.previous_set = None;
+    snapshot.next_set = None;
+
+    let retention = RoundHistoryStore::retention_for_snapshot("test", &snapshot);
+    store.prune_to_retention(&retention);
+
+    let rounds = store.chains["test"]
+        .rounds
+        .keys()
+        .copied()
+        .collect::<Vec<_>>();
+    assert!(rounds.contains(&27153));
+
+    let history = store.same_color_participation("test", 27161, RoundColor::Green, "alice", None);
+    assert_eq!(
+        history.iter().map(|entry| entry.round).collect::<Vec<_>>(),
+        vec![27153, 27155, 27157, 27159, 27161]
+    );
+    assert!(
+        history
+            .iter()
+            .all(|entry| matches!(entry.status, ParticipationStatus::Participated))
+    );
+}
+
+#[test]
 fn far_even_round_jump_prunes_stale_rounds_and_leaves_unknown_holes() {
     let mut store = RoundHistoryStore::default();
     let chain = store.chains.entry("test".to_owned()).or_default();
