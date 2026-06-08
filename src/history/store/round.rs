@@ -1,36 +1,18 @@
 use super::super::StoredRound;
 
 impl StoredRound {
-    pub(in crate::history) fn contains_identity(
+    pub(in crate::history) fn validator_for_identity(
         &self,
         public_key: &str,
         wallet: Option<&str>,
-    ) -> bool {
-        self.validators.contains_key(public_key)
-            || wallet.is_some_and(|wallet| {
+    ) -> Option<&super::super::StoredValidator> {
+        self.validators.get(public_key).or_else(|| {
+            wallet.and_then(|wallet| {
                 self.validators
                     .values()
-                    .any(|validator| validator.wallet.as_deref() == Some(wallet))
+                    .find(|validator| validator.wallet.as_deref() == Some(wallet))
             })
-    }
-
-    pub(in crate::history) fn fake_node_for_identity(
-        &self,
-        public_key: &str,
-        wallet: Option<&str>,
-    ) -> bool {
-        self.validators
-            .get(public_key)
-            .and_then(|validator| validator.fake_node)
-            .or_else(|| {
-                wallet.and_then(|wallet| {
-                    self.validators
-                        .values()
-                        .find(|validator| validator.wallet.as_deref() == Some(wallet))
-                        .and_then(|validator| validator.fake_node)
-                })
-            })
-            .unwrap_or(false)
+        })
     }
 
     pub(in crate::history) fn has_fake_validator_status(&self) -> bool {
@@ -78,9 +60,7 @@ impl StoredRound {
                 if validator.fake_node.is_none() {
                     validator.fake_node = existing.fake_node;
                 }
-                if validator.fake_node == Some(true) {
-                    validator.map_node = None;
-                } else if validator.map_node.is_none() {
+                if validator.map_node.is_none() {
                     validator.map_node = existing.map_node.clone();
                 }
             }
@@ -107,11 +87,7 @@ impl StoredRound {
                     validator.fake_node = other_validator.fake_node;
                     changed = true;
                 }
-                if validator.fake_node == Some(true) {
-                    if validator.map_node.take().is_some() {
-                        changed = true;
-                    }
-                } else if validator.map_node.is_none() && other_validator.map_node.is_some() {
+                if validator.map_node.is_none() && other_validator.map_node.is_some() {
                     validator.map_node = other_validator.map_node;
                     changed = true;
                 }

@@ -93,15 +93,22 @@ impl ChainRoundHistory {
                     let fake_node = set
                         .fake_validator_status_known
                         .then_some(fake_validator_peers.contains(&public_key.to_ascii_lowercase()));
+                    let map_node = validator.map_node.clone().or_else(|| {
+                        (fake_node == Some(true))
+                            .then(|| {
+                                self.latest_map_node_for_identity(
+                                    set.round_id,
+                                    &public_key,
+                                    validator.wallet.as_deref(),
+                                )
+                            })
+                            .flatten()
+                    });
                     (
                         public_key,
                         StoredValidator {
                             wallet: validator.wallet.clone(),
-                            map_node: if fake_node == Some(true) {
-                                None
-                            } else {
-                                validator.map_node.clone()
-                            },
+                            map_node,
                             fake_node,
                         },
                     )
@@ -122,6 +129,19 @@ impl ChainRoundHistory {
         let before = self.rounds.len();
         self.rounds.retain(|_, round| round.complete);
         self.rounds.len() != before
+    }
+
+    fn latest_map_node_for_identity(
+        &self,
+        round_id: u32,
+        public_key: &str,
+        wallet: Option<&str>,
+    ) -> Option<crate::chain::ValidatorMapNodeDto> {
+        self.rounds
+            .range(..=round_id)
+            .rev()
+            .filter_map(|(_, round)| round.validator_for_identity(public_key, wallet))
+            .find_map(|validator| validator.map_node.clone())
     }
 }
 

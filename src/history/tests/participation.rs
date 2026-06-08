@@ -201,6 +201,43 @@ fn participation_marks_fake_node_rounds() {
 }
 
 #[test]
+fn participation_records_round_location() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    chain.record_set(
+        &ValidatorSetDto {
+            validators: vec![ValidatorDto {
+                map_node: Some(map_node(
+                    "203.0.113.10",
+                    "Test ISP",
+                    "Test City",
+                    "Testland",
+                )),
+                ..validator("alice")
+            }],
+            ..set(10, RoundColor::Blue, Vec::new())
+        },
+        100,
+    );
+
+    let history = store.same_color_participation("test", 10, RoundColor::Blue, "alice", None);
+
+    assert!(matches!(
+        history[4].status,
+        ParticipationStatus::Participated
+    ));
+    assert_eq!(
+        history[4].map_node,
+        Some(map_node(
+            "203.0.113.10",
+            "Test ISP",
+            "Test City",
+            "Testland"
+        ))
+    );
+}
+
+#[test]
 fn recent_absent_validators_uses_wallet_identity() {
     let mut store = RoundHistoryStore::default();
     let chain = store.chains.entry("test".to_owned()).or_default();
@@ -290,7 +327,7 @@ fn map_node_is_replayed_to_annotated_sets() {
 }
 
 #[test]
-fn fake_validator_map_node_is_not_replayed_to_annotated_sets() {
+fn fake_validator_map_node_is_replayed_as_last_known_location() {
     let mut store = RoundHistoryStore::default();
     store
         .chains
@@ -331,5 +368,78 @@ fn fake_validator_map_node_is_not_replayed_to_annotated_sets() {
     let previous_set = snapshot.previous_set.unwrap();
     assert_eq!(previous_set.fake_validator_peers, vec!["alice".to_owned()]);
     assert_eq!(previous_set.validators[0].map_node, None);
+    assert_eq!(
+        previous_set.validators[0].last_known_map_node,
+        Some(map_node(
+            "203.0.113.10",
+            "Test ISP",
+            "Test City",
+            "Testland"
+        ))
+    );
     assert!(previous_set.validators[0].history[4].fake_node);
+    assert_eq!(
+        previous_set.validators[0].history[4].map_node,
+        Some(map_node(
+            "203.0.113.10",
+            "Test ISP",
+            "Test City",
+            "Testland"
+        ))
+    );
+}
+
+#[test]
+fn fake_validator_uses_previous_round_map_node_as_last_known_location() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    chain.record_set(
+        &ValidatorSetDto {
+            validators: vec![ValidatorDto {
+                map_node: Some(map_node(
+                    "203.0.113.10",
+                    "Test ISP",
+                    "Test City",
+                    "Testland",
+                )),
+                ..validator("alice")
+            }],
+            ..set(8, RoundColor::Blue, Vec::new())
+        },
+        100,
+    );
+    chain.record_set(
+        &ValidatorSetDto {
+            fake_validator_peers: vec!["alice".to_owned()],
+            fake_validator_status_known: true,
+            ..set(10, RoundColor::Blue, vec!["alice"])
+        },
+        200,
+    );
+
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(10, RoundColor::Blue, vec!["alice"]);
+
+    store.annotate_snapshot("test", &mut snapshot);
+
+    assert_eq!(snapshot.current_set.validators[0].map_node, None);
+    assert_eq!(
+        snapshot.current_set.validators[0].last_known_map_node,
+        Some(map_node(
+            "203.0.113.10",
+            "Test ISP",
+            "Test City",
+            "Testland"
+        ))
+    );
+    assert!(snapshot.current_set.validators[0].history[4].fake_node);
+    assert_eq!(
+        snapshot.current_set.validators[0].history[4].map_node,
+        Some(map_node(
+            "203.0.113.10",
+            "Test ISP",
+            "Test City",
+            "Testland"
+        ))
+    );
 }

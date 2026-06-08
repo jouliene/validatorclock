@@ -32,6 +32,7 @@ function validatorHistoryCell(history) {
     if (fakeNode) {
       dot.setAttribute("aria-label", "Fake Node participation");
     }
+    const locationLines = validatorHistoryLocationTooltipLines(point, fakeNode);
     setValidatorTooltip(
       dot,
       point.round == null
@@ -40,6 +41,7 @@ function validatorHistoryCell(history) {
             `Round: ${point.round}`,
             `Status: ${historyStatusLabel(status)}`,
             ...(fakeNode ? ["Node: Fake Node"] : []),
+            ...locationLines,
           ]
     );
     dots.appendChild(dot);
@@ -47,6 +49,22 @@ function validatorHistoryCell(history) {
 
   cell.appendChild(dots);
   return cell;
+}
+
+function validatorHistoryLocationTooltipLines(point, fakeNode) {
+  if (!point?.map_node || typeof point.map_node !== "object") {
+    return fakeNode
+      ? [validatorTooltipDangerLine("Location: Validator node IP not detected.")]
+      : [];
+  }
+
+  return [
+    ...(fakeNode ? [validatorTooltipDangerLine("Location: Validator node IP not detected.")] : []),
+    ...mapNodeTooltipLines(
+      point.map_node,
+      fakeNode ? "Last known Location:" : "Location:"
+    ),
+  ];
 }
 
 function historyStatusLabel(status) {

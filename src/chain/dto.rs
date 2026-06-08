@@ -112,6 +112,8 @@ pub(crate) struct ValidatorDto {
     pub(crate) wallet: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) map_node: Option<ValidatorMapNodeDto>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) last_known_map_node: Option<ValidatorMapNodeDto>,
     pub(crate) source: Option<ValidatorSourceDto>,
     pub(crate) contract_type: Option<String>,
     pub(crate) contract_type_hash: Option<String>,

@@ -25,12 +25,23 @@ impl RoundHistoryStore {
         for validator in &mut set.validators {
             let is_fake = fake_validator_peers.contains(&validator.public_key.to_ascii_lowercase());
             if is_fake {
+                validator.last_known_map_node = validator.map_node.clone().or_else(|| {
+                    self.latest_map_node_for_identity(
+                        chain_id,
+                        set.round_id,
+                        &validator.public_key,
+                        validator.wallet.as_deref(),
+                    )
+                });
                 validator.map_node = None;
-            } else if validator.map_node.is_none() {
-                validator.map_node = self
-                    .stored_validator(chain_id, set.round_id, &validator.public_key)
-                    .filter(|stored| stored.fake_node != Some(true))
-                    .and_then(|stored| stored.map_node.clone());
+            } else {
+                validator.last_known_map_node = None;
+                if validator.map_node.is_none() {
+                    validator.map_node = self
+                        .stored_validator(chain_id, set.round_id, &validator.public_key)
+                        .filter(|stored| stored.fake_node != Some(true))
+                        .and_then(|stored| stored.map_node.clone());
+                }
             }
             validator.history = self.same_color_participation(
                 chain_id,
@@ -97,26 +108,34 @@ impl RoundHistoryStore {
         RoundWindow::ending_at(round_id)
             .rounds()
             .map(|round| {
-                let (status, fake_node) = chain
+                let (status, fake_node, map_node) = chain
                     .and_then(|chain| chain.rounds.get(&round))
                     .filter(|stored| stored.round_color == round_color)
                     .map(|stored| {
-                        if stored.contains_identity(public_key, wallet) {
-                            (
-                                ParticipationStatus::Participated,
-                                stored.fake_node_for_identity(public_key, wallet),
-                            )
+                        if let Some(validator) = stored.validator_for_identity(public_key, wallet) {
+                            let fake_node = validator.fake_node.unwrap_or(false);
+                            let map_node = validator.map_node.clone().or_else(|| {
+                                fake_node
+                                    .then(|| {
+                                        self.latest_map_node_for_identity(
+                                            chain_id, round, public_key, wallet,
+                                        )
+                                    })
+                                    .flatten()
+                            });
+                            (ParticipationStatus::Participated, fake_node, map_node)
                         } else if stored.complete {
-                            (ParticipationStatus::Missed, false)
+                            (ParticipationStatus::Missed, false, None)
                         } else {
-                            (ParticipationStatus::Unknown, false)
+                            (ParticipationStatus::Unknown, false, None)
                         }
                     })
-                    .unwrap_or((ParticipationStatus::Unknown, false));
+                    .unwrap_or((ParticipationStatus::Unknown, false, None));
                 ValidatorParticipationDto {
                     round,
                     status,
                     fake_node,
+                    map_node,
                 }
             })
             .collect()
@@ -148,9 +167,7 @@ impl RoundHistoryStore {
                     continue;
                 }
 
-                let map_node = (validator.fake_node != Some(true))
-                    .then(|| validator.map_node.clone())
-                    .flatten();
+                let map_node = validator.map_node.clone();
                 let recent_key = validator
                     .wallet
                     .clone()
@@ -211,6 +228,22 @@ impl RoundHistoryStore {
             .get(chain_id)
             .and_then(|chain| chain.rounds.get(&round_id))
             .and_then(|round| round.validators.get(public_key))
+    }
+
+    fn latest_map_node_for_identity(
+        &self,
+        chain_id: &str,
+        round_id: u32,
+        public_key: &str,
+        wallet: Option<&str>,
+    ) -> Option<crate::chain::ValidatorMapNodeDto> {
+        self.chains
+            .get(chain_id)?
+            .rounds
+            .range(..=round_id)
+            .rev()
+            .filter_map(|(_, round)| round.validator_for_identity(public_key, wallet))
+            .find_map(|validator| validator.map_node.clone())
     }
 }
 

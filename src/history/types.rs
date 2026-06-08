@@ -17,6 +17,8 @@ pub(crate) struct ValidatorParticipationDto {
     pub(super) status: ParticipationStatus,
     #[serde(default, skip_serializing_if = "is_false")]
     pub(super) fake_node: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) map_node: Option<ValidatorMapNodeDto>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -275,6 +275,24 @@ async fn app_router_clears_stale_map_node_for_fake_validator() {
         "fake validator unexpectedly kept map_node: {}",
         body["current_set"]["validators"][1]
     );
+    assert_eq!(
+        body["current_set"]["validators"][1]["last_known_map_node"],
+        json!({
+            "ip": "198.51.100.99",
+            "isp": "Old ISP",
+            "city": "Old City",
+            "country": "Oldland"
+        })
+    );
+    assert_eq!(
+        body["current_set"]["validators"][1]["history"][4]["map_node"],
+        json!({
+            "ip": "198.51.100.99",
+            "isp": "Old ISP",
+            "city": "Old City",
+            "country": "Oldland"
+        })
+    );
 
     let _ = fs::remove_file(map_path);
 }

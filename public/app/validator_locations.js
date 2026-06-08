@@ -8,11 +8,28 @@ function withValidatorLocationTooltipLines(validator, tooltipLines, options = {}
 function validatorLocationTooltipLines(validator, options = {}, missingLocationLine = "") {
   const node = validatorMapNode(validator, options);
   if (!node) {
+    const lines = [];
     const line = String(missingLocationLine || "").trim();
-    return line ? [missingLocationTooltipLine(line)] : [];
+    if (line) {
+      lines.push(missingLocationTooltipLine(line));
+    }
+    const lastKnownNode = validatorLastKnownMapNode(validator);
+    if (lastKnownNode) {
+      lines.push(...mapNodeTooltipLines(lastKnownNode, "Last known Location:"));
+    }
+    return lines;
   }
 
-  const lines = ["Location:"];
+  const lines = mapNodeTooltipLines(node, "Location:");
+  if (lines.length > 1) {
+    return lines;
+  }
+  const line = String(missingLocationLine || "").trim();
+  return line ? [missingLocationTooltipLine(line)] : [];
+}
+
+function mapNodeTooltipLines(node, heading = "Location:") {
+  const lines = [heading];
   const ip = String(node.ip || "").trim();
   const isp = String(node.isp || "").trim();
   const place = [node.city, node.country]
@@ -30,11 +47,7 @@ function validatorLocationTooltipLines(validator, options = {}, missingLocationL
     lines.push(`Place: ${place}`);
   }
 
-  if (lines.length > 1) {
-    return lines;
-  }
-  const line = String(missingLocationLine || "").trim();
-  return line ? [missingLocationTooltipLine(line)] : [];
+  return lines;
 }
 
 function missingLocationTooltipLine(line) {
@@ -55,6 +68,13 @@ function validatorMapNode(validator, options = {}) {
     return null;
   }
   return options.mapNodesByPeer.get(peer) || null;
+}
+
+function validatorLastKnownMapNode(validator) {
+  if (validator?.last_known_map_node && typeof validator.last_known_map_node === "object") {
+    return validator.last_known_map_node;
+  }
+  return null;
 }
 
 function validatorMapAvailableForChain(chainId) {

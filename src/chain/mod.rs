@@ -64,6 +64,7 @@ pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
                 adnl_addr: Some("adnl".to_owned()),
                 wallet: Some("-1:wallet".to_owned()),
                 map_node: None,
+                last_known_map_node: None,
                 source: None,
                 contract_type: Some("EverWallet".to_owned()),
                 contract_type_hash: Some(

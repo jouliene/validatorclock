@@ -19,6 +19,7 @@ fn validator_with_wallet(public_key: &str, wallet: Option<&str>) -> ValidatorDto
         adnl_addr: None,
         wallet: wallet.map(str::to_owned),
         map_node: None,
+        last_known_map_node: None,
         source: None,
         contract_type: None,
         contract_type_hash: None,
