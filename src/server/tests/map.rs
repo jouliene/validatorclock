@@ -298,6 +298,60 @@ async fn app_router_clears_stale_map_node_for_fake_validator() {
 }
 
 #[tokio::test]
+async fn app_router_defers_fake_everscale_validators_for_new_set_even_after_map_refresh() {
+    let map_path = temp_map_path("everscale_fake_grace");
+    fs::write(
+        &map_path,
+        r#"[
+            {"peer":"mapped-ever-validator","ip":"203.0.113.30","city":"EVER City","country":"EVERland","isp":"EVER ISP","lat":9.25,"lon":10.5}
+        ]"#,
+    )
+    .unwrap();
+
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("everscale".to_owned(), map_path.clone());
+    config.chains.push(test_chain_config(
+        "everscale",
+        "Everscale",
+        "#6347F5",
+        "EVER",
+    ));
+    let state = state_from_config(config);
+    cache_snapshot_with(
+        &state,
+        "everscale",
+        &["mapped-ever-validator", "missing-ever-validator"],
+        |snapshot| {
+            snapshot.current_set.utime_since = now_sec_for_test().saturating_sub(60) as u32;
+        },
+    )
+    .await;
+
+    let response = app_response(state, "/api/chains/everscale/clock").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert!(
+        body["current_set"].get("fake_validator_peers").is_none(),
+        "unexpected fake peers: {}",
+        body["current_set"]["fake_validator_peers"]
+    );
+    assert_eq!(
+        body["current_set"]["validators"][0]["map_node"],
+        json!({
+            "ip": "203.0.113.30",
+            "isp": "EVER ISP",
+            "city": "EVER City",
+            "country": "EVERland"
+        })
+    );
+
+    let _ = fs::remove_file(map_path);
+}
+
+#[tokio::test]
 async fn app_router_defers_fake_ton_validators_for_new_set_until_map_refresh() {
     let map_path = temp_map_path("ton_fake_grace");
     fs::write(

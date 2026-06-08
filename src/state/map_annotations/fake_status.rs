@@ -21,10 +21,10 @@ pub(super) fn update_set_fake_validator_status(
 fn fake_validator_status_update(
     set: &ValidatorSetDto,
     mapped_peers: &HashSet<String>,
-    map_nodes_updated_at: Option<u64>,
+    _map_nodes_updated_at: Option<u64>,
     observed_at: u64,
 ) -> FakeValidatorStatusUpdate {
-    if should_defer_fake_validator_status(set, map_nodes_updated_at, observed_at) {
+    if should_defer_fake_validator_status(set, observed_at) {
         return FakeValidatorStatusUpdate::Deferred;
     }
 
@@ -56,20 +56,9 @@ fn fake_validator_peers(set: &ValidatorSetDto, mapped_peers: &HashSet<String>) -
     fake_peers
 }
 
-fn should_defer_fake_validator_status(
-    set: &ValidatorSetDto,
-    map_nodes_updated_at: Option<u64>,
-    observed_at: u64,
-) -> bool {
+fn should_defer_fake_validator_status(set: &ValidatorSetDto, observed_at: u64) -> bool {
     let set_started_at = u64::from(set.utime_since);
-    if observed_at.saturating_sub(set_started_at) >= NEW_SET_FAKE_STATUS_GRACE_SECONDS {
-        return false;
-    }
-
-    match map_nodes_updated_at {
-        Some(updated_at) => updated_at < set_started_at,
-        None => true,
-    }
+    observed_at.saturating_sub(set_started_at) < NEW_SET_FAKE_STATUS_GRACE_SECONDS
 }
 
 #[cfg(test)]
@@ -107,14 +96,14 @@ mod tests {
     }
 
     #[test]
-    fn fake_validator_status_is_known_during_grace_after_map_refresh() {
+    fn fake_validator_status_is_deferred_during_new_set_grace_after_map_refresh() {
         let mut set = validator_set_with_peers(&["mapped", "missing"]);
         set.utime_since = 1_000;
 
         update_set_fake_validator_status(&mut set, &mapped_peers(&["mapped"]), Some(1_030), 1_120);
 
-        assert!(set.fake_validator_status_known);
-        assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);
+        assert!(!set.fake_validator_status_known);
+        assert!(set.fake_validator_peers.is_empty());
     }
 
     #[test]
