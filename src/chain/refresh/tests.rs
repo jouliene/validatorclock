@@ -48,7 +48,7 @@ async fn broxus_failure_uses_toncenter_fallback_and_enrichment() -> Result<()> {
         snapshot
             .warning
             .as_deref()
-            .is_some_and(|warning| warning.contains("using TON Center fallback"))
+            .is_some_and(|warning| warning.contains("using fallback RPC"))
     );
     assert!(
         snapshot
@@ -61,6 +61,49 @@ async fn broxus_failure_uses_toncenter_fallback_and_enrichment() -> Result<()> {
     let candidate = &snapshot.election.candidates[0];
     assert_eq!(candidate.wallet, mock.wallet_address.as_str());
     assert!(candidate.contract_type_hash.is_some());
+    assert_eq!(mock.account_states_requests.load(Ordering::SeqCst), 1);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn toncenter_primary_fetches_snapshot_and_enrichment() -> Result<()> {
+    let mock = Arc::new(MockTonCenter::new()?);
+    let endpoint = spawn_mock_toncenter(Arc::clone(&mock)).await?;
+    let state_dir = test_state_dir()?;
+    let toncenter_endpoint = format!("{endpoint}/api/v2/jsonRPC");
+    let config = Arc::new(AppConfig {
+        listen: "127.0.0.1:0".to_owned(),
+        refresh_seconds: 60,
+        refresh_timeout_seconds: 15,
+        cache_path: state_dir.join("cache.json"),
+        history_path: Some(state_dir.join("history.json")),
+        tycho_map_nodes_path: None,
+        map_nodes_paths: HashMap::new(),
+        security: SecurityConfig::default(),
+        tls: TlsConfig::default(),
+        chains: vec![ChainConfig {
+            id: "ton".to_owned(),
+            name: "TON".to_owned(),
+            rpc: toncenter_endpoint.clone(),
+            rpc_fallbacks: vec!["http://127.0.0.1:9/broxus-disabled".to_owned()],
+            color: "#0098ea".to_owned(),
+            token_symbol: "TON".to_owned(),
+            rpc_label: None,
+        }],
+    });
+    let state = Arc::new(AppState::new(config));
+
+    let snapshot = get_chain_snapshot_cached_first(Arc::clone(&state), "ton", true).await?;
+
+    assert!(snapshot.warning.is_none());
+    assert_eq!(
+        snapshot.selected_endpoint.as_deref(),
+        Some(toncenter_endpoint.as_str())
+    );
+    assert_eq!(snapshot.seqno, 12345);
+    assert_eq!(snapshot.current_set.total, 1);
+    assert_eq!(snapshot.election.candidates.len(), 1);
     assert_eq!(mock.account_states_requests.load(Ordering::SeqCst), 1);
 
     Ok(())

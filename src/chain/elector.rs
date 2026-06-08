@@ -15,48 +15,111 @@ use snapshot::previous_validator_set;
 use std::env;
 use tracing::debug;
 
+const TON_STALE_GRACE_SECONDS: u64 = 300;
+
 pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSnapshot> {
-    match fetch_chain_snapshot_from_jrpc(chain, &chain.rpc, None).await {
-        Ok(snapshot) => Ok(snapshot),
+    match fetch_chain_snapshot_from_endpoint(chain, &chain.rpc, None).await {
+        Ok(mut snapshot) => {
+            if let Some(stale_reason) = snapshot_stale_reason(chain, &snapshot) {
+                let primary_reason = format!("appears stale: {stale_reason}");
+                match fetch_fallback_snapshot(chain, &primary_reason, true).await {
+                    Ok(snapshot) => return Ok(snapshot),
+                    Err(error) => set_snapshot_warning(
+                        &mut snapshot,
+                        format!(
+                            "primary RPC `{}` appears stale: {}; {}",
+                            super::util::endpoint_label(&chain.rpc),
+                            stale_reason,
+                            error
+                        ),
+                    ),
+                }
+            }
+
+            Ok(snapshot)
+        }
         Err(primary_error) => {
             if chain.rpc_fallbacks.is_empty() {
                 return Err(primary_error);
             }
 
             let primary_error = primary_error.to_string();
-            let mut fallback_errors = Vec::new();
-            for fallback in &chain.rpc_fallbacks {
-                let warning = format!(
-                    "using fallback RPC `{}`; primary RPC `{}` failed: {}",
-                    super::util::endpoint_label(fallback),
-                    super::util::endpoint_label(&chain.rpc),
-                    primary_error
-                );
-                let result = if toncenter::is_toncenter_endpoint(fallback) {
-                    toncenter::fetch_chain_snapshot(chain, fallback, &primary_error).await
-                } else {
-                    fetch_chain_snapshot_from_jrpc(chain, fallback, Some(warning)).await
-                };
-
-                match result {
-                    Ok(snapshot) => return Ok(snapshot),
-                    Err(error) => {
-                        fallback_errors.push(format!(
-                            "{}: {}",
-                            super::util::endpoint_label(fallback),
-                            error
-                        ));
-                    }
-                }
-            }
-
-            Err(anyhow!(
-                "primary RPC failed: {}; fallback RPCs failed: {}",
-                primary_error,
-                fallback_errors.join("; ")
-            ))
+            fetch_fallback_snapshot(chain, &format!("failed: {primary_error}"), false)
+                .await
+                .map_err(|fallback_error| {
+                    anyhow!("primary RPC failed: {}; {}", primary_error, fallback_error)
+                })
         }
     }
+}
+
+async fn fetch_fallback_snapshot(
+    chain: &ChainConfig,
+    primary_reason: &str,
+    require_fresh: bool,
+) -> Result<ClockSnapshot> {
+    if chain.rpc_fallbacks.is_empty() {
+        return Err(anyhow!("no fallback RPCs configured"));
+    }
+
+    let mut fallback_errors = Vec::new();
+    for fallback in &chain.rpc_fallbacks {
+        let warning = format!(
+            "using fallback RPC `{}`; primary RPC `{}` {}",
+            super::util::endpoint_label(fallback),
+            super::util::endpoint_label(&chain.rpc),
+            primary_reason
+        );
+
+        match fetch_chain_snapshot_from_endpoint(chain, fallback, Some(warning)).await {
+            Ok(mut snapshot) => {
+                if let Some(stale_reason) = snapshot_stale_reason(chain, &snapshot) {
+                    if require_fresh {
+                        fallback_errors.push(format!(
+                            "{} returned stale snapshot: {}",
+                            super::util::endpoint_label(fallback),
+                            stale_reason
+                        ));
+                        continue;
+                    }
+
+                    set_snapshot_warning(
+                        &mut snapshot,
+                        format!(
+                            "fallback RPC `{}` returned stale snapshot: {}",
+                            super::util::endpoint_label(fallback),
+                            stale_reason
+                        ),
+                    );
+                }
+                return Ok(snapshot);
+            }
+            Err(error) => {
+                fallback_errors.push(format!(
+                    "{}: {}",
+                    super::util::endpoint_label(fallback),
+                    error
+                ));
+            }
+        }
+    }
+
+    Err(anyhow!(
+        "fallback RPCs failed: {}",
+        fallback_errors.join("; ")
+    ))
+}
+
+async fn fetch_chain_snapshot_from_endpoint(
+    chain: &ChainConfig,
+    rpc: &str,
+    warning: Option<String>,
+) -> Result<ClockSnapshot> {
+    if toncenter::is_toncenter_endpoint(rpc) {
+        return toncenter::fetch_chain_snapshot(chain, rpc, warning).await;
+    }
+
+    fetch_chain_snapshot_from_jrpc(chain, rpc, warning).await
 }
 
 async fn fetch_chain_snapshot_from_jrpc(
@@ -147,9 +210,51 @@ fn validator_set_contains_time(set: &ValidatorSet, observed_at: u64) -> bool {
     observed_at >= u64::from(set.utime_since) && observed_at < u64::from(set.utime_until)
 }
 
+fn snapshot_stale_reason(chain: &ChainConfig, snapshot: &ClockSnapshot) -> Option<String> {
+    if chain.id != "ton" {
+        return None;
+    }
+
+    let observed_at = snapshot.fetched_at;
+    let current_until = u64::from(snapshot.current_set.utime_until);
+    if observed_at > current_until.saturating_add(TON_STALE_GRACE_SECONDS) {
+        return Some(format!(
+            "current validator set expired at {}",
+            snapshot.current_set.utime_until
+        ));
+    }
+
+    if snapshot.next_set.is_some() {
+        return None;
+    }
+
+    let election_deadline =
+        current_until.saturating_sub(u64::from(snapshot.params15.elections_end_before));
+    if observed_at > election_deadline.saturating_add(TON_STALE_GRACE_SECONDS) {
+        return Some(format!(
+            "next validator set missing after election deadline {election_deadline}"
+        ));
+    }
+
+    None
+}
+
+fn set_snapshot_warning(snapshot: &mut ClockSnapshot, warning: String) {
+    if let Some(existing) = &mut snapshot.warning {
+        if !existing.is_empty() {
+            existing.push_str("; ");
+        }
+        existing.push_str(&warning);
+        return;
+    }
+
+    snapshot.warning = Some(warning);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chain::test_clock_snapshot;
     use std::num::NonZeroU16;
 
     fn validator_set(utime_since: u32, utime_until: u32) -> ValidatorSet {
@@ -196,5 +301,53 @@ mod tests {
 
         assert_eq!(effective_current.utime_since, 100);
         assert_eq!(effective_next.unwrap().utime_since, 250);
+    }
+
+    fn chain_config(id: &str) -> ChainConfig {
+        ChainConfig {
+            id: id.to_owned(),
+            name: "Test".to_owned(),
+            rpc: "https://example.com".to_owned(),
+            rpc_fallbacks: Vec::new(),
+            color: "#38bdf8".to_owned(),
+            token_symbol: "TEST".to_owned(),
+            rpc_label: None,
+        }
+    }
+
+    #[test]
+    fn ton_snapshot_without_next_set_after_election_deadline_is_stale() {
+        let chain = chain_config("ton");
+        let mut snapshot = test_clock_snapshot("ton");
+        snapshot.current_set.utime_until = 10_000;
+        snapshot.params15.elections_end_before = 1_000;
+        snapshot.fetched_at = 9_000 + TON_STALE_GRACE_SECONDS + 1;
+
+        let reason = snapshot_stale_reason(&chain, &snapshot).unwrap();
+
+        assert!(reason.contains("next validator set missing"));
+    }
+
+    #[test]
+    fn ton_snapshot_with_next_set_after_election_deadline_is_not_stale() {
+        let chain = chain_config("ton");
+        let mut snapshot = test_clock_snapshot("ton");
+        snapshot.current_set.utime_until = 10_000;
+        snapshot.params15.elections_end_before = 1_000;
+        snapshot.fetched_at = 9_000 + TON_STALE_GRACE_SECONDS + 1;
+        snapshot.next_set = Some(snapshot.current_set.clone());
+
+        assert!(snapshot_stale_reason(&chain, &snapshot).is_none());
+    }
+
+    #[test]
+    fn non_ton_snapshot_without_next_set_after_election_deadline_is_not_stale() {
+        let chain = chain_config("everscale");
+        let mut snapshot = test_clock_snapshot("everscale");
+        snapshot.current_set.utime_until = 10_000;
+        snapshot.params15.elections_end_before = 1_000;
+        snapshot.fetched_at = 9_000 + TON_STALE_GRACE_SECONDS + 1;
+
+        assert!(snapshot_stale_reason(&chain, &snapshot).is_none());
     }
 }

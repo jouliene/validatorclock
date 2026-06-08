@@ -1,6 +1,6 @@
 use super::super::dto::ValidatorRoundData;
 use super::super::toncenter_client::{TonCenterJsonRpcClient, is_toncenter_json_rpc_endpoint};
-use super::super::util::{endpoint_label, masterchain_hash_address, now_sec};
+use super::super::util::{masterchain_hash_address, now_sec};
 use super::super::{ClockSnapshot, ElectionDto, ElectionTimingsDto, ValidatorSetDto};
 use super::effective_validator_sets;
 use super::toncenter_stack::{
@@ -27,10 +27,10 @@ pub(super) fn is_toncenter_endpoint(endpoint: &str) -> bool {
 pub(super) async fn fetch_chain_snapshot(
     chain: &ChainConfig,
     endpoint: &str,
-    primary_error: &str,
+    warning: Option<String>,
 ) -> Result<ClockSnapshot> {
     if chain.id != "ton" {
-        bail!("TON Center fallback supports only the `ton` chain");
+        bail!("TON Center endpoint supports only the `ton` chain");
     }
 
     let client = TonCenterClient::new(endpoint)?;
@@ -106,12 +106,7 @@ pub(super) async fn fetch_chain_snapshot(
             )
         }),
         election,
-        warning: Some(format!(
-            "using TON Center fallback `{}`; primary RPC `{}` failed: {}",
-            endpoint_label(endpoint),
-            endpoint_label(&chain.rpc),
-            primary_error
-        )),
+        warning,
     })
 }
 
