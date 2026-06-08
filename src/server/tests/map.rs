@@ -224,6 +224,7 @@ async fn app_router_clears_stale_map_node_for_fake_validator() {
     .unwrap();
 
     let mut config = test_config(Vec::new());
+    config.history_path = Some(temp_state_path("history_everscale_fake_stale_location"));
     config
         .map_nodes_paths
         .insert("everscale".to_owned(), map_path.clone());
@@ -309,6 +310,7 @@ async fn app_router_defers_fake_everscale_validators_for_new_set_even_after_map_
     .unwrap();
 
     let mut config = test_config(Vec::new());
+    config.history_path = Some(temp_state_path("history_everscale_fake_grace"));
     config
         .map_nodes_paths
         .insert("everscale".to_owned(), map_path.clone());
@@ -324,7 +326,7 @@ async fn app_router_defers_fake_everscale_validators_for_new_set_even_after_map_
         "everscale",
         &["mapped-ever-validator", "missing-ever-validator"],
         |snapshot| {
-            snapshot.current_set.utime_since = now_sec_for_test().saturating_sub(60) as u32;
+            snapshot.current_set.utime_since = u32::MAX;
         },
     )
     .await;
@@ -363,6 +365,7 @@ async fn app_router_defers_fake_ton_validators_for_new_set_until_map_refresh() {
     .unwrap();
 
     let mut config = test_config(Vec::new());
+    config.history_path = Some(temp_state_path("history_ton_fake_grace"));
     config
         .map_nodes_paths
         .insert("ton".to_owned(), map_path.clone());
