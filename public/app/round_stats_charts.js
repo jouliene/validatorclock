@@ -66,9 +66,10 @@ function roundStatsChartCard(chart, rounds, tokenSymbol) {
   header.className = "round-stats-chart-header";
   const title = document.createElement("h3");
   title.textContent = chart.title;
-  const latest = document.createElement("strong");
-  latest.textContent = chart.latest(rounds.at(-1), tokenSymbol);
-  header.append(title, latest);
+  if (!chart.hideTitle) {
+    header.appendChild(title);
+  }
+  header.appendChild(roundStatsLatestNode(chart, rounds.at(-1), tokenSymbol));
 
   const body = document.createElement("div");
   body.className = "round-stats-chart-body";
@@ -76,6 +77,30 @@ function roundStatsChartCard(chart, rounds, tokenSymbol) {
 
   card.append(header, body);
   return card;
+}
+
+function roundStatsLatestNode(chart, round, tokenSymbol) {
+  if (typeof chart.latestParts === "function") {
+    const grid = document.createElement("div");
+    grid.className = "round-stats-latest-grid";
+    for (const part of chart.latestParts(round, tokenSymbol)) {
+      const item = document.createElement("div");
+      item.className = "round-stats-latest-item";
+      const label = document.createElement("span");
+      label.className = "round-stats-latest-label";
+      label.textContent = part.label;
+      const value = document.createElement("strong");
+      value.className = "round-stats-latest-value";
+      value.textContent = part.value || "-";
+      item.append(label, value);
+      grid.appendChild(item);
+    }
+    return grid;
+  }
+
+  const latest = document.createElement("strong");
+  latest.textContent = chart.latest(round, tokenSymbol);
+  return latest;
 }
 
 function roundStatsSvg(chart, rounds) {

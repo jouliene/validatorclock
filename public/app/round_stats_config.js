@@ -14,6 +14,7 @@ const ROUND_STATS_CHARTS = [
   {
     key: "stakeRange",
     title: "Min/max stake",
+    hideTitle: true,
     unit: "stake",
     series: [
       {
@@ -29,12 +30,10 @@ const ROUND_STATS_CHARTS = [
         tooltip: (round) => formatRoundStatsExactAmount(round.max_stake),
       },
     ],
-    latest: (round) => {
-      if (!round) {
-        return "-";
-      }
-      return `${formatStakeAmount(round.min_stake)} / ${formatStakeAmount(round.max_stake)}`;
-    },
+    latestParts: (round) => [
+      { label: "Min stake", value: formatStakeAmount(round?.min_stake) },
+      { label: "Max stake", value: formatStakeAmount(round?.max_stake) },
+    ],
   },
   {
     key: "validators",
