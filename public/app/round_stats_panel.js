@@ -180,7 +180,7 @@ function syncRoundStatsPanel() {
   toggle.setAttribute("aria-expanded", String(state.roundStatsOpen));
   toggle.setAttribute(
     "aria-label",
-    state.roundStatsOpen ? "Hide round statistics" : "Show round statistics",
+    state.roundStatsOpen ? "Hide rounds statistics" : "Show rounds statistics",
   );
 }
 
@@ -326,16 +326,23 @@ function renderRoundAprBadge(color, rounds) {
 
   const apr = averageRoundStatsProfitability(rounds);
   const hasAverage = Number.isFinite(apr.average);
-  label.textContent = `${apr.count} ROUND APR`;
+  label.textContent = `${apr.count} ROUNDS APR`;
   value.textContent = hasAverage ? formatRoundStatsPercent(apr.average) : "-";
   badge.classList.toggle("is-empty", !hasAverage);
   const colorLabel = color === "blue" ? "blue" : "green";
-  badge.title = hasAverage
-    ? `Average APR across ${apr.count} completed ${colorLabel} rounds with rewards data`
-    : `No completed ${colorLabel} rounds with rewards data yet`;
+  setValidatorTooltip(
+    badge,
+    hasAverage
+      ? [
+          "Metric: Average APR",
+          `Rounds: ${apr.count} completed ${colorLabel} rounds with rewards data`,
+          `APR: ${value.textContent}`,
+        ]
+      : [`Rounds: 0 completed ${colorLabel} rounds with rewards data`, "APR: unavailable"],
+  );
   badge.setAttribute(
     "aria-label",
-    hasAverage ? `${apr.count} round APR ${value.textContent}` : "APR unavailable",
+    hasAverage ? `${apr.count} rounds APR ${value.textContent}` : "APR unavailable",
   );
 }
 
@@ -423,7 +430,6 @@ function roundStatsChartCard(chart, rounds, tokenSymbol) {
   title.textContent = chart.title;
   const latest = document.createElement("strong");
   latest.textContent = chart.latest(rounds.at(-1), tokenSymbol);
-  latest.title = latest.textContent;
   header.append(title, latest);
 
   const body = document.createElement("div");
@@ -615,7 +621,7 @@ function formatRoundStatsPercent(value) {
   if (!Number.isFinite(number)) {
     return "-";
   }
-  return `${number.toFixed(Math.abs(number) >= 10 ? 1 : 2)}%`;
+  return `${number.toFixed(2)}%`;
 }
 
 function formatRoundStatsExactAmount(value) {
@@ -637,7 +643,7 @@ function formatRoundStatsExactPercent(value) {
   if (!Number.isFinite(number)) {
     return "-";
   }
-  return `${number.toFixed(4)}%`;
+  return `${number.toFixed(2)}%`;
 }
 
 function roundStatsTooltipLabel(series, round) {

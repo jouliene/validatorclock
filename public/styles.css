@@ -955,6 +955,7 @@ dd {
   font-size: 12px;
   font-weight: 820;
   letter-spacing: 0;
+  white-space: nowrap;
   box-shadow:
     var(--shadow-control),
     inset 0 0 0 1px rgba(255, 255, 255, 0.018);
@@ -1034,7 +1035,7 @@ dd {
 }
 
 .round-stats-toggle {
-  min-width: 0;
+  min-width: 164px;
 }
 
 .round-stats-toggle-icon {

@@ -10,7 +10,7 @@
 <body>
   <div class="app-shell">
     <header class="titlebar">
-      <div id="runtimeStatus" class="runtime-status is-starting" title="Runtime status">
+      <div id="runtimeStatus" class="runtime-status is-starting">
         <span class="runtime-dot" aria-hidden="true"></span>
         <strong id="runtimeState">Starting</strong>
         <span id="runtimeFreshness">checking</span>
@@ -112,7 +112,7 @@
         </span>
         <span>MAP</span>
       </button>
-      <button id="roundStatsToggle" class="map-toggle round-stats-toggle" type="button" aria-expanded="false" aria-controls="roundStatsPanel" aria-label="Show round statistics">
+      <button id="roundStatsToggle" class="map-toggle round-stats-toggle" type="button" aria-expanded="false" aria-controls="roundStatsPanel" aria-label="Show rounds statistics">
         <span class="map-toggle-icon round-stats-toggle-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
             <path d="M4 19V5"></path>
@@ -124,7 +124,7 @@
             <circle cx="19" cy="8" r="1"></circle>
           </svg>
         </span>
-        <span>ROUND STATS</span>
+        <span>ROUNDS STATS</span>
       </button>
     </section>
 
@@ -208,8 +208,8 @@
           </div>
           <div class="round-header-strip">
             <p id="blueRoundMeta" class="round-meta"></p>
-            <div id="blueRoundApr" class="round-apr-badge" title="Average APR across completed blue rounds with rewards data">
-              <span>0 ROUND APR</span>
+            <div id="blueRoundApr" class="round-apr-badge">
+              <span>0 ROUNDS APR</span>
               <strong>-</strong>
             </div>
             <span id="blueRoundBadge" class="round-badge">-</span>
@@ -235,8 +235,8 @@
           </div>
           <div class="round-header-strip">
             <p id="greenRoundMeta" class="round-meta"></p>
-            <div id="greenRoundApr" class="round-apr-badge" title="Average APR across completed green rounds with rewards data">
-              <span>0 ROUND APR</span>
+            <div id="greenRoundApr" class="round-apr-badge">
+              <span>0 ROUNDS APR</span>
               <strong>-</strong>
             </div>
             <span id="greenRoundBadge" class="round-badge">-</span>

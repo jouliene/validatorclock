@@ -30,7 +30,7 @@ function renderRuntimeStatus(now) {
   const chain = status?.chains?.find((item) => item.id === state.selectedChainId);
   container.hidden = false;
   container.className = "runtime-status is-starting";
-  container.title = "Runtime status";
+  setValidatorTooltip(container, "Runtime status");
 
   if (!status) {
     label.textContent = "Starting";
@@ -40,7 +40,7 @@ function renderRuntimeStatus(now) {
 
   if (status.error) {
     container.className = "runtime-status is-bad";
-    container.title = status.error;
+    setValidatorTooltip(container, status.error);
     label.textContent = "Status error";
     detail.textContent = "retrying";
     return;
@@ -58,7 +58,7 @@ function renderRuntimeStatus(now) {
   const age = freshnessAt ? Math.max(0, now - freshnessAt) : null;
   if (chain.stale) {
     container.className = "runtime-status is-bad";
-    container.title = chain.last_error || "Cached data is stale";
+    setValidatorTooltip(container, chain.last_error || "Cached data is stale");
     label.textContent = "Stale";
     detail.textContent = age == null ? "no cache" : `${formatDuration(age)} old`;
     return;
@@ -66,7 +66,7 @@ function renderRuntimeStatus(now) {
 
   if (chain.last_error) {
     container.className = "runtime-status is-warn";
-    container.title = chain.last_error;
+    setValidatorTooltip(container, chain.last_error);
     label.textContent = "Retrying";
     detail.textContent = age == null ? "no cache" : `${formatDuration(age)} old`;
     return;
@@ -74,7 +74,7 @@ function renderRuntimeStatus(now) {
 
   if (chain.cached) {
     container.hidden = true;
-    container.title = "Runtime status: data fresh";
+    setValidatorTooltip(container, "Runtime status: data fresh");
     label.textContent = "";
     detail.textContent = "";
     return;

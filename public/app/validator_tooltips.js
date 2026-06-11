@@ -12,13 +12,16 @@ function setValidatorTooltip(element, content) {
     return;
   }
 
+  element.removeAttribute("title");
   element.dataset.validatorTooltip = tooltip;
-  element.classList.add("has-validator-tooltip");
-  element.addEventListener("mouseenter", handleValidatorTooltipEnter);
-  element.addEventListener("focus", handleValidatorTooltipEnter);
-  element.addEventListener("pointerdown", handleValidatorTooltipPointerDown);
-  element.addEventListener("mouseleave", hideValidatorTooltip);
-  element.addEventListener("blur", hideValidatorTooltip);
+  if (!element.classList.contains("has-validator-tooltip")) {
+    element.classList.add("has-validator-tooltip");
+    element.addEventListener("mouseenter", handleValidatorTooltipEnter);
+    element.addEventListener("focus", handleValidatorTooltipEnter);
+    element.addEventListener("pointerdown", handleValidatorTooltipPointerDown);
+    element.addEventListener("mouseleave", hideValidatorTooltip);
+    element.addEventListener("blur", hideValidatorTooltip);
+  }
 }
 
 function normalizeValidatorTooltip(content) {

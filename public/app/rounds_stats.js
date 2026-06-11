@@ -42,7 +42,6 @@ function renderStats(container, stats) {
     labelNode.textContent = label;
     const valueNode = document.createElement("strong");
     valueNode.textContent = value;
-    valueNode.title = value;
     copy.append(labelNode, valueNode);
     item.appendChild(copy);
     if (detail) {
