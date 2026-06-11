@@ -9,11 +9,14 @@ mod util;
 mod validator_sources;
 
 pub(crate) use dto::{
-    CacheEntry, ChainMeta, ChainsResponse, ClockSnapshot, ElectionCandidateDto, ElectionDto,
-    ElectionTimingsDto, RoundColor, RuntimeStatusResponse, ValidatorDto, ValidatorMapNodeDto,
-    ValidatorSetDto, ValidatorSourceDto, source_contract_type_name,
+    CacheEntry, ChainMeta, ChainRoundStatsDto, ChainsResponse, ClockSnapshot, ElectionCandidateDto,
+    ElectionDto, ElectionTimingsDto, RoundColor, RoundStatsPointDto, RuntimeStatusResponse,
+    ValidatorDto, ValidatorMapNodeDto, ValidatorSetDto, ValidatorSourceDto,
+    source_contract_type_name,
 };
-pub(crate) use elector::fetch_chain_snapshot;
+pub(crate) use elector::{
+    chain_round_stats_from_history, fetch_chain_round_stats, fetch_chain_snapshot,
+};
 pub(crate) use refresh::{get_chain_snapshot_cached_first, spawn_background_refresh};
 pub(crate) use status::{chains_response, runtime_status};
 use validator_sources::apply_cached_validator_contract_type_hashes;

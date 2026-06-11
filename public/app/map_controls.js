@@ -48,7 +48,12 @@ function updateValidatorMapAvailability() {
 }
 
 function setValidatorMapOpen(open) {
-  state.validatorMapOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
+  const willOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
+  if (willOpen && state.roundStatsOpen) {
+    setRoundStatsOpen(false);
+  }
+
+  state.validatorMapOpen = willOpen;
   syncValidatorMapPanel();
 
   if (!state.validatorMapOpen) {

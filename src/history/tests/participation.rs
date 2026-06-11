@@ -342,6 +342,10 @@ fn fake_validator_map_node_is_replayed_as_last_known_location() {
                 utime_since: 100,
                 utime_until: 110,
                 observed_at: 100,
+                total_stake: None,
+                total_reward: None,
+                min_stake: None,
+                max_stake: None,
                 complete: true,
                 validators: std::collections::BTreeMap::from([(
                     "alice".to_owned(),

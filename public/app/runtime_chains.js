@@ -61,6 +61,7 @@ async function selectChain(chainId) {
     setSelectedValidatorKey(null);
   }
   resetValidatorMapForChainChange(previousChainId, chainId);
+  handleRoundStatsChainChange(previousChainId, chainId);
   renderChainTabs();
   const cachedSnapshot = state.snapshotsByChain.get(chainId);
   if (cachedSnapshot) {
@@ -75,5 +76,10 @@ async function selectChain(chainId) {
   }
   renderRuntimeStatus(Math.trunc(Date.now() / 1000));
   await loadClock(false);
+  if (state.roundStatsOpen) {
+    loadSelectedRoundStats(false).catch((error) => {
+      renderRoundStatsError(error);
+    });
+  }
   loadRuntimeStatus();
 }

@@ -61,6 +61,44 @@ pub(crate) struct ClockSnapshot {
     pub(crate) warning: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct ChainRoundStatsDto {
+    pub(super) chain: ChainMeta,
+    pub(super) fetched_at: u64,
+    pub(super) active_round_id: u32,
+    pub(super) active_round_color: RoundColor,
+    pub(super) blue: RoundStatsColorDto,
+    pub(super) green: RoundStatsColorDto,
+}
+
+impl ChainRoundStatsDto {
+    pub(crate) fn has_round_data(&self) -> bool {
+        !self.blue.rounds.is_empty() || !self.green.rounds.is_empty()
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct RoundStatsColorDto {
+    pub(crate) round_color: RoundColor,
+    pub(crate) rounds: Vec<RoundStatsPointDto>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct RoundStatsPointDto {
+    pub(crate) round_id: u32,
+    pub(crate) round_color: RoundColor,
+    pub(crate) utime_since: u32,
+    pub(crate) utime_until: u32,
+    pub(crate) validator_count: usize,
+    pub(crate) total_stake: Option<String>,
+    pub(crate) total_stake_raw: Option<String>,
+    pub(crate) min_stake: Option<String>,
+    pub(crate) max_stake: Option<String>,
+    pub(crate) total_reward: Option<String>,
+    pub(crate) total_reward_raw: Option<String>,
+    pub(crate) profitability_percent: Option<f64>,
+}
+
 impl ClockSnapshot {
     pub(crate) fn chain_id(&self) -> &str {
         &self.chain.id

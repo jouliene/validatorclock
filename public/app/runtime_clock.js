@@ -68,6 +68,7 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
   renderChainTabs();
   renderNow();
   updateStaleSnapshotRetry(chainId, snapshot);
+  handleRoundStatsClockSnapshot(chainId, snapshot);
 }
 
 function prefetchChainSnapshots() {

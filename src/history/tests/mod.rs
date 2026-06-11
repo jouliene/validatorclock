@@ -56,6 +56,10 @@ fn stored_round(set: &ValidatorSetDto, observed_at: u64, complete: bool) -> Stor
         utime_since: set.utime_since,
         utime_until: set.utime_until,
         observed_at,
+        total_stake: None,
+        total_reward: None,
+        min_stake: None,
+        max_stake: None,
         complete,
         validators: set
             .validators

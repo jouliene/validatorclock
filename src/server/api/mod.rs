@@ -6,11 +6,13 @@ use axum::response::Response;
 mod chains;
 mod clock;
 mod map;
+mod round_stats;
 mod status;
 
 pub(super) use chains::list_chains;
 pub(super) use clock::chain_clock;
 pub(super) use map::chain_map;
+pub(super) use round_stats::chain_round_stats;
 pub(super) use status::{health, status};
 
 fn chain_exists(state: &AppState, chain_id: &str) -> bool {

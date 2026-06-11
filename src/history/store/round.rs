@@ -50,6 +50,7 @@ impl StoredRound {
     }
 
     fn replace_with_preserved_wallets(&mut self, mut replacement: StoredRound) -> bool {
+        replacement.preserve_missing_stats_from(self);
         for (public_key, validator) in &mut replacement.validators {
             if let Some(existing) = self.validators.get(public_key) {
                 if validator.wallet.is_none()
@@ -77,6 +78,7 @@ impl StoredRound {
     fn merge_missing_validator_data(&mut self, other: StoredRound) -> bool {
         let mut changed = false;
         let observed_at = other.observed_at;
+        changed |= self.merge_missing_stats(&other);
         for (public_key, other_validator) in other.validators {
             if let Some(validator) = self.validators.get_mut(&public_key) {
                 if validator.wallet.is_none() && other_validator.wallet.is_some() {
@@ -104,11 +106,15 @@ impl StoredRound {
             && self.round_color == other.round_color
             && self.utime_since == other.utime_since
             && self.utime_until == other.utime_until
+            && self.total_stake == other.total_stake
+            && self.total_reward == other.total_reward
+            && self.min_stake == other.min_stake
+            && self.max_stake == other.max_stake
             && self.complete == other.complete
             && self.validators == other.validators
     }
 
-    fn richness(&self) -> (usize, usize, usize, usize) {
+    fn richness(&self) -> (usize, usize, usize, usize, usize) {
         (
             self.validators.len(),
             self.validators
@@ -123,6 +129,55 @@ impl StoredRound {
                 .values()
                 .filter(|validator| validator.map_node.is_some())
                 .count(),
+            self.stats_richness(),
         )
+    }
+
+    fn preserve_missing_stats_from(&mut self, existing: &StoredRound) {
+        if self.total_stake.is_none() {
+            self.total_stake = existing.total_stake.clone();
+        }
+        if self.total_reward.is_none() {
+            self.total_reward = existing.total_reward.clone();
+        }
+        if self.min_stake.is_none() {
+            self.min_stake = existing.min_stake.clone();
+        }
+        if self.max_stake.is_none() {
+            self.max_stake = existing.max_stake.clone();
+        }
+    }
+
+    fn merge_missing_stats(&mut self, other: &StoredRound) -> bool {
+        let mut changed = false;
+        if self.total_stake.is_none() && other.total_stake.is_some() {
+            self.total_stake = other.total_stake.clone();
+            changed = true;
+        }
+        if self.total_reward.is_none() && other.total_reward.is_some() {
+            self.total_reward = other.total_reward.clone();
+            changed = true;
+        }
+        if self.min_stake.is_none() && other.min_stake.is_some() {
+            self.min_stake = other.min_stake.clone();
+            changed = true;
+        }
+        if self.max_stake.is_none() && other.max_stake.is_some() {
+            self.max_stake = other.max_stake.clone();
+            changed = true;
+        }
+        changed
+    }
+
+    fn stats_richness(&self) -> usize {
+        [
+            &self.total_stake,
+            &self.total_reward,
+            &self.min_stake,
+            &self.max_stake,
+        ]
+        .into_iter()
+        .filter(|value| value.is_some())
+        .count()
     }
 }

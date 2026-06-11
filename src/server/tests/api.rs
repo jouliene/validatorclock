@@ -1,4 +1,5 @@
 use super::*;
+use crate::chain::RoundColor;
 use axum::http::{StatusCode, header};
 
 #[tokio::test]
@@ -73,6 +74,56 @@ async fn app_router_reports_unknown_chain() {
     let body = response_json(response).await;
     assert_eq!(body["error"], "unknown chain id `missing`");
     assert_eq!(body["code"], "unknown_chain");
+}
+
+#[tokio::test]
+async fn app_router_reports_unknown_chain_for_round_stats() {
+    let response = app_response(test_state(Vec::new()), "/api/chains/missing/round-stats").await;
+
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let body = response_json(response).await;
+    assert_eq!(body["error"], "unknown chain id `missing`");
+    assert_eq!(body["code"], "unknown_chain");
+}
+
+#[tokio::test]
+async fn app_router_serves_cached_round_stats_when_preferred() {
+    let state = test_state(Vec::new());
+    cache_snapshot_with(&state, "test", &["alice"], |snapshot| {
+        let round_duration = 65_536;
+        snapshot.current_set.round_id = 12;
+        snapshot.current_set.round_color = RoundColor::Blue;
+        snapshot.current_set.utime_since = 12 * round_duration;
+        snapshot.current_set.utime_until = 13 * round_duration;
+        snapshot.current_set.fake_validator_status_known = true;
+
+        let mut previous_set = snapshot.current_set.clone();
+        previous_set.round_id = 10;
+        previous_set.round_color = RoundColor::Blue;
+        previous_set.utime_since = 10 * round_duration;
+        previous_set.utime_until = 11 * round_duration;
+        previous_set.total_stake = Some("100".to_owned());
+        previous_set.total_reward = Some("1".to_owned());
+        previous_set.validators[0].stake = Some("100".to_owned());
+        previous_set.validators[0].reward = Some("1".to_owned());
+        snapshot.previous_set = Some(previous_set);
+        snapshot.next_set = None;
+    })
+    .await;
+    state.cached_snapshot("test").await.unwrap();
+
+    let response = app_response(state, "/api/chains/test/round-stats?prefer_cache=1").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(body["active_round_id"], 12);
+    assert_eq!(body["blue"]["rounds"][0]["round_id"], 10);
+    assert_eq!(body["blue"]["rounds"][0]["total_stake"], "100");
+    assert!(
+        body["blue"]["rounds"][0]["profitability_percent"]
+            .as_f64()
+            .is_some()
+    );
 }
 
 #[tokio::test]

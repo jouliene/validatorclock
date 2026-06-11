@@ -1,7 +1,7 @@
 use super::{
     ChainRoundHistory, RoundHistoryRetention, RoundHistoryStore, StoredRound, StoredValidator,
 };
-use crate::chain::{ClockSnapshot, ValidatorSetDto};
+use crate::chain::{ClockSnapshot, ValidatorDto, ValidatorSetDto};
 use std::collections::BTreeSet;
 
 mod round;
@@ -78,12 +78,17 @@ impl ChainRoundHistory {
         }
 
         let fake_validator_peers = fake_validator_peer_set(set);
+        let (min_stake, max_stake) = min_max_validator_stakes(&set.validators);
         let incoming = StoredRound {
             round_id: set.round_id,
             round_color: set.round_color,
             utime_since: set.utime_since,
             utime_until: set.utime_until,
             observed_at,
+            total_stake: set.total_stake.clone(),
+            total_reward: set.total_reward.clone(),
+            min_stake,
+            max_stake,
             complete: true,
             validators: set
                 .validators
@@ -143,6 +148,38 @@ impl ChainRoundHistory {
             .filter_map(|(_, round)| round.validator_for_identity(public_key, wallet))
             .find_map(|validator| validator.map_node.clone())
     }
+}
+
+fn min_max_validator_stakes(validators: &[ValidatorDto]) -> (Option<String>, Option<String>) {
+    let mut stakes = validators.iter().filter_map(|validator| {
+        let stake = validator.stake.as_ref()?;
+        parse_decimal(stake).map(|value| (value, stake))
+    });
+
+    let Some(first) = stakes.next() else {
+        return (None, None);
+    };
+
+    let (min, max) = stakes.fold((first, first), |(min, max), stake| {
+        let min = if stake.0.total_cmp(&min.0).is_lt() {
+            stake
+        } else {
+            min
+        };
+        let max = if stake.0.total_cmp(&max.0).is_gt() {
+            stake
+        } else {
+            max
+        };
+        (min, max)
+    });
+
+    (Some(min.1.clone()), Some(max.1.clone()))
+}
+
+fn parse_decimal(value: &str) -> Option<f64> {
+    let parsed = value.replace(',', "").parse::<f64>().ok()?;
+    parsed.is_finite().then_some(parsed)
 }
 
 fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {

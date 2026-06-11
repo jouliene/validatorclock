@@ -2,6 +2,7 @@ function startTimers() {
   window.clearInterval(state.pollTimer);
   window.clearInterval(state.statusTimer);
   window.clearInterval(state.drawTimer);
+  window.clearInterval(state.roundStatsPrefetchTimer);
 
   const pollSeconds = refreshPollSeconds();
 
@@ -11,6 +12,10 @@ function startTimers() {
 
   state.statusTimer = window.setInterval(() => {
     loadRuntimeStatus();
+  }, pollSeconds * 1000);
+
+  state.roundStatsPrefetchTimer = window.setInterval(() => {
+    prefetchRoundStatsSnapshots();
   }, pollSeconds * 1000);
 
   state.drawTimer = window.setInterval(renderNow, 1000);

@@ -65,6 +65,36 @@ fn snapshot_retention_keeps_previous_color_window_when_previous_set_is_missing()
 }
 
 #[test]
+fn snapshot_retention_keeps_latest_complete_same_color_window_for_stats() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    for round_id in [
+        27156_u32, 27158, 27160, 27162, 27164, 27166, 27168, 27170, 27172, 27174,
+    ] {
+        let mut validator_set = set(round_id, RoundColor::Blue, vec!["alice"]);
+        validator_set.total_stake = Some("100".to_owned());
+        validator_set.validators[0].stake = Some("100".to_owned());
+        chain.record_set(&validator_set, 100);
+    }
+
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(27176, RoundColor::Blue, vec!["alice"]);
+    snapshot.previous_set = None;
+    snapshot.next_set = None;
+
+    let retention = RoundHistoryStore::retention_for_snapshot("test", &snapshot);
+    store.prune_to_retention(&retention);
+
+    let blue_rounds = store
+        .round_stats_points("test")
+        .into_iter()
+        .filter(|point| point.round_color == RoundColor::Blue)
+        .map(|point| point.round_id)
+        .collect::<Vec<_>>();
+    assert_eq!(blue_rounds, vec![27166, 27168, 27170, 27172, 27174]);
+}
+
+#[test]
 fn far_even_round_jump_prunes_stale_rounds_and_leaves_unknown_holes() {
     let mut store = RoundHistoryStore::default();
     let chain = store.chains.entry("test".to_owned()).or_default();

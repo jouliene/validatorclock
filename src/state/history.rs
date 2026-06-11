@@ -1,5 +1,5 @@
 use super::AppState;
-use crate::chain::ClockSnapshot;
+use crate::chain::{ClockSnapshot, RoundStatsPointDto};
 use crate::config::AppConfig;
 use crate::history::{
     RoundHistoryStore, load_round_history_for_chains, round_history_chain_path,
@@ -113,5 +113,9 @@ impl AppState {
             .read()
             .await
             .annotate_snapshot(chain_id, snapshot);
+    }
+
+    pub(crate) async fn round_stats_points(&self, chain_id: &str) -> Vec<RoundStatsPointDto> {
+        self.round_history.read().await.round_stats_points(chain_id)
     }
 }

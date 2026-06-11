@@ -1,7 +1,10 @@
 use super::super::dto::ValidatorRoundData;
 use super::super::toncenter_client::{TonCenterJsonRpcClient, is_toncenter_json_rpc_endpoint};
 use super::super::util::{masterchain_hash_address, now_sec};
-use super::super::{ClockSnapshot, ElectionDto, ElectionTimingsDto, ValidatorSetDto};
+use super::super::{
+    ChainRoundStatsDto, ClockSnapshot, ElectionDto, ElectionTimingsDto, RoundStatsPointDto,
+    ValidatorSetDto,
+};
 use super::effective_validator_sets;
 use super::toncenter_stack::{
     election_from_participant_list_extended_stack, validator_round_data_from_past_elections_stack,
@@ -108,6 +111,48 @@ pub(super) async fn fetch_chain_snapshot(
         election,
         warning,
     })
+}
+
+pub(super) async fn fetch_chain_round_stats(
+    chain: &ChainConfig,
+    endpoint: &str,
+    history_points: &[RoundStatsPointDto],
+) -> Result<ChainRoundStatsDto> {
+    if chain.id != "ton" {
+        bail!("TON Center endpoint supports only the `ton` chain");
+    }
+
+    let client = TonCenterClient::new(endpoint)?;
+    let timings: ElectionTimings = client
+        .get_config_param(15)
+        .await?
+        .context("TON Center config has no param 15")?;
+    let current_validator_set: ValidatorSet = client
+        .get_config_param(34)
+        .await?
+        .context("TON Center config has no param 34")?;
+    let next_validator_set = client.get_config_param(36).await?;
+    let observed_at = now_sec()?;
+    let (current_set, _) =
+        effective_validator_sets(current_validator_set, next_validator_set, observed_at);
+
+    let elector_address: HashBytes = client
+        .get_config_param(1)
+        .await?
+        .context("TON Center config has no param 1")?;
+    let elector_address = masterchain_hash_address(&elector_address.0);
+    let validator_round_data = client
+        .get_past_election_round_data(&elector_address)
+        .await?;
+
+    Ok(super::build_round_stats_response(
+        super::snapshot::chain_meta_with_rpc(chain, endpoint),
+        observed_at,
+        current_set.utime_since,
+        timings.validators_elected_for,
+        &validator_round_data,
+        history_points,
+    ))
 }
 
 #[derive(Debug, Clone)]

@@ -84,6 +84,14 @@ pub(super) struct StoredRound {
     pub(super) utime_since: u32,
     pub(super) utime_until: u32,
     pub(super) observed_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) total_stake: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) total_reward: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) min_stake: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) max_stake: Option<String>,
     #[serde(
         default = "default_complete_history_round",
         skip_serializing_if = "is_complete_history_round"

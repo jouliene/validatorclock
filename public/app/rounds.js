@@ -19,6 +19,7 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
 function renderRoundPanels(snapshot, model) {
   renderRoundPanel("blue", snapshot, model);
   renderRoundPanel("green", snapshot, model);
+  refreshRoundAprBadges();
   renderRecentRoundPanels(snapshot, model);
   syncSelectedValidatorRows({ clearMissing: true });
 }

@@ -2,6 +2,7 @@ use crate::chain::RoundColor;
 
 mod participation;
 mod retention;
+mod stats;
 mod storage;
 mod store;
 mod types;

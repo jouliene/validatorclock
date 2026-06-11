@@ -11,6 +11,11 @@ impl RoundHistoryRetention {
     pub(super) fn from_snapshot(chain_id: &str, snapshot: &ClockSnapshot) -> Self {
         let mut retention = Self::default();
         retention.add_set(chain_id, &snapshot.current_set);
+        if let Some(latest_complete_same_color_round_id) =
+            snapshot.current_set.round_id.checked_sub(2)
+        {
+            retention.add_round_window(chain_id, latest_complete_same_color_round_id);
+        }
         if let Some(previous_round_id) = snapshot.current_set.round_id.checked_sub(1) {
             // Preserve the previous-color history window even when previous_set is
             // temporarily unavailable from elector/full-round data.

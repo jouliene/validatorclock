@@ -112,6 +112,20 @@
         </span>
         <span>MAP</span>
       </button>
+      <button id="roundStatsToggle" class="map-toggle round-stats-toggle" type="button" aria-expanded="false" aria-controls="roundStatsPanel" aria-label="Show round statistics">
+        <span class="map-toggle-icon round-stats-toggle-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M4 19V5"></path>
+            <path d="M4 19h16"></path>
+            <path d="m7 15 3.4-3.4 3 2.6L19 8"></path>
+            <circle cx="7" cy="15" r="1"></circle>
+            <circle cx="10.4" cy="11.6" r="1"></circle>
+            <circle cx="13.4" cy="14.2" r="1"></circle>
+            <circle cx="19" cy="8" r="1"></circle>
+          </svg>
+        </span>
+        <span>ROUND STATS</span>
+      </button>
     </section>
 
     <section id="validatorMapPanel" class="validator-map-panel" aria-label="Validator world map" hidden>
@@ -159,6 +173,24 @@
       </div>
     </section>
 
+    <section id="roundStatsPanel" class="round-stats-panel" aria-label="Round statistics" hidden>
+      <section class="round-stats-color-panel round-stats-blue" aria-label="Blue even rounds statistics">
+        <div class="round-stats-panel-heading">
+          <h2>Blue (Even) Rounds Statistics</h2>
+          <span id="blueRoundStatsCount" class="round-stats-panel-count">-</span>
+        </div>
+        <div id="blueRoundStatsCharts" class="round-stats-chart-grid"></div>
+      </section>
+
+      <section class="round-stats-color-panel round-stats-green" aria-label="Green odd rounds statistics">
+        <div class="round-stats-panel-heading">
+          <h2>Green (Odd) Rounds Statistics</h2>
+          <span id="greenRoundStatsCount" class="round-stats-panel-count">-</span>
+        </div>
+        <div id="greenRoundStatsCharts" class="round-stats-chart-grid"></div>
+      </section>
+    </section>
+
     <section class="rounds-grid" aria-label="Validator rounds">
       <section class="round-panel round-blue">
         <div class="round-heading">
@@ -171,11 +203,17 @@
                   <path d="m4 16.5 8 4.5 8-4.5"></path>
                 </svg>
               </span>
-              Blue (Even) Round
+              <span class="round-title-text">Blue (Even) Round</span>
             </h2>
-            <p id="blueRoundMeta" class="round-meta">-</p>
           </div>
-          <span id="blueRoundBadge" class="round-badge">-</span>
+          <div class="round-header-strip">
+            <p id="blueRoundMeta" class="round-meta"></p>
+            <div id="blueRoundApr" class="round-apr-badge" title="Average APR across completed blue rounds with rewards data">
+              <span>0 ROUND APR</span>
+              <strong>-</strong>
+            </div>
+            <span id="blueRoundBadge" class="round-badge">-</span>
+          </div>
         </div>
         <div id="blueRoundStats" class="round-stats"></div>
         <div id="blueValidators" class="validator-list"></div>
@@ -192,11 +230,17 @@
                   <path d="m4 16.5 8 4.5 8-4.5"></path>
                 </svg>
               </span>
-              Green (Odd) Round
+              <span class="round-title-text">Green (Odd) Round</span>
             </h2>
-            <p id="greenRoundMeta" class="round-meta">-</p>
           </div>
-          <span id="greenRoundBadge" class="round-badge">-</span>
+          <div class="round-header-strip">
+            <p id="greenRoundMeta" class="round-meta"></p>
+            <div id="greenRoundApr" class="round-apr-badge" title="Average APR across completed green rounds with rewards data">
+              <span>0 ROUND APR</span>
+              <strong>-</strong>
+            </div>
+            <span id="greenRoundBadge" class="round-badge">-</span>
+          </div>
         </div>
         <div id="greenRoundStats" class="round-stats"></div>
         <div id="greenValidators" class="validator-list"></div>
