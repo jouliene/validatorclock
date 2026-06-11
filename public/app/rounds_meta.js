@@ -16,8 +16,25 @@ function calculatedRoundNumber(round, snapshot) {
   return Math.floor(Number(round.utime_since) / period);
 }
 
-function renderWaitingMeta(container) {
-  container.replaceChildren(roundMetaItem("Status", "Waiting"));
+function renderWaitingMeta(container, snapshot) {
+  const waitingRound = waitingRoundMeta(snapshot);
+  container.replaceChildren(
+    roundMetaItem("Round ID", waitingRound.utimeSince),
+    roundMetaItem("Round", waitingRound.roundNumber)
+  );
+}
+
+function waitingRoundMeta(snapshot) {
+  const utimeSince = Number(snapshot?.current_set?.utime_until);
+  if (!Number.isFinite(utimeSince) || utimeSince <= 0) {
+    return { utimeSince: "-", roundNumber: "-" };
+  }
+
+  const roundNumber = calculatedRoundNumber({ utime_since: utimeSince }, snapshot);
+  return {
+    utimeSince: String(utimeSince),
+    roundNumber: Number.isFinite(roundNumber) ? String(roundNumber) : "-",
+  };
 }
 
 function roundMetaItem(label, value, strong = false) {
