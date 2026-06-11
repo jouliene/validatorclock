@@ -2,6 +2,7 @@ use super::{
     ChainRoundHistory, RoundHistoryRetention, RoundHistoryStore, StoredRound, StoredValidator,
 };
 use crate::chain::{ClockSnapshot, ValidatorDto, ValidatorSetDto};
+use crate::decimal::parse_decimal;
 use std::collections::BTreeSet;
 
 mod round;
@@ -175,11 +176,6 @@ fn min_max_validator_stakes(validators: &[ValidatorDto]) -> (Option<String>, Opt
     });
 
     (Some(min.1.clone()), Some(max.1.clone()))
-}
-
-fn parse_decimal(value: &str) -> Option<f64> {
-    let parsed = value.replace(',', "").parse::<f64>().ok()?;
-    parsed.is_finite().then_some(parsed)
 }
 
 fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {

@@ -50,6 +50,14 @@ pub(super) const APP_ROUNDS_OPTIONS_JS: &str =
     include_str!("../../../public/app/rounds_options.js");
 pub(super) const APP_ROUNDS_RECENT_JS: &str = include_str!("../../../public/app/rounds_recent.js");
 pub(super) const APP_ROUNDS_STATS_JS: &str = include_str!("../../../public/app/rounds_stats.js");
+pub(super) const APP_ROUND_STATS_FORMAT_JS: &str =
+    include_str!("../../../public/app/round_stats_format.js");
+pub(super) const APP_ROUND_STATS_CONFIG_JS: &str =
+    include_str!("../../../public/app/round_stats_config.js");
+pub(super) const APP_ROUND_STATS_CHARTS_JS: &str =
+    include_str!("../../../public/app/round_stats_charts.js");
+pub(super) const APP_ROUND_STATS_DATA_JS: &str =
+    include_str!("../../../public/app/round_stats_data.js");
 pub(super) const APP_ROUND_STATS_PANEL_JS: &str =
     include_str!("../../../public/app/round_stats_panel.js");
 pub(super) const APP_ROUNDS_JS: &str = include_str!("../../../public/app/rounds.js");
@@ -116,6 +124,10 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_ROUNDS_OPTIONS_JS,
     APP_ROUNDS_RECENT_JS,
     APP_ROUNDS_STATS_JS,
+    APP_ROUND_STATS_FORMAT_JS,
+    APP_ROUND_STATS_CONFIG_JS,
+    APP_ROUND_STATS_CHARTS_JS,
+    APP_ROUND_STATS_DATA_JS,
     APP_ROUND_STATS_PANEL_JS,
     APP_ROUNDS_JS,
     APP_TYCHO_NODES_JS,

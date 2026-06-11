@@ -1,4 +1,5 @@
 use super::super::dto::ValidatorRoundData;
+use super::super::round_stats::build_round_stats_response;
 use super::super::toncenter_client::{TonCenterJsonRpcClient, is_toncenter_json_rpc_endpoint};
 use super::super::util::{masterchain_hash_address, now_sec};
 use super::super::{
@@ -145,7 +146,7 @@ pub(super) async fn fetch_chain_round_stats(
         .get_past_election_round_data(&elector_address)
         .await?;
 
-    Ok(super::build_round_stats_response(
+    Ok(build_round_stats_response(
         super::snapshot::chain_meta_with_rpc(chain, endpoint),
         observed_at,
         current_set.utime_since,

@@ -1,5 +1,6 @@
 use super::{RoundHistoryStore, StoredRound};
 use crate::chain::RoundStatsPointDto;
+use crate::decimal::parse_decimal;
 
 const SECONDS_PER_YEAR: f64 = 365.0 * 24.0 * 60.0 * 60.0;
 
@@ -50,9 +51,4 @@ impl StoredRound {
 
         Some(reward / stake * (SECONDS_PER_YEAR / (duration * 2.0)) * 100.0)
     }
-}
-
-fn parse_decimal(value: &str) -> Option<f64> {
-    let parsed = value.replace(',', "").parse::<f64>().ok()?;
-    parsed.is_finite().then_some(parsed)
 }

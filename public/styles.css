@@ -1034,6 +1034,7 @@ dd {
   filter: drop-shadow(0 0 3px rgba(91, 191, 239, 0.1));
 }
 
+/* Round statistics */
 .round-stats-toggle {
   min-width: 164px;
 }
@@ -1233,19 +1234,12 @@ dd {
 }
 
 .round-stats-axis-label,
-.round-stats-x-label,
-.round-stats-axis-name {
+.round-stats-x-label {
   fill: rgba(154, 166, 184, 0.82);
   font-family: var(--font-sans);
   font-size: 10px;
   font-weight: 650;
   letter-spacing: 0;
-}
-
-.round-stats-axis-name {
-  fill: rgba(192, 207, 222, 0.72);
-  font-size: 9.5px;
-  font-weight: 760;
 }
 
 .round-stats-line {
@@ -1301,6 +1295,7 @@ dd {
   font-weight: 650;
 }
 
+/* Validator map panel */
 .validator-map-panel {
   position: relative;
   overflow: hidden;

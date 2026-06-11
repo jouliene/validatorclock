@@ -7,6 +7,7 @@ use tracing::info;
 
 mod chain;
 mod config;
+mod decimal;
 mod fsutil;
 mod history;
 mod logging;

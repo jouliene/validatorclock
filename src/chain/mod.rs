@@ -3,6 +3,7 @@ use crate::state::AppState;
 mod dto;
 mod elector;
 mod refresh;
+mod round_stats;
 mod status;
 mod toncenter_client;
 mod util;
@@ -14,10 +15,9 @@ pub(crate) use dto::{
     ValidatorDto, ValidatorMapNodeDto, ValidatorSetDto, ValidatorSourceDto,
     source_contract_type_name,
 };
-pub(crate) use elector::{
-    chain_round_stats_from_history, fetch_chain_round_stats, fetch_chain_snapshot,
-};
+pub(crate) use elector::{fetch_chain_round_stats, fetch_chain_snapshot};
 pub(crate) use refresh::{get_chain_snapshot_cached_first, spawn_background_refresh};
+pub(crate) use round_stats::chain_round_stats_from_history;
 pub(crate) use status::{chains_response, runtime_status};
 use validator_sources::apply_cached_validator_contract_type_hashes;
 

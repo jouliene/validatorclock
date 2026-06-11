@@ -57,7 +57,6 @@ const state = {
   staleRetryKey: null,
   clockLoading: false,
   roundStatsOpen: false,
-  roundStatsLoading: false,
   roundStatsLoadingTimer: null,
   roundStatsRequestSeq: 0,
   roundStatsRenderKey: null,
