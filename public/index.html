@@ -102,29 +102,42 @@
     </main>
 
     <section id="mapControls" class="map-controls" aria-label="Validator map controls" hidden>
-      <button id="validatorMapToggle" class="map-toggle" type="button" aria-expanded="false" aria-controls="validatorMapPanel">
+      <button id="validatorMapToggle" class="map-toggle" type="button" aria-expanded="false" aria-controls="validatorMapPanel" aria-label="Show node map">
         <span class="map-toggle-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
-            <circle cx="12" cy="12" r="6.8"></circle>
-            <path d="M12 5.2v3.1M12 15.7v3.1M5.2 12h3.1M15.7 12h3.1"></path>
-            <circle cx="12" cy="12" r="2.1"></circle>
+            <path d="m4.5 6.5 4.8-2 5.4 2 4.8-2v13l-4.8 2-5.4-2-4.8 2Z"></path>
+            <path d="M9.3 4.5v13"></path>
+            <path d="M14.7 6.5v13"></path>
           </svg>
         </span>
-        <span>MAP</span>
+        <span>NODE MAP</span>
       </button>
-      <button id="roundStatsToggle" class="map-toggle round-stats-toggle" type="button" aria-expanded="false" aria-controls="roundStatsPanel" aria-label="Show rounds statistics">
+      <button id="nodeStatsToggle" class="map-toggle node-stats-toggle" type="button" aria-expanded="false" aria-controls="nodeStatsPanel" aria-label="Show validator node statistics">
+        <span class="map-toggle-icon node-stats-toggle-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M4 19V5"></path>
+            <path d="M4 19h16"></path>
+            <path d="M7.5 16v-5.5"></path>
+            <path d="M12 16V7"></path>
+            <path d="M16.5 16v-7.5"></path>
+            <path d="M7 10.5h1"></path>
+            <path d="M11.5 7h1"></path>
+            <path d="M16 8.5h1"></path>
+          </svg>
+        </span>
+        <span>NODE STATS</span>
+      </button>
+      <button id="roundStatsToggle" class="map-toggle round-stats-toggle" type="button" aria-expanded="false" aria-controls="roundStatsPanel" aria-label="Show round statistics">
         <span class="map-toggle-icon round-stats-toggle-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
             <path d="M4 19V5"></path>
             <path d="M4 19h16"></path>
-            <path d="m7 15 3.4-3.4 3 2.6L19 8"></path>
-            <circle cx="7" cy="15" r="1"></circle>
-            <circle cx="10.4" cy="11.6" r="1"></circle>
-            <circle cx="13.4" cy="14.2" r="1"></circle>
-            <circle cx="19" cy="8" r="1"></circle>
+            <path d="m7 14.5 3.2-3.1 3.2 2.4L19 8"></path>
+            <path d="M19 8v4.5"></path>
+            <path d="M14.5 8H19"></path>
           </svg>
         </span>
-        <span>ROUNDS STATS</span>
+        <span>ROUND STATS</span>
       </button>
     </section>
 
@@ -132,27 +145,27 @@
       <div class="validator-map-heading">
         <div class="validator-map-titlebar">
           <h2>
-            <span class="panel-avatar map-avatar" aria-hidden="true">
-              <svg class="map-route" viewBox="0 0 24 24" focusable="false">
-                <circle cx="12" cy="12" r="7.2"></circle>
-                <path d="M12 4.8v3.2M12 16v3.2M4.8 12h3.2M16 12h3.2"></path>
-                <circle cx="12" cy="12" r="2.15"></circle>
+            <span class="panel-title-icon panel-title-icon-map" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M3.5 6.5 8.5 4l7 3 5-2.5v13l-5 2.5-7-3-5 2.5Z"></path>
+                <path d="M8.5 4v13"></path>
+                <path d="M15.5 7v13"></path>
               </svg>
             </span>
-            <span id="validatorMapTitleText">Validator Map</span>
+            <span id="validatorMapTitleText" class="panel-title-text">Validator Map</span>
           </h2>
           <div class="validator-map-toolbar">
             <div class="validator-map-meta" aria-label="Active validator map set">
               <span id="validatorMapRoundBadge" class="validator-map-meta-item validator-map-round-badge">
-                <span class="validator-map-meta-label">ROUND:</span>
+                <span class="validator-map-meta-label">Round</span>
                 <strong id="validatorMapRoundValue" class="validator-map-meta-value validator-map-round-value">-</strong>
               </span>
               <span class="validator-map-meta-item">
-                <span class="validator-map-meta-label">NODES:</span>
+                <span class="validator-map-meta-label">Nodes</span>
                 <strong id="validatorMapNodeCount" class="validator-map-meta-value validator-map-count-value">0</strong>
               </span>
               <span class="validator-map-meta-item">
-                <span class="validator-map-meta-label">LOCATIONS:</span>
+                <span class="validator-map-meta-label">Locations</span>
                 <strong id="validatorMapLocationCount" class="validator-map-meta-value validator-map-count-value">0</strong>
               </span>
             </div>
@@ -173,10 +186,38 @@
       </div>
     </section>
 
+    <section id="nodeStatsPanel" class="node-stats-panel" aria-label="Validators node location statistics" hidden>
+      <div class="node-stats-heading">
+        <div>
+          <h2>
+            <span class="panel-title-icon panel-title-icon-stats" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M12 21s6-5.05 6-10.2A6 6 0 0 0 6 10.8C6 15.95 12 21 12 21Z"></path>
+                <circle cx="12" cy="10.7" r="2.1"></circle>
+                <path d="M8.2 18.1c-1.9.35-3.2.98-3.2 1.7 0 1.1 3.13 2 7 2s7-.9 7-2c0-.72-1.3-1.35-3.2-1.7"></path>
+              </svg>
+            </span>
+            <span id="nodeStatsTitle" class="panel-title-text">Node Location Stats</span>
+          </h2>
+          <span id="nodeStatsSummary" class="node-stats-summary">-</span>
+        </div>
+      </div>
+      <div id="nodeStatsContent" class="node-stats-content"></div>
+    </section>
+
     <section id="roundStatsPanel" class="round-stats-panel" aria-label="Round statistics" hidden>
       <section class="round-stats-color-panel round-stats-blue" aria-label="Blue even rounds statistics">
         <div class="round-stats-panel-heading">
-          <h2>Blue (Even) Rounds Statistics</h2>
+          <h2>
+            <span class="panel-title-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m12 3 8 4.5-8 4.5-8-4.5Z"></path>
+                <path d="m4 12 8 4.5 8-4.5"></path>
+                <path d="m4 16.5 8 4.5 8-4.5"></path>
+              </svg>
+            </span>
+            <span class="panel-title-text">Blue (Even) Rounds Statistics</span>
+          </h2>
           <span id="blueRoundStatsCount" class="round-stats-panel-count">-</span>
         </div>
         <div id="blueRoundStatsCharts" class="round-stats-chart-grid"></div>
@@ -184,7 +225,16 @@
 
       <section class="round-stats-color-panel round-stats-green" aria-label="Green odd rounds statistics">
         <div class="round-stats-panel-heading">
-          <h2>Green (Odd) Rounds Statistics</h2>
+          <h2>
+            <span class="panel-title-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="m12 3 8 4.5-8 4.5-8-4.5Z"></path>
+                <path d="m4 12 8 4.5 8-4.5"></path>
+                <path d="m4 16.5 8 4.5 8-4.5"></path>
+              </svg>
+            </span>
+            <span class="panel-title-text">Green (Odd) Rounds Statistics</span>
+          </h2>
           <span id="greenRoundStatsCount" class="round-stats-panel-count">-</span>
         </div>
         <div id="greenRoundStatsCharts" class="round-stats-chart-grid"></div>
@@ -209,7 +259,7 @@
           <div class="round-header-strip">
             <p id="blueRoundMeta" class="round-meta"></p>
             <div id="blueRoundApr" class="round-apr-badge">
-              <span>0 ROUNDS APR</span>
+              <span>0-ROUND APR</span>
               <strong>-</strong>
             </div>
             <span id="blueRoundBadge" class="round-badge">-</span>
@@ -236,7 +286,7 @@
           <div class="round-header-strip">
             <p id="greenRoundMeta" class="round-meta"></p>
             <div id="greenRoundApr" class="round-apr-badge">
-              <span>0 ROUNDS APR</span>
+              <span>0-ROUND APR</span>
               <strong>-</strong>
             </div>
             <span id="greenRoundBadge" class="round-badge">-</span>

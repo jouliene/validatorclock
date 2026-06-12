@@ -38,5 +38,6 @@ function renderNow() {
   drawClock(model);
   renderMetrics(state.snapshot, model, now);
   updateValidatorMapRoundBadge();
+  renderNodeStatsIfOpen();
   renderRoundPanelsIfNeeded(state.snapshot, model);
 }

@@ -21,6 +21,9 @@ function setRoundStatsOpen(open) {
   if (willOpen && state.validatorMapOpen) {
     setValidatorMapOpen(false);
   }
+  if (willOpen && state.nodeStatsOpen) {
+    setNodeStatsOpen(false);
+  }
 
   state.roundStatsOpen = willOpen;
   syncRoundStatsPanel();
@@ -45,7 +48,7 @@ function syncRoundStatsPanel() {
   toggle.setAttribute("aria-expanded", String(state.roundStatsOpen));
   toggle.setAttribute(
     "aria-label",
-    state.roundStatsOpen ? "Hide rounds statistics" : "Show rounds statistics",
+    state.roundStatsOpen ? "Hide round statistics" : "Show round statistics",
   );
 }
 
@@ -113,7 +116,8 @@ function renderRoundAprBadge(color, rounds) {
 
   const apr = averageRoundStatsProfitability(rounds);
   const hasAverage = Number.isFinite(apr.average);
-  label.textContent = `${apr.count} ROUNDS APR`;
+  const aprLabel = roundAprCountLabel(apr.count);
+  label.textContent = aprLabel;
   value.textContent = hasAverage ? formatRoundStatsPercent(apr.average) : "-";
   badge.classList.toggle("is-empty", !hasAverage);
   const colorLabel = color === "blue" ? "blue" : "green";
@@ -129,8 +133,12 @@ function renderRoundAprBadge(color, rounds) {
   );
   badge.setAttribute(
     "aria-label",
-    hasAverage ? `${apr.count} rounds APR ${value.textContent}` : "APR unavailable",
+    hasAverage ? `${aprLabel} ${value.textContent}` : "APR unavailable",
   );
+}
+
+function roundAprCountLabel(count) {
+  return `${Number.isFinite(count) ? Math.max(0, Math.trunc(count)) : 0}-ROUND APR`;
 }
 
 function averageRoundStatsProfitability(rounds) {

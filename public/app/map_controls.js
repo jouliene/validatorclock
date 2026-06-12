@@ -8,10 +8,17 @@ function setupValidatorMapControls() {
 
   controls.addEventListener("click", (event) => {
     const mapToggle = event.target.closest("#validatorMapToggle");
-    if (!mapToggle || mapToggle.disabled) {
+    if (mapToggle) {
+      if (!mapToggle.disabled) {
+        setValidatorMapOpen(!state.validatorMapOpen);
+      }
       return;
     }
-    setValidatorMapOpen(!state.validatorMapOpen);
+
+    const statsToggle = event.target.closest("#nodeStatsToggle");
+    if (statsToggle && !statsToggle.disabled) {
+      setNodeStatsOpen(!state.nodeStatsOpen);
+    }
   });
 
   reset?.addEventListener("click", () => {
@@ -26,31 +33,54 @@ function setupValidatorMapControls() {
 function updateValidatorMapAvailability() {
   const controls = $("mapControls");
   const toggle = $("validatorMapToggle");
+  const nodeStatsToggle = $("nodeStatsToggle");
   if (!controls || !toggle) {
     return;
   }
 
   const available = mapAvailableForChain(state.selectedChainId);
   updateValidatorMapTitle();
+  updateNodeStatsTitle();
   updateValidatorMapRoundBadge();
   controls.hidden = false;
-  toggle.disabled = !available;
-  toggle.removeAttribute("title");
-  delete toggle.dataset.tooltip;
-  toggle.setAttribute("aria-label", available ? "Show validator map" : "Map is not available for this chain");
-  toggle.setAttribute("aria-disabled", String(!available));
+  syncMapControlButton(toggle, available, "Show node map", "Node map is not available for this chain");
+  if (nodeStatsToggle) {
+    syncMapControlButton(
+      nodeStatsToggle,
+      available,
+      "Show validator node statistics",
+      "Node statistics are not available for this chain",
+    );
+  }
 
   if (!available && state.validatorMapOpen) {
     setValidatorMapOpen(false);
   } else {
     syncValidatorMapPanel();
   }
+
+  if (!available && state.nodeStatsOpen) {
+    setNodeStatsOpen(false);
+  } else {
+    syncNodeStatsPanel();
+  }
+}
+
+function syncMapControlButton(button, available, enabledLabel, disabledLabel) {
+  button.disabled = !available;
+  button.removeAttribute("title");
+  delete button.dataset.tooltip;
+  button.setAttribute("aria-label", available ? enabledLabel : disabledLabel);
+  button.setAttribute("aria-disabled", String(!available));
 }
 
 function setValidatorMapOpen(open) {
   const willOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
   if (willOpen && state.roundStatsOpen) {
     setRoundStatsOpen(false);
+  }
+  if (willOpen && state.nodeStatsOpen) {
+    setNodeStatsOpen(false);
   }
 
   state.validatorMapOpen = willOpen;
@@ -65,6 +95,32 @@ function setValidatorMapOpen(open) {
     console.warn("Unable to load validator map", error);
     showValidatorMapStatus(formatValidatorMapError(error), "error");
   });
+}
+
+function setNodeStatsOpen(open) {
+  const willOpen = Boolean(open) && mapAvailableForChain(state.selectedChainId);
+  if (willOpen && state.validatorMapOpen) {
+    setValidatorMapOpen(false);
+  }
+  if (willOpen && state.roundStatsOpen) {
+    setRoundStatsOpen(false);
+  }
+
+  state.nodeStatsOpen = willOpen;
+  syncNodeStatsPanel();
+  if (!state.nodeStatsOpen) {
+    state.nodeStatsRenderKey = null;
+    return;
+  }
+
+  state.nodeStatsRenderKey = null;
+  renderNodeStatsLoading();
+  loadValidatorMapNodes()
+    .then(() => renderNodeStats())
+    .catch((error) => {
+      console.warn("Unable to load validator node statistics", error);
+      renderNodeStatsError(error);
+    });
 }
 
 function syncValidatorMapPanel() {
@@ -86,6 +142,21 @@ function syncValidatorMapPanel() {
   }
 }
 
+function syncNodeStatsPanel() {
+  const panel = $("nodeStatsPanel");
+  const toggle = $("nodeStatsToggle");
+  if (!panel || !toggle) {
+    return;
+  }
+
+  panel.hidden = !state.nodeStatsOpen;
+  toggle.setAttribute("aria-expanded", String(state.nodeStatsOpen));
+  toggle.setAttribute(
+    "aria-label",
+    state.nodeStatsOpen ? "Hide validator node statistics" : "Show validator node statistics",
+  );
+}
+
 function resetValidatorMapForChainChange(previousChainId, nextChainId) {
   if (previousChainId === nextChainId) {
     return;
@@ -101,11 +172,11 @@ function updateValidatorMapTitle() {
   const title = $("validatorMapTitleText");
   const panel = $("validatorMapPanel");
   const chainName = currentMapChainName();
-  const label = `${chainName} Validator Map`;
+  const label = `${chainName} Validator Node Map`;
   if (title) {
     title.textContent = label;
   }
-  panel?.setAttribute("aria-label", `${chainName} validator world map`);
+  panel?.setAttribute("aria-label", `${chainName} validator node map`);
 }
 
 function updateValidatorMapRoundBadge() {

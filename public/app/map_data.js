@@ -36,6 +36,7 @@ async function refreshValidatorMapNodesForSnapshot() {
   updateValidatorMapTitle();
   updateValidatorMapSummary();
   refreshValidatorMapSource();
+  renderNodeStatsIfOpen();
   return validatorMapNodes;
 }
 
