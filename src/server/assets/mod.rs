@@ -15,7 +15,11 @@ const ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("public, max-age=31536000, immutable");
 
 pub(super) async fn index() -> Html<String> {
-    Html(INDEX_HTML.replace("__ASSET_VERSION__", &asset_version()))
+    Html(
+        INDEX_HTML
+            .replace("__ASSET_VERSION__", &asset_version())
+            .replace("__APP_VERSION__", env!("CARGO_PKG_VERSION")),
+    )
 }
 
 pub(super) async fn styles() -> impl IntoResponse {

@@ -86,6 +86,15 @@ button {
   padding: 18px 0 30px;
 }
 
+.site-version {
+  margin-top: 22px;
+  color: rgba(171, 196, 217, 0.46);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+}
+
 .titlebar {
   position: relative;
   display: flex;

@@ -22,6 +22,8 @@ async fn app_router_versions_and_caches_static_assets() {
     let asset_version = asset_version();
     assert!(body.contains(&format!("/styles.css?v={asset_version}")));
     assert!(body.contains(&format!("/app.js?v={asset_version}")));
+    assert!(body.contains(&format!("version {}", env!("CARGO_PKG_VERSION"))));
+    assert!(!body.contains("__APP_VERSION__"));
     assert_no_native_title_attributes(&body);
 
     let response = app_response(
