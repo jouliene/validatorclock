@@ -107,6 +107,7 @@ function renderRoundPanel(color, snapshot, model) {
   panel?.classList.add("is-secondary-round");
   renderWaitingMeta(meta, snapshot);
   badge.textContent = "waiting";
+  badge.classList.add("is-waiting");
   renderEmptyStats(stats);
   list.appendChild(emptyState("No validators announced for this round yet."));
 }

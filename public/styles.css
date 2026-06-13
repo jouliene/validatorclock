@@ -2708,7 +2708,8 @@ dd {
   color: var(--gold);
 }
 
-.round-badge.is-previous {
+.round-badge.is-previous,
+.round-badge.is-waiting {
   color: rgba(222, 232, 242, 0.9);
 }
 
