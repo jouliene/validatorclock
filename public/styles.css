@@ -1600,6 +1600,11 @@ dd {
   color: rgba(255, 195, 199, 0.86);
 }
 
+.node-stats-state.is-notice {
+  border-color: rgba(214, 173, 88, 0.28);
+  color: rgba(244, 220, 166, 0.9);
+}
+
 .node-stats-overview {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2078,6 +2083,11 @@ dd {
   box-shadow: 0 0 0 3px rgba(224, 82, 96, 0.14);
 }
 
+.validator-map-status[data-state="notice"] {
+  border-color: rgba(214, 173, 88, 0.3);
+}
+
+.validator-map-status[data-state="notice"]::before,
 .validator-map-status[data-state="empty"]::before {
   background: var(--gold);
   box-shadow: 0 0 0 3px rgba(214, 173, 88, 0.14);

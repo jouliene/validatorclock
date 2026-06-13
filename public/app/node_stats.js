@@ -157,6 +157,7 @@ function renderNodeStats() {
   const validators = state.snapshot?.current_set?.validators || [];
   const nodes = validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : [];
   const stats = buildNodeStats(nodes, validators);
+  const resolutionNotice = mapNodeResolutionNotice(stats.mappedNodes);
   const renderKey = nodeStatsRenderKey(stats);
   if (state.nodeStatsRenderKey === renderKey) {
     return;
@@ -166,7 +167,9 @@ function renderNodeStats() {
   if (!stats.mappedNodes) {
     clearNodeStatsSummary(summary);
     hideNodeStatsTooltip();
-    content.innerHTML = `<div class="node-stats-state">No mapped ${escapeHtml(nodeStatsChainName())} validators</div>`;
+    content.innerHTML = resolutionNotice
+      ? `<div class="node-stats-state is-notice">${escapeHtml(resolutionNotice)}</div>`
+      : `<div class="node-stats-state">No mapped ${escapeHtml(nodeStatsChainName())} validators</div>`;
     return;
   }
 
@@ -250,6 +253,7 @@ function nodeStatsRenderKey(stats) {
     stats.medoid?.weightedAverageKm || "",
     stats.medoid?.medianKm || "",
     stats.medoid?.p90Km || "",
+    mapNodeResolutionNotice(stats.mappedNodes) ? "round-map-resolution" : "",
   ].join("|");
 }
 

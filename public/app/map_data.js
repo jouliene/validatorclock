@@ -173,6 +173,23 @@ async function prefetchValidatorMapNodesForChain(chainId, force = false) {
   return refreshValidatorMapNodesForSnapshot(chainId);
 }
 
+const MAP_NODE_RESOLUTION_NOTICE_SECONDS = 5 * 60;
+const MAP_NODE_RESOLUTION_NOTICE_TEXT = "The round has just changed. Validator node IP and location data can take up to 5 minutes to resolve. This view will update automatically.";
+
+function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot, now = Math.trunc(Date.now() / 1000)) {
+  const mapped = Number(mappedNodeCount);
+  if (Number.isFinite(mapped) && mapped > 0) {
+    return "";
+  }
+
+  const roundStartedAt = Number(snapshot?.current_set?.utime_since);
+  if (!Number.isFinite(roundStartedAt) || now < roundStartedAt) {
+    return "";
+  }
+
+  return now - roundStartedAt < MAP_NODE_RESOLUTION_NOTICE_SECONDS ? MAP_NODE_RESOLUTION_NOTICE_TEXT : "";
+}
+
 function mapAvailableForChain(chainId) {
   return MAP_CHAIN_IDS.has(chainId);
 }

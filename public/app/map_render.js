@@ -12,10 +12,7 @@ async function loadValidatorMap() {
   await ensureMapLibre();
   renderValidatorMap();
   validatorMapLoaded = true;
-  showValidatorMapStatus(
-    validatorMapFeatures().length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
-    "empty"
-  );
+  showValidatorMapEmptyStatus();
 }
 
 function ensureMapLibre() {
@@ -88,10 +85,7 @@ function refreshValidatorMapSource() {
   const source = validatorMap?.getSource("nodes");
   const features = validatorMapFeatures();
   if (!source) {
-    showValidatorMapStatus(
-      features.length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
-      "empty"
-    );
+    showValidatorMapEmptyStatus(features);
     return;
   }
 
@@ -99,8 +93,18 @@ function refreshValidatorMapSource() {
     type: "FeatureCollection",
     features
   });
+  showValidatorMapEmptyStatus(features);
+}
+
+function showValidatorMapEmptyStatus(features = validatorMapFeatures()) {
+  if (features.length) {
+    showValidatorMapStatus("");
+    return;
+  }
+
+  const notice = mapNodeResolutionNotice(features.length);
   showValidatorMapStatus(
-    features.length ? "" : `No mapped ${currentMapChainName()} validators in the current set`,
-    "empty"
+    notice || `No mapped ${currentMapChainName()} validators in the current set`,
+    notice ? "notice" : "empty",
   );
 }
