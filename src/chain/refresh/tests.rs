@@ -109,6 +109,112 @@ async fn toncenter_primary_fetches_snapshot_and_enrichment() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn degraded_refresh_detects_missing_active_round_data() {
+    let cached = crate::chain::test_clock_snapshot("everscale");
+    let mut refreshed = cached.clone();
+    strip_active_round_data(&mut refreshed);
+
+    assert_eq!(
+        degraded_refresh_reason(&refreshed, &cached).as_deref(),
+        Some("active validator round data is missing")
+    );
+}
+
+#[test]
+fn degraded_refresh_detects_missing_active_validator_details() {
+    let cached = crate::chain::test_clock_snapshot("everscale");
+    let mut refreshed = cached.clone();
+    for validator in &mut refreshed.current_set.validators {
+        validator.wallet = None;
+        validator.source = None;
+        validator.contract_type = None;
+        validator.contract_type_hash = None;
+        validator.stake = None;
+    }
+
+    assert_eq!(
+        degraded_refresh_reason(&refreshed, &cached).as_deref(),
+        Some("active validator round data is missing")
+    );
+}
+
+#[test]
+fn degraded_refresh_detects_missing_election_candidates_inside_window() {
+    let mut cached = crate::chain::test_clock_snapshot("everscale");
+    cached.current_set.utime_since = 1_000;
+    cached.current_set.utime_until = 2_000;
+    cached.fetched_at = 1_600;
+    cached.params15.elections_start_before = 500;
+    cached.params15.elections_end_before = 100;
+    cached.election.candidates.push(test_candidate());
+
+    let mut refreshed = cached.clone();
+    refreshed.election.candidates.clear();
+
+    assert_eq!(
+        degraded_refresh_reason(&refreshed, &cached).as_deref(),
+        Some("election candidates are missing during the election window")
+    );
+}
+
+#[test]
+fn degraded_refresh_allows_empty_election_candidates_after_window() {
+    let mut cached = crate::chain::test_clock_snapshot("everscale");
+    cached.current_set.utime_since = 1_000;
+    cached.current_set.utime_until = 2_000;
+    cached.fetched_at = 1_950;
+    cached.params15.elections_start_before = 500;
+    cached.params15.elections_end_before = 100;
+    cached.election.candidates.push(test_candidate());
+
+    let mut refreshed = cached.clone();
+    refreshed.election.candidates.clear();
+
+    assert!(degraded_refresh_reason(&refreshed, &cached).is_none());
+}
+
+#[test]
+fn degraded_refresh_does_not_reuse_cache_for_new_active_round() {
+    let cached = crate::chain::test_clock_snapshot("everscale");
+    let mut refreshed = cached.clone();
+    refreshed.current_set.round_id += 1;
+    refreshed.current_set.utime_since += 65_536;
+    refreshed.current_set.utime_until += 65_536;
+    strip_active_round_data(&mut refreshed);
+
+    assert!(degraded_refresh_reason(&refreshed, &cached).is_none());
+}
+
+fn strip_active_round_data(snapshot: &mut ClockSnapshot) {
+    snapshot.current_set.total_stake = None;
+    snapshot.current_set.total_reward = None;
+    for validator in &mut snapshot.current_set.validators {
+        validator.wallet = None;
+        validator.source = None;
+        validator.contract_type = None;
+        validator.contract_type_hash = None;
+        validator.stake = None;
+        validator.reward = None;
+    }
+}
+
+fn test_candidate() -> crate::chain::ElectionCandidateDto {
+    crate::chain::ElectionCandidateDto {
+        public_key: "candidate-key".to_owned(),
+        stake: "100".to_owned(),
+        stake_raw: "100".to_owned(),
+        created_at: 1_500,
+        stake_factor: 1,
+        wallet: "-1:candidate".to_owned(),
+        source: None,
+        contract_type: None,
+        contract_type_hash: None,
+        adnl_addr: "candidate-adnl".to_owned(),
+        history: Vec::new(),
+    }
+}
+
 struct MockTonCenter {
     timings_boc: String,
     validator_set_boc: String,

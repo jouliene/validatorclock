@@ -72,6 +72,19 @@ async fn finalize_refreshed_snapshot(
     let fetched_at = snapshot.fetched_at;
     let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
     state.annotate_map_fake_validators(&mut snapshot, observed_at);
+    let cached_snapshot = state.cached_snapshot(chain_id).await;
+    if let Some(reason) = cached_snapshot
+        .as_ref()
+        .and_then(|cached| degraded_refresh_reason(&snapshot, cached))
+    {
+        state
+            .record_refresh_failure(chain_id, fetched_at, reason.clone())
+            .await;
+        if let Some(mut cached) = cached_snapshot {
+            cached.warning = Some(degraded_refresh_cache_warning(cached.fetched_at, &reason));
+            return cached;
+        }
+    }
     state.record_round_history(&mut snapshot, observed_at).await;
     apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
     state
@@ -100,6 +113,93 @@ async fn cached_snapshot_after_refresh_failure(
 
 fn refresh_failed_cache_warning(fetched_at: u64, error: &anyhow::Error) -> String {
     format!("using cached data from {fetched_at}; refresh failed: {error}")
+}
+
+fn degraded_refresh_cache_warning(fetched_at: u64, reason: &str) -> String {
+    format!("using cached data from {fetched_at}; refresh returned degraded data: {reason}")
+}
+
+fn degraded_refresh_reason(refreshed: &ClockSnapshot, cached: &ClockSnapshot) -> Option<String> {
+    if refreshed.current_set.round_id != cached.current_set.round_id
+        || refreshed.current_set.utime_since != cached.current_set.utime_since
+    {
+        return None;
+    }
+
+    if refreshed.current_set.validators.is_empty() && !cached.current_set.validators.is_empty() {
+        return Some("active validator set is empty".to_owned());
+    }
+
+    let refreshed_round_data = active_round_data_stats(refreshed);
+    let cached_round_data = active_round_data_stats(cached);
+    if cached_round_data.is_richer_than_empty()
+        && (refreshed_round_data.is_empty()
+            || cached_round_data.validator_details_dropped_to_zero(refreshed_round_data))
+    {
+        return Some("active validator round data is missing".to_owned());
+    }
+
+    if election_window_contains(refreshed)
+        && refreshed.election.candidates.is_empty()
+        && !cached.election.candidates.is_empty()
+    {
+        return Some("election candidates are missing during the election window".to_owned());
+    }
+
+    None
+}
+
+#[derive(Clone, Copy)]
+struct ActiveRoundDataStats {
+    total_fields: usize,
+    validator_wallets: usize,
+    validator_stakes: usize,
+}
+
+impl ActiveRoundDataStats {
+    fn is_empty(self) -> bool {
+        self.total_fields == 0 && self.validator_wallets == 0 && self.validator_stakes == 0
+    }
+
+    fn is_richer_than_empty(self) -> bool {
+        !self.is_empty()
+    }
+
+    fn validator_details_dropped_to_zero(self, refreshed: Self) -> bool {
+        (self.validator_wallets > 0 && refreshed.validator_wallets == 0)
+            || (self.validator_stakes > 0 && refreshed.validator_stakes == 0)
+    }
+}
+
+fn active_round_data_stats(snapshot: &ClockSnapshot) -> ActiveRoundDataStats {
+    ActiveRoundDataStats {
+        total_fields: usize::from(snapshot.current_set.total_stake.is_some())
+            + usize::from(snapshot.current_set.total_reward.is_some()),
+        validator_wallets: snapshot
+            .current_set
+            .validators
+            .iter()
+            .filter(|validator| validator.wallet.is_some())
+            .count(),
+        validator_stakes: snapshot
+            .current_set
+            .validators
+            .iter()
+            .filter(|validator| validator.stake.is_some())
+            .count(),
+    }
+}
+
+fn election_window_contains(snapshot: &ClockSnapshot) -> bool {
+    let anchor = snapshot
+        .next_set
+        .as_ref()
+        .map_or(snapshot.current_set.utime_until, |set| set.utime_until);
+    let start =
+        u64::from(anchor).saturating_sub(u64::from(snapshot.params15.elections_start_before));
+    let end = u64::from(anchor).saturating_sub(u64::from(snapshot.params15.elections_end_before));
+
+    snapshot.fetched_at >= start && snapshot.fetched_at < end
 }
 
 pub(crate) async fn get_chain_snapshot_cached_first(
