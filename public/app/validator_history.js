@@ -11,7 +11,7 @@ function formatSeenRounds(validator) {
   }
 
   return [...new Set(rounds)]
-    .sort((left, right) => right - left)
+    .sort((left, right) => left - right)
     .join(", ");
 }
 
