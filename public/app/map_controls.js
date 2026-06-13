@@ -131,6 +131,12 @@ function syncValidatorMapPanel() {
 
   panel.hidden = !state.validatorMapOpen;
   toggle.setAttribute("aria-expanded", String(state.validatorMapOpen));
+  toggle.setAttribute(
+    "aria-label",
+    mapAvailableForChain(state.selectedChainId)
+      ? state.validatorMapOpen ? "Hide node map" : "Show node map"
+      : "Node map is not available for this chain",
+  );
   if (reset) {
     reset.disabled = !state.validatorMapOpen;
   }
@@ -151,7 +157,9 @@ function syncNodeStatsPanel() {
   toggle.setAttribute("aria-expanded", String(state.nodeStatsOpen));
   toggle.setAttribute(
     "aria-label",
-    state.nodeStatsOpen ? "Hide validator node statistics" : "Show validator node statistics",
+    mapAvailableForChain(state.selectedChainId)
+      ? state.nodeStatsOpen ? "Hide validator node statistics" : "Show validator node statistics"
+      : "Node statistics are not available for this chain",
   );
 }
 

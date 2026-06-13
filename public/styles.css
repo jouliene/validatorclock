@@ -1010,13 +1010,26 @@ dd {
   pointer-events: none;
 }
 
-.map-toggle:hover,
-.map-toggle[aria-expanded="true"] {
+.map-toggle:hover {
   border-color: rgba(132, 205, 240, 0.48);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.078), rgba(255, 255, 255, 0.022)),
     linear-gradient(90deg, rgba(63, 168, 245, 0.135), rgba(64, 202, 123, 0.036) 70%, transparent),
     rgba(9, 14, 22, 0.92);
+}
+
+.map-toggle[aria-expanded="true"] {
+  border-color: rgba(132, 205, 240, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.092), rgba(255, 255, 255, 0.026)),
+    linear-gradient(90deg, rgba(63, 168, 245, 0.18), rgba(64, 202, 123, 0.048) 70%, transparent),
+    rgba(10, 16, 25, 0.96);
+  color: #ffffff;
+  box-shadow:
+    var(--shadow-control),
+    0 0 0 1px rgba(132, 205, 240, 0.18),
+    0 0 18px rgba(91, 191, 239, 0.15),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.046);
 }
 
 .map-toggle:focus-visible,
@@ -1078,10 +1091,7 @@ dd {
 }
 
 /* Round statistics */
-.round-stats-toggle {
-  min-width: 164px;
-}
-
+.round-stats-toggle,
 .node-stats-toggle {
   min-width: 164px;
 }
