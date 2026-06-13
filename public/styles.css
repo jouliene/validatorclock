@@ -2709,7 +2709,7 @@ dd {
 }
 
 .round-badge.is-previous {
-  color: var(--muted);
+  color: rgba(222, 232, 242, 0.9);
 }
 
 .round-badge.is-election {
