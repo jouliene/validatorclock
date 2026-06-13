@@ -196,6 +196,7 @@ function updateValidatorMapRoundBadge() {
   }
 
   const label = roundColor === "blue" ? "BLUE (EVEN)" : "GREEN (ODD)";
+  badge.classList.add(`is-round-${roundColor}`);
   value.textContent = label;
   badge.setAttribute("aria-label", `Round: ${label}`);
 }

@@ -119,7 +119,7 @@ function renderNodeStats() {
   hideNodeStatsTooltip();
   content.innerHTML = `
     <div class="node-stats-overview">
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.round, nodeStatsRoundValue(stats), "", NODE_STATS_LABELS.tooltips.round, false, "is-summary-round is-round")}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.round, nodeStatsRoundValue(stats), "", NODE_STATS_LABELS.tooltips.round, false, `is-summary-round is-round ${nodeStatsRoundCardClass(stats.roundColor)}`)}
       ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalNodes, formatNodeStatsInteger(stats.networkValidators), "", NODE_STATS_LABELS.tooltips.totalNodes, false, "is-summary-total-nodes")}
       ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedNodes, formatNodeStatsInteger(stats.mappedNodes), "", NODE_STATS_LABELS.tooltips.mappedNodes, false, "is-summary-mapped-nodes")}
       ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalStake, formatNodeStatsStake(stats.networkStake), "", NODE_STATS_LABELS.tooltips.totalStake, false, "is-summary-total-stake")}
@@ -205,6 +205,11 @@ function nodeStatsRoundValue(stats) {
   }
   const parity = color.toLowerCase() === "blue" ? "Even" : color.toLowerCase() === "green" ? "Odd" : "";
   return parity ? `${color.toUpperCase()} (${parity.toUpperCase()})` : color.toUpperCase();
+}
+
+function nodeStatsRoundCardClass(value) {
+  const color = String(value || "").trim().toLowerCase();
+  return color === "green" || color === "blue" ? `is-round-${color}` : "";
 }
 
 function nodeStatsCardHtml(label, value, detail, tooltip = "", featured = false, extraClass = "") {

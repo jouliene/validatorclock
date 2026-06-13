@@ -1657,6 +1657,14 @@ dd {
   font-weight: 820;
 }
 
+.node-stats-card.is-round-green strong {
+  color: color-mix(in srgb, var(--green) 84%, white 16%);
+}
+
+.node-stats-card.is-round-blue strong {
+  color: color-mix(in srgb, var(--blue) 82%, white 18%);
+}
+
 .node-stats-card.is-featured strong {
   color: color-mix(in srgb, var(--gold) 86%, white 14%);
   font-size: 14px;
