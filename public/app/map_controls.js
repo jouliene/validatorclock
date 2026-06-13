@@ -188,8 +188,7 @@ function updateValidatorMapRoundBadge() {
 
   const roundColor = String(state.snapshot?.current_set?.round_color || "").toLowerCase();
   const available = mapAvailableForChain(state.selectedChainId) && (roundColor === "blue" || roundColor === "green");
-  badge.classList.toggle("is-blue", roundColor === "blue");
-  badge.classList.toggle("is-green", roundColor === "green");
+  badge.classList.remove("is-blue", "is-green", "is-round-blue", "is-round-green");
   if (!available) {
     value.textContent = "-";
     badge.removeAttribute("aria-label");
@@ -202,10 +201,11 @@ function updateValidatorMapRoundBadge() {
 }
 
 function updateValidatorMapSummary() {
-  const nodeCount = $("validatorMapNodeCount");
+  const totalNodeCount = $("validatorMapTotalNodeCount");
+  const mappedNodeCount = $("validatorMapMappedNodeCount") || $("validatorMapNodeCount");
   const locationCount = $("validatorMapLocationCount");
   const summary = $("validatorMapSummary");
-  if (!nodeCount && !locationCount && !summary) {
+  if (!totalNodeCount && !mappedNodeCount && !locationCount && !summary) {
     return;
   }
 
@@ -215,9 +215,15 @@ function updateValidatorMapSummary() {
   } else if (state.selectedChainId === BUNDLED_TYCHO_MAP_CHAIN_ID && Array.isArray(window.TYCHO_NODES)) {
     nodes = window.TYCHO_NODES;
   }
+  const totalNodes = Array.isArray(state.snapshot?.current_set?.validators)
+    ? state.snapshot.current_set.validators.length
+    : nodes.length;
   const locations = groupNodesByLocation(nodes).length;
-  if (nodeCount) {
-    nodeCount.textContent = String(nodes.length);
+  if (totalNodeCount) {
+    totalNodeCount.textContent = String(totalNodes);
+  }
+  if (mappedNodeCount) {
+    mappedNodeCount.textContent = String(nodes.length);
   }
   if (locationCount) {
     locationCount.textContent = String(locations);

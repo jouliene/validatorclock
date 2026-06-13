@@ -1439,80 +1439,22 @@ dd {
 
 .validator-map-meta {
   display: grid;
-  grid-template-columns: repeat(3, 122px);
+  grid-template-columns: repeat(4, 116px);
   gap: 8px;
   width: auto;
   margin-top: 0;
 }
 
 .validator-map-meta-item {
-  display: grid;
-  align-content: center;
-  gap: 2px;
-  min-width: 0;
-  min-height: 44px;
-  padding: 6px 10px;
-  border: 1px solid rgba(217, 231, 246, 0.1);
-  border-radius: var(--radius-md);
-  background:
-    linear-gradient(90deg, rgba(132, 205, 240, 0.026), transparent 54%),
-    var(--surface-card),
-    rgba(255, 255, 255, 0.012);
-  box-shadow: var(--shadow-card);
-  white-space: nowrap;
-}
-
-.validator-map-round-badge.is-blue {
-  border-color: color-mix(in srgb, var(--blue) 18%, rgba(217, 231, 246, 0.1));
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--blue) 3.2%, transparent), transparent 54%),
-    var(--surface-card),
-    rgba(255, 255, 255, 0.012);
-}
-
-.validator-map-round-badge.is-green {
-  border-color: color-mix(in srgb, var(--green) 18%, rgba(217, 231, 246, 0.1));
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--green) 3.2%, transparent), transparent 54%),
-    var(--surface-card),
-    rgba(255, 255, 255, 0.012);
-}
-
-.validator-map-meta-label {
-  color: rgba(151, 171, 194, 0.9);
-  font-size: 10px;
-  font-weight: 780;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: uppercase;
+  height: 48px;
 }
 
 .validator-map-meta-value {
-  display: block;
   min-width: 0;
-  overflow: hidden;
-  color: rgba(232, 244, 255, 0.93);
-  font-size: 14px;
-  font-weight: 760;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
-  line-height: 1.08;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .validator-map-round-value {
-  --round-color: #2f93dc;
-  color: color-mix(in srgb, var(--round-color) 68%, white 26%);
   font-size: 13px;
-}
-
-.validator-map-round-badge.is-blue .validator-map-round-value {
-  --round-color: #2f93dc;
-}
-
-.validator-map-round-badge.is-green .validator-map-round-value {
-  --round-color: #32af68;
 }
 
 .validator-map-count-value {
@@ -1523,19 +1465,21 @@ dd {
 .map-reset-button {
   position: relative;
   display: inline-grid;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
   place-items: center;
-  border: 1px solid rgba(154, 196, 224, 0.16);
+  border: 1px solid rgba(132, 205, 240, 0.155);
   border-radius: var(--radius-md);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
-    rgba(0, 0, 0, 0.16);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.041), rgba(255, 255, 255, 0.007)),
+    linear-gradient(90deg, rgba(132, 205, 240, 0.026), transparent 56%),
+    var(--surface-card),
+    rgba(255, 255, 255, 0.012);
   color: var(--text);
   cursor: pointer;
   box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.12),
+    var(--shadow-card),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
   transition: var(--transition-control);
 }
@@ -1677,22 +1621,6 @@ dd {
   pointer-events: none;
 }
 
-.node-stats-card.is-round-green {
-  border-color: color-mix(in srgb, var(--green) 21%, rgba(217, 231, 246, 0.1));
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--green) 3.2%, transparent), transparent 54%),
-    var(--surface-card),
-    rgba(255, 255, 255, 0.012);
-}
-
-.node-stats-card.is-round-blue {
-  border-color: color-mix(in srgb, var(--blue) 21%, rgba(217, 231, 246, 0.1));
-  background:
-    linear-gradient(90deg, color-mix(in srgb, var(--blue) 3.2%, transparent), transparent 54%),
-    var(--surface-card),
-    rgba(255, 255, 255, 0.012);
-}
-
 .node-stats-card.is-featured {
   border-color: rgba(214, 173, 88, 0.29);
   background:
@@ -1727,14 +1655,6 @@ dd {
 .node-stats-card.is-round strong {
   font-size: 13px;
   font-weight: 820;
-}
-
-.node-stats-card.is-round-green strong {
-  color: color-mix(in srgb, var(--green) 84%, white 16%);
-}
-
-.node-stats-card.is-round-blue strong {
-  color: color-mix(in srgb, var(--blue) 82%, white 18%);
 }
 
 .node-stats-card.is-featured strong {
@@ -1834,7 +1754,11 @@ dd {
 }
 
 .node-stats-table-shell {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .node-stats-table {
@@ -1966,7 +1890,9 @@ dd {
   display: flex;
   flex-direction: column;
   gap: 0;
+  min-width: 0;
   min-height: 0;
+  width: 100%;
   height: 100%;
   padding: 0;
 }
@@ -1988,6 +1914,8 @@ dd {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
   margin-top: auto;
   padding: 8px 10px 9px;
   border-top: 1px solid rgba(214, 173, 88, 0.12);
@@ -1997,6 +1925,13 @@ dd {
   font-size: 10.5px;
   font-weight: 680;
   line-height: 1.1;
+}
+
+.node-stats-ranking-footer span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .node-stats-ranking-action {
@@ -2009,6 +1944,7 @@ dd {
   font: inherit;
   font-weight: 760;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .node-stats-ranking-action:hover,
@@ -4092,20 +4028,22 @@ dd {
   }
 
   .validator-map-toolbar {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48px;
+    align-items: start;
     width: 100%;
     justify-content: flex-start;
   }
 
   .validator-map-meta {
-    flex: 1 1 auto;
     width: 100%;
-    grid-template-columns: minmax(108px, 1.25fr) minmax(64px, 0.72fr) minmax(82px, 0.95fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 0;
   }
 
   .validator-map-meta-item {
-    min-height: 44px;
+    min-height: 48px;
+    height: 48px;
     padding: 6px 8px;
   }
 
@@ -4118,9 +4056,9 @@ dd {
   }
 
   .map-reset-button {
-    width: var(--control-size);
-    height: var(--control-size);
-    flex-basis: var(--control-size);
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
   }
 
   .validator-map-shell {
@@ -4569,6 +4507,112 @@ dd {
     width: 11px;
     height: 11px;
     flex-basis: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .node-stats-overview {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: 48px;
+  }
+
+  .node-stats-card.is-summary-round {
+    order: 1;
+  }
+
+  .node-stats-card.is-summary-best-location {
+    order: 2;
+  }
+
+  .node-stats-card.is-summary-total-nodes {
+    order: 3;
+  }
+
+  .node-stats-card.is-summary-mapped-nodes {
+    order: 4;
+  }
+
+  .node-stats-card.is-summary-total-stake {
+    order: 5;
+  }
+
+  .node-stats-card.is-summary-mapped-stake {
+    order: 6;
+  }
+
+  .node-stats-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .node-stats-block-placement {
+    grid-template-rows: auto auto;
+  }
+
+  .node-stats-placement {
+    height: auto;
+  }
+
+  .node-stats-table th,
+  .node-stats-table td {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .node-stats-table-shell.has-scroll-more {
+    box-shadow: inset -24px 0 20px -22px rgba(132, 205, 240, 0.34);
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) {
+    min-width: calc(100% + 246px);
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) th:nth-child(3),
+  .node-stats-table:not(.node-stats-ranking-table) td:nth-child(3) {
+    padding-right: 14px;
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) .node-stats-col-rank {
+    width: 42px;
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) .node-stats-col-name {
+    width: auto;
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) .node-stats-col-count {
+    width: 116px;
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) .node-stats-col-stake {
+    width: 140px;
+  }
+
+  .node-stats-table:not(.node-stats-ranking-table) .node-stats-col-percent {
+    width: 106px;
+  }
+
+  .node-stats-placement .node-stats-table {
+    min-width: calc(100% + 202px);
+  }
+
+  .node-stats-ranking-table .node-stats-col-rank {
+    width: 42px;
+  }
+
+  .node-stats-ranking-table .node-stats-col-location {
+    width: auto;
+  }
+
+  .node-stats-ranking-table .node-stats-col-distance-primary {
+    width: 116px;
+  }
+
+  .node-stats-ranking-table .node-stats-col-distance-secondary {
+    width: 112px;
+  }
+
+  .node-stats-ranking-table .node-stats-col-distance-tertiary {
+    width: 90px;
   }
 }
 

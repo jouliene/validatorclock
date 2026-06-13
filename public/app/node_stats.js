@@ -102,8 +102,7 @@ function renderNodeStats() {
   const validators = state.snapshot?.current_set?.validators || [];
   const nodes = validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : [];
   const stats = buildNodeStats(nodes, validators);
-  const token = state.snapshot?.chain?.token_symbol || "";
-  const renderKey = nodeStatsRenderKey(stats, token);
+  const renderKey = nodeStatsRenderKey(stats);
   if (state.nodeStatsRenderKey === renderKey) {
     return;
   }
@@ -120,12 +119,12 @@ function renderNodeStats() {
   hideNodeStatsTooltip();
   content.innerHTML = `
     <div class="node-stats-overview">
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.round, nodeStatsRoundValue(stats), "", NODE_STATS_LABELS.tooltips.round, false, `is-round ${nodeStatsRoundCardClass(stats.roundColor)}`)}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalNodes, formatNodeStatsInteger(stats.networkValidators), "", NODE_STATS_LABELS.tooltips.totalNodes)}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedNodes, formatNodeStatsInteger(stats.mappedNodes), "", NODE_STATS_LABELS.tooltips.mappedNodes)}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalStake, `${formatNodeStatsStake(stats.networkStake)} ${token}`, "", NODE_STATS_LABELS.tooltips.totalStake)}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedStake, formatPercent(stats.mappedStakePercent), "", NODE_STATS_LABELS.tooltips.mappedStake)}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.bestGeoLocation, stats.medoid?.label || "-", "", NODE_STATS_LABELS.tooltips.bestGeoLocation, true)}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.round, nodeStatsRoundValue(stats), "", NODE_STATS_LABELS.tooltips.round, false, "is-summary-round is-round")}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalNodes, formatNodeStatsInteger(stats.networkValidators), "", NODE_STATS_LABELS.tooltips.totalNodes, false, "is-summary-total-nodes")}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedNodes, formatNodeStatsInteger(stats.mappedNodes), "", NODE_STATS_LABELS.tooltips.mappedNodes, false, "is-summary-mapped-nodes")}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalStake, formatNodeStatsStake(stats.networkStake), "", NODE_STATS_LABELS.tooltips.totalStake, false, "is-summary-total-stake")}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedStake, formatPercent(stats.mappedStakePercent), "", NODE_STATS_LABELS.tooltips.mappedStake, false, "is-summary-mapped-stake")}
+      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.bestGeoLocation, stats.medoid?.label || "-", "", NODE_STATS_LABELS.tooltips.bestGeoLocation, true, "is-summary-best-location")}
     </div>
     <div class="node-stats-layout">
       <section class="node-stats-block node-stats-block-countries">
@@ -148,6 +147,7 @@ function renderNodeStats() {
   `;
   wireNodeStatsCardTooltips(content);
   wireNodeStatsRankingToggle(content);
+  wireNodeStatsTableScrollHints(content);
 }
 
 function updateNodeStatsTitle() {
@@ -177,7 +177,7 @@ function nodeStatsChainName() {
   return chain?.name || state.selectedChainId || "Network";
 }
 
-function nodeStatsRenderKey(stats, token) {
+function nodeStatsRenderKey(stats) {
   return [
     state.selectedChainId,
     state.snapshot?.fetched_at || "",
@@ -195,7 +195,6 @@ function nodeStatsRenderKey(stats, token) {
     stats.medoid?.weightedAverageKm || "",
     stats.medoid?.medianKm || "",
     stats.medoid?.p90Km || "",
-    token,
   ].join("|");
 }
 
@@ -206,11 +205,6 @@ function nodeStatsRoundValue(stats) {
   }
   const parity = color.toLowerCase() === "blue" ? "Even" : color.toLowerCase() === "green" ? "Odd" : "";
   return parity ? `${color.toUpperCase()} (${parity.toUpperCase()})` : color.toUpperCase();
-}
-
-function nodeStatsRoundCardClass(value) {
-  const color = String(value || "").trim().toLowerCase();
-  return color === "green" || color === "blue" ? `is-round-${color}` : "";
 }
 
 function nodeStatsCardHtml(label, value, detail, tooltip = "", featured = false, extraClass = "") {
@@ -233,6 +227,20 @@ function wireNodeStatsCardTooltips(root) {
 function hideNodeStatsTooltip() {
   if (typeof hideValidatorTooltip === "function") {
     hideValidatorTooltip();
+  }
+}
+
+function wireNodeStatsTableScrollHints(root) {
+  const shells = Array.from(root.querySelectorAll(".node-stats-table-shell"));
+  const updateShell = (shell) => {
+    const maxScrollLeft = Math.max(0, shell.scrollWidth - shell.clientWidth);
+    const hasMore = maxScrollLeft > 1 && shell.scrollLeft < maxScrollLeft - 1;
+    shell.classList.toggle("has-scroll-more", hasMore);
+  };
+
+  for (const shell of shells) {
+    shell.addEventListener("scroll", () => updateShell(shell), { passive: true });
+    window.requestAnimationFrame(() => updateShell(shell));
   }
 }
 
