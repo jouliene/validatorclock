@@ -2708,6 +2708,10 @@ dd {
   color: var(--gold);
 }
 
+.round-badge.is-previous {
+  color: var(--muted);
+}
+
 .round-badge.is-election {
   border-color: color-mix(in srgb, var(--round-color) 34%, white 10%);
   background: color-mix(in srgb, var(--round-color) 3%, transparent);
