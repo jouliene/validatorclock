@@ -8,6 +8,7 @@ async function boot() {
     loadRuntimeStatus();
     window.setTimeout(prefetchRoundStatsSnapshots, 0);
     window.setTimeout(prefetchChainSnapshots, 0);
+    window.setTimeout(prefetchValidatorMapNodes, 250);
     await loadClock(false);
     loadRuntimeStatus();
     startTimers();

@@ -56,7 +56,14 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
   state.snapshot = snapshot;
   state.snapshotsByChain.set(chainId, snapshot);
   if (mapAvailableForChain(chainId)) {
-    await refreshValidatorMapNodesForSnapshot();
+    const cachedNodes = applyCachedValidatorMapNodesForChain(chainId);
+    if (!cachedNodes) {
+      await refreshValidatorMapNodesForSnapshot(chainId);
+    } else {
+      refreshValidatorMapNodesForSnapshot(chainId).catch((error) => {
+        console.warn(`Unable to refresh ${chainId} map nodes`, error);
+      });
+    }
   } else {
     state.validatorMapNodesByPeer = null;
   }
@@ -82,14 +89,19 @@ function prefetchChainSnapshots() {
 
 async function prefetchChainSnapshot(chainId) {
   if (state.snapshotsByChain.has(chainId)) {
-    return;
+    return state.snapshotsByChain.get(chainId);
   }
 
   try {
     const snapshot = await fetchClockSnapshot(chainId, false);
     state.snapshotsByChain.set(chainId, snapshot);
+    prefetchValidatorMapNodesForChain(chainId).catch((error) => {
+      console.warn(`Unable to prefetch ${chainId} map nodes`, error);
+    });
+    return snapshot;
   } catch (error) {
     console.warn(`Unable to prefetch ${chainId} clock snapshot`, error);
+    return null;
   }
 }
 

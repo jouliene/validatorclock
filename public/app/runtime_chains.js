@@ -61,8 +61,6 @@ async function selectChain(chainId) {
     setSelectedValidatorKey(null);
   }
   resetValidatorMapForChainChange(previousChainId, chainId);
-  handleNodeStatsChainChange(previousChainId, chainId);
-  handleRoundStatsChainChange(previousChainId, chainId);
   renderChainTabs();
   const cachedSnapshot = state.snapshotsByChain.get(chainId);
   if (cachedSnapshot) {
@@ -75,6 +73,8 @@ async function selectChain(chainId) {
     clearClock();
     updateValidatorMapRoundBadge();
   }
+  handleNodeStatsChainChange(previousChainId, chainId);
+  handleRoundStatsChainChange(previousChainId, chainId);
   renderRuntimeStatus(Math.trunc(Date.now() / 1000));
   await loadClock(false);
   if (state.roundStatsOpen) {

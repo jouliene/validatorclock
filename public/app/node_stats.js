@@ -49,7 +49,9 @@ function handleNodeStatsChainChange(previousChainId, nextChainId) {
   state.nodeStatsRenderKey = null;
   state.nodeStatsLocationRankingExpanded = false;
   if (state.nodeStatsOpen) {
-    renderNodeStatsLoading();
+    loadSelectedNodeStats(false).catch((error) => {
+      renderNodeStatsError(error);
+    });
   }
 }
 
@@ -58,12 +60,65 @@ function renderNodeStatsIfOpen() {
     return;
   }
 
-  if (!state.snapshot || validatorMapNodesChainId !== state.selectedChainId) {
+  if (!state.snapshot) {
+    renderNodeStatsLoading();
+    return;
+  }
+
+  if (validatorMapNodesChainId !== state.selectedChainId && !applyCachedValidatorMapNodesForChain(state.selectedChainId)) {
     renderNodeStatsLoading();
     return;
   }
 
   renderNodeStats();
+}
+
+async function loadSelectedNodeStats(force = false) {
+  const chainId = state.selectedChainId;
+  if (!chainId) {
+    return;
+  }
+
+  const requestSeq = state.nodeStatsRequestSeq + 1;
+  state.nodeStatsRequestSeq = requestSeq;
+
+  const cached = !force ? applyCachedValidatorMapNodesForChain(chainId) : null;
+  if (cached && state.snapshot?.chain?.id === chainId) {
+    clearNodeStatsLoadingTimer();
+    renderNodeStats();
+  } else {
+    scheduleNodeStatsLoading(requestSeq, chainId);
+  }
+
+  try {
+    await refreshValidatorMapNodesForSnapshot(chainId);
+    if (requestSeq !== state.nodeStatsRequestSeq || chainId !== state.selectedChainId) {
+      return;
+    }
+    clearNodeStatsLoadingTimer();
+    renderNodeStats();
+  } catch (error) {
+    if (!cached) {
+      throw error;
+    }
+    console.warn(`Unable to refresh ${chainId} node statistics`, error);
+  } finally {
+    clearNodeStatsLoadingTimer();
+  }
+}
+
+function scheduleNodeStatsLoading(requestSeq, chainId) {
+  clearNodeStatsLoadingTimer();
+  state.nodeStatsLoadingTimer = window.setTimeout(() => {
+    if (requestSeq === state.nodeStatsRequestSeq && chainId === state.selectedChainId) {
+      renderNodeStatsLoading();
+    }
+  }, 180);
+}
+
+function clearNodeStatsLoadingTimer() {
+  window.clearTimeout(state.nodeStatsLoadingTimer);
+  state.nodeStatsLoadingTimer = null;
 }
 
 function renderNodeStatsLoading() {

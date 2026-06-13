@@ -3,6 +3,7 @@ function startTimers() {
   window.clearInterval(state.statusTimer);
   window.clearInterval(state.drawTimer);
   window.clearInterval(state.roundStatsPrefetchTimer);
+  window.clearInterval(state.validatorMapPrefetchTimer);
 
   const pollSeconds = refreshPollSeconds();
 
@@ -16,6 +17,10 @@ function startTimers() {
 
   state.roundStatsPrefetchTimer = window.setInterval(() => {
     prefetchRoundStatsSnapshots();
+  }, pollSeconds * 1000);
+
+  state.validatorMapPrefetchTimer = window.setInterval(() => {
+    prefetchValidatorMapNodes();
   }, pollSeconds * 1000);
 
   state.drawTimer = window.setInterval(renderNow, 1000);

@@ -1,43 +1,176 @@
 async function loadValidatorMapNodes() {
-  if (validatorMapNodes && validatorMapNodesChainId === state.selectedChainId) {
-    return validatorMapNodes;
+  const chainId = state.selectedChainId;
+  const cached = applyCachedValidatorMapNodesForChain(chainId);
+  if (cached) {
+    refreshValidatorMapNodesForSnapshot(chainId).catch((error) => {
+      console.warn(`Unable to refresh ${chainId} map nodes`, error);
+    });
+    return cached;
   }
 
-  return refreshValidatorMapNodesForSnapshot();
+  return refreshValidatorMapNodesForSnapshot(chainId);
 }
 
-async function refreshValidatorMapNodesForSnapshot() {
-  const chainId = state.selectedChainId;
+async function refreshValidatorMapNodesForSnapshot(chainId = state.selectedChainId) {
+  const snapshot = validatorMapSnapshotForChain(chainId);
   if (!mapAvailableForChain(chainId)) {
-    state.validatorMapNodesByPeer = null;
-    validatorMapNodes = null;
-    validatorMapNodesChainId = null;
+    if (chainId === state.selectedChainId) {
+      state.validatorMapNodesByPeer = null;
+      validatorMapNodes = null;
+      validatorMapNodesChainId = null;
+    }
     return [];
   }
 
+  const cacheKey = validatorMapSnapshotCacheKey(snapshot);
+  const fetchKey = `${chainId}:${cacheKey}`;
+  const pending = state.validatorMapFetchesByChain.get(fetchKey);
+  if (pending) {
+    return pending;
+  }
+
+  const request = fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey).finally(() => {
+    if (state.validatorMapFetchesByChain.get(fetchKey) === request) {
+      state.validatorMapFetchesByChain.delete(fetchKey);
+    }
+  });
+  state.validatorMapFetchesByChain.set(fetchKey, request);
+  return request;
+}
+
+async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
+  let nodes = [];
   try {
-    const nodes = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/map`);
-    validatorMapNodes = Array.isArray(nodes) ? nodes : [];
+    const response = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/map`);
+    nodes = Array.isArray(response) ? response : [];
   } catch (error) {
     if (chainId === BUNDLED_TYCHO_MAP_CHAIN_ID) {
       console.warn("Using bundled Tycho map nodes", error);
-      validatorMapNodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
+      nodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
     } else {
       console.warn(`Unable to load ${chainId} map nodes`, error);
-      validatorMapNodes = [];
+      nodes = [];
     }
   }
 
-  validatorMapNodesChainId = chainId;
-  validatorMapNodes = enrichValidatorMapNodes(
-    filterValidatorMapNodesToCurrentValidators(validatorMapNodes)
+  nodes = enrichValidatorMapNodes(
+    filterValidatorMapNodesToCurrentValidators(nodes, snapshot),
+    snapshot,
   );
+  storeValidatorMapNodesForChain(chainId, nodes, cacheKey);
+  if (chainId === state.selectedChainId) {
+    applyValidatorMapNodesForChain(chainId, nodes);
+  }
+  return nodes;
+}
+
+function applyCachedValidatorMapNodesForChain(chainId = state.selectedChainId) {
+  if (!mapAvailableForChain(chainId)) {
+    return null;
+  }
+
+  const cacheKey = validatorMapSnapshotCacheKey(validatorMapSnapshotForChain(chainId));
+  if (state.validatorMapNodeCacheKeysByChain.get(chainId) !== cacheKey) {
+    return null;
+  }
+
+  const nodes = state.validatorMapNodesByChain.get(chainId);
+  if (!Array.isArray(nodes)) {
+    return null;
+  }
+
+  if (chainId === state.selectedChainId) {
+    applyValidatorMapNodesForChain(chainId, nodes);
+  }
+  return nodes;
+}
+
+function applyValidatorMapNodesForChain(chainId, nodes) {
+  if (chainId !== state.selectedChainId) {
+    return;
+  }
+
+  validatorMapNodesChainId = chainId;
+  validatorMapNodes = Array.isArray(nodes) ? nodes : [];
   state.validatorMapNodesByPeer = validatorMapNodeMapByPeer(validatorMapNodes);
   updateValidatorMapTitle();
   updateValidatorMapSummary();
   refreshValidatorMapSource();
   renderNodeStatsIfOpen();
-  return validatorMapNodes;
+}
+
+function storeValidatorMapNodesForChain(chainId, nodes, cacheKey = validatorMapSnapshotCacheKey(validatorMapSnapshotForChain(chainId))) {
+  state.validatorMapNodesByChain.set(chainId, Array.isArray(nodes) ? nodes : []);
+  state.validatorMapNodeCacheKeysByChain.set(chainId, cacheKey);
+}
+
+function validatorMapSnapshotForChain(chainId) {
+  if (chainId === state.selectedChainId && state.snapshot?.chain?.id === chainId) {
+    return state.snapshot;
+  }
+  return state.snapshotsByChain.get(chainId) || null;
+}
+
+function validatorMapSnapshotCacheKey(snapshot) {
+  if (!snapshot?.current_set) {
+    return "no-snapshot";
+  }
+
+  const current = snapshot.current_set;
+  return [
+    snapshot.chain?.id || "",
+    current.round_id || "",
+    current.round_color || "",
+    current.utime_since || "",
+    Array.isArray(current.validators) ? current.validators.length : 0,
+  ].join("|");
+}
+
+async function prefetchValidatorMapNodes() {
+  const chainIds = state.chains
+    .map((chain) => chain.id)
+    .filter((chainId) => chainId && mapAvailableForChain(chainId))
+    .sort((left, right) => {
+      if (left === state.selectedChainId) {
+        return -1;
+      }
+      if (right === state.selectedChainId) {
+        return 1;
+      }
+      return 0;
+    });
+
+  chainIds.forEach((chainId, index) => {
+    window.setTimeout(() => {
+      prefetchValidatorMapNodesForChain(chainId).catch((error) => {
+        console.warn(`Unable to prefetch ${chainId} map nodes`, error);
+      });
+    }, index * 350);
+  });
+}
+
+async function prefetchValidatorMapNodesForChain(chainId, force = false) {
+  if (!chainId || !mapAvailableForChain(chainId)) {
+    return [];
+  }
+
+  let snapshot = validatorMapSnapshotForChain(chainId);
+  if (!snapshot) {
+    snapshot = await prefetchChainSnapshot(chainId);
+  }
+
+  if (!snapshot) {
+    return [];
+  }
+
+  if (!force) {
+    const cached = applyCachedValidatorMapNodesForChain(chainId);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  return refreshValidatorMapNodesForSnapshot(chainId);
 }
 
 function mapAvailableForChain(chainId) {
@@ -63,8 +196,8 @@ function validatorMapNodeMapByPeer(nodes) {
   return byPeer;
 }
 
-function filterValidatorMapNodesToCurrentValidators(nodes) {
-  const validators = state.snapshot?.current_set?.validators;
+function filterValidatorMapNodesToCurrentValidators(nodes, snapshot = state.snapshot) {
+  const validators = snapshot?.current_set?.validators;
   if (!Array.isArray(nodes) || !Array.isArray(validators)) {
     return [];
   }
@@ -78,8 +211,8 @@ function filterValidatorMapNodesToCurrentValidators(nodes) {
   return nodes.filter((node) => activePeers.has(String(node.peer || "").toLowerCase()));
 }
 
-function enrichValidatorMapNodes(nodes) {
-  const validators = state.snapshot?.current_set?.validators;
+function enrichValidatorMapNodes(nodes, snapshot = state.snapshot) {
+  const validators = snapshot?.current_set?.validators;
   if (!Array.isArray(nodes) || !Array.isArray(validators)) {
     return [];
   }

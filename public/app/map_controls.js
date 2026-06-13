@@ -109,18 +109,16 @@ function setNodeStatsOpen(open) {
   state.nodeStatsOpen = willOpen;
   syncNodeStatsPanel();
   if (!state.nodeStatsOpen) {
+    clearNodeStatsLoadingTimer();
     state.nodeStatsRenderKey = null;
     return;
   }
 
   state.nodeStatsRenderKey = null;
-  renderNodeStatsLoading();
-  loadValidatorMapNodes()
-    .then(() => renderNodeStats())
-    .catch((error) => {
-      console.warn("Unable to load validator node statistics", error);
-      renderNodeStatsError(error);
-    });
+  loadSelectedNodeStats(false).catch((error) => {
+    console.warn("Unable to load validator node statistics", error);
+    renderNodeStatsError(error);
+  });
 }
 
 function syncValidatorMapPanel() {
