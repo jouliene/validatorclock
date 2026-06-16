@@ -105,7 +105,7 @@ fn temp_history_path(test_name: &str) -> PathBuf {
         .expect("system time should be after unix epoch")
         .as_nanos();
     std::env::temp_dir().join(format!(
-        "validators_clock_{test_name}_{}_{}.json",
+        "validatorclock_{test_name}_{}_{}.json",
         std::process::id(),
         unique
     ))

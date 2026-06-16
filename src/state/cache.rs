@@ -201,7 +201,7 @@ mod tests {
             .unwrap_or_default()
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "validators_clock_snapshot_cache_test_{}_{}.json",
+            "validatorclock_snapshot_cache_test_{}_{}.json",
             std::process::id(),
             nonce
         ))

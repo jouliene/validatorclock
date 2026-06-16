@@ -12,7 +12,7 @@ pub(crate) use app::{AppConfig, ChainConfig};
 pub(crate) use security::SecurityConfig;
 pub(crate) use tls::TlsConfig;
 
-const DEFAULT_CONFIG: &str = include_str!("../../validators_clock.json");
+const DEFAULT_CONFIG: &str = include_str!("../../validatorclock.json");
 
 #[derive(Debug, Clone)]
 pub(crate) struct LoadedConfig {
@@ -52,7 +52,7 @@ pub(crate) fn load_config(path: Option<&Path>) -> Result<LoadedConfig> {
             ConfigSource::Explicit(path.to_path_buf()),
         ),
         None => {
-            let default_path = PathBuf::from("validators_clock.json");
+            let default_path = PathBuf::from("validatorclock.json");
             match fs::read_to_string(&default_path) {
                 Ok(content) => (content, ConfigSource::LocalDefault(default_path)),
                 Err(_) => (DEFAULT_CONFIG.into(), ConfigSource::EmbeddedDefault),
@@ -61,7 +61,7 @@ pub(crate) fn load_config(path: Option<&Path>) -> Result<LoadedConfig> {
     };
 
     let config =
-        serde_json::from_str(&content).context("failed to parse validators clock config")?;
+        serde_json::from_str(&content).context("failed to parse validator clock config")?;
     Ok(LoadedConfig { config, source })
 }
 

@@ -118,7 +118,7 @@ pub(crate) fn round_history_chain_path(base_path: &Path, chain_id: &str) -> Path
                 _ => format!("{name}_{safe_chain_id}"),
             }
         })
-        .unwrap_or_else(|| format!("validators_clock_history_{safe_chain_id}.json"));
+        .unwrap_or_else(|| format!("validatorclock_history_{safe_chain_id}.json"));
 
     path.set_file_name(file_name);
     path
@@ -199,7 +199,7 @@ pub(super) fn round_history_lock_path(history_path: &Path) -> PathBuf {
         .file_name()
         .and_then(|name| name.to_str())
         .map(|name| format!("{name}.lock"))
-        .unwrap_or_else(|| ".validators_clock_history.lock".to_owned());
+        .unwrap_or_else(|| ".validatorclock_history.lock".to_owned());
     lock_path.set_file_name(file_name);
     lock_path
 }

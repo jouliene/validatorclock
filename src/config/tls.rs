@@ -23,8 +23,8 @@ impl Default for TlsConfig {
             http_listen: "0.0.0.0:80".to_owned(),
             https_listen: "0.0.0.0:443".to_owned(),
             public_url: String::new(),
-            cert_path: PathBuf::from("validators_clock_fullchain.pem"),
-            key_path: PathBuf::from("validators_clock_privkey.pem"),
+            cert_path: PathBuf::from("validatorclock_fullchain.pem"),
+            key_path: PathBuf::from("validatorclock_privkey.pem"),
             acme: AcmeConfig::default(),
         }
     }

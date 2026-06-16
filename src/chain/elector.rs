@@ -176,7 +176,7 @@ async fn fetch_chain_snapshot_from_jrpc(
     let validator_round_data = match validator_round_data_result {
         Ok(round_data) => round_data,
         Err(error) => {
-            if env::var_os("VALIDATORS_CLOCK_DEBUG_HISTORY").is_some() {
+            if env::var_os("VALIDATORCLOCK_DEBUG_HISTORY").is_some() {
                 debug!(error = ?error, "validator round data failed");
             }
             Default::default()

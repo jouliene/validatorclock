@@ -24,7 +24,7 @@ pub(crate) async fn run_plain_http_server(state: Arc<AppState>) -> Result<()> {
     let listener = TcpListener::bind(&state.config.listen)
         .await
         .with_context(|| format!("failed to bind {}", state.config.listen))?;
-    info!(listen = %state.config.listen, "validators_clock listening on HTTP");
+    info!(listen = %state.config.listen, "validatorclock listening on HTTP");
 
     serve_plain_connections(
         listener,
@@ -75,7 +75,7 @@ pub(crate) async fn run_tls_server(state: Arc<AppState>) -> Result<()> {
         });
     }
 
-    info!(listen = %tls_config.https_listen, "validators_clock listening on HTTPS");
+    info!(listen = %tls_config.https_listen, "validatorclock listening on HTTPS");
     serve_tls_connections(
         https_listener,
         routes::app_router(Arc::clone(&state)),

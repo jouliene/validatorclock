@@ -28,7 +28,7 @@ impl Default for AcmeConfig {
             identifier: String::new(),
             extra_identifiers: Vec::new(),
             contact: Vec::new(),
-            account_path: PathBuf::from("validators_clock_acme_account.json"),
+            account_path: PathBuf::from("validatorclock_acme_account.json"),
             profile: None,
             renew_after_seconds: None,
             retry_timeout_seconds: 60,

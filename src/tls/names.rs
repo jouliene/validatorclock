@@ -113,17 +113,17 @@ mod tests {
 
     #[test]
     fn detects_missing_certificate_identifiers() {
-        let certificate_names = HashSet::from(["validatorsclock.xyz".to_owned()]);
+        let certificate_names = HashSet::from(["validatorclock.xyz".to_owned()]);
         let acme = AcmeConfig {
             enabled: true,
-            identifier: "validatorsclock.xyz".to_owned(),
-            extra_identifiers: vec!["www.validatorsclock.xyz".to_owned()],
+            identifier: "validatorclock.xyz".to_owned(),
+            extra_identifiers: vec!["www.validatorclock.xyz".to_owned()],
             ..AcmeConfig::default()
         };
 
         assert_eq!(
             missing_certificate_identifiers(&certificate_names, &acme).unwrap(),
-            vec!["www.validatorsclock.xyz"]
+            vec!["www.validatorclock.xyz"]
         );
     }
 

@@ -92,14 +92,14 @@ impl AppConfig {
     pub(crate) fn effective_history_path(&self) -> PathBuf {
         self.history_path.clone().unwrap_or_else(|| {
             let mut path = self.cache_path.clone();
-            path.set_file_name("validators_clock_history.json");
+            path.set_file_name("validatorclock_history.json");
             path
         })
     }
 
     pub(crate) fn effective_validator_type_cache_path(&self) -> PathBuf {
         let mut path = self.cache_path.clone();
-        path.set_file_name("validators_clock_validator_types.json");
+        path.set_file_name("validatorclock_validator_types.json");
         path
     }
 
@@ -197,7 +197,7 @@ fn default_refresh_timeout_seconds() -> u64 {
 }
 
 fn default_cache_path() -> PathBuf {
-    PathBuf::from("validators_clock_cache.json")
+    PathBuf::from("validatorclock_cache.json")
 }
 
 fn default_chain_color() -> String {

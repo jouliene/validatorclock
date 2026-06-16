@@ -1,5 +1,5 @@
 [package]
-name = "validators_clock"
+name = "validatorclock"
 version = "1.0.11"
 edition = "2024"
 

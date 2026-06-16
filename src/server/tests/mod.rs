@@ -106,7 +106,7 @@ fn temp_state_path(name: &str) -> PathBuf {
         .unwrap_or_default()
         .as_nanos();
     std::env::temp_dir().join(format!(
-        "validators_clock_server_test_{name}_{}_{}.json",
+        "validatorclock_server_test_{name}_{}_{}.json",
         std::process::id(),
         nonce
     ))

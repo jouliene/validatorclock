@@ -30,7 +30,7 @@ impl TonCenterJsonRpcClient {
                 .build()
                 .context("failed to build TON Center HTTP client")?,
             endpoint: endpoint.to_owned(),
-            api_key: env::var("VALIDATORS_CLOCK_TONCENTER_API_KEY").ok(),
+            api_key: env::var("VALIDATORCLOCK_TONCENTER_API_KEY").ok(),
         })
     }
 

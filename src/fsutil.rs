@@ -59,7 +59,7 @@ fn temp_file_path(path: &Path) -> PathBuf {
     let file_name = path
         .file_name()
         .and_then(|name| name.to_str())
-        .unwrap_or("validators_clock");
+        .unwrap_or("validatorclock");
     path.with_file_name(format!(
         ".{file_name}.{}.{}.{}.tmp",
         std::process::id(),

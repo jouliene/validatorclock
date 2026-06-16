@@ -120,17 +120,17 @@ fn load_round_history_for_chains_ignores_legacy_combined_file() {
 fn round_history_chain_path_adds_chain_id_before_extension() {
     assert_eq!(
         round_history_chain_path(
-            Path::new("/var/lib/validators_clock_history.json"),
+            Path::new("/var/lib/validatorclock_history.json"),
             "tycho/testnet"
         ),
-        PathBuf::from("/var/lib/validators_clock_history_tycho_testnet.json")
+        PathBuf::from("/var/lib/validatorclock_history_tycho_testnet.json")
     );
 }
 
 #[test]
 fn round_history_lock_path_adds_lock_suffix() {
     assert_eq!(
-        round_history_lock_path(Path::new("validators_clock_history.json")),
-        PathBuf::from("validators_clock_history.json.lock")
+        round_history_lock_path(Path::new("validatorclock_history.json")),
+        PathBuf::from("validatorclock_history.json.lock")
     );
 }

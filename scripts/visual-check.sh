@@ -2,11 +2,11 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PORT="${VALIDATORS_CLOCK_VISUAL_PORT:-18787}"
+PORT="${VALIDATORCLOCK_VISUAL_PORT:-18787}"
 HOST="127.0.0.1"
 BASE_URL="http://${HOST}:${PORT}"
-OUT_DIR="${VALIDATORS_CLOCK_VISUAL_OUT:-${ROOT_DIR}/target/visual-check}"
-BROWSER="${VALIDATORS_CLOCK_BROWSER:-}"
+OUT_DIR="${VALIDATORCLOCK_VISUAL_OUT:-${ROOT_DIR}/target/visual-check}"
+BROWSER="${VALIDATORCLOCK_BROWSER:-}"
 
 find_browser() {
   if [[ -n "${BROWSER}" ]]; then
@@ -306,9 +306,9 @@ cat > "${TMP_DIR}/visual-check.json" <<JSON
   "listen": "${HOST}:${PORT}",
   "refresh_seconds": 60,
   "refresh_timeout_seconds": 90,
-  "cache_path": "${TMP_DIR}/validators_clock_cache.json",
-  "history_path": "${TMP_DIR}/validators_clock_history.json",
-  "validator_type_cache_path": "${ROOT_DIR}/validators_clock_validator_types.json",
+  "cache_path": "${TMP_DIR}/validatorclock_cache.json",
+  "history_path": "${TMP_DIR}/validatorclock_history.json",
+  "validator_type_cache_path": "${ROOT_DIR}/validatorclock_validator_types.json",
   "chains": [
     {
       "id": "everscale",
@@ -341,11 +341,11 @@ cat > "${TMP_DIR}/visual-check.json" <<JSON
 }
 JSON
 
-echo "Building validators_clock..."
+echo "Building validatorclock..."
 cargo build
 
 echo "Starting preview server at ${BASE_URL}..."
-"${ROOT_DIR}/target/debug/validators_clock" "${TMP_DIR}/visual-check.json" >"${OUT_DIR}/server.log" 2>&1 &
+"${ROOT_DIR}/target/debug/validatorclock" "${TMP_DIR}/visual-check.json" >"${OUT_DIR}/server.log" 2>&1 &
 SERVER_PID="$!"
 wait_for_server
 wait_for_data

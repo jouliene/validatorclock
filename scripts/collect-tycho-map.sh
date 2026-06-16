@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Collect Tycho overlay peers, keep only active validators when validators_clock
+# Collect Tycho overlay peers, keep only active validators when validatorclock
 # is reachable, enrich IPs with geo data, and write a map node JSON/JS file.
 #
 # Required commands: tycho, jq, curl.
@@ -11,7 +11,7 @@ set -euo pipefail
 #
 # Useful config/env vars:
 #   TYCHO_BIN                  tycho binary path, default: tycho
-#   VALIDATORS_CLOCK_URL       validators_clock base URL, default: http://127.0.0.1:8787
+#   VALIDATORCLOCK_URL       validatorclock base URL, default: http://127.0.0.1:8787
 #   TYCHO_MAP_CHAIN_ID         chain id for clock API, default: tycho-testnet
 #   TYCHO_MAP_OUTPUT           output path, default: ./target/tycho_nodes.json
 #   TYCHO_MAP_FORMAT           json or js, default inferred from output extension
@@ -36,7 +36,7 @@ Options:
 
 Config keys:
   TYCHO_BIN
-  VALIDATORS_CLOCK_URL
+  VALIDATORCLOCK_URL
   TYCHO_MAP_CHAIN_ID
   TYCHO_MAP_OUTPUT
   TYCHO_MAP_FORMAT
@@ -81,7 +81,7 @@ if [[ -n "${CONFIG_PATH}" ]]; then
 fi
 
 TYCHO_BIN="${TYCHO_BIN:-tycho}"
-VALIDATORS_CLOCK_URL="${VALIDATORS_CLOCK_URL:-http://127.0.0.1:8787}"
+VALIDATORCLOCK_URL="${VALIDATORCLOCK_URL:-http://127.0.0.1:8787}"
 TYCHO_MAP_CHAIN_ID="${TYCHO_MAP_CHAIN_ID:-tycho-testnet}"
 TYCHO_MAP_OUTPUT="${TYCHO_MAP_OUTPUT:-${ROOT_DIR}/target/tycho_nodes.json}"
 TYCHO_MAP_OVERLAY_SCOPE="${TYCHO_MAP_OVERLAY_SCOPE:-private}"
@@ -172,7 +172,7 @@ collect_overlay_peers() {
 
 fetch_active_validators() {
   local output_file="$1"
-  local clock_url="${VALIDATORS_CLOCK_URL%/}/api/chains/${TYCHO_MAP_CHAIN_ID}/clock"
+  local clock_url="${VALIDATORCLOCK_URL%/}/api/chains/${TYCHO_MAP_CHAIN_ID}/clock"
 
   if [[ "${TYCHO_MAP_ACTIVE_ONLY}" != "1" ]]; then
     jq -n '[]' >"${output_file}"

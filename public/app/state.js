@@ -1,11 +1,11 @@
-const ADDRESS_TYPE_KEY = "validators-clock-address-type";
-const SOURCE_DISPLAY_KEY = "validators-clock-source-display";
+const ADDRESS_TYPE_KEY = "validatorclock-address-type";
+const SOURCE_DISPLAY_KEY = "validatorclock-source-display";
 
 function initialAddressTypes() {
   try {
     const stored = JSON.parse(window.localStorage?.getItem(ADDRESS_TYPE_KEY) || "{}");
     const types = stored && typeof stored === "object" ? stored : {};
-    const legacyTonFormat = window.localStorage?.getItem("validators-clock-ton-address-format");
+    const legacyTonFormat = window.localStorage?.getItem("validatorclock-ton-address-format");
     if (!types.ton && (legacyTonFormat === "raw" || legacyTonFormat === "friendly")) {
       types.ton = legacyTonFormat === "raw" ? "ever" : "ton";
     }

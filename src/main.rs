@@ -72,7 +72,7 @@ impl Cli {
                     config_path = Some(PathBuf::from(value));
                 }
                 "--help" | "-h" => {
-                    println!("Usage: validators_clock [--config validators_clock.json]");
+                    println!("Usage: validatorclock [--config validatorclock.json]");
                     std::process::exit(0);
                 }
                 value if !value.starts_with('-') && config_path.is_none() => {
@@ -94,21 +94,18 @@ mod tests {
     #[test]
     fn cli_parses_explicit_config_path() {
         let cli =
-            Cli::parse_args(["--config".to_owned(), "validators_clock.json".to_owned()]).unwrap();
+            Cli::parse_args(["--config".to_owned(), "validatorclock.json".to_owned()]).unwrap();
 
-        assert_eq!(
-            cli.config_path,
-            Some(PathBuf::from("validators_clock.json"))
-        );
+        assert_eq!(cli.config_path, Some(PathBuf::from("validatorclock.json")));
     }
 
     #[test]
     fn cli_parses_positional_config_path() {
-        let cli = Cli::parse_args(["validators_clock.production.json".to_owned()]).unwrap();
+        let cli = Cli::parse_args(["validatorclock.production.json".to_owned()]).unwrap();
 
         assert_eq!(
             cli.config_path,
-            Some(PathBuf::from("validators_clock.production.json"))
+            Some(PathBuf::from("validatorclock.production.json"))
         );
     }
 

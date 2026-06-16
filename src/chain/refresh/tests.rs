@@ -409,7 +409,7 @@ fn test_state_dir() -> Result<PathBuf> {
         .unwrap_or_default()
         .as_nanos();
     let path = std::env::temp_dir().join(format!(
-        "validators_clock_fallback_test_{}_{}",
+        "validatorclock_fallback_test_{}_{}",
         std::process::id(),
         nonce
     ));

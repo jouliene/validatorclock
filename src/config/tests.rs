@@ -19,7 +19,7 @@ fn test_config() -> AppConfig {
         listen: "127.0.0.1:8787".to_owned(),
         refresh_seconds: 60,
         refresh_timeout_seconds: 90,
-        cache_path: PathBuf::from("/var/lib/validators_clock/cache.json"),
+        cache_path: PathBuf::from("/var/lib/validatorclock/cache.json"),
         history_path: None,
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),
@@ -35,11 +35,11 @@ fn derives_default_runtime_paths_from_cache_path() {
 
     assert_eq!(
         config.effective_history_path(),
-        PathBuf::from("/var/lib/validators_clock/validators_clock_history.json")
+        PathBuf::from("/var/lib/validatorclock/validatorclock_history.json")
     );
     assert_eq!(
         config.effective_validator_type_cache_path(),
-        PathBuf::from("/var/lib/validators_clock/validators_clock_validator_types.json")
+        PathBuf::from("/var/lib/validatorclock/validatorclock_validator_types.json")
     );
 }
 
@@ -310,7 +310,7 @@ fn acme_default_directory_and_renewal_windows_are_stable() {
 
 #[test]
 fn load_config_reports_explicit_source() {
-    let path = Path::new("validators_clock.json");
+    let path = Path::new("validatorclock.json");
     let loaded = load_config(Some(path)).expect("repo default config should parse");
 
     assert!(matches!(loaded.source, ConfigSource::Explicit(_)));
