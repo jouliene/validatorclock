@@ -1,4 +1,4 @@
-# Validators Clock Optimization Plan
+# Validator Clock Optimization Plan
 
 This branch is for cleanup and modularization only. Keep behavior changes out of the
 cleanup commits unless a bug is found during verification.
@@ -24,7 +24,7 @@ cleanup commits unless a bug is found during verification.
 - Run `cargo fmt`, `cargo test`, `cargo clippy`, JS syntax checks, and `scripts/visual-check.sh` when behavior or layout can be affected.
 - Do not hard-code resolver timing assumptions into backend logic. TON/Everscale/Tycho resolver cadence is deployment configuration and may change.
 - Preserve `/styles.css` and `/app.js` public URLs unless the deployment pipeline is updated at the same time.
-- Avoid touching tracked runtime data such as `validators_clock.json` unless the task explicitly requires it.
+- Avoid touching tracked runtime data such as `validatorclock.json` unless the task explicitly requires it.
 
 ## Remaining Work
 

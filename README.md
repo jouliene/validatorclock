@@ -1,16 +1,16 @@
-# Validators Clock
+# Validator Clock
 
 Web dashboard for Everscale, Tycho, and TON validator rounds, elections,
 stakes, rewards, wallet types, and recent validator history.
 
-![Validators Clock screenshot](docs/validators-clock-screenshot.png)
+![Validator Clock screenshot](docs/validatorclock-screenshot.png)
 
 ## Run Locally
 
 ```bash
 cd ~
-git clone https://github.com/jouliene/validators_clock.git validators_clock
-cd validators_clock
+git clone https://github.com/jouliene/validatorclock.git validatorclock
+cd validatorclock
 cargo run
 ```
 
@@ -24,7 +24,7 @@ The default TON config keeps TON Center as the primary RPC and uses Broxus as a
 fallback. If you have a TON Center key, set it before starting the app:
 
 ```bash
-export VALIDATORS_CLOCK_TONCENTER_API_KEY=your-key
+export VALIDATORCLOCK_TONCENTER_API_KEY=your-key
 ```
 
 If Rust is missing:
@@ -45,19 +45,23 @@ sudo apt update
 sudo apt install -y build-essential pkg-config libssl-dev curl git
 ```
 
-Clone and install:
+Clone, migrate existing production data if present, and install:
 
 ```bash
 cd ~
-git clone https://github.com/jouliene/validators_clock.git validators_clock
-cd validators_clock
+git clone https://github.com/jouliene/validatorclock.git validatorclock
+cd validatorclock
+./scripts/migrate_to_validatorclock.sh
 ./install.sh
 ```
 
 For another domain:
 
 ```bash
-VALIDATORS_CLOCK_PUBLIC_URL=https://your-domain.example ./install.sh
+VALIDATORCLOCK_PUBLIC_URL=https://your-domain.example \
+VALIDATORCLOCK_ACME_IDENTIFIER=your-domain.example \
+VALIDATORCLOCK_ACME_EXTRA_IDENTIFIERS=www.your-domain.example \
+./install.sh
 ```
 
 `install.sh` checks Rust. If Rust is missing, it installs Rust with `rustup`.
@@ -69,7 +73,7 @@ reloading systemd, enabling the service, and restarting the service.
 ## Update Production
 
 ```bash
-cd ~/validators_clock
+cd ~/validatorclock
 ./update.sh
 ```
 
@@ -90,15 +94,17 @@ the server if there are local changes.
 ## Check Production
 
 ```bash
-systemctl status validators-clock.service --no-pager
-curl -sS https://validatorsclock.xyz/api/status
+sudo systemctl status validatorclock.service --no-pager
+curl -I https://validatorclock.xyz/
+curl -I https://validatorclock.xyz/api/status
+curl -I https://www.validatorclock.xyz/
 ```
 
 Logs:
 
 ```bash
-sudo journalctl -u validators-clock.service -n 100 --no-pager
-sudo journalctl -u validators-clock.service -f
+sudo journalctl -u validatorclock.service -n 100 --no-pager
+sudo journalctl -u validatorclock.service -f
 ```
 
 ## Files
@@ -106,22 +112,22 @@ sudo journalctl -u validators-clock.service -f
 Installed binary:
 
 ```text
-~/.cargo/bin/validators_clock
+~/.cargo/bin/validatorclock
 ```
 
 Production data:
 
 ```text
-~/.validators_clock
+~/.validatorclock
 ```
 
 Important data files:
 
 ```text
-validators_clock.production.json
-validators_clock_history_everscale.json
-validators_clock_history_tycho-testnet.json
-validators_clock_history_ton.json
-validators_clock_validator_types.json
+validatorclock.production.json
+validatorclock_history_everscale.json
+validatorclock_history_tycho-testnet.json
+validatorclock_history_ton.json
+validatorclock_validator_types.json
 acme/
 ```

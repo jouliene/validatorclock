@@ -1,4 +1,4 @@
-# Validators Clock Design Plan
+# Validator Clock Design Plan
 
 Open Design audit direction: keep the dark sportcar-dashboard concept, but make the UI feel like one instrument cluster instead of several adjacent card styles.
 
@@ -124,6 +124,6 @@ Step 12 result - Clock Frame Removal + Fold Recovery:
 Step 13 result - Manual Final Polish:
 
 - Increased the Election countdown values so ROUND ENDS IN and ELECTIONS START/END IN regain dashboard-instrument visibility without making the labels heavier.
-- Restored breathing room between the VALIDATORS CLOCK title ornament and the cockpit shell by increasing the titlebar rhythm and making the gold divider mark slightly more deliberate.
+- Restored breathing room between the VALIDATOR CLOCK title ornament and the cockpit shell by increasing the titlebar rhythm and making the gold divider mark slightly more deliberate.
 - Expanded the MAP toggle back into a confident 46px control instead of a compressed pill.
 - Rebalanced the open map heading: the reset control now aligns with the right-side summary instead of sitting tight against the title, and the map canvas uses even 20px panel gutters.
