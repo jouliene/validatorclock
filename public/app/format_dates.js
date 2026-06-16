@@ -16,9 +16,16 @@ function dateRow(label, unixSeconds) {
   return row;
 }
 
-function renderInfoUpdated(container, fetchedAt, now) {
+function renderInfoUpdated(labelContainer, valueContainer, fetchedAt, now, options = {}) {
+  if (options.refreshing) {
+    labelContainer.textContent = "Updating";
+    valueContainer.textContent = "now";
+    return;
+  }
+
+  labelContainer.textContent = "Info updated";
   const ageSeconds = Math.max(0, now - fetchedAt);
-  container.textContent = `${ageSeconds}s ago`;
+  valueContainer.textContent = `${ageSeconds}s ago`;
 }
 
 function formatDateTime(unixSeconds) {

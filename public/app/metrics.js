@@ -9,7 +9,16 @@ function renderMetrics(snapshot, model, now) {
   $("metricElectionsStartIn").textContent = model.inElections
     ? formatDurationPrecise(Math.max(0, model.electionsEnd - now))
     : formatDurationPrecise(Math.max(0, model.electionsStart - now));
-  renderInfoUpdated($("metricFetched"), snapshot.fetched_at, now);
+  renderInfoUpdated($("metricFetchedLabel"), $("metricFetched"), snapshot.fetched_at, now, {
+    refreshing: infoUpdatedRefreshPending(snapshot, now),
+  });
+}
+
+function infoUpdatedRefreshPending(snapshot, now) {
+  const refreshSeconds = Math.max(10, state.refreshSeconds || 60);
+  const ageSeconds = Math.max(0, now - snapshot.fetched_at);
+  const staleRefreshRunning = String(snapshot.warning || "").includes("refresh is running in background");
+  return staleRefreshRunning || (state.clockLoading && ageSeconds >= refreshSeconds);
 }
 
 function roundAccentColor(color) {
