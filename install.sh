@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SERVICE_NAME="${VALIDATORS_CLOCK_SERVICE_NAME:-validators-clock.service}"
-APP_NAME="validators_clock"
+SERVICE_NAME="${VALIDATORCLOCK_SERVICE_NAME:-validatorclock.service}"
+APP_NAME="validatorclock"
 
 usage() {
   cat <<'USAGE'
 Usage: ./install.sh [--no-restart] [--no-systemd]
 
-Builds validators_clock, installs the binary to $HOME/.cargo/bin, creates a
-production runtime directory at $HOME/.validators_clock, installs/updates the
+Builds validatorclock, installs the binary to $HOME/.cargo/bin, creates a
+production runtime directory at $HOME/.validatorclock, installs/updates the
 systemd service, and restarts it.
 
 The script checks Rust before building. If Rust is missing, it installs Rust
@@ -27,20 +27,20 @@ For normal production updates without sudo, use:
   ./update.sh
 
 Environment overrides:
-  VALIDATORS_CLOCK_STATE_DIR              default: $HOME/.validators_clock
-  VALIDATORS_CLOCK_PUBLIC_URL             default: https://validatorsclock.xyz
-  VALIDATORS_CLOCK_ACME_IDENTIFIER        default: host from public URL
-  VALIDATORS_CLOCK_ACME_EXTRA_IDENTIFIERS default: www.<identifier>
-  VALIDATORS_CLOCK_ACME_STAGING           default: false
-  VALIDATORS_CLOCK_RUSTFLAGS              default: -C target-cpu=native
-  VALIDATORS_CLOCK_NO_RESTART             set to 1 to skip restart
-  VALIDATORS_CLOCK_NO_SYSTEMD             set to 1 to skip all systemd/sudo work
-  VALIDATORS_CLOCK_RUST_ALREADY_UPDATED   set to 1 if caller already updated Rust
+  VALIDATORCLOCK_STATE_DIR              default: $HOME/.validatorclock
+  VALIDATORCLOCK_PUBLIC_URL             default: https://validatorclock.xyz
+  VALIDATORCLOCK_ACME_IDENTIFIER        default: validatorclock.xyz
+  VALIDATORCLOCK_ACME_EXTRA_IDENTIFIERS default: www.validatorclock.xyz
+  VALIDATORCLOCK_ACME_STAGING           default: false
+  VALIDATORCLOCK_RUSTFLAGS              default: -C target-cpu=native
+  VALIDATORCLOCK_NO_RESTART             set to 1 to skip restart
+  VALIDATORCLOCK_NO_SYSTEMD             set to 1 to skip all systemd/sudo work
+  VALIDATORCLOCK_RUST_ALREADY_UPDATED   set to 1 if caller already updated Rust
 USAGE
 }
 
-NO_RESTART="${VALIDATORS_CLOCK_NO_RESTART:-0}"
-NO_SYSTEMD="${VALIDATORS_CLOCK_NO_SYSTEMD:-0}"
+NO_RESTART="${VALIDATORCLOCK_NO_RESTART:-0}"
+NO_SYSTEMD="${VALIDATORCLOCK_NO_SYSTEMD:-0}"
 
 while (($#)); do
   case "$1" in
@@ -79,24 +79,24 @@ RUN_USER="$(id -un)"
 RUN_GROUP="$(id -gn)"
 BIN_DIR="${HOME}/.cargo/bin"
 BIN_PATH="${BIN_DIR}/${APP_NAME}"
-STATE_DIR="${VALIDATORS_CLOCK_STATE_DIR:-${HOME}/.validators_clock}"
-CONFIG_PATH="${VALIDATORS_CLOCK_CONFIG:-${STATE_DIR}/validators_clock.production.json}"
+STATE_DIR="${VALIDATORCLOCK_STATE_DIR:-${HOME}/.validatorclock}"
+CONFIG_PATH="${VALIDATORCLOCK_CONFIG:-${STATE_DIR}/validatorclock.production.json}"
 ACME_DIR="${STATE_DIR}/acme"
-PUBLIC_URL="${VALIDATORS_CLOCK_PUBLIC_URL:-https://validatorsclock.xyz}"
+PUBLIC_URL="${VALIDATORCLOCK_PUBLIC_URL:-https://validatorclock.xyz}"
 PUBLIC_HOST="${PUBLIC_URL#https://}"
 PUBLIC_HOST="${PUBLIC_HOST%%/*}"
 PUBLIC_HOST="${PUBLIC_HOST%%:*}"
-ACME_IDENTIFIER="${VALIDATORS_CLOCK_ACME_IDENTIFIER:-${PUBLIC_HOST}}"
-ACME_EXTRA_IDENTIFIERS="${VALIDATORS_CLOCK_ACME_EXTRA_IDENTIFIERS:-www.${ACME_IDENTIFIER}}"
-ACME_STAGING="${VALIDATORS_CLOCK_ACME_STAGING:-false}"
+ACME_IDENTIFIER="${VALIDATORCLOCK_ACME_IDENTIFIER:-validatorclock.xyz}"
+ACME_EXTRA_IDENTIFIERS="${VALIDATORCLOCK_ACME_EXTRA_IDENTIFIERS:-www.validatorclock.xyz}"
+ACME_STAGING="${VALIDATORCLOCK_ACME_STAGING:-false}"
 PRODUCTION_RUSTFLAGS_DEFAULT="-C target-cpu=native"
-PRODUCTION_RUSTFLAGS="${VALIDATORS_CLOCK_RUSTFLAGS-$PRODUCTION_RUSTFLAGS_DEFAULT}"
+PRODUCTION_RUSTFLAGS="${VALIDATORCLOCK_RUSTFLAGS-$PRODUCTION_RUSTFLAGS_DEFAULT}"
 SERVICE_PATH="/etc/systemd/system/${SERVICE_NAME}"
 
 case "$ACME_STAGING" in
   true|false) ;;
   *)
-    echo "VALIDATORS_CLOCK_ACME_STAGING must be true or false" >&2
+    echo "VALIDATORCLOCK_ACME_STAGING must be true or false" >&2
     exit 1
     ;;
 esac
@@ -259,7 +259,7 @@ ensure_rust() {
   load_cargo_env
 
   if command -v cargo >/dev/null 2>&1; then
-    if [[ "${VALIDATORS_CLOCK_RUST_ALREADY_UPDATED:-0}" == "1" ]]; then
+    if [[ "${VALIDATORCLOCK_RUST_ALREADY_UPDATED:-0}" == "1" ]]; then
       echo "Rust toolchain already checked by caller"
       return
     fi
@@ -333,8 +333,8 @@ write_config_if_missing() {
   "listen": "127.0.0.1:8787",
   "refresh_seconds": 60,
   "refresh_timeout_seconds": 90,
-  "cache_path": "$(json_escape "$STATE_DIR")/validators_clock_cache.json",
-  "history_path": "$(json_escape "$STATE_DIR")/validators_clock_history.json",
+  "cache_path": "$(json_escape "$STATE_DIR")/validatorclock_cache.json",
+  "history_path": "$(json_escape "$STATE_DIR")/validatorclock_history.json",
   "security": {
     "allowed_hosts": ${allowed_hosts_json},
     "allow_force_refresh": false,
@@ -398,7 +398,7 @@ write_systemd_service() {
   tmp_service="$(mktemp)"
   cat >"$tmp_service" <<EOF
 [Unit]
-Description=Validators Clock
+Description=Validator Clock
 After=network-online.target
 Wants=network-online.target
 
@@ -431,7 +431,7 @@ RestrictSUIDSGID=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 SystemCallArchitectures=native
 
-Environment=RUST_LOG=warn,validators_clock=info
+Environment=RUST_LOG=warn,validatorclock=info
 
 [Install]
 WantedBy=multi-user.target
@@ -468,7 +468,7 @@ mv -f "$tmp_binary" "$BIN_PATH"
 echo "Installed binary: $BIN_PATH"
 
 if [[ "$NO_SYSTEMD" == "1" ]]; then
-  echo "Skipping systemd work because --no-systemd or VALIDATORS_CLOCK_NO_SYSTEMD=1 was set"
+  echo "Skipping systemd work because --no-systemd or VALIDATORCLOCK_NO_SYSTEMD=1 was set"
   exit 0
 fi
 
@@ -480,7 +480,7 @@ sudo systemctl daemon-reload
 sudo systemctl enable "$SERVICE_NAME"
 
 if [[ "$NO_RESTART" == "1" ]]; then
-  echo "Skipping restart because --no-restart or VALIDATORS_CLOCK_NO_RESTART=1 was set"
+  echo "Skipping restart because --no-restart or VALIDATORCLOCK_NO_RESTART=1 was set"
 else
   sudo systemctl restart "$SERVICE_NAME"
   echo "Restarted $SERVICE_NAME"

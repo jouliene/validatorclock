@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-UPDATE_BRANCH="${VALIDATORS_CLOCK_UPDATE_BRANCH:-main}"
-SERVICE_NAME="${VALIDATORS_CLOCK_SERVICE_NAME:-validators-clock.service}"
+UPDATE_BRANCH="${VALIDATORCLOCK_UPDATE_BRANCH:-main}"
+SERVICE_NAME="${VALIDATORCLOCK_SERVICE_NAME:-validatorclock.service}"
 
 usage() {
   cat <<'USAGE'
 Usage: ./update.sh
 
 Updates this production checkout from GitHub, updates the Rust toolchain,
-rebuilds validators_clock, installs the new binary, and restarts the existing
+rebuilds validatorclock, installs the new binary, and restarts the existing
 service without sudo.
 
 Environment overrides:
-  VALIDATORS_CLOCK_UPDATE_BRANCH default: main
-  VALIDATORS_CLOCK_SERVICE_NAME  default: validators-clock.service
+  VALIDATORCLOCK_UPDATE_BRANCH default: main
+  VALIDATORCLOCK_SERVICE_NAME  default: validatorclock.service
   all install.sh environment overrides are also supported
 USAGE
 }
@@ -145,6 +145,6 @@ echo "Updating Git checkout with fast-forward only"
 git pull --ff-only origin "$UPDATE_BRANCH"
 
 echo "Installing updated release"
-VALIDATORS_CLOCK_RUST_ALREADY_UPDATED=1 VALIDATORS_CLOCK_NO_SYSTEMD=1 ./install.sh
+VALIDATORCLOCK_RUST_ALREADY_UPDATED=1 VALIDATORCLOCK_NO_SYSTEMD=1 ./install.sh
 
 restart_existing_service_without_sudo

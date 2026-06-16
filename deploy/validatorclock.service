@@ -1,5 +1,5 @@
 [Unit]
-Description=Validators Clock
+Description=Validator Clock
 After=network-online.target
 Wants=network-online.target
 
@@ -7,8 +7,8 @@ Wants=network-online.target
 Type=simple
 User=admin
 Group=admin
-WorkingDirectory=/home/admin/validators_clock
-ExecStart=/home/admin/.cargo/bin/validators_clock --config /home/admin/.validators_clock/validators_clock.production.json
+WorkingDirectory=/home/admin/validatorclock
+ExecStart=/home/admin/.cargo/bin/validatorclock --config /home/admin/.validatorclock/validatorclock.production.json
 Restart=always
 RestartSec=5
 
@@ -21,8 +21,8 @@ UMask=0077
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
-ReadOnlyPaths=/home/admin/validators_clock /home/admin/.cargo/bin
-ReadWritePaths=/home/admin/.validators_clock
+ReadOnlyPaths=/home/admin/validatorclock /home/admin/.cargo/bin
+ReadWritePaths=/home/admin/.validatorclock
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
@@ -32,7 +32,7 @@ RestrictSUIDSGID=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 SystemCallArchitectures=native
 
-Environment=RUST_LOG=warn,validators_clock=info
+Environment=RUST_LOG=warn,validatorclock=info
 
 [Install]
 WantedBy=multi-user.target
