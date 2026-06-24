@@ -32,10 +32,10 @@ pub(crate) fn load_map_nodes_with_metadata(
     config: &AppConfig,
     chain_id: &str,
 ) -> Result<Option<MapNodesPayload>> {
-    if let Some(path) = config.map_nodes_paths.get(chain_id) {
-        if let Some(payload) = load_map_nodes_file_if_exists(path)? {
-            return Ok(Some(payload));
-        }
+    if let Some(path) = config.map_nodes_paths.get(chain_id)
+        && let Some(payload) = load_map_nodes_file_if_exists(path)?
+    {
+        return Ok(Some(payload));
     }
 
     if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID {
@@ -61,10 +61,10 @@ pub(crate) fn load_map_nodes_with_metadata(
 }
 
 fn load_tycho_map_nodes_with_metadata(config: &AppConfig) -> Result<MapNodesPayload> {
-    if let Some(path) = &config.tycho_map_nodes_path {
-        if let Some(payload) = load_map_nodes_file_if_exists(path)? {
-            return Ok(payload);
-        }
+    if let Some(path) = &config.tycho_map_nodes_path
+        && let Some(payload) = load_map_nodes_file_if_exists(path)?
+    {
+        return Ok(payload);
     }
 
     if let Some(path) = config.node_location_output_path(BUNDLED_TYCHO_MAP_CHAIN_ID)

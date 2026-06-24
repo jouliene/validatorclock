@@ -385,7 +385,5 @@ fn default_node_location_chains() -> HashMap<String, NodeLocationChainConfig> {
 
 fn default_node_location_chain_config(chain_id: &str) -> NodeLocationChainConfig {
     let mut defaults = default_node_location_chains();
-    defaults
-        .remove(chain_id)
-        .unwrap_or_else(NodeLocationChainConfig::default)
+    defaults.remove(chain_id).unwrap_or_default()
 }
