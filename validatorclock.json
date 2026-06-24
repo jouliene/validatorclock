@@ -5,7 +5,32 @@
   "cache_path": "validatorclock_cache.json",
   "tycho_map_nodes_path": ".local_maps/tycho_nodes.json",
   "map_nodes_paths": {
+    "everscale": ".local_maps/everscale_nodes.json",
     "ton": ".local_maps/ton_nodes.json"
+  },
+  "node_locations": {
+    "enabled": true,
+    "refresh_seconds": 300,
+    "startup_delay_seconds": 3,
+    "geo_cache_path": ".local_maps/geo_cache.json",
+    "geo_cache_ttl_seconds": 604800,
+    "chains": {
+      "everscale": {
+        "enabled": true,
+        "input_path": ".local_maps/raw/everscale_peer_ips.json",
+        "output_path": ".local_maps/everscale_nodes.json"
+      },
+      "tycho-testnet": {
+        "enabled": true,
+        "input_path": ".local_maps/raw/tycho_peer_ips.json",
+        "output_path": ".local_maps/tycho_nodes.json"
+      },
+      "ton": {
+        "enabled": true,
+        "input_path": ".local_maps/raw/ton_peer_ips.json",
+        "output_path": ".local_maps/ton_nodes.json"
+      }
+    }
   },
   "chains": [
     {

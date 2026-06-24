@@ -33,11 +33,19 @@ pub(crate) fn load_map_nodes_with_metadata(
     chain_id: &str,
 ) -> Result<Option<MapNodesPayload>> {
     if let Some(path) = config.map_nodes_paths.get(chain_id) {
-        return load_map_nodes_file(path).map(Some);
+        if let Some(payload) = load_map_nodes_file_if_exists(path)? {
+            return Ok(Some(payload));
+        }
     }
 
     if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID {
         return load_tycho_map_nodes_with_metadata(config).map(Some);
+    }
+
+    if let Some(path) = config.node_location_output_path(chain_id)
+        && let Some(payload) = load_map_nodes_file_if_exists(&path)?
+    {
+        return Ok(Some(payload));
     }
 
     if chain_id == BUNDLED_TON_MAP_CHAIN_ID {
@@ -54,11 +62,15 @@ pub(crate) fn load_map_nodes_with_metadata(
 
 fn load_tycho_map_nodes_with_metadata(config: &AppConfig) -> Result<MapNodesPayload> {
     if let Some(path) = &config.tycho_map_nodes_path {
-        match load_map_nodes_file(path) {
-            Ok(payload) => return Ok(payload),
-            Err(error) if is_not_found_error(&error) => {}
-            Err(error) => return Err(error),
+        if let Some(payload) = load_map_nodes_file_if_exists(path)? {
+            return Ok(payload);
         }
+    }
+
+    if let Some(path) = config.node_location_output_path(BUNDLED_TYCHO_MAP_CHAIN_ID)
+        && let Some(payload) = load_map_nodes_file_if_exists(&path)?
+    {
+        return Ok(payload);
     }
 
     let value = fallback_tycho_nodes_json().context("failed to parse bundled Tycho map nodes")?;
@@ -67,6 +79,14 @@ fn load_tycho_map_nodes_with_metadata(config: &AppConfig) -> Result<MapNodesPayl
         nodes,
         updated_at: None,
     })
+}
+
+fn load_map_nodes_file_if_exists(path: &std::path::Path) -> Result<Option<MapNodesPayload>> {
+    match load_map_nodes_file(path) {
+        Ok(payload) => Ok(Some(payload)),
+        Err(error) if is_not_found_error(&error) => Ok(None),
+        Err(error) => Err(error),
+    }
 }
 
 fn is_not_found_error(error: &anyhow::Error) -> bool {

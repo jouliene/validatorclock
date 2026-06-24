@@ -23,6 +23,8 @@ pub(crate) struct AppConfig {
     #[serde(default)]
     pub(crate) map_nodes_paths: HashMap<String, PathBuf>,
     #[serde(default)]
+    pub(crate) node_locations: NodeLocationsConfig,
+    #[serde(default)]
     pub(crate) security: SecurityConfig,
     #[serde(default)]
     pub(crate) tls: TlsConfig,
@@ -63,6 +65,7 @@ impl AppConfig {
             }
         }
 
+        self.node_locations.validate()?;
         for chain in &self.chains {
             chain.validate()?;
         }
@@ -101,6 +104,18 @@ impl AppConfig {
         let mut path = self.cache_path.clone();
         path.set_file_name("validatorclock_validator_types.json");
         path
+    }
+
+    pub(crate) fn effective_node_location_chain(&self, chain_id: &str) -> NodeLocationChainConfig {
+        self.node_locations.effective_chain_config(chain_id)
+    }
+
+    pub(crate) fn node_location_output_path(&self, chain_id: &str) -> Option<PathBuf> {
+        if !self.node_locations.enabled {
+            return None;
+        }
+        let chain = self.effective_node_location_chain(chain_id);
+        (chain.enabled && !chain.output_path.as_os_str().is_empty()).then_some(chain.output_path)
     }
 
     fn validate_chain_ids(&self) -> Result<()> {
@@ -144,6 +159,114 @@ impl AppConfig {
             }
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct NodeLocationsConfig {
+    #[serde(default)]
+    pub(crate) enabled: bool,
+    #[serde(default = "default_node_locations_refresh_seconds")]
+    pub(crate) refresh_seconds: u64,
+    #[serde(default = "default_node_locations_startup_delay_seconds")]
+    pub(crate) startup_delay_seconds: u64,
+    #[serde(default = "default_node_locations_geo_cache_path")]
+    pub(crate) geo_cache_path: PathBuf,
+    #[serde(default = "default_node_locations_geo_cache_ttl_seconds")]
+    pub(crate) geo_cache_ttl_seconds: u64,
+    #[serde(default = "default_ip_api_batch_endpoint")]
+    pub(crate) ip_api_batch_endpoint: String,
+    #[serde(default = "default_node_location_chains")]
+    pub(crate) chains: HashMap<String, NodeLocationChainConfig>,
+}
+
+impl Default for NodeLocationsConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            refresh_seconds: default_node_locations_refresh_seconds(),
+            startup_delay_seconds: default_node_locations_startup_delay_seconds(),
+            geo_cache_path: default_node_locations_geo_cache_path(),
+            geo_cache_ttl_seconds: default_node_locations_geo_cache_ttl_seconds(),
+            ip_api_batch_endpoint: default_ip_api_batch_endpoint(),
+            chains: default_node_location_chains(),
+        }
+    }
+}
+
+impl NodeLocationsConfig {
+    fn validate(&self) -> Result<()> {
+        if self.refresh_seconds == 0 {
+            bail!("node_locations.refresh_seconds must be greater than zero");
+        }
+        if self.geo_cache_path.as_os_str().is_empty() {
+            bail!("node_locations.geo_cache_path cannot be empty");
+        }
+        if self.geo_cache_ttl_seconds == 0 {
+            bail!("node_locations.geo_cache_ttl_seconds must be greater than zero");
+        }
+        if self.ip_api_batch_endpoint.trim().is_empty() {
+            bail!("node_locations.ip_api_batch_endpoint cannot be empty");
+        }
+        for chain_id in self.chains.keys() {
+            if chain_id.trim().is_empty() {
+                bail!("node_locations.chains cannot contain an empty chain id");
+            }
+            if chain_id.trim() != chain_id {
+                bail!("node_locations chain id `{chain_id}` cannot contain surrounding whitespace");
+            }
+            let effective = self.effective_chain_config(chain_id);
+            if !effective.enabled {
+                continue;
+            }
+            let Some(input_path) = &effective.input_path else {
+                bail!("node_locations.chains.{chain_id}.input_path is required when enabled");
+            };
+            if input_path.as_os_str().is_empty() {
+                bail!("node_locations.chains.{chain_id}.input_path cannot be empty when enabled");
+            }
+            if effective.output_path.as_os_str().is_empty() {
+                bail!("node_locations.chains.{chain_id}.output_path cannot be empty when enabled");
+            }
+            if input_path == &effective.output_path {
+                bail!("node_locations.chains.{chain_id}.input_path must differ from output_path");
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn effective_chain_config(&self, chain_id: &str) -> NodeLocationChainConfig {
+        let mut effective = default_node_location_chain_config(chain_id);
+        if let Some(configured) = self.chains.get(chain_id) {
+            effective.enabled = configured.enabled;
+            if configured.input_path.is_some() {
+                effective.input_path = configured.input_path.clone();
+            }
+            if !configured.output_path.as_os_str().is_empty() {
+                effective.output_path = configured.output_path.clone();
+            }
+        }
+        effective
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub(crate) struct NodeLocationChainConfig {
+    #[serde(default)]
+    pub(crate) enabled: bool,
+    #[serde(default)]
+    pub(crate) input_path: Option<PathBuf>,
+    #[serde(default)]
+    pub(crate) output_path: PathBuf,
+}
+
+impl Default for NodeLocationChainConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            input_path: None,
+            output_path: PathBuf::new(),
+        }
     }
 }
 
@@ -206,4 +329,63 @@ fn default_chain_color() -> String {
 
 fn default_token_symbol() -> String {
     "TOKENS".to_owned()
+}
+
+fn default_node_locations_refresh_seconds() -> u64 {
+    300
+}
+
+fn default_node_locations_startup_delay_seconds() -> u64 {
+    3
+}
+
+fn default_node_locations_geo_cache_path() -> PathBuf {
+    PathBuf::from(".local_maps/geo_cache.json")
+}
+
+fn default_node_locations_geo_cache_ttl_seconds() -> u64 {
+    604_800
+}
+
+fn default_ip_api_batch_endpoint() -> String {
+    "http://ip-api.com/batch?fields=status,message,query,country,city,lat,lon,isp".to_owned()
+}
+
+fn default_node_location_chains() -> HashMap<String, NodeLocationChainConfig> {
+    [
+        (
+            "everscale",
+            ".local_maps/raw/everscale_peer_ips.json",
+            ".local_maps/everscale_nodes.json",
+        ),
+        (
+            "tycho-testnet",
+            ".local_maps/raw/tycho_peer_ips.json",
+            ".local_maps/tycho_nodes.json",
+        ),
+        (
+            "ton",
+            ".local_maps/raw/ton_peer_ips.json",
+            ".local_maps/ton_nodes.json",
+        ),
+    ]
+    .into_iter()
+    .map(|(chain_id, input_path, output_path)| {
+        (
+            chain_id.to_owned(),
+            NodeLocationChainConfig {
+                enabled: false,
+                input_path: Some(PathBuf::from(input_path)),
+                output_path: PathBuf::from(output_path),
+            },
+        )
+    })
+    .collect()
+}
+
+fn default_node_location_chain_config(chain_id: &str) -> NodeLocationChainConfig {
+    let mut defaults = default_node_location_chains();
+    defaults
+        .remove(chain_id)
+        .unwrap_or_else(NodeLocationChainConfig::default)
 }

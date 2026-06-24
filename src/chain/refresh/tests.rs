@@ -28,6 +28,7 @@ async fn broxus_failure_uses_toncenter_fallback_and_enrichment() -> Result<()> {
         history_path: Some(state_dir.join("history.json")),
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),
+        node_locations: Default::default(),
         security: SecurityConfig::default(),
         tls: TlsConfig::default(),
         chains: vec![ChainConfig {
@@ -80,6 +81,7 @@ async fn toncenter_primary_fetches_snapshot_and_enrichment() -> Result<()> {
         history_path: Some(state_dir.join("history.json")),
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),
+        node_locations: Default::default(),
         security: SecurityConfig::default(),
         tls: TlsConfig::default(),
         chains: vec![ChainConfig {

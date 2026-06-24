@@ -23,6 +23,7 @@ fn test_config() -> AppConfig {
         history_path: None,
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),
+        node_locations: Default::default(),
         security: SecurityConfig::default(),
         tls: TlsConfig::default(),
         chains: vec![test_chain()],
@@ -52,6 +53,71 @@ fn explicit_history_path_overrides_default_runtime_path() {
         config.effective_history_path(),
         PathBuf::from("/state/history.json")
     );
+}
+
+#[test]
+fn old_config_without_node_locations_uses_disabled_defaults() {
+    let config: AppConfig = serde_json::from_str(
+        r##"{
+            "listen": "127.0.0.1:8787",
+            "refresh_seconds": 60,
+            "refresh_timeout_seconds": 90,
+            "cache_path": "cache.json",
+            "chains": [
+                {
+                    "id": "test",
+                    "name": "Test",
+                    "rpc": "https://example.com",
+                    "color": "#38bdf8",
+                    "token_symbol": "TEST"
+                }
+            ]
+        }"##,
+    )
+    .unwrap();
+
+    assert!(!config.node_locations.enabled);
+    assert!(
+        !config
+            .effective_node_location_chain("tycho-testnet")
+            .enabled
+    );
+    assert!(config.validate().is_ok());
+}
+
+#[test]
+fn node_locations_require_separate_input_and_output_paths() {
+    let config: AppConfig = serde_json::from_str(
+        r##"{
+            "listen": "127.0.0.1:8787",
+            "refresh_seconds": 60,
+            "refresh_timeout_seconds": 90,
+            "cache_path": "cache.json",
+            "node_locations": {
+                "enabled": true,
+                "chains": {
+                    "test": {
+                        "enabled": true,
+                        "input_path": ".local_maps/test_nodes.json",
+                        "output_path": ".local_maps/test_nodes.json"
+                    }
+                }
+            },
+            "chains": [
+                {
+                    "id": "test",
+                    "name": "Test",
+                    "rpc": "https://example.com",
+                    "color": "#38bdf8",
+                    "token_symbol": "TEST"
+                }
+            ]
+        }"##,
+    )
+    .unwrap();
+
+    let error = config.validate().unwrap_err().to_string();
+    assert!(error.contains("input_path must differ from output_path"));
 }
 
 #[test]

@@ -48,6 +48,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         history_path: Some(temp_state_path("history")),
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),
+        node_locations: Default::default(),
         security: SecurityConfig {
             allowed_hosts,
             ..SecurityConfig::default()

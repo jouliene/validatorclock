@@ -11,6 +11,7 @@ mod decimal;
 mod fsutil;
 mod history;
 mod logging;
+mod node_locations;
 mod server;
 mod state;
 mod tls;
@@ -41,6 +42,7 @@ async fn main() -> Result<()> {
 
     let state = Arc::new(AppState::new(Arc::clone(&config)));
     chain::spawn_background_refresh(Arc::clone(&state));
+    node_locations::spawn_background_refresh(Arc::clone(&state));
 
     if config.tls.enabled {
         server::run_tls_server(state).await
