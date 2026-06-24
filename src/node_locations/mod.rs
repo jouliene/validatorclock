@@ -16,6 +16,7 @@ use tracing::{info, warn};
 
 const IP_API_BATCH_SIZE: usize = 100;
 const IPINFO_CONCURRENCY: usize = 16;
+const MAP_NODE_RETENTION_SECONDS: u64 = 60 * 60;
 
 pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
     if !state.config.node_locations.enabled {
@@ -177,8 +178,26 @@ async fn refresh_chain_locations(
         now,
     )?;
 
-    let nodes = build_map_nodes_from_candidates(&candidates, geo_cache, &manual_resolved);
-    write_map_nodes_atomic(&chain_config.output_path, &nodes)?;
+    let previous_nodes = match load_existing_map_nodes(&chain_config.output_path) {
+        Ok(nodes) => nodes,
+        Err(error) => {
+            warn!(
+                chain_id,
+                path = %chain_config.output_path.display(),
+                error = ?error,
+                "failed to load previous node location map for retention"
+            );
+            PreviousMapNodes::default()
+        }
+    };
+    let built_nodes = build_map_nodes_from_candidates_with_retention(
+        &candidates,
+        geo_cache,
+        &manual_resolved,
+        &previous_nodes,
+        now,
+    );
+    write_map_nodes_atomic(&chain_config.output_path, &built_nodes.nodes)?;
 
     info!(
         chain_id,
@@ -188,7 +207,8 @@ async fn refresh_chain_locations(
         ipinfo_lookup_count,
         manual_resolved_count = manual_resolved.len(),
         manual_review_count,
-        mapped_node_count = nodes.len(),
+        retained_node_count = built_nodes.retained_node_count,
+        mapped_node_count = built_nodes.nodes.len(),
         output_path = %chain_config.output_path.display(),
         "published node location map"
     );
@@ -635,31 +655,73 @@ fn load_manual_resolved_locations(
     output
 }
 
+#[cfg(test)]
 fn build_map_nodes_from_candidates(
     candidates: &[CandidateNode],
     geo_cache: &GeoCache,
     manual_resolved: &BTreeMap<IpAddr, ManualResolvedIp>,
 ) -> Vec<MapNode> {
+    build_map_nodes_from_candidates_with_retention(
+        candidates,
+        geo_cache,
+        manual_resolved,
+        &PreviousMapNodes::default(),
+        0,
+    )
+    .nodes
+}
+
+fn build_map_nodes_from_candidates_with_retention(
+    candidates: &[CandidateNode],
+    geo_cache: &GeoCache,
+    manual_resolved: &BTreeMap<IpAddr, ManualResolvedIp>,
+    previous_nodes: &PreviousMapNodes,
+    now: u64,
+) -> BuiltMapNodes {
     let mut nodes = Vec::new();
     let mut seen = BTreeSet::new();
+    let mut current_peers = BTreeSet::new();
+    let mut blocked_peers = BTreeSet::new();
 
     for candidate in candidates {
+        let peer = candidate.peer_key();
         if let Some(manual) = manual_resolved.get(&candidate.ip) {
             if seen.insert(candidate.key()) {
-                nodes.push(MapNode::from_manual(candidate, manual));
+                current_peers.insert(peer);
+                nodes.push(MapNode::from_manual(candidate, manual, now));
             }
             continue;
         }
         let Some(location) = geo_cache.location(candidate.ip) else {
             continue;
         };
-        if location.ipinfo_conflict || !location.has_coordinates() {
+        if location.ipinfo_conflict {
+            blocked_peers.insert(peer);
+            continue;
+        }
+        if !location.has_coordinates() {
             continue;
         }
         if !seen.insert(candidate.key()) {
             continue;
         }
-        nodes.push(MapNode::from_cached_location(candidate, location));
+        current_peers.insert(peer);
+        nodes.push(MapNode::from_cached_location(candidate, location, now));
+    }
+
+    let mut retained_node_count = 0;
+    for previous in &previous_nodes.nodes {
+        let peer = previous.peer_key();
+        if peer.is_empty() || current_peers.contains(&peer) || blocked_peers.contains(&peer) {
+            continue;
+        }
+        if !previous.is_retained(now, previous_nodes.updated_at) {
+            continue;
+        }
+        if seen.insert(previous.key()) {
+            nodes.push(previous.clone());
+            retained_node_count += 1;
+        }
     }
 
     nodes.sort_by(|left, right| {
@@ -669,12 +731,44 @@ fn build_map_nodes_from_candidates(
             .then_with(|| left.ip.cmp(&right.ip))
             .then_with(|| left.peer.cmp(&right.peer))
     });
-    nodes
+    BuiltMapNodes {
+        nodes,
+        retained_node_count,
+    }
 }
 
 fn write_map_nodes_atomic(path: &Path, nodes: &[MapNode]) -> Result<()> {
     let data = serde_json::to_vec_pretty(nodes).context("failed to serialize map nodes")?;
     write_file_atomic(path, &data, 0o644)
+}
+
+fn load_existing_map_nodes(path: &Path) -> Result<PreviousMapNodes> {
+    if !path.exists() {
+        return Ok(PreviousMapNodes::default());
+    }
+
+    let body =
+        fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
+    let nodes = serde_json::from_str::<Vec<MapNode>>(&body)
+        .with_context(|| format!("failed to parse {}", path.display()))?;
+    let updated_at = fs::metadata(path)
+        .ok()
+        .and_then(|metadata| metadata.modified().ok())
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_secs());
+    Ok(PreviousMapNodes { nodes, updated_at })
+}
+
+#[derive(Debug, Default)]
+struct BuiltMapNodes {
+    nodes: Vec<MapNode>,
+    retained_node_count: usize,
+}
+
+#[derive(Debug, Default)]
+struct PreviousMapNodes {
+    nodes: Vec<MapNode>,
+    updated_at: Option<u64>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -685,10 +779,11 @@ struct CandidateNode {
 
 impl CandidateNode {
     fn key(&self) -> (String, String) {
-        (
-            self.peer.to_ascii_lowercase(),
-            self.ip.to_string().to_ascii_lowercase(),
-        )
+        (self.peer_key(), self.ip.to_string().to_ascii_lowercase())
+    }
+
+    fn peer_key(&self) -> String {
+        self.peer.to_ascii_lowercase()
     }
 }
 
@@ -1053,10 +1148,16 @@ struct MapNode {
     geo_source: String,
     geo_confidence: String,
     geo_updated_at: u64,
+    #[serde(default)]
+    last_seen_at: u64,
 }
 
 impl MapNode {
-    fn from_cached_location(candidate: &CandidateNode, location: &CachedGeoLocation) -> Self {
+    fn from_cached_location(
+        candidate: &CandidateNode,
+        location: &CachedGeoLocation,
+        now: u64,
+    ) -> Self {
         Self {
             peer: candidate.peer.clone(),
             ip: candidate.ip.to_string(),
@@ -1068,10 +1169,11 @@ impl MapNode {
             geo_source: location.source.clone(),
             geo_confidence: location.confidence.clone(),
             geo_updated_at: location.updated_at,
+            last_seen_at: now,
         }
     }
 
-    fn from_manual(candidate: &CandidateNode, manual: &ManualResolvedIp) -> Self {
+    fn from_manual(candidate: &CandidateNode, manual: &ManualResolvedIp, now: u64) -> Self {
         Self {
             peer: candidate.peer.clone(),
             ip: candidate.ip.to_string(),
@@ -1086,7 +1188,25 @@ impl MapNode {
             geo_source: "manual".to_owned(),
             geo_confidence: "manual".to_owned(),
             geo_updated_at: manual.updated_at.unwrap_or_default(),
+            last_seen_at: now,
         }
+    }
+
+    fn key(&self) -> (String, String) {
+        (self.peer_key(), self.ip.to_ascii_lowercase())
+    }
+
+    fn peer_key(&self) -> String {
+        self.peer.to_ascii_lowercase()
+    }
+
+    fn is_retained(&self, now: u64, fallback_seen_at: Option<u64>) -> bool {
+        let last_seen_at = if self.last_seen_at == 0 {
+            fallback_seen_at.unwrap_or_default()
+        } else {
+            self.last_seen_at
+        };
+        last_seen_at != 0 && now.saturating_sub(last_seen_at) < MAP_NODE_RETENTION_SECONDS
     }
 }
 
@@ -1229,6 +1349,22 @@ mod tests {
             ipinfo: None,
             ipinfo_conflict: false,
             ipinfo_conflict_reason: None,
+        }
+    }
+
+    fn previous_map_node(peer: &str, ip: &str, last_seen_at: u64) -> MapNode {
+        MapNode {
+            peer: peer.to_owned(),
+            ip: ip.to_owned(),
+            city: "Previous City".to_owned(),
+            country: "Previousland".to_owned(),
+            isp: "Previous ISP".to_owned(),
+            lat: 3.0,
+            lon: 4.0,
+            geo_source: ip_api_source(),
+            geo_confidence: medium_confidence(),
+            geo_updated_at: 1_700_000_000,
+            last_seen_at,
         }
     }
 
@@ -1405,6 +1541,83 @@ mod tests {
 
         let nodes = build_map_nodes_from_candidates(&candidates, &cache, &BTreeMap::new());
         assert!(nodes.is_empty());
+    }
+
+    #[test]
+    fn retains_previous_map_node_for_transient_missing_candidate() {
+        let previous_nodes = PreviousMapNodes {
+            nodes: vec![previous_map_node("peer-a", "203.0.113.10", 1_700_000_000)],
+            updated_at: None,
+        };
+
+        let built = build_map_nodes_from_candidates_with_retention(
+            &[],
+            &GeoCache::default(),
+            &BTreeMap::new(),
+            &previous_nodes,
+            1_700_000_300,
+        );
+
+        assert_eq!(built.retained_node_count, 1);
+        assert_eq!(built.nodes.len(), 1);
+        assert_eq!(built.nodes[0].peer, "peer-a");
+    }
+
+    #[test]
+    fn expires_previous_map_node_after_retention_window() {
+        let previous_nodes = PreviousMapNodes {
+            nodes: vec![previous_map_node("peer-a", "203.0.113.10", 1_700_000_000)],
+            updated_at: None,
+        };
+
+        let built = build_map_nodes_from_candidates_with_retention(
+            &[],
+            &GeoCache::default(),
+            &BTreeMap::new(),
+            &previous_nodes,
+            1_700_003_601,
+        );
+
+        assert_eq!(built.retained_node_count, 0);
+        assert!(built.nodes.is_empty());
+    }
+
+    #[test]
+    fn ipinfo_conflict_does_not_retain_previous_map_node_for_same_peer() {
+        let ip = "203.0.113.10".parse().unwrap();
+        let candidates = vec![CandidateNode {
+            peer: "peer-a".to_owned(),
+            ip,
+        }];
+        let mut cache = GeoCache::default();
+        let mut location = cached_location("Test City", "United States", "US");
+        location.ipinfo = Some(IpInfoLiteLocation {
+            asn: Some("AS64500".to_owned()),
+            as_name: Some("Test ISP".to_owned()),
+            as_domain: Some("example.net".to_owned()),
+            country_code: Some("BR".to_owned()),
+            country: "Brazil".to_owned(),
+            continent_code: Some("SA".to_owned()),
+            continent: Some("South America".to_owned()),
+            updated_at: 1_700_000_001,
+        });
+        cache.locations.insert("203.0.113.10".to_owned(), location);
+        assert!(refresh_ipinfo_conflicts(&[ip], &mut cache));
+
+        let previous_nodes = PreviousMapNodes {
+            nodes: vec![previous_map_node("peer-a", "203.0.113.10", 1_700_000_000)],
+            updated_at: None,
+        };
+        let built = build_map_nodes_from_candidates_with_retention(
+            &candidates,
+            &cache,
+            &BTreeMap::new(),
+            &previous_nodes,
+            1_700_000_300,
+        );
+
+        assert_eq!(built.retained_node_count, 0);
+        assert!(built.nodes.is_empty());
     }
 
     #[test]
