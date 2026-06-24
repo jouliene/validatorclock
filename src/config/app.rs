@@ -176,6 +176,16 @@ pub(crate) struct NodeLocationsConfig {
     pub(crate) geo_cache_ttl_seconds: u64,
     #[serde(default = "default_ip_api_batch_endpoint")]
     pub(crate) ip_api_batch_endpoint: String,
+    #[serde(default)]
+    pub(crate) ipinfo_token: Option<String>,
+    #[serde(default = "default_ipinfo_token_env")]
+    pub(crate) ipinfo_token_env: String,
+    #[serde(default = "default_ipinfo_lite_base_url")]
+    pub(crate) ipinfo_lite_base_url: String,
+    #[serde(default = "default_manual_review_dir")]
+    pub(crate) manual_review_dir: PathBuf,
+    #[serde(default = "default_manual_resolved_dir")]
+    pub(crate) manual_resolved_dir: PathBuf,
     #[serde(default = "default_node_location_chains")]
     pub(crate) chains: HashMap<String, NodeLocationChainConfig>,
 }
@@ -189,6 +199,11 @@ impl Default for NodeLocationsConfig {
             geo_cache_path: default_node_locations_geo_cache_path(),
             geo_cache_ttl_seconds: default_node_locations_geo_cache_ttl_seconds(),
             ip_api_batch_endpoint: default_ip_api_batch_endpoint(),
+            ipinfo_token: None,
+            ipinfo_token_env: default_ipinfo_token_env(),
+            ipinfo_lite_base_url: default_ipinfo_lite_base_url(),
+            manual_review_dir: default_manual_review_dir(),
+            manual_resolved_dir: default_manual_resolved_dir(),
             chains: default_node_location_chains(),
         }
     }
@@ -207,6 +222,18 @@ impl NodeLocationsConfig {
         }
         if self.ip_api_batch_endpoint.trim().is_empty() {
             bail!("node_locations.ip_api_batch_endpoint cannot be empty");
+        }
+        if self.ipinfo_token_env.trim().is_empty() {
+            bail!("node_locations.ipinfo_token_env cannot be empty");
+        }
+        if self.ipinfo_lite_base_url.trim().is_empty() {
+            bail!("node_locations.ipinfo_lite_base_url cannot be empty");
+        }
+        if self.manual_review_dir.as_os_str().is_empty() {
+            bail!("node_locations.manual_review_dir cannot be empty");
+        }
+        if self.manual_resolved_dir.as_os_str().is_empty() {
+            bail!("node_locations.manual_resolved_dir cannot be empty");
         }
         for chain_id in self.chains.keys() {
             if chain_id.trim().is_empty() {
@@ -247,6 +274,20 @@ impl NodeLocationsConfig {
             }
         }
         effective
+    }
+
+    pub(crate) fn effective_ipinfo_token(&self) -> Option<String> {
+        self.ipinfo_token
+            .as_deref()
+            .map(str::trim)
+            .filter(|token| !token.is_empty())
+            .map(str::to_owned)
+            .or_else(|| {
+                std::env::var(&self.ipinfo_token_env)
+                    .ok()
+                    .map(|token| token.trim().to_owned())
+                    .filter(|token| !token.is_empty())
+            })
     }
 }
 
@@ -348,7 +389,24 @@ fn default_node_locations_geo_cache_ttl_seconds() -> u64 {
 }
 
 fn default_ip_api_batch_endpoint() -> String {
-    "http://ip-api.com/batch?fields=status,message,query,country,city,lat,lon,isp".to_owned()
+    "http://ip-api.com/batch?fields=status,message,query,country,countryCode,city,lat,lon,isp,as"
+        .to_owned()
+}
+
+fn default_ipinfo_token_env() -> String {
+    "IPINFO_TOKEN".to_owned()
+}
+
+fn default_ipinfo_lite_base_url() -> String {
+    "https://api.ipinfo.io/lite".to_owned()
+}
+
+fn default_manual_review_dir() -> PathBuf {
+    PathBuf::from(".local_maps/manual_review")
+}
+
+fn default_manual_resolved_dir() -> PathBuf {
+    PathBuf::from(".local_maps/manual_resolved")
 }
 
 fn default_node_location_chains() -> HashMap<String, NodeLocationChainConfig> {

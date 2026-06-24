@@ -8,7 +8,7 @@ mod security;
 mod tls;
 
 pub(crate) use acme::AcmeConfig;
-pub(crate) use app::{AppConfig, ChainConfig, NodeLocationChainConfig};
+pub(crate) use app::{AppConfig, ChainConfig, NodeLocationChainConfig, NodeLocationsConfig};
 pub(crate) use security::SecurityConfig;
 pub(crate) use tls::TlsConfig;
 

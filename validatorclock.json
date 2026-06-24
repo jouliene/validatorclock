@@ -14,6 +14,10 @@
     "startup_delay_seconds": 3,
     "geo_cache_path": ".local_maps/geo_cache.json",
     "geo_cache_ttl_seconds": 604800,
+    "ipinfo_token_env": "IPINFO_TOKEN",
+    "ipinfo_lite_base_url": "https://api.ipinfo.io/lite",
+    "manual_review_dir": ".local_maps/manual_review",
+    "manual_resolved_dir": ".local_maps/manual_resolved",
     "chains": {
       "everscale": {
         "enabled": true,

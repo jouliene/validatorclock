@@ -1,18 +1,21 @@
-use crate::config::NodeLocationChainConfig;
+use crate::config::{NodeLocationChainConfig, NodeLocationsConfig};
 use crate::fsutil::write_file_atomic;
 use crate::state::AppState;
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fs;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tokio::task::JoinSet;
 use tokio::time::sleep;
 use tracing::{info, warn};
 
 const IP_API_BATCH_SIZE: usize = 100;
+const IPINFO_CONCURRENCY: usize = 16;
 
 pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
     if !state.config.node_locations.enabled {
@@ -79,7 +82,7 @@ async fn refresh_all_chains(state: Arc<AppState>) {
 
         match refresh_chain_locations(
             &http,
-            &state.config.node_locations.ip_api_batch_endpoint,
+            &state.config.node_locations,
             &chain.id,
             &chain_config,
             &mut geo_cache,
@@ -114,7 +117,7 @@ async fn refresh_all_chains(state: Arc<AppState>) {
 
 async fn refresh_chain_locations(
     http: &reqwest::Client,
-    ip_api_endpoint: &str,
+    node_config: &NodeLocationsConfig,
     chain_id: &str,
     chain_config: &NodeLocationChainConfig,
     geo_cache: &mut GeoCache,
@@ -123,6 +126,8 @@ async fn refresh_chain_locations(
 ) -> Result<bool> {
     let candidates = collect_local_file_candidates(chain_config)
         .with_context(|| format!("failed to collect node IP seeds for {chain_id}"))?;
+    let manual_resolved =
+        load_manual_resolved_locations(&node_config.manual_resolved_dir, chain_id);
     let ips = candidates
         .iter()
         .map(|candidate| candidate.ip)
@@ -132,24 +137,57 @@ async fn refresh_chain_locations(
     let lookup_ips = ips
         .iter()
         .copied()
+        .filter(|ip| !manual_resolved.contains_key(ip))
         .filter(|ip| !geo_cache.has_fresh_location(*ip, now, ttl))
         .collect::<Vec<_>>();
 
-    let fetched = lookup_ip_api_locations(http, ip_api_endpoint, &lookup_ips, now).await;
+    let fetched =
+        lookup_ip_api_locations(http, &node_config.ip_api_batch_endpoint, &lookup_ips, now).await;
     let mut cache_changed = false;
-    for (ip, location) in fetched {
+    for (ip, mut location) in fetched {
+        if let Some(existing) = geo_cache.location(ip) {
+            location.ipinfo = existing.ipinfo.clone();
+            location.ipinfo_conflict = existing.ipinfo_conflict;
+            location.ipinfo_conflict_reason = existing.ipinfo_conflict_reason.clone();
+        }
         geo_cache.locations.insert(ip.to_string(), location);
         cache_changed = true;
     }
 
-    let nodes = build_map_nodes_from_candidates(&candidates, geo_cache);
+    let ipinfo_lookup_count = refresh_ipinfo_verification(
+        http,
+        node_config,
+        &ips,
+        &manual_resolved,
+        geo_cache,
+        now,
+        ttl,
+    )
+    .await;
+    cache_changed |= ipinfo_lookup_count > 0;
+    cache_changed |= refresh_ipinfo_conflicts(&ips, geo_cache);
+
+    let manual_review_count = write_manual_review_files(
+        &node_config.manual_review_dir,
+        &node_config.manual_resolved_dir,
+        chain_id,
+        &ips,
+        geo_cache,
+        &manual_resolved,
+        now,
+    )?;
+
+    let nodes = build_map_nodes_from_candidates(&candidates, geo_cache, &manual_resolved);
     write_map_nodes_atomic(&chain_config.output_path, &nodes)?;
 
     info!(
         chain_id,
         seed_node_count = candidates.len(),
         unique_ip_count = ips.len(),
-        provider_lookup_count = lookup_ips.len(),
+        ip_api_lookup_count = lookup_ips.len(),
+        ipinfo_lookup_count,
+        manual_resolved_count = manual_resolved.len(),
+        manual_review_count,
         mapped_node_count = nodes.len(),
         output_path = %chain_config.output_path.display(),
         "published node location map"
@@ -351,39 +389,276 @@ async fn lookup_ip_api_locations(
     output
 }
 
+async fn refresh_ipinfo_verification(
+    http: &reqwest::Client,
+    config: &NodeLocationsConfig,
+    ips: &[IpAddr],
+    manual_resolved: &BTreeMap<IpAddr, ManualResolvedIp>,
+    geo_cache: &mut GeoCache,
+    now: u64,
+    ttl: Duration,
+) -> usize {
+    let lookup_ips = ips
+        .iter()
+        .copied()
+        .filter(|ip| !manual_resolved.contains_key(ip))
+        .filter(|ip| {
+            geo_cache
+                .location(*ip)
+                .is_some_and(|location| !location.has_fresh_ipinfo(now, ttl))
+        })
+        .collect::<Vec<_>>();
+    if lookup_ips.is_empty() {
+        return 0;
+    }
+
+    let Some(token) = config.effective_ipinfo_token() else {
+        warn!(
+            token_env = %config.ipinfo_token_env,
+            "ipinfo verification skipped because token is not configured"
+        );
+        return 0;
+    };
+
+    let fetched =
+        lookup_ipinfo_lite_locations(http, &config.ipinfo_lite_base_url, &token, &lookup_ips, now)
+            .await;
+    for (ip, ipinfo) in fetched {
+        if let Some(location) = geo_cache.location_mut(ip) {
+            location.ipinfo = Some(ipinfo);
+        }
+    }
+    lookup_ips.len()
+}
+
+async fn lookup_ipinfo_lite_locations(
+    http: &reqwest::Client,
+    base_url: &str,
+    token: &str,
+    ips: &[IpAddr],
+    now: u64,
+) -> BTreeMap<IpAddr, IpInfoLiteLocation> {
+    let mut output = BTreeMap::new();
+    for chunk in ips.chunks(IPINFO_CONCURRENCY) {
+        let mut tasks = JoinSet::new();
+        for ip in chunk {
+            let http = http.clone();
+            let base_url = base_url.trim_end_matches('/').to_owned();
+            let token = token.to_owned();
+            let ip = *ip;
+            tasks
+                .spawn(async move { lookup_ipinfo_lite_one(http, base_url, token, ip, now).await });
+        }
+        while let Some(result) = tasks.join_next().await {
+            match result {
+                Ok(Some((ip, location))) => {
+                    output.insert(ip, location);
+                }
+                Ok(None) => {}
+                Err(error) => {
+                    warn!(error = ?error, "ipinfo lookup task failed");
+                }
+            }
+        }
+    }
+    output
+}
+
+async fn lookup_ipinfo_lite_one(
+    http: reqwest::Client,
+    base_url: String,
+    token: String,
+    ip: IpAddr,
+    now: u64,
+) -> Option<(IpAddr, IpInfoLiteLocation)> {
+    let mut url = match reqwest::Url::parse(&format!("{base_url}/{ip}")) {
+        Ok(url) => url,
+        Err(error) => {
+            warn!(ip = %ip, error = ?error, "failed to build ipinfo lookup URL");
+            return None;
+        }
+    };
+    url.query_pairs_mut().append_pair("token", &token);
+
+    let response = match http.get(url).send().await {
+        Ok(response) => response,
+        Err(error) => {
+            warn!(ip = %ip, error = ?error, "ipinfo lookup failed");
+            return None;
+        }
+    };
+    if !response.status().is_success() {
+        warn!(ip = %ip, status = %response.status(), "ipinfo lookup returned an error");
+        return None;
+    }
+    let raw = match response.json::<IpInfoLiteResponse>().await {
+        Ok(raw) => raw,
+        Err(error) => {
+            warn!(ip = %ip, error = ?error, "failed to decode ipinfo response");
+            return None;
+        }
+    };
+    raw.into_location(ip, now).map(|location| (ip, location))
+}
+
+fn refresh_ipinfo_conflicts(ips: &[IpAddr], geo_cache: &mut GeoCache) -> bool {
+    let mut changed = false;
+    for ip in ips {
+        let Some(location) = geo_cache.location_mut(*ip) else {
+            continue;
+        };
+        let reason = location.ipinfo_conflict_reason();
+        let conflict = reason.is_some();
+        if location.ipinfo_conflict != conflict || location.ipinfo_conflict_reason != reason {
+            location.ipinfo_conflict = conflict;
+            location.ipinfo_conflict_reason = reason;
+            changed = true;
+        }
+    }
+    changed
+}
+
+fn write_manual_review_files(
+    manual_review_dir: &Path,
+    manual_resolved_dir: &Path,
+    chain_id: &str,
+    ips: &[IpAddr],
+    geo_cache: &GeoCache,
+    manual_resolved: &BTreeMap<IpAddr, ManualResolvedIp>,
+    now: u64,
+) -> Result<usize> {
+    let chain_review_dir = manual_review_dir.join(chain_id);
+    let mut active_files = BTreeSet::new();
+
+    for ip in ips {
+        if manual_resolved.contains_key(ip) {
+            continue;
+        }
+        let Some(location) = geo_cache.location(*ip) else {
+            continue;
+        };
+        if !location.ipinfo_conflict {
+            continue;
+        }
+        let Some(ipinfo) = &location.ipinfo else {
+            continue;
+        };
+
+        let file_name = manual_ip_file_name(*ip);
+        let review_path = chain_review_dir.join(&file_name);
+        let manual_path = manual_resolved_dir.join(chain_id).join(&file_name);
+        let entry = ManualReviewEntry {
+            chain_id: chain_id.to_owned(),
+            ip: ip.to_string(),
+            detected_at: now,
+            reason: location
+                .ipinfo_conflict_reason
+                .clone()
+                .unwrap_or_else(|| "ip-api/ipinfo mismatch".to_owned()),
+            ip_api: ReviewIpApiLocation::from(location),
+            ipinfo: ipinfo.clone(),
+            manual_resolved_path: manual_path.display().to_string(),
+        };
+        let data =
+            serde_json::to_vec_pretty(&entry).context("failed to serialize manual review entry")?;
+        write_file_atomic(&review_path, &data, 0o644)?;
+        active_files.insert(file_name);
+    }
+
+    remove_stale_manual_review_files(&chain_review_dir, &active_files)?;
+    Ok(active_files.len())
+}
+
+fn remove_stale_manual_review_files(dir: &Path, active_files: &BTreeSet<String>) -> Result<()> {
+    if !dir.exists() {
+        return Ok(());
+    }
+    for entry in fs::read_dir(dir).with_context(|| format!("failed to read {}", dir.display()))? {
+        let entry = entry.with_context(|| format!("failed to read {}", dir.display()))?;
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
+            continue;
+        }
+        let Some(file_name) = path
+            .file_name()
+            .and_then(|file_name| file_name.to_str())
+            .map(str::to_owned)
+        else {
+            continue;
+        };
+        if !active_files.contains(&file_name) {
+            fs::remove_file(&path)
+                .with_context(|| format!("failed to remove stale {}", path.display()))?;
+        }
+    }
+    Ok(())
+}
+
+fn load_manual_resolved_locations(
+    manual_resolved_dir: &Path,
+    chain_id: &str,
+) -> BTreeMap<IpAddr, ManualResolvedIp> {
+    let chain_dir = manual_resolved_dir.join(chain_id);
+    let mut output = BTreeMap::new();
+    let Ok(entries) = fs::read_dir(&chain_dir) else {
+        return output;
+    };
+    for entry in entries {
+        let Ok(entry) = entry else {
+            continue;
+        };
+        let path = entry.path();
+        if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
+            continue;
+        }
+        let body = match fs::read_to_string(&path) {
+            Ok(body) => body,
+            Err(error) => {
+                warn!(path = %path.display(), error = ?error, "failed to read manual resolved IP");
+                continue;
+            }
+        };
+        let manual = match serde_json::from_str::<ManualResolvedIp>(&body) {
+            Ok(manual) => manual,
+            Err(error) => {
+                warn!(path = %path.display(), error = ?error, "failed to parse manual resolved IP");
+                continue;
+            }
+        };
+        if !manual.geo.latitude.is_finite() || !manual.geo.longitude.is_finite() {
+            warn!(path = %path.display(), ip = %manual.ip, "manual resolved IP has invalid coordinates");
+            continue;
+        }
+        output.insert(manual.ip, manual);
+    }
+    output
+}
+
 fn build_map_nodes_from_candidates(
     candidates: &[CandidateNode],
     geo_cache: &GeoCache,
+    manual_resolved: &BTreeMap<IpAddr, ManualResolvedIp>,
 ) -> Vec<MapNode> {
     let mut nodes = Vec::new();
     let mut seen = BTreeSet::new();
 
     for candidate in candidates {
+        if let Some(manual) = manual_resolved.get(&candidate.ip) {
+            if seen.insert(candidate.key()) {
+                nodes.push(MapNode::from_manual(candidate, manual));
+            }
+            continue;
+        }
         let Some(location) = geo_cache.location(candidate.ip) else {
             continue;
         };
-        if !location.has_coordinates() {
+        if location.ipinfo_conflict || !location.has_coordinates() {
             continue;
         }
-        let key = (
-            candidate.peer.to_ascii_lowercase(),
-            candidate.ip.to_string().to_ascii_lowercase(),
-        );
-        if !seen.insert(key) {
+        if !seen.insert(candidate.key()) {
             continue;
         }
-        nodes.push(MapNode {
-            peer: candidate.peer.clone(),
-            ip: candidate.ip.to_string(),
-            city: unknown_if_empty(&location.city),
-            country: unknown_if_empty(&location.country),
-            isp: unknown_if_empty(&location.isp),
-            lat: location.lat,
-            lon: location.lon,
-            geo_source: location.source.clone(),
-            geo_confidence: location.confidence.clone(),
-            geo_updated_at: location.updated_at,
-        });
+        nodes.push(MapNode::from_cached_location(candidate, location));
     }
 
     nodes.sort_by(|left, right| {
@@ -407,6 +682,15 @@ struct CandidateNode {
     ip: IpAddr,
 }
 
+impl CandidateNode {
+    fn key(&self) -> (String, String) {
+        (
+            self.peer.to_ascii_lowercase(),
+            self.ip.to_string().to_ascii_lowercase(),
+        )
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 struct GeoCache {
     #[serde(flatten)]
@@ -416,6 +700,10 @@ struct GeoCache {
 impl GeoCache {
     fn location(&self, ip: IpAddr) -> Option<&CachedGeoLocation> {
         self.locations.get(&ip.to_string())
+    }
+
+    fn location_mut(&mut self, ip: IpAddr) -> Option<&mut CachedGeoLocation> {
+        self.locations.get_mut(&ip.to_string())
     }
 
     fn has_fresh_location(&self, ip: IpAddr, now: u64, ttl: Duration) -> bool {
@@ -430,8 +718,14 @@ struct CachedGeoLocation {
     city: String,
     #[serde(default = "unknown_string")]
     country: String,
+    #[serde(default)]
+    country_code: Option<String>,
     #[serde(default = "unknown_string")]
     isp: String,
+    #[serde(default)]
+    asn: Option<String>,
+    #[serde(default)]
+    as_name: Option<String>,
     lat: f64,
     lon: f64,
     #[serde(default = "ip_api_source")]
@@ -440,6 +734,12 @@ struct CachedGeoLocation {
     confidence: String,
     #[serde(default)]
     updated_at: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    ipinfo: Option<IpInfoLiteLocation>,
+    #[serde(default, skip_serializing_if = "is_false")]
+    ipinfo_conflict: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    ipinfo_conflict_reason: Option<String>,
 }
 
 impl CachedGeoLocation {
@@ -449,6 +749,38 @@ impl CachedGeoLocation {
 
     fn is_fresh(&self, now: u64, ttl: Duration) -> bool {
         now.saturating_sub(self.updated_at) < ttl.as_secs()
+    }
+
+    fn has_fresh_ipinfo(&self, now: u64, ttl: Duration) -> bool {
+        self.ipinfo
+            .as_ref()
+            .is_some_and(|ipinfo| now.saturating_sub(ipinfo.updated_at) < ttl.as_secs())
+    }
+
+    fn ipinfo_conflict_reason(&self) -> Option<String> {
+        let ipinfo = self.ipinfo.as_ref()?;
+        if let (Some(ip_api_code), Some(ipinfo_code)) = (
+            normalized_code(&self.country_code),
+            normalized_code(&ipinfo.country_code),
+        ) && ip_api_code != ipinfo_code
+        {
+            return Some(format!(
+                "country_code mismatch: ip-api={ip_api_code}, ipinfo={ipinfo_code}"
+            ));
+        }
+
+        let ip_api_country = normalized_name(&self.country);
+        let ipinfo_country = normalized_name(&ipinfo.country);
+        if let (Some(ip_api_country), Some(ipinfo_country)) = (ip_api_country, ipinfo_country)
+            && ip_api_country != ipinfo_country
+        {
+            return Some(format!(
+                "country mismatch: ip-api={}, ipinfo={}",
+                self.country, ipinfo.country
+            ));
+        }
+
+        None
     }
 }
 
@@ -491,13 +823,19 @@ fn migrate_versioned_geo_cache(value: Value) -> GeoCache {
             CachedGeoLocation {
                 city: string_field(decision, "city").unwrap_or_else(unknown_string),
                 country: string_field(decision, "country").unwrap_or_else(unknown_string),
+                country_code: string_field(decision, "country_code"),
                 isp: string_field(decision, "isp").unwrap_or_else(unknown_string),
+                asn: None,
+                as_name: None,
                 lat,
                 lon,
                 source: string_field(decision, "geo_source").unwrap_or_else(ip_api_source),
                 confidence: string_field(decision, "geo_confidence")
                     .unwrap_or_else(medium_confidence),
                 updated_at: number_u64_field(decision, "geo_updated_at").unwrap_or_default(),
+                ipinfo: None,
+                ipinfo_conflict: false,
+                ipinfo_conflict_reason: None,
             },
         );
     }
@@ -518,6 +856,8 @@ struct IpApiResponse {
     query: Option<String>,
     #[serde(default)]
     country: Option<String>,
+    #[serde(default, rename = "countryCode")]
+    country_code: Option<String>,
     #[serde(default)]
     city: Option<String>,
     #[serde(default)]
@@ -526,6 +866,8 @@ struct IpApiResponse {
     lon: Option<f64>,
     #[serde(default)]
     isp: Option<String>,
+    #[serde(default, rename = "as")]
+    as_text: Option<String>,
 }
 
 impl IpApiResponse {
@@ -544,14 +886,157 @@ impl IpApiResponse {
             CachedGeoLocation {
                 city: self.city.unwrap_or_else(unknown_string),
                 country: self.country.unwrap_or_else(unknown_string),
+                country_code: self.country_code.and_then(trimmed_non_empty),
                 isp: self.isp.unwrap_or_else(unknown_string),
+                asn: self.as_text.as_deref().and_then(parse_asn),
+                as_name: self.as_text.as_deref().and_then(parse_as_name),
                 lat,
                 lon,
                 source: ip_api_source(),
                 confidence: medium_confidence(),
                 updated_at: now,
+                ipinfo: None,
+                ipinfo_conflict: false,
+                ipinfo_conflict_reason: None,
             },
         ))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct IpInfoLiteLocation {
+    #[serde(default)]
+    asn: Option<String>,
+    #[serde(default)]
+    as_name: Option<String>,
+    #[serde(default)]
+    as_domain: Option<String>,
+    #[serde(default)]
+    country_code: Option<String>,
+    #[serde(default = "unknown_string")]
+    country: String,
+    #[serde(default)]
+    continent_code: Option<String>,
+    #[serde(default)]
+    continent: Option<String>,
+    #[serde(default)]
+    updated_at: u64,
+}
+
+#[derive(Debug, Deserialize)]
+struct IpInfoLiteResponse {
+    #[serde(default)]
+    ip: Option<String>,
+    #[serde(default)]
+    asn: Option<String>,
+    #[serde(default)]
+    as_name: Option<String>,
+    #[serde(default)]
+    as_domain: Option<String>,
+    #[serde(default)]
+    country_code: Option<String>,
+    #[serde(default)]
+    country: Option<String>,
+    #[serde(default)]
+    continent_code: Option<String>,
+    #[serde(default)]
+    continent: Option<String>,
+}
+
+impl IpInfoLiteResponse {
+    fn into_location(self, requested_ip: IpAddr, now: u64) -> Option<IpInfoLiteLocation> {
+        if let Some(response_ip) = &self.ip
+            && response_ip
+                .parse::<IpAddr>()
+                .ok()
+                .is_some_and(|ip| ip != requested_ip)
+        {
+            warn!(
+                requested_ip = %requested_ip,
+                response_ip,
+                "ipinfo response IP did not match request"
+            );
+            return None;
+        }
+
+        Some(IpInfoLiteLocation {
+            asn: self.asn.and_then(trimmed_non_empty),
+            as_name: self.as_name.and_then(trimmed_non_empty),
+            as_domain: self.as_domain.and_then(trimmed_non_empty),
+            country_code: self.country_code.and_then(trimmed_non_empty),
+            country: self
+                .country
+                .map_or_else(unknown_string, |country| unknown_if_empty(&country)),
+            continent_code: self.continent_code.and_then(trimmed_non_empty),
+            continent: self.continent.and_then(trimmed_non_empty),
+            updated_at: now,
+        })
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct ManualResolvedIp {
+    ip: IpAddr,
+    geo: ManualGeo,
+    #[serde(default, rename = "as")]
+    as_info: Option<ManualAs>,
+    #[serde(default)]
+    updated_at: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct ManualGeo {
+    #[serde(default = "unknown_string")]
+    city: String,
+    #[serde(default = "unknown_string")]
+    country: String,
+    latitude: f64,
+    longitude: f64,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+struct ManualAs {
+    #[serde(default = "unknown_string")]
+    name: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ManualReviewEntry {
+    chain_id: String,
+    ip: String,
+    detected_at: u64,
+    reason: String,
+    ip_api: ReviewIpApiLocation,
+    ipinfo: IpInfoLiteLocation,
+    manual_resolved_path: String,
+}
+
+#[derive(Debug, Serialize)]
+struct ReviewIpApiLocation {
+    city: String,
+    country: String,
+    country_code: Option<String>,
+    isp: String,
+    asn: Option<String>,
+    as_name: Option<String>,
+    latitude: f64,
+    longitude: f64,
+    updated_at: u64,
+}
+
+impl From<&CachedGeoLocation> for ReviewIpApiLocation {
+    fn from(location: &CachedGeoLocation) -> Self {
+        Self {
+            city: location.city.clone(),
+            country: location.country.clone(),
+            country_code: location.country_code.clone(),
+            isp: location.isp.clone(),
+            asn: location.asn.clone(),
+            as_name: location.as_name.clone(),
+            latitude: location.lat,
+            longitude: location.lon,
+            updated_at: location.updated_at,
+        }
     }
 }
 
@@ -569,6 +1054,41 @@ struct MapNode {
     geo_updated_at: u64,
 }
 
+impl MapNode {
+    fn from_cached_location(candidate: &CandidateNode, location: &CachedGeoLocation) -> Self {
+        Self {
+            peer: candidate.peer.clone(),
+            ip: candidate.ip.to_string(),
+            city: location.city.clone(),
+            country: location.country.clone(),
+            isp: location.isp.clone(),
+            lat: location.lat,
+            lon: location.lon,
+            geo_source: location.source.clone(),
+            geo_confidence: location.confidence.clone(),
+            geo_updated_at: location.updated_at,
+        }
+    }
+
+    fn from_manual(candidate: &CandidateNode, manual: &ManualResolvedIp) -> Self {
+        Self {
+            peer: candidate.peer.clone(),
+            ip: candidate.ip.to_string(),
+            city: unknown_if_empty(&manual.geo.city),
+            country: unknown_if_empty(&manual.geo.country),
+            isp: manual
+                .as_info
+                .as_ref()
+                .map_or_else(unknown_string, |as_info| unknown_if_empty(&as_info.name)),
+            lat: manual.geo.latitude,
+            lon: manual.geo.longitude,
+            geo_source: "manual".to_owned(),
+            geo_confidence: "manual".to_owned(),
+            geo_updated_at: manual.updated_at.unwrap_or_default(),
+        }
+    }
+}
+
 fn string_field(value: &Value, field: &str) -> Option<String> {
     value
         .get(field)
@@ -576,6 +1096,75 @@ fn string_field(value: &Value, field: &str) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_owned)
+}
+
+fn trimmed_non_empty(value: String) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_owned())
+    }
+}
+
+fn parse_asn(value: &str) -> Option<String> {
+    value
+        .split_whitespace()
+        .next()
+        .map(str::trim)
+        .filter(|asn| asn.starts_with("AS") && asn.len() > 2)
+        .map(str::to_owned)
+}
+
+fn parse_as_name(value: &str) -> Option<String> {
+    let mut parts = value.splitn(2, char::is_whitespace);
+    let _asn = parts.next()?;
+    parts
+        .next()
+        .and_then(|name| trimmed_non_empty(name.to_owned()))
+}
+
+fn normalized_code(value: &Option<String>) -> Option<String> {
+    value
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_ascii_uppercase)
+}
+
+fn normalized_name(value: &str) -> Option<String> {
+    let normalized = value.trim().to_ascii_lowercase();
+    if normalized.is_empty() || normalized == "unknown" {
+        return None;
+    }
+
+    let normalized = normalized
+        .strip_prefix("the ")
+        .unwrap_or(&normalized)
+        .trim();
+    Some(match normalized {
+        "netherland" | "netherlands" => "netherlands".to_owned(),
+        _ => normalized.to_owned(),
+    })
+}
+
+fn manual_ip_file_name(ip: IpAddr) -> String {
+    let safe_ip = ip
+        .to_string()
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '.' || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    format!("{safe_ip}.json")
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
 }
 
 fn number_field(value: &Value, field: &str) -> Option<f64> {
@@ -622,6 +1211,25 @@ fn now_sec() -> u64 {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn cached_location(city: &str, country: &str, country_code: &str) -> CachedGeoLocation {
+        CachedGeoLocation {
+            city: city.to_owned(),
+            country: country.to_owned(),
+            country_code: Some(country_code.to_owned()),
+            isp: "Test ISP".to_owned(),
+            asn: Some("AS64500".to_owned()),
+            as_name: Some("Test ISP".to_owned()),
+            lat: 1.25,
+            lon: 2.5,
+            source: ip_api_source(),
+            confidence: medium_confidence(),
+            updated_at: 1_700_000_000,
+            ipinfo: None,
+            ipinfo_conflict: false,
+            ipinfo_conflict_reason: None,
+        }
+    }
 
     #[test]
     fn parses_array_seed_records() {
@@ -686,19 +1294,10 @@ mod tests {
         let mut cache = GeoCache::default();
         cache.locations.insert(
             "203.0.113.10".to_owned(),
-            CachedGeoLocation {
-                city: "Test City".to_owned(),
-                country: "Testland".to_owned(),
-                isp: "Test ISP".to_owned(),
-                lat: 1.25,
-                lon: 2.5,
-                source: ip_api_source(),
-                confidence: medium_confidence(),
-                updated_at: 1_700_000_000,
-            },
+            cached_location("Test City", "Testland", "TL"),
         );
 
-        let nodes = build_map_nodes_from_candidates(&candidates, &cache);
+        let nodes = build_map_nodes_from_candidates(&candidates, &cache, &BTreeMap::new());
         let node = serde_json::to_value(&nodes[0]).unwrap();
 
         assert_eq!(node["peer"], "peer-a");
@@ -708,5 +1307,115 @@ mod tests {
         assert_eq!(node["isp"], "Test ISP");
         assert_eq!(node["lat"], 1.25);
         assert_eq!(node["lon"], 2.5);
+    }
+
+    #[test]
+    fn manual_resolved_ip_overrides_cached_location() {
+        let ip = "203.0.113.10".parse().unwrap();
+        let candidates = vec![CandidateNode {
+            peer: "peer-a".to_owned(),
+            ip,
+        }];
+        let mut cache = GeoCache::default();
+        cache.locations.insert(
+            "203.0.113.10".to_owned(),
+            cached_location("Wrong City", "Wrongland", "WL"),
+        );
+        let manual_resolved = BTreeMap::from([(
+            ip,
+            ManualResolvedIp {
+                ip,
+                geo: ManualGeo {
+                    city: "Manual City".to_owned(),
+                    country: "Manualia".to_owned(),
+                    latitude: 9.0,
+                    longitude: 10.0,
+                },
+                as_info: Some(ManualAs {
+                    name: "Manual ISP".to_owned(),
+                }),
+                updated_at: Some(1_800_000_000),
+            },
+        )]);
+
+        let nodes = build_map_nodes_from_candidates(&candidates, &cache, &manual_resolved);
+        let node = serde_json::to_value(&nodes[0]).unwrap();
+
+        assert_eq!(node["city"], "Manual City");
+        assert_eq!(node["country"], "Manualia");
+        assert_eq!(node["isp"], "Manual ISP");
+        assert_eq!(node["lat"], 9.0);
+        assert_eq!(node["lon"], 10.0);
+        assert_eq!(node["geo_source"], "manual");
+        assert_eq!(node["geo_confidence"], "manual");
+    }
+
+    #[test]
+    fn ipinfo_country_conflict_holds_node_for_manual_review() {
+        let ip = "203.0.113.10".parse().unwrap();
+        let candidates = vec![CandidateNode {
+            peer: "peer-a".to_owned(),
+            ip,
+        }];
+        let mut cache = GeoCache::default();
+        let mut location = cached_location("Test City", "United States", "US");
+        location.ipinfo = Some(IpInfoLiteLocation {
+            asn: Some("AS64500".to_owned()),
+            as_name: Some("Test ISP".to_owned()),
+            as_domain: Some("example.net".to_owned()),
+            country_code: Some("BR".to_owned()),
+            country: "Brazil".to_owned(),
+            continent_code: Some("SA".to_owned()),
+            continent: Some("South America".to_owned()),
+            updated_at: 1_700_000_001,
+        });
+        cache.locations.insert("203.0.113.10".to_owned(), location);
+
+        assert!(refresh_ipinfo_conflicts(&[ip], &mut cache));
+        assert!(cache.location(ip).unwrap().ipinfo_conflict);
+
+        let nodes = build_map_nodes_from_candidates(&candidates, &cache, &BTreeMap::new());
+        assert!(nodes.is_empty());
+    }
+
+    #[test]
+    fn netherlands_country_aliases_do_not_create_manual_review() {
+        let ip = "203.0.113.10".parse().unwrap();
+        let candidates = vec![CandidateNode {
+            peer: "peer-a".to_owned(),
+            ip,
+        }];
+        let mut cache = GeoCache::default();
+        let mut location = cached_location("Amsterdam", "Netherland", "");
+        location.country_code = None;
+        location.ipinfo = Some(IpInfoLiteLocation {
+            asn: Some("AS64500".to_owned()),
+            as_name: Some("Test ISP".to_owned()),
+            as_domain: Some("example.net".to_owned()),
+            country_code: None,
+            country: "The Netherlands".to_owned(),
+            continent_code: Some("EU".to_owned()),
+            continent: Some("Europe".to_owned()),
+            updated_at: 1_700_000_001,
+        });
+        cache.locations.insert("203.0.113.10".to_owned(), location);
+
+        assert!(!refresh_ipinfo_conflicts(&[ip], &mut cache));
+        assert!(!cache.location(ip).unwrap().ipinfo_conflict);
+        assert_eq!(
+            normalized_name("The Netherlands"),
+            normalized_name("Netherlands")
+        );
+
+        let nodes = build_map_nodes_from_candidates(&candidates, &cache, &BTreeMap::new());
+        assert_eq!(nodes.len(), 1);
+    }
+
+    #[test]
+    fn manual_review_file_name_is_ipv6_safe() {
+        assert_eq!(
+            manual_ip_file_name("2804:388:425b:c8b:10d3:81b7:646c:9b32".parse().unwrap()),
+            "2804_388_425b_c8b_10d3_81b7_646c_9b32.json"
+        );
     }
 }
