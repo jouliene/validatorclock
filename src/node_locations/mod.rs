@@ -303,6 +303,7 @@ fn collect_ips_from_value(value: &Value, ips: &mut BTreeSet<IpAddr>) {
                 "address_list",
                 "ips",
                 "info",
+                "resolution",
             ] {
                 if let Some(item) = object.get(field) {
                     collect_ips_from_value(item, ips);
@@ -1282,6 +1283,34 @@ mod tests {
                     ip: "198.51.100.9".parse().unwrap(),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn parses_resolver_full_validator_records() {
+        let candidates = collect_candidates_from_value(
+            &json!({
+                "validators": [
+                    {
+                        "validator_public_key": "peer-a",
+                        "resolution": {
+                            "status": "resolved",
+                            "addresses": [
+                                {"ip": "203.0.113.10", "port": 30313, "version": "udp4"}
+                            ]
+                        }
+                    }
+                ]
+            }),
+            None,
+        );
+
+        assert_eq!(
+            unique_candidates(candidates),
+            vec![CandidateNode {
+                peer: "peer-a".to_owned(),
+                ip: "203.0.113.10".parse().unwrap(),
+            }]
         );
     }
 
