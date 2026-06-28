@@ -225,18 +225,21 @@ function updateValidatorMapSummary() {
   const totalNodes = Array.isArray(state.snapshot?.current_set?.validators)
     ? state.snapshot.current_set.validators.length
     : nodes.length;
+  const mappedNodes = typeof mappedValidatorsCount === "function"
+    ? mappedValidatorsCount(state.snapshot?.current_set?.validators, state.validatorMapNodesByPeer)
+    : nodes.length;
   const locations = groupNodesByLocation(nodes).length;
   if (totalNodeCount) {
     totalNodeCount.textContent = String(totalNodes);
   }
   if (mappedNodeCount) {
-    mappedNodeCount.textContent = String(nodes.length);
+    mappedNodeCount.textContent = String(mappedNodes);
   }
   if (locationCount) {
     locationCount.textContent = String(locations);
   }
   if (summary) {
-    summary.textContent = `${nodes.length} nodes / ${locations} locations`;
+    summary.textContent = `${mappedNodes} nodes / ${locations} locations`;
   }
 }
 
