@@ -34,7 +34,7 @@ const NODE_STATS_LABELS = {
   tooltips: {
     round: "Current active validator round.",
     totalNodes: "Current active validators in the selected network.",
-    mappedNodes: "Active validators with current IP/location data.",
+    mappedNodes: "Active validators with current or retained IP/location data.",
     totalStake: "Total stake in the current active validator set.",
     mappedStake: "Share of active stake covered by mapped validators.",
     bestGeoLocation: "Best mapped GeoIP city cluster by lowest stake-weighted geographic distance.",
@@ -156,7 +156,7 @@ function renderNodeStats() {
 
   const validators = state.snapshot?.current_set?.validators || [];
   const nodes = validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : [];
-  const stats = buildNodeStats(nodes, validators);
+  const stats = buildNodeStats(nodes, validators, state.validatorMapNodesByPeer);
   const resolutionNotice = mapNodeResolutionNotice(stats.mappedNodes);
   const renderKey = nodeStatsRenderKey(stats);
   if (state.nodeStatsRenderKey === renderKey) {
@@ -543,10 +543,14 @@ function nodeStatsPlacementRowClass(index, visibleCount) {
   return classes.length ? ` class="${classes.join(" ")}"` : "";
 }
 
-function buildNodeStats(nodes, validators) {
+function buildNodeStats(nodes, validators, mapNodesByPeer) {
   const validatorsByPeer = new Map();
   let networkStake = 0;
   let networkWeightPercent = 0;
+  let logicalMappedStake = 0;
+  let logicalMappedWeightPercent = 0;
+  let logicalMappedNodeCount = 0;
+  const hasMapNodeLookup = typeof mapNodesByPeer?.has === "function";
 
   for (const validator of Array.isArray(validators) ? validators : []) {
     const peer = String(validator.public_key || "").toLowerCase();
@@ -558,6 +562,12 @@ function buildNodeStats(nodes, validators) {
     validatorsByPeer.set(peer, { ...validator, stakeNumber: stake, weightPercentNumber: weightPercent });
     networkStake += stake;
     networkWeightPercent += weightPercent;
+    const isMapped = validator?.map_node || (hasMapNodeLookup && mapNodesByPeer.has(peer));
+    if (isMapped) {
+      logicalMappedNodeCount += 1;
+      logicalMappedStake += stake;
+      logicalMappedWeightPercent += weightPercent;
+    }
   }
 
   const mappedNodes = (Array.isArray(nodes) ? nodes : [])
@@ -581,8 +591,6 @@ function buildNodeStats(nodes, validators) {
     mappedNodes.reduce((byPeer, node) => (byPeer.has(node.peer) ? byPeer : byPeer.set(node.peer, node)), new Map()).values(),
   );
 
-  const mappedStake = uniqueMappedNodes.reduce((sum, node) => sum + node.stake, 0);
-  const mappedWeightPercent = uniqueMappedNodes.reduce((sum, node) => sum + node.weightPercent, 0);
   const countryRows = aggregateNodeStatsRows(uniqueMappedNodes, (node) => normalizeNodeStatsCountry(node.country), networkStake);
   const locationRows = aggregateNodeStatsRows(uniqueMappedNodes, (node) => nodeStatsLocationLabel(node), networkStake);
   const ispRows = aggregateNodeStatsRows(uniqueMappedNodes, (node) => String(node.isp || "Unknown").trim() || "Unknown", networkStake);
@@ -596,10 +604,10 @@ function buildNodeStats(nodes, validators) {
     networkValidators: validatorsByPeer.size,
     networkStake,
     networkWeightPercent,
-    mappedNodes: uniqueMappedNodes.length,
-    mappedStake,
-    mappedStakePercent: networkStake ? (mappedStake / networkStake) * 100 : 0,
-    mappedWeightPercent: networkWeightPercent ? (mappedWeightPercent / networkWeightPercent) * 100 : mappedWeightPercent,
+    mappedNodes: logicalMappedNodeCount,
+    mappedStake: logicalMappedStake,
+    mappedStakePercent: networkStake ? (logicalMappedStake / networkStake) * 100 : 0,
+    mappedWeightPercent: networkWeightPercent ? (logicalMappedWeightPercent / networkWeightPercent) * 100 : logicalMappedWeightPercent,
     countryRows,
     locationRows,
     ispRows,
