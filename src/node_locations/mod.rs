@@ -1148,7 +1148,7 @@ struct MapNode {
     geo_source: String,
     geo_confidence: String,
     geo_updated_at: u64,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "is_zero")]
     last_seen_at: u64,
 }
 
@@ -1208,6 +1208,10 @@ impl MapNode {
         };
         last_seen_at != 0 && now.saturating_sub(last_seen_at) < MAP_NODE_RETENTION_SECONDS
     }
+}
+
+fn is_zero(value: &u64) -> bool {
+    *value == 0
 }
 
 fn string_field(value: &Value, field: &str) -> Option<String> {
@@ -1580,6 +1584,40 @@ mod tests {
 
         assert_eq!(built.retained_node_count, 0);
         assert!(built.nodes.is_empty());
+    }
+
+    #[test]
+    fn retention_uses_file_timestamp_for_legacy_nodes_without_last_seen_at() {
+        let legacy_node: MapNode = serde_json::from_value(json!({
+            "peer": "peer-a",
+            "ip": "203.0.113.10",
+            "city": "Previous City",
+            "country": "Previousland",
+            "isp": "Previous ISP",
+            "lat": 3.0,
+            "lon": 4.0,
+            "geo_source": ip_api_source(),
+            "geo_confidence": medium_confidence(),
+            "geo_updated_at": 1_700_000_000
+        }))
+        .unwrap();
+        let previous_nodes = PreviousMapNodes {
+            nodes: vec![legacy_node],
+            updated_at: Some(1_700_000_000),
+        };
+
+        let built = build_map_nodes_from_candidates_with_retention(
+            &[],
+            &GeoCache::default(),
+            &BTreeMap::new(),
+            &previous_nodes,
+            1_700_000_300,
+        );
+
+        assert_eq!(built.retained_node_count, 1);
+        assert_eq!(built.nodes.len(), 1);
+        assert_eq!(built.nodes[0].peer, "peer-a");
+        assert_eq!(built.nodes[0].last_seen_at, 0);
     }
 
     #[test]
