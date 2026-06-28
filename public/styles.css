@@ -55,6 +55,7 @@
   --transition-control: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-tooltip: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 /* Base layout */
@@ -2121,6 +2122,8 @@ dd {
   box-shadow:
     0 20px 50px rgba(0, 0, 0, 0.52),
     inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  font-family: var(--font-tooltip);
+  font-feature-settings: "tnum" 1, "zero" 1;
   font-size: 12px;
   line-height: 1.35;
   padding: 12px;
@@ -2263,9 +2266,10 @@ dd {
   background: transparent;
   color: rgba(222, 232, 242, 0.88);
   cursor: pointer;
-  font-family: var(--font-mono);
+  font-family: var(--font-tooltip);
   font-size: 10.4px;
   font-weight: 760;
+  font-variant-numeric: tabular-nums;
   text-align: left;
   white-space: nowrap;
 }
@@ -2307,10 +2311,11 @@ dd {
   overflow: visible;
   overflow-wrap: normal;
   color: #b8c7ff;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.12;
+  font-family: var(--font-tooltip);
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-size: 10.5px;
+  font-weight: 640;
+  line-height: 1.18;
   text-overflow: clip;
   white-space: nowrap;
   word-break: normal;
@@ -2323,8 +2328,10 @@ dd {
   max-width: none;
   overflow: visible;
   color: #b8c7ff;
-  font-family: var(--font-mono);
-  font-size: 10.2px;
+  font-family: var(--font-tooltip);
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-size: 10.5px;
+  font-weight: 640;
   text-overflow: clip;
   white-space: nowrap;
 }
@@ -3414,8 +3421,10 @@ dd {
     0 0 18px rgba(47, 147, 220, 0.055),
     inset 0 1px 0 rgba(255, 255, 255, 0.062);
   color: rgba(224, 235, 246, 0.94);
-  font-size: 11px;
-  line-height: 1.25;
+  font-family: var(--font-tooltip);
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-size: 12px;
+  line-height: 1.34;
   pointer-events: none;
   backdrop-filter: blur(8px);
 }
@@ -3428,7 +3437,7 @@ dd {
 
 .validator-hover-tooltip-label {
   color: rgba(142, 204, 235, 0.88);
-  font-family: var(--font-sans);
+  font-family: var(--font-tooltip);
   font-size: 10px;
   font-weight: 780;
   letter-spacing: 0;
@@ -3437,9 +3446,10 @@ dd {
 .validator-hover-tooltip-value {
   min-width: 0;
   color: rgba(237, 244, 250, 0.95);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 620;
+  font-family: var(--font-tooltip);
+  font-feature-settings: "tnum" 1, "zero" 1;
+  font-size: 12px;
+  font-weight: 560;
   overflow-wrap: anywhere;
 }
 
@@ -4139,7 +4149,7 @@ dd {
     width: 64ch;
     max-width: none;
     overflow: visible;
-    font-size: 9px;
+    font-size: 10px;
     text-overflow: clip;
   }
 
@@ -4151,7 +4161,7 @@ dd {
   .popup-validator-label,
   .popup-row-link,
   .popup-validator-value {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .popup-validator-value {
