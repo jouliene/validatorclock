@@ -3902,7 +3902,7 @@ dd {
   .chain-tab {
     min-width: 0;
     min-height: var(--control-size);
-    justify-content: center;
+    justify-content: flex-start;
     overflow: hidden;
     padding: 0 8px;
     font-size: 12px;
@@ -3910,7 +3910,7 @@ dd {
 
   .chain-tab-main {
     min-width: 0;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 8px;
   }
 
