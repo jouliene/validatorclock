@@ -2983,13 +2983,12 @@ dd {
 
 .validator-type-help {
   display: inline-grid;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   place-items: center;
   padding: 0;
-  border: 1px solid rgba(154, 196, 224, 0.22);
-  border-radius: 50%;
-  background: rgba(154, 196, 224, 0.06);
+  border: 0;
+  background: transparent;
   color: rgba(205, 220, 235, 0.82);
   cursor: pointer;
 }
@@ -3006,8 +3005,6 @@ dd {
 
 .validator-type-help:hover,
 .validator-type-help[aria-expanded="true"] {
-  border-color: rgba(77, 184, 255, 0.38);
-  background: rgba(77, 184, 255, 0.13);
   color: rgba(229, 246, 255, 0.96);
 }
 
