@@ -961,6 +961,7 @@ dd {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
@@ -971,7 +972,7 @@ dd {
   max-width: 64px;
   padding: 0;
   color: rgba(171, 196, 217, 0.58);
-  font-size: 8.2px;
+  font-size: 8.6px;
   font-weight: 620;
   letter-spacing: 0.035em;
   line-height: 1;
@@ -3891,7 +3892,11 @@ dd {
     gap: var(--rhythm-card-gap);
   }
 
-  .network-card,
+  .network-card {
+    width: 100%;
+    padding: 0;
+  }
+
   .network-message-card {
     width: 100%;
     padding: var(--rhythm-mobile-pad);
@@ -3962,7 +3967,7 @@ dd {
 
   .chain-network-badge {
     max-width: 58px;
-    font-size: 7.6px;
+    font-size: 8px;
   }
 
   .chain-mark {
