@@ -35,8 +35,19 @@ function renderChainTabs() {
       mark.classList.add("chain-swatch");
     }
 
-    main.append(mark, document.createTextNode(chainTabLabel(chain)));
+    const networkBadge = document.createElement("span");
+    const networkKind = chainNetworkKind(chain);
+    networkBadge.className = `chain-network-badge is-${networkKind}`;
+    networkBadge.textContent = networkKind;
 
+    const copy = document.createElement("span");
+    copy.className = "chain-tab-copy";
+    const label = document.createElement("span");
+    label.className = "chain-tab-label";
+    label.textContent = chainTabLabel(chain);
+    copy.append(label, networkBadge);
+
+    main.append(mark, copy);
     button.append(main);
 
     button.addEventListener("click", () => selectChain(chain.id));
@@ -51,6 +62,10 @@ function chainTabLabel(chain) {
     return "Tycho";
   }
   return chain.name;
+}
+
+function chainNetworkKind(chain) {
+  return chain.id === "tycho-testnet" ? "testnet" : "mainnet";
 }
 
 async function selectChain(chainId) {
