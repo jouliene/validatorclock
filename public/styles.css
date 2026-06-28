@@ -866,31 +866,39 @@ dd {
   inset: -2% -6% -9% -8%;
   pointer-events: none;
   background:
-    radial-gradient(circle at 50% 38%, rgba(204, 230, 246, 0.105), transparent 28%),
-    radial-gradient(circle at 58% 58%, rgba(47, 147, 220, 0.075), transparent 45%);
-  filter: blur(3px);
+    radial-gradient(circle at 50% 38%, rgba(204, 230, 246, 0.072), transparent 30%),
+    radial-gradient(circle at 58% 58%, rgba(47, 147, 220, 0.052), transparent 46%);
+  filter: blur(5px);
 }
 
-.network-portrait img {
-  position: relative;
+.network-portrait-image {
+  position: absolute;
+  inset: 50% auto auto 50%;
   display: block;
-  width: 116%;
-  height: 116%;
+  width: 112%;
+  height: 112%;
   min-height: 0;
-  align-self: center;
-  justify-self: center;
-  object-fit: cover;
-  object-position: 42% 38%;
-  opacity: 0.98;
-  transform: translate(-4%, -1%) scale(1.02);
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  transform: translate(-46%, -51%) scale(1.005);
   mix-blend-mode: lighten;
   filter:
     brightness(1.06)
     contrast(1.04)
     saturate(0.96)
-    drop-shadow(0 14px 22px rgba(0, 0, 0, 0.36));
-  -webkit-mask-image: radial-gradient(ellipse at 52% 46%, #000 0 44%, rgba(0, 0, 0, 0.72) 58%, rgba(0, 0, 0, 0.24) 72%, transparent 90%);
-  mask-image: radial-gradient(ellipse at 52% 46%, #000 0 44%, rgba(0, 0, 0, 0.72) 58%, rgba(0, 0, 0, 0.24) 72%, transparent 90%);
+    drop-shadow(0 12px 18px rgba(0, 0, 0, 0.18));
+  transition:
+    opacity 1400ms ease,
+    transform 4200ms ease,
+    filter 1400ms ease;
+  -webkit-mask-image: radial-gradient(ellipse at 54% 48%, #000 0 45%, rgba(0, 0, 0, 0.86) 58%, rgba(0, 0, 0, 0.36) 74%, transparent 91%);
+  mask-image: radial-gradient(ellipse at 54% 48%, #000 0 45%, rgba(0, 0, 0, 0.86) 58%, rgba(0, 0, 0, 0.36) 74%, transparent 91%);
+}
+
+.network-portrait-image.is-active {
+  opacity: 0.98;
+  transform: translate(-46%, -51%) scale(1.025);
 }
 
 .chain-tab {

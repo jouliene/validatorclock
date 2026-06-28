@@ -1,6 +1,7 @@
 async function boot() {
   try {
     startNetworkMessages();
+    startNetworkPortraits();
     await loadChains();
     setupValidatorMapControls();
     setupRoundStatsControls();

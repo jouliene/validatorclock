@@ -1,7 +1,8 @@
 use super::acme::{acme_challenge, redirect_to_https};
 use super::api::{chain_clock, chain_map, chain_round_stats, health, list_chains, status};
 use super::assets::{
-    app_js, everscale_logo, index, jokes_json, smoking_man_png, styles, ton_logo, tycho_logo,
+    app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, styles, ton_logo,
+    tycho_logo,
 };
 use super::responses::not_found;
 use super::security::{add_security_headers, enforce_allowed_host, handle_options};
@@ -31,6 +32,7 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/brands/tycho.svg", get(tycho_logo))
         .route("/brands/ton.svg", get(ton_logo))
         .route("/brands/smoking-man.png", get(smoking_man_png))
+        .route("/brands/portraits/{name}", get(portrait_image))
         .route("/api/health", get(health))
         .route("/api/status", get(status))
         .route("/api/chains", get(list_chains))

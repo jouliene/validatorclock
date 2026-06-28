@@ -85,13 +85,57 @@ pub(super) const APP_RUNTIME_MESSAGES_JS: &str =
     include_str!("../../../public/app/runtime_messages.js");
 pub(super) const APP_RUNTIME_SETTINGS_JS: &str =
     include_str!("../../../public/app/runtime_settings.js");
+pub(super) const APP_NETWORK_PORTRAITS_JS: &str =
+    include_str!("../../../public/app/network_portraits.js");
 pub(super) const APP_RUNTIME_JS: &str = include_str!("../../../public/app/runtime.js");
 pub(super) const APP_ENTRY_JS: &str = include_str!("../../../public/app.js");
 pub(super) const EVERSCALE_LOGO_SVG: &str = include_str!("../../../public/brands/everscale.svg");
 pub(super) const TYCHO_LOGO_SVG: &str = include_str!("../../../public/brands/tycho.svg");
 pub(super) const TON_LOGO_SVG: &str = include_str!("../../../public/brands/ton.svg");
 pub(super) const SMOKING_MAN_PNG: &[u8] = include_bytes!("../../../public/brands/smoking-man.png");
+pub(super) const PORTRAIT_00_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-00.webp");
+pub(super) const PORTRAIT_01_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-01.webp");
+pub(super) const PORTRAIT_02_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-02.webp");
+pub(super) const PORTRAIT_03_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-03.webp");
+pub(super) const PORTRAIT_04_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-04.webp");
+pub(super) const PORTRAIT_05_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-05.webp");
+pub(super) const PORTRAIT_06_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-06.webp");
+pub(super) const PORTRAIT_07_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-07.webp");
+pub(super) const PORTRAIT_08_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-08.webp");
+pub(super) const PORTRAIT_09_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-09.webp");
+pub(super) const PORTRAIT_10_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-10.webp");
+pub(super) const PORTRAIT_11_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-11.webp");
+pub(super) const PORTRAIT_12_WEBP: &[u8] =
+    include_bytes!("../../../public/brands/portraits/portrait-12.webp");
 pub(super) const JOKES_JSON: &str = include_str!("../../../public/jokes.json");
+
+pub(super) const PORTRAIT_IMAGES: &[(&str, &[u8])] = &[
+    ("portrait-00.webp", PORTRAIT_00_WEBP),
+    ("portrait-01.webp", PORTRAIT_01_WEBP),
+    ("portrait-02.webp", PORTRAIT_02_WEBP),
+    ("portrait-03.webp", PORTRAIT_03_WEBP),
+    ("portrait-04.webp", PORTRAIT_04_WEBP),
+    ("portrait-05.webp", PORTRAIT_05_WEBP),
+    ("portrait-06.webp", PORTRAIT_06_WEBP),
+    ("portrait-07.webp", PORTRAIT_07_WEBP),
+    ("portrait-08.webp", PORTRAIT_08_WEBP),
+    ("portrait-09.webp", PORTRAIT_09_WEBP),
+    ("portrait-10.webp", PORTRAIT_10_WEBP),
+    ("portrait-11.webp", PORTRAIT_11_WEBP),
+    ("portrait-12.webp", PORTRAIT_12_WEBP),
+];
 
 pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_STATE_JS,
@@ -150,6 +194,7 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_RUNTIME_CLOCK_JS,
     APP_RUNTIME_MESSAGES_JS,
     APP_RUNTIME_SETTINGS_JS,
+    APP_NETWORK_PORTRAITS_JS,
     APP_RUNTIME_JS,
     APP_ENTRY_JS,
 ];
