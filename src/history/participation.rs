@@ -3,9 +3,43 @@ use super::{
     ValidatorParticipationDto, opposite_round_color,
 };
 use crate::chain::{ClockSnapshot, RoundColor, ValidatorDto, ValidatorSetDto};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+
+const FAKE_VALIDATOR_MAP_GRACE_SECONDS: u64 = 60 * 60;
 
 impl RoundHistoryStore {
+    pub(crate) fn recent_mapped_validator_peers(
+        &self,
+        chain_id: &str,
+        set: &ValidatorSetDto,
+        observed_at: u64,
+    ) -> HashSet<String> {
+        let current_validators = ValidatorIdentitySet::from_validators(&set.validators);
+        let Some(round) = self
+            .chains
+            .get(chain_id)
+            .and_then(|chain| chain.rounds.get(&set.round_id))
+        else {
+            return HashSet::new();
+        };
+
+        round
+            .validators
+            .iter()
+            .filter(|(public_key, validator)| {
+                current_validators.contains(public_key, validator.wallet.as_deref())
+                    && validator.map_node.is_some()
+                    && validator
+                        .map_seen_at
+                        .or(Some(round.observed_at))
+                        .is_some_and(|seen_at| {
+                            observed_at.saturating_sub(seen_at) < FAKE_VALIDATOR_MAP_GRACE_SECONDS
+                        })
+            })
+            .map(|(public_key, _)| public_key.to_ascii_lowercase())
+            .collect()
+    }
+
     pub(crate) fn annotate_snapshot(&self, chain_id: &str, snapshot: &mut ClockSnapshot) {
         self.annotate_set(chain_id, &mut snapshot.current_set);
         if let Some(previous_set) = &mut snapshot.previous_set {

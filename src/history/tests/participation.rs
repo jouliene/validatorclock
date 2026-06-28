@@ -357,6 +357,7 @@ fn fake_validator_map_node_is_replayed_as_last_known_location() {
                             "Test City",
                             "Testland",
                         )),
+                        map_seen_at: Some(100),
                         fake_node: Some(true),
                     },
                 )]),

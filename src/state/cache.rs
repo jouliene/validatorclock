@@ -78,7 +78,7 @@ impl AppState {
             (now.saturating_sub(entry.fetched_at()) < refresh_seconds)
                 .then(|| entry.snapshot().clone())?
         };
-        self.annotate_map_fake_validators(&mut snapshot, now);
+        self.annotate_map_fake_validators(&mut snapshot, now).await;
         if snapshot.current_set.fake_validator_status_known {
             self.record_round_history(&mut snapshot, now).await;
         }
@@ -93,7 +93,8 @@ impl AppState {
             cache.get(chain_id).map(|entry| entry.snapshot().clone())?
         };
         let observed_at = now_sec().unwrap_or_else(|| snapshot.fetched_at());
-        self.annotate_map_fake_validators(&mut snapshot, observed_at);
+        self.annotate_map_fake_validators(&mut snapshot, observed_at)
+            .await;
         if snapshot.current_set.fake_validator_status_known {
             self.record_round_history(&mut snapshot, observed_at).await;
         }

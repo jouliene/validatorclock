@@ -107,6 +107,8 @@ pub(super) struct StoredValidator {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) map_node: Option<ValidatorMapNodeDto>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) map_seen_at: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) fake_node: Option<bool>,
 }
 

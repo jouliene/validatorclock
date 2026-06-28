@@ -70,6 +70,7 @@ fn stored_round(set: &ValidatorSetDto, observed_at: u64, complete: bool) -> Stor
                     StoredValidator {
                         wallet: validator.wallet.clone(),
                         map_node: validator.map_node.clone(),
+                        map_seen_at: validator.map_node.is_some().then_some(observed_at),
                         fake_node: None,
                     },
                 )

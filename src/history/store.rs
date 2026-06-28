@@ -96,10 +96,11 @@ impl ChainRoundHistory {
                 .iter()
                 .map(|validator| {
                     let public_key = validator.public_key.clone();
+                    let current_map_node = validator.map_node.clone();
                     let fake_node = set
                         .fake_validator_status_known
                         .then_some(fake_validator_peers.contains(&public_key.to_ascii_lowercase()));
-                    let map_node = validator.map_node.clone().or_else(|| {
+                    let map_node = current_map_node.clone().or_else(|| {
                         (fake_node == Some(true))
                             .then(|| {
                                 self.latest_map_node_for_identity(
@@ -110,11 +111,13 @@ impl ChainRoundHistory {
                             })
                             .flatten()
                     });
+                    let map_seen_at = current_map_node.is_some().then_some(observed_at);
                     (
                         public_key,
                         StoredValidator {
                             wallet: validator.wallet.clone(),
                             map_node,
+                            map_seen_at,
                             fake_node,
                         },
                     )

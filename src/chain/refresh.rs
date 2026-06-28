@@ -71,7 +71,9 @@ async fn finalize_refreshed_snapshot(
 ) -> ClockSnapshot {
     let fetched_at = snapshot.fetched_at;
     let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
-    state.annotate_map_fake_validators(&mut snapshot, observed_at);
+    state
+        .annotate_map_fake_validators(&mut snapshot, observed_at)
+        .await;
     let cached_snapshot = state.cached_snapshot(chain_id).await;
     if let Some(reason) = cached_snapshot
         .as_ref()

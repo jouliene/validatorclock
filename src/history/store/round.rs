@@ -64,6 +64,11 @@ impl StoredRound {
                 if validator.map_node.is_none() {
                     validator.map_node = existing.map_node.clone();
                 }
+                if validator.map_seen_at.is_none() {
+                    validator.map_seen_at = existing
+                        .map_seen_at
+                        .or_else(|| existing.map_node.is_some().then_some(self.observed_at));
+                }
             }
         }
 
@@ -91,6 +96,10 @@ impl StoredRound {
                 }
                 if validator.map_node.is_none() && other_validator.map_node.is_some() {
                     validator.map_node = other_validator.map_node;
+                    changed = true;
+                }
+                if validator.map_seen_at.is_none() && other_validator.map_seen_at.is_some() {
+                    validator.map_seen_at = other_validator.map_seen_at;
                     changed = true;
                 }
             }

@@ -11,16 +11,24 @@ enum FakeValidatorStatusUpdate {
 pub(super) fn update_set_fake_validator_status(
     set: &mut ValidatorSetDto,
     mapped_peers: &HashSet<String>,
+    grace_mapped_peers: &HashSet<String>,
     map_nodes_updated_at: Option<u64>,
     observed_at: u64,
 ) {
-    let update = fake_validator_status_update(set, mapped_peers, map_nodes_updated_at, observed_at);
+    let update = fake_validator_status_update(
+        set,
+        mapped_peers,
+        grace_mapped_peers,
+        map_nodes_updated_at,
+        observed_at,
+    );
     update_fake_validator_status(set, update);
 }
 
 fn fake_validator_status_update(
     set: &ValidatorSetDto,
     mapped_peers: &HashSet<String>,
+    grace_mapped_peers: &HashSet<String>,
     _map_nodes_updated_at: Option<u64>,
     observed_at: u64,
 ) -> FakeValidatorStatusUpdate {
@@ -28,7 +36,7 @@ fn fake_validator_status_update(
         return FakeValidatorStatusUpdate::Deferred;
     }
 
-    FakeValidatorStatusUpdate::Known(fake_validator_peers(set, mapped_peers))
+    FakeValidatorStatusUpdate::Known(fake_validator_peers(set, mapped_peers, grace_mapped_peers))
 }
 
 fn update_fake_validator_status(set: &mut ValidatorSetDto, update: FakeValidatorStatusUpdate) {
@@ -44,12 +52,20 @@ fn update_fake_validator_status(set: &mut ValidatorSetDto, update: FakeValidator
     }
 }
 
-fn fake_validator_peers(set: &ValidatorSetDto, mapped_peers: &HashSet<String>) -> Vec<String> {
+fn fake_validator_peers(
+    set: &ValidatorSetDto,
+    mapped_peers: &HashSet<String>,
+    grace_mapped_peers: &HashSet<String>,
+) -> Vec<String> {
     let mut fake_peers = set
         .validators
         .iter()
         .map(|validator| validator.public_key.to_ascii_lowercase())
-        .filter(|public_key| !public_key.is_empty() && !mapped_peers.contains(public_key))
+        .filter(|public_key| {
+            !public_key.is_empty()
+                && !mapped_peers.contains(public_key)
+                && !grace_mapped_peers.contains(public_key)
+        })
         .collect::<Vec<_>>();
     fake_peers.sort();
     fake_peers.dedup();
@@ -89,7 +105,13 @@ mod tests {
         let mut set = validator_set_with_peers(&["mapped", "missing"]);
         set.utime_since = 1_000;
 
-        update_set_fake_validator_status(&mut set, &mapped_peers(&["mapped"]), Some(999), 1_120);
+        update_set_fake_validator_status(
+            &mut set,
+            &mapped_peers(&["mapped"]),
+            &HashSet::new(),
+            Some(999),
+            1_120,
+        );
 
         assert!(!set.fake_validator_status_known);
         assert!(set.fake_validator_peers.is_empty());
@@ -100,7 +122,13 @@ mod tests {
         let mut set = validator_set_with_peers(&["mapped", "missing"]);
         set.utime_since = 1_000;
 
-        update_set_fake_validator_status(&mut set, &mapped_peers(&["mapped"]), Some(1_030), 1_120);
+        update_set_fake_validator_status(
+            &mut set,
+            &mapped_peers(&["mapped"]),
+            &HashSet::new(),
+            Some(1_030),
+            1_120,
+        );
 
         assert!(!set.fake_validator_status_known);
         assert!(set.fake_validator_peers.is_empty());
@@ -111,7 +139,30 @@ mod tests {
         let mut set = validator_set_with_peers(&["mapped", "missing"]);
         set.utime_since = 1_000;
 
-        update_set_fake_validator_status(&mut set, &mapped_peers(&["mapped"]), Some(999), 1_301);
+        update_set_fake_validator_status(
+            &mut set,
+            &mapped_peers(&["mapped"]),
+            &HashSet::new(),
+            Some(999),
+            1_301,
+        );
+
+        assert!(set.fake_validator_status_known);
+        assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);
+    }
+
+    #[test]
+    fn grace_mapped_peers_are_not_marked_fake_after_new_set_grace() {
+        let mut set = validator_set_with_peers(&["mapped", "grace", "missing"]);
+        set.utime_since = 1_000;
+
+        update_set_fake_validator_status(
+            &mut set,
+            &mapped_peers(&["mapped"]),
+            &mapped_peers(&["grace"]),
+            Some(999),
+            1_301,
+        );
 
         assert!(set.fake_validator_status_known);
         assert_eq!(set.fake_validator_peers, vec!["missing".to_owned()]);

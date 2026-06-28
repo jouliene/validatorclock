@@ -15,7 +15,7 @@ struct ValidatorMapAnnotations {
 }
 
 impl AppState {
-    pub(crate) fn annotate_map_fake_validators(
+    pub(crate) async fn annotate_map_fake_validators(
         &self,
         snapshot: &mut ClockSnapshot,
         observed_at: u64,
@@ -25,7 +25,18 @@ impl AppState {
             return;
         };
 
-        annotate_set_with_validator_map(&mut snapshot.current_set, &annotations, observed_at);
+        let grace_mapped_peers = self
+            .round_history
+            .read()
+            .await
+            .recent_mapped_validator_peers(chain_id, &snapshot.current_set, observed_at);
+
+        annotate_set_with_validator_map(
+            &mut snapshot.current_set,
+            &annotations,
+            &grace_mapped_peers,
+            observed_at,
+        );
     }
 
     fn load_validator_map_annotations(&self, chain_id: &str) -> Option<ValidatorMapAnnotations> {
@@ -65,12 +76,14 @@ impl AppState {
 fn annotate_set_with_validator_map(
     set: &mut ValidatorSetDto,
     annotations: &ValidatorMapAnnotations,
+    grace_mapped_peers: &HashSet<String>,
     observed_at: u64,
 ) {
     annotate_set_with_map_nodes(set, &annotations.nodes_by_peer);
     update_set_fake_validator_status(
         set,
         &annotations.mapped_peers,
+        grace_mapped_peers,
         annotations.updated_at,
         observed_at,
     );
