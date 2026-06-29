@@ -72,20 +72,40 @@
 
   function renderPublicStats(stats) {
     const todayEl = document.getElementById("publicStatsToday");
+    const last30El = document.getElementById("publicStatsLast30");
     const allTimeEl = document.getElementById("publicStatsAllTime");
-    if (!todayEl || !allTimeEl || !stats || !stats.today || !stats.last_30_days || !stats.all_time) {
+    if (
+      !todayEl ||
+      !last30El ||
+      !allTimeEl ||
+      !stats ||
+      !stats.today ||
+      !stats.last_30_days ||
+      !stats.all_time
+    ) {
       return;
     }
 
-    todayEl.textContent = `Today: ${[
+    renderStatsGroup(todayEl, "Today:", [
       `${formatAnalyticsNumber(stats.today.online_now)} online`,
       `${formatAnalyticsNumber(stats.today.unique_visitors)} unique visitors`,
       `${formatAnalyticsNumber(stats.today.visits)} visits`,
-    ].join(" · ")}`;
-    allTimeEl.textContent = `Last 30 days: ${[
+    ]);
+    renderStatsGroup(last30El, "Last 30 days:", [
       `${formatAnalyticsNumber(stats.last_30_days.visits)} visits`,
       `${formatAnalyticsNumber(stats.last_30_days.unique_visitors)} unique visitors`,
-    ].join(" · ")} · All time: ${formatAnalyticsNumber(stats.all_time.visits)} visits`;
+    ]);
+    renderStatsGroup(allTimeEl, "All time:", [
+      `${formatAnalyticsNumber(stats.all_time.visits)} visits`,
+    ]);
+  }
+
+  function renderStatsGroup(element, label, parts) {
+    element.replaceChildren();
+    const labelEl = document.createElement("span");
+    labelEl.className = "public-stats-label";
+    labelEl.textContent = label;
+    element.append(labelEl, document.createTextNode(` ${parts.join(" · ")}`));
   }
 
   function formatAnalyticsNumber(value) {

@@ -118,6 +118,11 @@ button {
   color: rgba(171, 196, 217, 0.43);
 }
 
+.public-stats-label {
+  color: rgba(231, 244, 255, 0.72);
+  font-weight: 700;
+}
+
 .site-version {
   color: rgba(171, 196, 217, 0.46);
   font-size: 11px;
