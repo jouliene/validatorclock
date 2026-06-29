@@ -3,12 +3,14 @@ use crate::state::AppState;
 use axum::http::StatusCode;
 use axum::response::Response;
 
+mod analytics;
 mod chains;
 mod clock;
 mod map;
 mod round_stats;
 mod status;
 
+pub(super) use analytics::{analytics_event, public_analytics};
 pub(super) use chains::list_chains;
 pub(super) use clock::chain_clock;
 pub(super) use map::chain_map;

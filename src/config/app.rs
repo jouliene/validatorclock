@@ -17,6 +17,8 @@ pub(crate) struct AppConfig {
     #[serde(default = "default_cache_path")]
     pub(crate) cache_path: PathBuf,
     #[serde(default)]
+    pub(crate) analytics_path: Option<PathBuf>,
+    #[serde(default)]
     pub(crate) history_path: Option<PathBuf>,
     #[serde(default)]
     pub(crate) tycho_map_nodes_path: Option<PathBuf>,
@@ -41,6 +43,13 @@ impl AppConfig {
         }
         if self.refresh_timeout_seconds == 0 {
             bail!("refresh_timeout_seconds must be greater than zero");
+        }
+        if self
+            .analytics_path
+            .as_ref()
+            .is_some_and(|path| path.as_os_str().is_empty())
+        {
+            bail!("analytics_path cannot be empty when set");
         }
         if self
             .history_path
@@ -96,6 +105,14 @@ impl AppConfig {
         self.history_path.clone().unwrap_or_else(|| {
             let mut path = self.cache_path.clone();
             path.set_file_name("validatorclock_history.json");
+            path
+        })
+    }
+
+    pub(crate) fn effective_analytics_path(&self) -> PathBuf {
+        self.analytics_path.clone().unwrap_or_else(|| {
+            let mut path = self.cache_path.clone();
+            path.set_file_name("validatorclock_analytics.json");
             path
         })
     }

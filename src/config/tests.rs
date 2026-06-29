@@ -20,6 +20,7 @@ fn test_config() -> AppConfig {
         refresh_seconds: 60,
         refresh_timeout_seconds: 90,
         cache_path: PathBuf::from("/var/lib/validatorclock/cache.json"),
+        analytics_path: None,
         history_path: None,
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),
@@ -37,6 +38,10 @@ fn derives_default_runtime_paths_from_cache_path() {
     assert_eq!(
         config.effective_history_path(),
         PathBuf::from("/var/lib/validatorclock/validatorclock_history.json")
+    );
+    assert_eq!(
+        config.effective_analytics_path(),
+        PathBuf::from("/var/lib/validatorclock/validatorclock_analytics.json")
     );
     assert_eq!(
         config.effective_validator_type_cache_path(),

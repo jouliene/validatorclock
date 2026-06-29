@@ -1,4 +1,5 @@
 mod acme;
+pub(crate) mod analytics;
 mod cache;
 mod history;
 mod map_annotations;
@@ -23,6 +24,8 @@ pub(crate) struct AppState {
     cache: RwLock<HashMap<String, CacheEntry>>,
     cache_path: PathBuf,
     cache_save_lock: Mutex<()>,
+    analytics: Mutex<analytics::AnalyticsRuntime>,
+    analytics_path: PathBuf,
     chain_status: RwLock<HashMap<String, ChainRuntimeStatus>>,
     validator_type_cache_path: PathBuf,
     validator_type_cache: RwLock<ValidatorTypeCache>,
@@ -34,9 +37,11 @@ pub(crate) struct AppState {
 impl AppState {
     pub(crate) fn new(config: Arc<AppConfig>) -> Self {
         let round_history_path = config.effective_history_path();
+        let analytics_path = config.effective_analytics_path();
         let validator_type_cache_path = config.effective_validator_type_cache_path();
         info!(
             cache_path = %config.cache_path.display(),
+            analytics_path = %analytics_path.display(),
             history_base_path = %round_history_path.display(),
             validator_type_cache_path = %validator_type_cache_path.display(),
             chains = config.chains.len(),
@@ -45,6 +50,7 @@ impl AppState {
 
         history::log_chain_history_paths(&config, &round_history_path);
         let cache = cache::load_initial_cache(&config.cache_path, &config.chains);
+        let analytics = analytics::load_initial_runtime(&analytics_path);
         let validator_type_cache = validator_types::load_initial_cache(&validator_type_cache_path);
         let round_history = history::load_initial_store(&config, &round_history_path);
 
@@ -54,6 +60,8 @@ impl AppState {
             cache: RwLock::new(cache),
             cache_path: config.cache_path.clone(),
             cache_save_lock: Mutex::new(()),
+            analytics: Mutex::new(analytics),
+            analytics_path,
             chain_status: RwLock::new(HashMap::new()),
             validator_type_cache: RwLock::new(validator_type_cache),
             validator_type_cache_path,

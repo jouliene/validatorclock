@@ -87,13 +87,40 @@ button {
   padding: 18px 0 30px;
 }
 
-.site-version {
+.site-footer {
   margin-top: 22px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  color: rgba(171, 196, 217, 0.58);
+  text-align: center;
+}
+
+.public-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 11px;
+  max-width: 980px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.public-stats strong {
+  color: rgba(231, 244, 255, 0.76);
+  font-weight: 700;
+}
+
+.public-stats-privacy {
+  color: rgba(171, 196, 217, 0.43);
+}
+
+.site-version {
   color: rgba(171, 196, 217, 0.46);
   font-size: 11px;
   line-height: 1;
   letter-spacing: 0;
-  text-align: center;
 }
 
 .titlebar {

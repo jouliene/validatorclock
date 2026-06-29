@@ -85,6 +85,7 @@ pub(super) const APP_RUNTIME_MESSAGES_JS: &str =
     include_str!("../../../public/app/runtime_messages.js");
 pub(super) const APP_RUNTIME_SETTINGS_JS: &str =
     include_str!("../../../public/app/runtime_settings.js");
+pub(super) const APP_ANALYTICS_JS: &str = include_str!("../../../public/app/analytics.js");
 pub(super) const APP_NETWORK_PORTRAITS_JS: &str =
     include_str!("../../../public/app/network_portraits.js");
 pub(super) const APP_RUNTIME_JS: &str = include_str!("../../../public/app/runtime.js");
@@ -194,6 +195,7 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_RUNTIME_CLOCK_JS,
     APP_RUNTIME_MESSAGES_JS,
     APP_RUNTIME_SETTINGS_JS,
+    APP_ANALYTICS_JS,
     APP_NETWORK_PORTRAITS_JS,
     APP_RUNTIME_JS,
     APP_ENTRY_JS,

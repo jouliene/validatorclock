@@ -1,5 +1,7 @@
 /target
 validatorclock_cache.json
+validatorclock_analytics.json
+validatorclock_analytics.json.secret
 validatorclock_history*.json
 validatorclock_validator_types.json
 /SUMMARY.md

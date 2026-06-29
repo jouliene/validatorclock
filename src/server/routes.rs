@@ -1,5 +1,8 @@
 use super::acme::{acme_challenge, redirect_to_https};
-use super::api::{chain_clock, chain_map, chain_round_stats, health, list_chains, status};
+use super::api::{
+    analytics_event, chain_clock, chain_map, chain_round_stats, health, list_chains,
+    public_analytics, status,
+};
 use super::assets::{
     app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, styles, ton_logo,
     tycho_logo,
@@ -8,8 +11,9 @@ use super::responses::not_found;
 use super::security::{add_security_headers, enforce_allowed_host, handle_options};
 use crate::state::AppState;
 use axum::Router;
+use axum::extract::DefaultBodyLimit;
 use axum::middleware;
-use axum::routing::get;
+use axum::routing::{get, post};
 use std::sync::Arc;
 use tower::ServiceBuilder;
 
@@ -35,6 +39,11 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/brands/portraits/{name}", get(portrait_image))
         .route("/api/health", get(health))
         .route("/api/status", get(status))
+        .route(
+            "/api/analytics/event",
+            post(analytics_event).layer(DefaultBodyLimit::max(1024)),
+        )
+        .route("/api/analytics/public", get(public_analytics))
         .route("/api/chains", get(list_chains))
         .route("/api/chains/{chain_id}/clock", get(chain_clock))
         .route("/api/chains/{chain_id}/map", get(chain_map))
