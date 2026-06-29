@@ -34,7 +34,11 @@ function recentRoundPanel(color, validators, snapshot) {
   const heading = document.createElement("div");
   heading.className = "recent-round-heading";
   const title = document.createElement("h2");
-  title.append(recentRoundTitleIcon(), document.createTextNode(`Seen in recent ${color} rounds`));
+  const roundParity = color === "blue" ? "even" : "odd";
+  title.append(
+    recentRoundTitleIcon(),
+    document.createTextNode(`Seen in recent ${color} (${roundParity}) rounds`)
+  );
   const count = document.createElement("span");
   count.className = "recent-round-count";
   count.textContent = validators.length === 0 ? "empty" : `${validators.length} absent now`;
