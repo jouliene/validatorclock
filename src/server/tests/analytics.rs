@@ -19,9 +19,12 @@ async fn analytics_counts_public_traffic_without_counting_heartbeats_as_pageview
     assert_eq!(json["today"]["online_now"], 1);
     assert_eq!(json["today"]["unique_visitors"], 1);
     assert_eq!(json["today"]["visits"], 1);
-    assert_eq!(json["today"]["pageviews"], 2);
     assert_eq!(json["all_time"]["visits"], 1);
-    assert_eq!(json["all_time"]["pageviews"], 2);
+    assert_eq!(json["last_30_days"]["unique_visitors"], 1);
+    assert_eq!(json["last_30_days"]["visits"], 1);
+    assert!(json["today"].get("pageviews").is_none());
+    assert!(json["last_30_days"].get("pageviews").is_none());
+    assert!(json["all_time"].get("pageviews").is_none());
     assert!(json.get("visitor_hashes").is_none());
     assert!(json["today"].get("visitor_hashes").is_none());
 }
@@ -60,7 +63,7 @@ async fn analytics_ignores_obvious_bot_user_agents() {
     let json = response_json(app_response(state, "/api/analytics/public").await).await;
     assert_eq!(json["today"]["unique_visitors"], 0);
     assert_eq!(json["today"]["visits"], 0);
-    assert_eq!(json["today"]["pageviews"], 0);
+    assert!(json["today"].get("pageviews").is_none());
 }
 
 async fn analytics_event_response(

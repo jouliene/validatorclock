@@ -73,7 +73,7 @@
   function renderPublicStats(stats) {
     const todayEl = document.getElementById("publicStatsToday");
     const allTimeEl = document.getElementById("publicStatsAllTime");
-    if (!todayEl || !allTimeEl || !stats || !stats.today || !stats.all_time) {
+    if (!todayEl || !allTimeEl || !stats || !stats.today || !stats.last_30_days || !stats.all_time) {
       return;
     }
 
@@ -81,12 +81,11 @@
       `${formatAnalyticsNumber(stats.today.online_now)} online`,
       `${formatAnalyticsNumber(stats.today.unique_visitors)} unique visitors`,
       `${formatAnalyticsNumber(stats.today.visits)} visits`,
-      `${formatAnalyticsNumber(stats.today.pageviews)} pageviews`,
     ].join(" · ")}`;
-    allTimeEl.textContent = `All time: ${[
-      `${formatAnalyticsNumber(stats.all_time.visits)} visits`,
-      `${formatAnalyticsNumber(stats.all_time.pageviews)} pageviews`,
-    ].join(" · ")}`;
+    allTimeEl.textContent = `Last 30 days: ${[
+      `${formatAnalyticsNumber(stats.last_30_days.visits)} visits`,
+      `${formatAnalyticsNumber(stats.last_30_days.unique_visitors)} unique visitors`,
+    ].join(" · ")} · All time: ${formatAnalyticsNumber(stats.all_time.visits)} visits`;
   }
 
   function formatAnalyticsNumber(value) {

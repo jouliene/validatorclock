@@ -108,11 +108,13 @@ button {
 }
 
 .public-stats strong {
+  flex-basis: 100%;
   color: rgba(231, 244, 255, 0.76);
   font-weight: 700;
 }
 
 .public-stats-privacy {
+  flex-basis: 100%;
   color: rgba(171, 196, 217, 0.43);
 }
 

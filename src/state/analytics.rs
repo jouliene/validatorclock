@@ -40,20 +40,17 @@ struct PublicAnalyticsToday {
     online_now: u64,
     unique_visitors: u64,
     visits: u64,
-    pageviews: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct PublicAnalyticsWindow {
-    unique_visitor_days: u64,
+    unique_visitors: u64,
     visits: u64,
-    pageviews: u64,
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct PublicAnalyticsAllTime {
     visits: u64,
-    pageviews: u64,
 }
 
 #[derive(Debug)]
@@ -215,13 +212,11 @@ impl AppState {
                 online_now,
                 unique_visitors: today.unique_visitors,
                 visits: today.visits,
-                pageviews: today.pageviews,
             },
             last_7_days: analytics_window(&runtime.disk, today_index, 7),
             last_30_days: analytics_window(&runtime.disk, today_index, 30),
             all_time: PublicAnalyticsAllTime {
                 visits: runtime.disk.all_time.visits,
-                pageviews: runtime.disk.all_time.pageviews,
             },
         }
     }
@@ -424,18 +419,14 @@ fn prune_visitor_hashes(disk: &mut AnalyticsDisk, today_index: i64) {
 fn analytics_window(disk: &AnalyticsDisk, today_index: i64, days: i64) -> PublicAnalyticsWindow {
     let first_day = today_index.saturating_sub(days.saturating_sub(1));
     let mut window = PublicAnalyticsWindow {
-        unique_visitor_days: 0,
+        unique_visitors: 0,
         visits: 0,
-        pageviews: 0,
     };
 
     for (day, stats) in &disk.days {
         if parse_day_index(day).is_some_and(|day_index| day_index >= first_day) {
-            window.unique_visitor_days = window
-                .unique_visitor_days
-                .saturating_add(stats.unique_visitors);
+            window.unique_visitors = window.unique_visitors.saturating_add(stats.unique_visitors);
             window.visits = window.visits.saturating_add(stats.visits);
-            window.pageviews = window.pageviews.saturating_add(stats.pageviews);
         }
     }
 
