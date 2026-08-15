@@ -190,6 +190,23 @@ fn degraded_refresh_does_not_reuse_cache_for_new_active_round() {
     assert!(degraded_refresh_reason(&refreshed, &cached).is_none());
 }
 
+#[test]
+fn degraded_refresh_keeps_cache_when_active_round_moves_backwards() {
+    let mut cached = crate::chain::test_clock_snapshot("everscale");
+    cached.current_set.round_id = 27_263;
+    cached.current_set.utime_since = 27_263 * 65_536;
+    cached.current_set.utime_until = 27_264 * 65_536;
+
+    let mut refreshed = cached.clone();
+    refreshed.current_set.round_id = 27_140;
+    refreshed.current_set.utime_since = 27_140 * 65_536;
+    refreshed.current_set.utime_until = 27_141 * 65_536;
+
+    let reason = degraded_refresh_reason(&refreshed, &cached).expect("stale round is degraded");
+
+    assert!(reason.contains("moved backwards"), "unexpected: {reason}");
+}
+
 fn strip_active_round_data(snapshot: &mut ClockSnapshot) {
     snapshot.current_set.total_stake = None;
     snapshot.current_set.total_reward = None;

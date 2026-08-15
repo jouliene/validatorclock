@@ -1,4 +1,4 @@
-use super::rpc_retry::{RpcCallError, retry_rate_limited_call};
+use super::rpc_retry::{RpcCallError, retry_transient_call};
 use super::util::endpoint_label;
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{Client, StatusCode, Url};
@@ -47,7 +47,7 @@ impl GraphqlClient {
     where
         R: DeserializeOwned,
     {
-        retry_rate_limited_call("GraphQL request did not run", || {
+        retry_transient_call("GraphQL request did not run", || {
             self.query_once(name, query, &variables)
         })
         .await
@@ -72,15 +72,17 @@ impl GraphqlClient {
             builder = builder.header("Authorization", format!("Bearer {api_key}"));
         }
 
+        // Queries are read-only, so a connection that never produced a response
+        // is retried instead of failing the whole refresh on one bad second.
         let response = builder.send().await.map_err(|error| {
-            RpcCallError::Other(anyhow!(
+            RpcCallError::Transient(anyhow!(
                 "failed to send GraphQL `{name}` request to {}: {error}",
                 self.label
             ))
         })?;
         let status = response.status();
         let body = response.text().await.map_err(|error| {
-            RpcCallError::Other(anyhow!(
+            RpcCallError::Transient(anyhow!(
                 "failed to read GraphQL `{name}` response from {}: {error}",
                 self.label
             ))
@@ -93,7 +95,7 @@ impl GraphqlClient {
                 truncate_body(&body)
             );
             return if is_retryable_status(status) {
-                Err(RpcCallError::RateLimited(error))
+                Err(RpcCallError::Transient(error))
             } else {
                 Err(RpcCallError::Other(error))
             };
@@ -109,7 +111,7 @@ impl GraphqlClient {
         if let Some(message) = graphql_errors_message(&value) {
             let error = anyhow!("GraphQL error for `{name}` at {}: {message}", self.label);
             return if is_rate_limit_message(&message) {
-                Err(RpcCallError::RateLimited(error))
+                Err(RpcCallError::Transient(error))
             } else {
                 Err(RpcCallError::Other(error))
             };

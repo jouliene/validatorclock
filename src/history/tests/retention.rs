@@ -23,7 +23,42 @@ fn retention_prunes_rounds_outside_visible_windows() {
         .keys()
         .copied()
         .collect::<Vec<_>>();
-    assert_eq!(rounds, vec![12, 14, 16, 18, 20]);
+    // Round 21 sits above the window, so it is kept as history the retention
+    // anchor cannot have seen yet; only older rounds are dropped.
+    assert_eq!(rounds, vec![12, 14, 16, 18, 20, 21]);
+}
+
+#[test]
+fn snapshot_lagging_behind_recorded_history_keeps_it() {
+    let mut store = RoundHistoryStore::default();
+    record_rounds(
+        &mut store,
+        "test",
+        &[
+            27255, 27256, 27257, 27258, 27259, 27260, 27261, 27262, 27263,
+        ],
+    );
+
+    // A stale endpoint replied with a validator set from months ago.
+    let mut snapshot = crate::chain::test_clock_snapshot("test");
+    snapshot.current_set = set(27140, RoundColor::Blue, vec!["alice"]);
+    snapshot.previous_set = None;
+    snapshot.next_set = None;
+
+    let retention = RoundHistoryStore::retention_for_snapshot("test", &snapshot);
+    store.prune_to_retention(&retention);
+
+    let rounds = store.chains["test"]
+        .rounds
+        .keys()
+        .copied()
+        .collect::<Vec<_>>();
+    assert_eq!(
+        rounds,
+        vec![
+            27255, 27256, 27257, 27258, 27259, 27260, 27261, 27262, 27263
+        ]
+    );
 }
 
 #[test]

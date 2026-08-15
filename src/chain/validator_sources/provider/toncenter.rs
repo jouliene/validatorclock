@@ -1,4 +1,4 @@
-use crate::chain::rpc_retry::{RpcCallError, retry_rate_limited_call};
+use crate::chain::rpc_retry::{RpcCallError, retry_transient_call};
 use crate::chain::toncenter_client::TonCenterJsonRpcClient;
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{StatusCode, Url};
@@ -97,7 +97,7 @@ impl TonCenterValidatorSourceProvider {
         &self,
         account_addresses: &[String],
     ) -> Result<Vec<TonCenterAccountState>> {
-        retry_rate_limited_call("TON Center account states request did not run", || {
+        retry_transient_call("TON Center account states request did not run", || {
             self.fetch_account_states_once(account_addresses)
         })
         .await
@@ -126,13 +126,13 @@ impl TonCenterValidatorSourceProvider {
         }
 
         let response = builder.send().await.map_err(|error| {
-            RpcCallError::Other(anyhow!(
+            RpcCallError::Transient(anyhow!(
                 "failed to send TON Center account states request: {error}"
             ))
         })?;
         let status = response.status();
         let value = response.json::<Value>().await.map_err(|error| {
-            RpcCallError::Other(anyhow!(
+            RpcCallError::Transient(anyhow!(
                 "failed to parse TON Center account states response: {error}"
             ))
         })?;
@@ -140,7 +140,7 @@ impl TonCenterValidatorSourceProvider {
         if !status.is_success() {
             let error = anyhow!("TON Center account states HTTP error {status}: {value}");
             return if status == StatusCode::TOO_MANY_REQUESTS {
-                Err(RpcCallError::RateLimited(error))
+                Err(RpcCallError::Transient(error))
             } else {
                 Err(RpcCallError::Other(error))
             };

@@ -1,4 +1,4 @@
-use super::rpc_retry::{RpcCallError, retry_rate_limited_call};
+use super::rpc_retry::{RpcCallError, retry_transient_call};
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{Client, StatusCode, Url};
 use serde::de::DeserializeOwned;
@@ -43,7 +43,7 @@ impl TonCenterJsonRpcClient {
     where
         R: DeserializeOwned,
     {
-        retry_rate_limited_call("TON Center request did not run", || {
+        retry_transient_call("TON Center request did not run", || {
             self.call_once(method, &params)
         })
         .await
@@ -65,13 +65,13 @@ impl TonCenterJsonRpcClient {
         }
 
         let response = builder.send().await.map_err(|error| {
-            RpcCallError::Other(anyhow!(
+            RpcCallError::Transient(anyhow!(
                 "failed to send TON Center `{method}` request: {error}"
             ))
         })?;
         let status = response.status();
         let value = response.json::<Value>().await.map_err(|error| {
-            RpcCallError::Other(anyhow!(
+            RpcCallError::Transient(anyhow!(
                 "failed to parse TON Center `{method}` response: {error}"
             ))
         })?;
@@ -79,7 +79,7 @@ impl TonCenterJsonRpcClient {
         if !status.is_success() {
             let error = anyhow!("TON Center HTTP error {status} for `{method}`: {value}");
             return if status == StatusCode::TOO_MANY_REQUESTS {
-                Err(RpcCallError::RateLimited(error))
+                Err(RpcCallError::Transient(error))
             } else {
                 Err(RpcCallError::Other(error))
             };
@@ -95,7 +95,7 @@ impl TonCenterJsonRpcClient {
                 .unwrap_or_else(|| "unknown error".to_owned());
             let error = anyhow!("TON Center error for `{method}`: code={code:?} {detail}");
             return if code == Some(429) {
-                Err(RpcCallError::RateLimited(error))
+                Err(RpcCallError::Transient(error))
             } else {
                 Err(RpcCallError::Other(error))
             };

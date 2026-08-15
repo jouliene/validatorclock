@@ -68,8 +68,13 @@ impl RoundHistoryStore {
 impl ChainRoundHistory {
     fn prune_to_rounds(&mut self, keep_rounds: &BTreeSet<u32>) -> bool {
         let before = self.rounds.len();
-        self.rounds
-            .retain(|round_id, round| keep_rounds.contains(round_id) && round.complete);
+        // Rounds above the window are newer than the snapshot the retention was
+        // built from, so a snapshot that lags behind the recorded history drops
+        // only its own tail instead of erasing everything recorded since.
+        let newest_kept = keep_rounds.last().copied().unwrap_or(u32::MAX);
+        self.rounds.retain(|round_id, round| {
+            (keep_rounds.contains(round_id) || *round_id > newest_kept) && round.complete
+        });
         self.rounds.len() != before
     }
 }

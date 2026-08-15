@@ -7,11 +7,11 @@ const RPC_RETRY_DELAY: Duration = Duration::from_millis(1_500);
 
 #[derive(Debug)]
 pub(super) enum RpcCallError {
-    RateLimited(anyhow::Error),
+    Transient(anyhow::Error),
     Other(anyhow::Error),
 }
 
-pub(super) async fn retry_rate_limited_call<T, F, Fut>(
+pub(super) async fn retry_transient_call<T, F, Fut>(
     empty_error: &'static str,
     mut call_once: F,
 ) -> Result<T>
@@ -23,11 +23,11 @@ where
     for attempt in 1..=RPC_MAX_ATTEMPTS {
         match call_once().await {
             Ok(result) => return Ok(result),
-            Err(RpcCallError::RateLimited(error)) if attempt < RPC_MAX_ATTEMPTS => {
+            Err(RpcCallError::Transient(error)) if attempt < RPC_MAX_ATTEMPTS => {
                 last_error = Some(error);
                 sleep(RPC_RETRY_DELAY).await;
             }
-            Err(RpcCallError::RateLimited(error) | RpcCallError::Other(error)) => {
+            Err(RpcCallError::Transient(error) | RpcCallError::Other(error)) => {
                 return Err(error);
             }
         }
@@ -45,7 +45,7 @@ mod tests {
     async fn returns_first_success() {
         let calls = Cell::new(0);
 
-        let result: Result<u8> = retry_rate_limited_call("did not run", || {
+        let result: Result<u8> = retry_transient_call("did not run", || {
             calls.set(calls.get() + 1);
             async { Ok(7) }
         })
@@ -56,10 +56,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stops_on_non_rate_limited_error() {
+    async fn stops_on_non_transient_error() {
         let calls = Cell::new(0);
 
-        let result: Result<u8> = retry_rate_limited_call("did not run", || {
+        let result: Result<u8> = retry_transient_call("did not run", || {
             calls.set(calls.get() + 1);
             async { Err(RpcCallError::Other(anyhow!("fatal"))) }
         })

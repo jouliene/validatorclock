@@ -156,14 +156,20 @@ default_chains = [
         "name": "Everscale",
         "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
         "rpc_fallbacks": [
-            "https://jrpc.everwallet.net",
+            "https://mainnet.evercloud.dev/graphql",
         ],
         "retired_rpc": [
             "https://jrpc.everwallet.net",
         ],
+        "retired_fallbacks": [
+            "https://jrpc.everwallet.net",
+        ],
+        "retired_rpc_labels": [
+            "mainnet.evercloud.dev + jrpc.everwallet.net",
+        ],
         "color": "#6347F5",
         "token_symbol": "EVER",
-        "rpc_label": "mainnet.evercloud.dev + jrpc.everwallet.net",
+        "rpc_label": "mainnet.evercloud.dev",
     },
     {
         "id": "tycho-testnet",
@@ -217,28 +223,35 @@ for default in default_chains:
             chain[key] = default[key]
             updated.append(f"{default['id']}.{key}")
 
-    # Endpoints that went away are replaced by the current default, and the old
-    # one stays as a fallback in case it comes back.
+    # Endpoints that went away are replaced by the current default.
     if chain.get("rpc") in retired_rpc:
         chain["rpc"] = default["rpc"]
         chain["rpc_label"] = default["rpc_label"]
         updated.append(f"{default['id']}.rpc")
 
-    if not chain.get("rpc_label"):
+    if not chain.get("rpc_label") or chain.get("rpc_label") in (
+        default.get("retired_rpc_labels") or []
+    ):
         chain["rpc_label"] = default["rpc_label"]
         updated.append(f"{default['id']}.rpc_label")
 
     default_fallbacks = default.get("rpc_fallbacks") or []
-    if default_fallbacks:
-        fallbacks = chain.get("rpc_fallbacks")
-        if not isinstance(fallbacks, list):
+    retired_fallbacks = default.get("retired_fallbacks") or []
+    fallbacks = chain.get("rpc_fallbacks")
+    if not isinstance(fallbacks, list):
+        if default_fallbacks:
             chain["rpc_fallbacks"] = list(default_fallbacks)
             updated.append(f"{default['id']}.rpc_fallbacks")
-        else:
-            for fallback in default_fallbacks:
-                if fallback not in fallbacks:
-                    fallbacks.append(fallback)
-                    updated.append(f"{default['id']}.rpc_fallbacks")
+    else:
+        # A dead fallback only adds latency to every failed refresh, so retiring
+        # it removes it from deployed configs instead of merging alongside.
+        kept = [fallback for fallback in fallbacks if fallback not in retired_fallbacks]
+        for fallback in default_fallbacks:
+            if fallback not in kept:
+                kept.append(fallback)
+        if kept != fallbacks:
+            chain["rpc_fallbacks"] = kept
+            updated.append(f"{default['id']}.rpc_fallbacks")
 
 if not added and not updated:
     print(f"Existing config already has built-in chains: {config_path}")
@@ -380,11 +393,11 @@ write_config_if_missing() {
       "name": "Everscale",
       "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
       "rpc_fallbacks": [
-        "https://jrpc.everwallet.net"
+        "https://mainnet.evercloud.dev/graphql"
       ],
       "color": "#6347F5",
       "token_symbol": "EVER",
-      "rpc_label": "mainnet.evercloud.dev + jrpc.everwallet.net"
+      "rpc_label": "mainnet.evercloud.dev"
     },
     {
       "id": "tycho-testnet",

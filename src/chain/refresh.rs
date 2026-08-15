@@ -122,6 +122,16 @@ fn degraded_refresh_cache_warning(fetched_at: u64, reason: &str) -> String {
 }
 
 fn degraded_refresh_reason(refreshed: &ClockSnapshot, cached: &ClockSnapshot) -> Option<String> {
+    // A chain never returns to an older validator set, so an active round that
+    // moved backwards means the endpoint served a stale state. Caching it would
+    // also prune round history to a retention window around the wrong round.
+    if refreshed.current_set.utime_since < cached.current_set.utime_since {
+        return Some(format!(
+            "active round moved backwards to {} (cached round is {})",
+            refreshed.current_set.round_id, cached.current_set.round_id
+        ));
+    }
+
     if refreshed.current_set.round_id != cached.current_set.round_id
         || refreshed.current_set.utime_since != cached.current_set.utime_since
     {

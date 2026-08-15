@@ -19,7 +19,7 @@ use snapshot::previous_validator_set;
 use std::env;
 use tracing::debug;
 
-const TON_STALE_GRACE_SECONDS: u64 = 300;
+const STALE_SNAPSHOT_GRACE_SECONDS: u64 = 300;
 pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSnapshot> {
     match fetch_chain_snapshot_from_endpoint(chain, &chain.rpc, None).await {
         Ok(mut snapshot) => {
@@ -276,26 +276,25 @@ fn validator_set_contains_time(set: &ValidatorSet, observed_at: u64) -> bool {
 }
 
 fn snapshot_stale_reason(chain: &ChainConfig, snapshot: &ClockSnapshot) -> Option<String> {
-    if chain.id != "ton" {
-        return None;
-    }
-
     let observed_at = snapshot.fetched_at;
     let current_until = u64::from(snapshot.current_set.utime_until);
-    if observed_at > current_until.saturating_add(TON_STALE_GRACE_SECONDS) {
+    // Every chain can serve a stale account state after an endpoint hiccup, and
+    // an expired active set is the cheapest proof of it, so this check is not
+    // limited to TON.
+    if observed_at > current_until.saturating_add(STALE_SNAPSHOT_GRACE_SECONDS) {
         return Some(format!(
             "current validator set expired at {}",
             snapshot.current_set.utime_until
         ));
     }
 
-    if snapshot.next_set.is_some() {
+    if chain.id != "ton" || snapshot.next_set.is_some() {
         return None;
     }
 
     let election_deadline =
         current_until.saturating_sub(u64::from(snapshot.params15.elections_end_before));
-    if observed_at > election_deadline.saturating_add(TON_STALE_GRACE_SECONDS) {
+    if observed_at > election_deadline.saturating_add(STALE_SNAPSHOT_GRACE_SECONDS) {
         return Some(format!(
             "next validator set missing after election deadline {election_deadline}"
         ));
@@ -386,7 +385,7 @@ mod tests {
         let mut snapshot = test_clock_snapshot("ton");
         snapshot.current_set.utime_until = 10_000;
         snapshot.params15.elections_end_before = 1_000;
-        snapshot.fetched_at = 9_000 + TON_STALE_GRACE_SECONDS + 1;
+        snapshot.fetched_at = 9_000 + STALE_SNAPSHOT_GRACE_SECONDS + 1;
 
         let reason = snapshot_stale_reason(&chain, &snapshot).unwrap();
 
@@ -399,10 +398,22 @@ mod tests {
         let mut snapshot = test_clock_snapshot("ton");
         snapshot.current_set.utime_until = 10_000;
         snapshot.params15.elections_end_before = 1_000;
-        snapshot.fetched_at = 9_000 + TON_STALE_GRACE_SECONDS + 1;
+        snapshot.fetched_at = 9_000 + STALE_SNAPSHOT_GRACE_SECONDS + 1;
         snapshot.next_set = Some(snapshot.current_set.clone());
 
         assert!(snapshot_stale_reason(&chain, &snapshot).is_none());
+    }
+
+    #[test]
+    fn expired_active_set_is_stale_on_any_chain() {
+        let chain = chain_config("everscale");
+        let mut snapshot = test_clock_snapshot("everscale");
+        snapshot.current_set.utime_until = 10_000;
+        snapshot.fetched_at = 10_000 + STALE_SNAPSHOT_GRACE_SECONDS + 1;
+
+        let reason = snapshot_stale_reason(&chain, &snapshot).unwrap();
+
+        assert!(reason.contains("current validator set expired"));
     }
 
     #[test]
@@ -411,7 +422,7 @@ mod tests {
         let mut snapshot = test_clock_snapshot("everscale");
         snapshot.current_set.utime_until = 10_000;
         snapshot.params15.elections_end_before = 1_000;
-        snapshot.fetched_at = 9_000 + TON_STALE_GRACE_SECONDS + 1;
+        snapshot.fetched_at = 9_000 + STALE_SNAPSHOT_GRACE_SECONDS + 1;
 
         assert!(snapshot_stale_reason(&chain, &snapshot).is_none());
     }
