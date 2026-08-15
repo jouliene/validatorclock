@@ -14,7 +14,9 @@ pub(crate) fn chains_response(config: &AppConfig) -> ChainsResponse {
 pub(crate) async fn runtime_status(state: &AppState) -> Result<RuntimeStatusResponse> {
     let now = super::util::now_sec()?;
     let refresh_seconds = state.config.refresh_seconds.max(10);
-    let runtime_snapshots = state.chain_runtime_snapshots(now, refresh_seconds).await;
+    let runtime_snapshots = state
+        .chain_runtime_snapshots(now, super::util::fresh_cache_seconds(refresh_seconds))
+        .await;
     let mut any_missing = false;
     let mut any_stale_error = false;
 

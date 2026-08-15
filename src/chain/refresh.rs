@@ -1,4 +1,4 @@
-use super::util::now_sec;
+use super::util::{fresh_cache_seconds, now_sec};
 use super::validator_sources::{
     apply_cached_validator_contract_type_hashes, update_validator_contract_type_hashes,
 };
@@ -25,11 +25,11 @@ async fn get_chain_snapshot(
     force_refresh: bool,
 ) -> Result<ClockSnapshot> {
     let now = now_sec()?;
-    let refresh_seconds = state.config.refresh_seconds.max(10);
+    let fresh_seconds = fresh_cache_seconds(state.config.refresh_seconds);
 
     if !force_refresh
         && let Some(snapshot) = state
-            .cached_snapshot_if_fresh(chain_id, now, refresh_seconds)
+            .cached_snapshot_if_fresh(chain_id, now, fresh_seconds)
             .await
     {
         return Ok(snapshot);
@@ -220,11 +220,11 @@ pub(crate) async fn get_chain_snapshot_cached_first(
     force_refresh: bool,
 ) -> Result<ClockSnapshot> {
     let now = now_sec()?;
-    let refresh_seconds = state.config.refresh_seconds.max(10);
+    let fresh_seconds = fresh_cache_seconds(state.config.refresh_seconds);
 
     if !force_refresh {
         if let Some(snapshot) = state
-            .cached_snapshot_if_fresh(chain_id, now, refresh_seconds)
+            .cached_snapshot_if_fresh(chain_id, now, fresh_seconds)
             .await
         {
             return Ok(snapshot);

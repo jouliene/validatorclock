@@ -53,6 +53,15 @@ fn is_secret_path_segment(segment: &str) -> bool {
     segment.len() >= MIN_SECRET_SEGMENT_LEN && segment.chars().all(|ch| ch.is_ascii_alphanumeric())
 }
 
+// The background loop starts a refresh every `refresh_seconds` and the refresh
+// itself takes a few seconds, so a cached snapshot is always a little older
+// than one cycle just before the next one lands. Snapshots stay fresh across
+// that gap, and readers are only warned once a refresh is genuinely behind.
+pub(super) fn fresh_cache_seconds(refresh_seconds: u64) -> u64 {
+    let refresh_seconds = refresh_seconds.max(10);
+    refresh_seconds.saturating_add((refresh_seconds / 2).clamp(5, 30))
+}
+
 pub(super) fn now_sec() -> Result<u64> {
     Ok(SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -63,6 +72,14 @@ pub(super) fn now_sec() -> Result<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cache_stays_fresh_across_one_refresh_cycle() {
+        assert_eq!(fresh_cache_seconds(60), 90);
+        assert_eq!(fresh_cache_seconds(10), 15);
+        assert_eq!(fresh_cache_seconds(0), 15);
+        assert_eq!(fresh_cache_seconds(600), 630);
+    }
 
     #[test]
     fn keeps_plain_endpoint_labels() {
