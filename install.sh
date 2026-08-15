@@ -154,10 +154,16 @@ default_chains = [
     {
         "id": "everscale",
         "name": "Everscale",
-        "rpc": "https://jrpc.everwallet.net",
+        "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
+        "rpc_fallbacks": [
+            "https://jrpc.everwallet.net",
+        ],
+        "retired_rpc": [
+            "https://jrpc.everwallet.net",
+        ],
         "color": "#6347F5",
         "token_symbol": "EVER",
-        "rpc_label": "jrpc.everwallet.net",
+        "rpc_label": "mainnet.evercloud.dev + jrpc.everwallet.net",
     },
     {
         "id": "tycho-testnet",
@@ -196,9 +202,13 @@ added = []
 updated = []
 
 for default in default_chains:
+    retired_rpc = default.get("retired_rpc") or []
     chain = by_id.get(default["id"])
     if chain is None:
-        chains.append(default.copy())
+        new_chain = {
+            key: value for key, value in default.items() if key != "retired_rpc"
+        }
+        chains.append(new_chain)
         added.append(default["id"])
         continue
 
@@ -206,6 +216,13 @@ for default in default_chains:
         if chain.get(key) != default[key]:
             chain[key] = default[key]
             updated.append(f"{default['id']}.{key}")
+
+    # Endpoints that went away are replaced by the current default, and the old
+    # one stays as a fallback in case it comes back.
+    if chain.get("rpc") in retired_rpc:
+        chain["rpc"] = default["rpc"]
+        chain["rpc_label"] = default["rpc_label"]
+        updated.append(f"{default['id']}.rpc")
 
     if not chain.get("rpc_label"):
         chain["rpc_label"] = default["rpc_label"]
@@ -361,10 +378,13 @@ write_config_if_missing() {
     {
       "id": "everscale",
       "name": "Everscale",
-      "rpc": "https://jrpc.everwallet.net",
+      "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
+      "rpc_fallbacks": [
+        "https://jrpc.everwallet.net"
+      ],
       "color": "#6347F5",
       "token_symbol": "EVER",
-      "rpc_label": "jrpc.everwallet.net"
+      "rpc_label": "mainnet.evercloud.dev + jrpc.everwallet.net"
     },
     {
       "id": "tycho-testnet",

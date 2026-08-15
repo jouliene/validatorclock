@@ -26,6 +26,7 @@ use crate::state::AppState;
 use anyhow::Result;
 
 pub(super) const VALIDATOR_TYPE_FETCH_CONCURRENCY: usize = 8;
+const VALIDATOR_SOURCE_CACHE_CHUNK: usize = VALIDATOR_TYPE_FETCH_CONCURRENCY * 3;
 const SOURCE_RESOLVERS: &[ValidatorSourceKind] = &[
     ValidatorSourceKind::Proxy,
     ValidatorSourceKind::SingleNominator,
@@ -79,10 +80,12 @@ pub(super) async fn update_validator_contract_type_hashes(
                 .await
         };
 
-        if !missing_source_wallets.is_empty() {
+        // Source discovery scans wallet history and can outlive the enrichment
+        // timeout, so every chunk is cached as soon as it resolves and the next
+        // refresh continues where this one stopped.
+        for chunk in missing_source_wallets.chunks(VALIDATOR_SOURCE_CACHE_CHUNK) {
             let fetched_sources =
-                fetch_validator_sources(*resolver, &chain.id, &provider, missing_source_wallets)
-                    .await?;
+                fetch_validator_sources(*resolver, &chain.id, &provider, chunk.to_vec()).await?;
             cache_changed |=
                 cache_validator_sources(state, &chain.id, snapshot, fetched_sources).await;
         }

@@ -420,3 +420,217 @@ fn test_state_dir() -> Result<PathBuf> {
     std::fs::create_dir_all(&path)?;
     Ok(path)
 }
+
+#[tokio::test]
+async fn graphql_primary_fetches_snapshot() -> Result<()> {
+    let mock = Arc::new(MockGraphql::new()?);
+    let endpoint = spawn_mock_graphql(Arc::clone(&mock)).await?;
+    let state_dir = test_state_dir()?;
+    let config = Arc::new(graphql_test_config(
+        &state_dir,
+        endpoint.clone(),
+        vec!["http://127.0.0.1:9/jrpc-disabled".to_owned()],
+    ));
+    let state = Arc::new(AppState::new(config));
+
+    let snapshot = get_chain_snapshot_cached_first(Arc::clone(&state), "everscale", true).await?;
+
+    assert!(snapshot.warning.is_none());
+    assert_eq!(
+        snapshot.selected_endpoint.as_deref(),
+        Some(endpoint.as_str())
+    );
+    assert_eq!(snapshot.seqno, MockGraphql::SEQ_NO);
+    assert_eq!(snapshot.global_id, MockGraphql::GLOBAL_ID);
+    assert_eq!(snapshot.params15.validators_elected_for, u32::MAX);
+    assert_eq!(snapshot.current_set.total, 1);
+    assert_eq!(
+        snapshot.current_set.validators[0].public_key,
+        "11".repeat(32)
+    );
+    assert!(snapshot.election.candidates.is_empty());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn jrpc_failure_uses_graphql_fallback() -> Result<()> {
+    let mock = Arc::new(MockGraphql::new()?);
+    let endpoint = spawn_mock_graphql(Arc::clone(&mock)).await?;
+    let state_dir = test_state_dir()?;
+    let config = Arc::new(graphql_test_config(
+        &state_dir,
+        "http://127.0.0.1:9/jrpc-disabled".to_owned(),
+        vec![endpoint.clone()],
+    ));
+    let state = Arc::new(AppState::new(config));
+
+    let snapshot = get_chain_snapshot_cached_first(Arc::clone(&state), "everscale", true).await?;
+
+    assert!(
+        snapshot
+            .warning
+            .as_deref()
+            .is_some_and(|warning| warning.contains("using fallback RPC"))
+    );
+    assert_eq!(
+        snapshot.selected_endpoint.as_deref(),
+        Some(endpoint.as_str())
+    );
+    assert_eq!(snapshot.current_set.total, 1);
+
+    Ok(())
+}
+
+fn graphql_test_config(
+    state_dir: &std::path::Path,
+    rpc: String,
+    rpc_fallbacks: Vec<String>,
+) -> AppConfig {
+    AppConfig {
+        listen: "127.0.0.1:0".to_owned(),
+        refresh_seconds: 60,
+        refresh_timeout_seconds: 15,
+        cache_path: state_dir.join("cache.json"),
+        analytics_path: Some(state_dir.join("analytics.json")),
+        history_path: Some(state_dir.join("history.json")),
+        tycho_map_nodes_path: None,
+        map_nodes_paths: HashMap::new(),
+        node_locations: Default::default(),
+        security: SecurityConfig::default(),
+        tls: TlsConfig::default(),
+        chains: vec![ChainConfig {
+            id: "everscale".to_owned(),
+            name: "Everscale".to_owned(),
+            rpc,
+            rpc_fallbacks,
+            color: "#6347F5".to_owned(),
+            token_symbol: "EVER".to_owned(),
+            rpc_label: None,
+        }],
+    }
+}
+
+struct MockGraphql {
+    config_hash: String,
+    elector_hash: String,
+    config_data_boc: String,
+    elector_data_boc: String,
+}
+
+impl MockGraphql {
+    const SEQ_NO: u32 = 61_203_692;
+    const GLOBAL_ID: i32 = 42;
+
+    fn new() -> Result<Self> {
+        let mut config = tycho_types::models::BlockchainConfig::new_empty(HashBytes([0x55; 32]));
+        config.params.set_raw(
+            15,
+            CellBuilder::build_from(ElectionTimings {
+                validators_elected_for: u32::MAX,
+                elections_start_before: 120,
+                elections_end_before: 60,
+                stake_held_for: 120,
+            })?,
+        )?;
+        config.params.set_raw(
+            34,
+            CellBuilder::build_from(ValidatorSet {
+                utime_since: 1,
+                utime_until: u32::MAX,
+                main: NonZeroU16::new(1).unwrap(),
+                total_weight: 100,
+                list: vec![ValidatorDescription {
+                    public_key: HashBytes([0x11; 32]),
+                    weight: 100,
+                    adnl_addr: Some(HashBytes([0x22; 32])),
+                    mc_seqno_since: 0,
+                    prev_total_weight: 0,
+                }],
+            })?,
+        )?;
+        let params_root = config
+            .params
+            .as_dict()
+            .clone()
+            .into_root()
+            .ok_or_else(|| anyhow!("config params dictionary is empty"))?;
+
+        Ok(Self {
+            config_hash: "55".repeat(32),
+            elector_hash: "33".repeat(32),
+            config_data_boc: Boc::encode_base64(config_account_data(params_root)?),
+            elector_data_boc: Boc::encode_base64(empty_elector_data()?),
+        })
+    }
+}
+
+// The config contract keeps the config params dictionary in the first
+// reference of its data cell; the rest of the cell is not read here.
+fn config_account_data(params_root: tycho_types::cell::Cell) -> Result<tycho_types::cell::Cell> {
+    let mut builder = CellBuilder::new();
+    builder.store_reference(params_root)?;
+    builder.store_u32(1)?;
+    Ok(builder.build()?)
+}
+
+// Elector data with no current election and no past elections, encoded the way
+// the elector contract stores it (ABI 2.1).
+fn empty_elector_data() -> Result<tycho_types::cell::Cell> {
+    let mut builder = CellBuilder::new();
+    builder.store_bit_zero()?;
+    builder.store_bit_zero()?;
+    builder.store_bit_zero()?;
+    builder.store_small_uint(0, 4)?;
+    builder.store_u32(0)?;
+    builder.store_u256(&HashBytes::ZERO)?;
+    Ok(builder.build()?)
+}
+
+async fn spawn_mock_graphql(mock: Arc<MockGraphql>) -> Result<String> {
+    let app = Router::new()
+        .route("/graphql", post(mock_graphql))
+        .with_state(mock);
+    let listener = TcpListener::bind("127.0.0.1:0").await?;
+    let addr = listener.local_addr()?;
+    tokio::spawn(async move {
+        let _ = axum::serve(listener, app).await;
+    });
+    Ok(format!("http://{addr}/graphql"))
+}
+
+async fn mock_graphql(
+    State(mock): State<Arc<MockGraphql>>,
+    Json(request): Json<Value>,
+) -> Json<Value> {
+    let query = request.get("query").and_then(Value::as_str).unwrap_or("");
+    let data = if query.contains("blocks(") {
+        json!({
+            "last": [{ "seq_no": MockGraphql::SEQ_NO, "global_id": MockGraphql::GLOBAL_ID }],
+            "key": [{
+                "master": {
+                    "config": { "p0": mock.config_hash, "p1": mock.elector_hash }
+                }
+            }]
+        })
+    } else if query.contains("accounts(") {
+        json!({
+            "accounts": [
+                {
+                    "id": format!("-1:{}", mock.config_hash),
+                    "acc_type": 1,
+                    "data": mock.config_data_boc,
+                },
+                {
+                    "id": format!("-1:{}", mock.elector_hash),
+                    "acc_type": 1,
+                    "data": mock.elector_data_boc,
+                }
+            ]
+        })
+    } else {
+        json!({ "transactions": [] })
+    };
+
+    Json(json!({ "data": data }))
+}

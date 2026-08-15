@@ -46,6 +46,13 @@ pub(super) async fn fetch_frozen_validator_round_data(
     Ok(frozen_validator_round_data_from_full_elector_data(&data))
 }
 
+pub(super) fn validator_round_data_from_elector_data(
+    data: &Cell,
+) -> Result<HashMap<u32, ValidatorRoundData>> {
+    let data = parse_full_elector_data(data)?;
+    Ok(frozen_validator_round_data_from_full_elector_data(&data))
+}
+
 fn frozen_validator_round_data_from_full_elector_data(
     data: &FullElectorData,
 ) -> HashMap<u32, ValidatorRoundData> {

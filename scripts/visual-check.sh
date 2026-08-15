@@ -313,10 +313,13 @@ cat > "${TMP_DIR}/visual-check.json" <<JSON
     {
       "id": "everscale",
       "name": "Everscale",
-      "rpc": "https://jrpc.everwallet.net",
+      "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
+      "rpc_fallbacks": [
+        "https://jrpc.everwallet.net"
+      ],
       "color": "#6347F5",
       "token_symbol": "EVER",
-      "rpc_label": "jrpc.everwallet.net"
+      "rpc_label": "mainnet.evercloud.dev + jrpc.everwallet.net"
     },
     {
       "id": "tycho-testnet",

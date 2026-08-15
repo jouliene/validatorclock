@@ -1,13 +1,10 @@
+use super::rpc_retry::{RpcCallError, retry_rate_limited_call};
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{Client, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::env;
-use std::future::Future;
-use tokio::time::{Duration, sleep};
-
-const TONCENTER_MAX_ATTEMPTS: usize = 3;
-const TONCENTER_RETRY_DELAY: Duration = Duration::from_millis(1_500);
+use tokio::time::Duration;
 
 #[derive(Debug, Clone)]
 pub(super) struct TonCenterJsonRpcClient {
@@ -46,13 +43,13 @@ impl TonCenterJsonRpcClient {
     where
         R: DeserializeOwned,
     {
-        retry_toncenter_call("TON Center request did not run", || {
+        retry_rate_limited_call("TON Center request did not run", || {
             self.call_once(method, &params)
         })
         .await
     }
 
-    async fn call_once<R>(&self, method: &str, params: &Value) -> Result<R, TonCenterCallError>
+    async fn call_once<R>(&self, method: &str, params: &Value) -> Result<R, RpcCallError>
     where
         R: DeserializeOwned,
     {
@@ -68,13 +65,13 @@ impl TonCenterJsonRpcClient {
         }
 
         let response = builder.send().await.map_err(|error| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "failed to send TON Center `{method}` request: {error}"
             ))
         })?;
         let status = response.status();
         let value = response.json::<Value>().await.map_err(|error| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "failed to parse TON Center `{method}` response: {error}"
             ))
         })?;
@@ -82,9 +79,9 @@ impl TonCenterJsonRpcClient {
         if !status.is_success() {
             let error = anyhow!("TON Center HTTP error {status} for `{method}`: {value}");
             return if status == StatusCode::TOO_MANY_REQUESTS {
-                Err(TonCenterCallError::RateLimited(error))
+                Err(RpcCallError::RateLimited(error))
             } else {
-                Err(TonCenterCallError::Other(error))
+                Err(RpcCallError::Other(error))
             };
         }
 
@@ -98,48 +95,23 @@ impl TonCenterJsonRpcClient {
                 .unwrap_or_else(|| "unknown error".to_owned());
             let error = anyhow!("TON Center error for `{method}`: code={code:?} {detail}");
             return if code == Some(429) {
-                Err(TonCenterCallError::RateLimited(error))
+                Err(RpcCallError::RateLimited(error))
             } else {
-                Err(TonCenterCallError::Other(error))
+                Err(RpcCallError::Other(error))
             };
         }
 
         let result = value.get("result").cloned().ok_or_else(|| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "TON Center `{method}` response has no result field"
             ))
         })?;
         serde_json::from_value(result).map_err(|error| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "failed to deserialize TON Center `{method}` result: {error}"
             ))
         })
     }
-}
-
-pub(super) async fn retry_toncenter_call<T, F, Fut>(
-    empty_error: &'static str,
-    mut call_once: F,
-) -> Result<T>
-where
-    F: FnMut() -> Fut,
-    Fut: Future<Output = Result<T, TonCenterCallError>>,
-{
-    let mut last_error = None;
-    for attempt in 1..=TONCENTER_MAX_ATTEMPTS {
-        match call_once().await {
-            Ok(result) => return Ok(result),
-            Err(TonCenterCallError::RateLimited(error)) if attempt < TONCENTER_MAX_ATTEMPTS => {
-                last_error = Some(error);
-                sleep(TONCENTER_RETRY_DELAY).await;
-            }
-            Err(TonCenterCallError::RateLimited(error) | TonCenterCallError::Other(error)) => {
-                return Err(error);
-            }
-        }
-    }
-
-    Err(last_error.unwrap_or_else(|| anyhow!(empty_error)))
 }
 
 pub(super) fn is_toncenter_json_rpc_endpoint(endpoint: &str) -> bool {
@@ -156,12 +128,6 @@ pub(super) fn is_toncenter_json_rpc_endpoint(endpoint: &str) -> bool {
     host == "toncenter.com"
         || host.ends_with(".toncenter.com")
         || (cfg!(test) && matches!(host, "localhost" | "127.0.0.1" | "::1"))
-}
-
-#[derive(Debug)]
-pub(super) enum TonCenterCallError {
-    RateLimited(anyhow::Error),
-    Other(anyhow::Error),
 }
 
 #[cfg(test)]

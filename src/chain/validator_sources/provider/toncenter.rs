@@ -1,6 +1,5 @@
-use crate::chain::toncenter_client::{
-    TonCenterCallError, TonCenterJsonRpcClient, retry_toncenter_call,
-};
+use crate::chain::rpc_retry::{RpcCallError, retry_rate_limited_call};
+use crate::chain::toncenter_client::TonCenterJsonRpcClient;
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
@@ -98,7 +97,7 @@ impl TonCenterValidatorSourceProvider {
         &self,
         account_addresses: &[String],
     ) -> Result<Vec<TonCenterAccountState>> {
-        retry_toncenter_call("TON Center account states request did not run", || {
+        retry_rate_limited_call("TON Center account states request did not run", || {
             self.fetch_account_states_once(account_addresses)
         })
         .await
@@ -107,9 +106,9 @@ impl TonCenterValidatorSourceProvider {
     async fn fetch_account_states_once(
         &self,
         account_addresses: &[String],
-    ) -> Result<Vec<TonCenterAccountState>, TonCenterCallError> {
+    ) -> Result<Vec<TonCenterAccountState>, RpcCallError> {
         let mut url = Url::parse(&self.account_states_endpoint).map_err(|error| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "invalid TON Center account states endpoint `{}`: {error}",
                 self.account_states_endpoint
             ))
@@ -127,13 +126,13 @@ impl TonCenterValidatorSourceProvider {
         }
 
         let response = builder.send().await.map_err(|error| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "failed to send TON Center account states request: {error}"
             ))
         })?;
         let status = response.status();
         let value = response.json::<Value>().await.map_err(|error| {
-            TonCenterCallError::Other(anyhow!(
+            RpcCallError::Other(anyhow!(
                 "failed to parse TON Center account states response: {error}"
             ))
         })?;
@@ -141,16 +140,16 @@ impl TonCenterValidatorSourceProvider {
         if !status.is_success() {
             let error = anyhow!("TON Center account states HTTP error {status}: {value}");
             return if status == StatusCode::TOO_MANY_REQUESTS {
-                Err(TonCenterCallError::RateLimited(error))
+                Err(RpcCallError::RateLimited(error))
             } else {
-                Err(TonCenterCallError::Other(error))
+                Err(RpcCallError::Other(error))
             };
         }
 
         serde_json::from_value::<TonCenterAccountStatesResponse>(value)
             .map(|response| response.accounts)
             .map_err(|error| {
-                TonCenterCallError::Other(anyhow!(
+                RpcCallError::Other(anyhow!(
                     "failed to deserialize TON Center account states response: {error}"
                 ))
             })

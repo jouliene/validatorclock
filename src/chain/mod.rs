@@ -2,8 +2,10 @@ use crate::state::AppState;
 
 mod dto;
 mod elector;
+mod graphql_client;
 mod refresh;
 mod round_stats;
+mod rpc_retry;
 mod status;
 mod toncenter_client;
 mod util;

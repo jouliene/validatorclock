@@ -1,10 +1,12 @@
 mod election;
 mod frozen;
+mod graphql;
 mod snapshot;
 mod toncenter;
 mod toncenter_stack;
 
 use super::dto::RoundStatsPointDto;
+use super::graphql_client::is_graphql_endpoint;
 use super::round_stats::build_round_stats_response;
 use super::util::{endpoint_label, now_sec};
 use super::{ChainRoundStatsDto, ClockSnapshot, ElectionTimingsDto, ValidatorSetDto};
@@ -134,6 +136,9 @@ async fn fetch_chain_snapshot_from_endpoint(
     if toncenter::is_toncenter_endpoint(rpc) {
         return toncenter::fetch_chain_snapshot(chain, rpc, warning).await;
     }
+    if is_graphql_endpoint(rpc) {
+        return graphql::fetch_chain_snapshot(chain, rpc, warning).await;
+    }
 
     fetch_chain_snapshot_from_jrpc(chain, rpc, warning).await
 }
@@ -145,6 +150,9 @@ async fn fetch_chain_round_stats_from_endpoint(
 ) -> Result<ChainRoundStatsDto> {
     if toncenter::is_toncenter_endpoint(rpc) {
         return toncenter::fetch_chain_round_stats(chain, rpc, history_points).await;
+    }
+    if is_graphql_endpoint(rpc) {
+        return graphql::fetch_chain_round_stats(chain, rpc, history_points).await;
     }
 
     fetch_chain_round_stats_from_jrpc(chain, rpc, history_points).await

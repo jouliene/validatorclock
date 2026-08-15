@@ -27,6 +27,17 @@ fallback. If you have a TON Center key, set it before starting the app:
 export VALIDATORCLOCK_TONCENTER_API_KEY=your-key
 ```
 
+Chain endpoints can be JRPC (`https://host`), TON Center
+(`https://toncenter.com/api/v2/jsonRPC`), or GraphQL — any URL whose last path
+segment is `graphql`, such as an Evercloud endpoint. The default Everscale
+config uses the Evercloud GraphQL endpoint with `jrpc.everwallet.net` as a
+fallback. Endpoints that authenticate with a bearer token instead of a project
+id in the URL can read it from:
+
+```bash
+export VALIDATORCLOCK_GRAPHQL_API_KEY=your-key
+```
+
 If Rust is missing:
 
 ```bash
