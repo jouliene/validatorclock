@@ -97,7 +97,7 @@ mod tests {
     fn masks_api_key_path_segments() {
         assert_eq!(
             endpoint_label(
-                "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql"
+                "https://mainnet.evercloud.dev/0123456789abcdef0123456789abcdef/graphql"
             ),
             "mainnet.evercloud.dev/***/graphql"
         );

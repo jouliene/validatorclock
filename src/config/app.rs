@@ -5,6 +5,7 @@ use anyhow::{Result, bail};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
+use tracing::info;
 
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct AppConfig {
@@ -70,6 +71,33 @@ impl AppConfig {
 }
 
 impl AppConfig {
+    /// Endpoints often carry an API key in the URL, which should not have to
+    /// live in a config file. Each chain can take its endpoint from
+    /// VALIDATORCLOCK_RPC_<CHAIN ID> instead.
+    pub(crate) fn apply_endpoint_overrides(&mut self) {
+        self.apply_endpoint_overrides_from(|name| std::env::var(name).ok());
+    }
+
+    pub(super) fn apply_endpoint_overrides_from(
+        &mut self,
+        lookup: impl Fn(&str) -> Option<String>,
+    ) {
+        for chain in &mut self.chains {
+            let variable = rpc_override_env_name(&chain.id);
+            if let Some(rpc) = lookup(&variable)
+                .map(|value| value.trim().to_owned())
+                .filter(|value| !value.is_empty())
+            {
+                info!(
+                    chain_id = %chain.id,
+                    variable = %variable,
+                    "chain endpoint taken from the environment"
+                );
+                chain.rpc = rpc;
+            }
+        }
+    }
+
     pub(crate) fn validate(&self) -> Result<()> {
         if self.chains.is_empty() {
             bail!("config must contain at least one chain");
@@ -414,6 +442,20 @@ impl ChainConfig {
         }
         Ok(())
     }
+}
+
+pub(super) fn rpc_override_env_name(chain_id: &str) -> String {
+    let key = chain_id
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_uppercase()
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+    format!("VALIDATORCLOCK_RPC_{key}")
 }
 
 fn default_listen() -> String {

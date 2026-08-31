@@ -29,10 +29,23 @@ export VALIDATORCLOCK_TONCENTER_API_KEY=your-key
 
 Chain endpoints can be JRPC (`https://host`), TON Center
 (`https://toncenter.com/api/v2/jsonRPC`), or GraphQL — any URL whose last path
-segment is `graphql`, such as an Evercloud endpoint. The default Everscale
-config uses the Evercloud GraphQL endpoint with `jrpc.everwallet.net` as a
-fallback. Endpoints that authenticate with a bearer token instead of a project
-id in the URL can read it from:
+segment is `graphql`, such as an Evercloud endpoint. The bundled config uses the
+keyless Evercloud endpoint, which is rate limited; a project endpoint carries
+its id in the URL path.
+
+Because such a URL is a credential, any chain can take its endpoint from the
+environment instead of a config file, under `VALIDATORCLOCK_RPC_` plus the chain
+id in upper case (`-` becomes `_`):
+
+```bash
+export VALIDATORCLOCK_RPC_EVERSCALE=https://mainnet.evercloud.dev/your-project-id/graphql
+export VALIDATORCLOCK_RPC_TYCHO_TESTNET=https://rpc-testnet.tychoprotocol.com
+```
+
+The override replaces the chain's `rpc`; fallbacks stay as configured, and the
+startup log names the variable, never the URL. On a server, keep these in the
+systemd `EnvironmentFile` next to `IPINFO_TOKEN`. Endpoints that authenticate
+with a bearer token instead of a project id in the URL can read it from:
 
 ```bash
 export VALIDATORCLOCK_GRAPHQL_API_KEY=your-key

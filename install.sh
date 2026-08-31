@@ -154,7 +154,7 @@ default_chains = [
     {
         "id": "everscale",
         "name": "Everscale",
-        "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
+        "rpc": "https://mainnet.evercloud.dev/graphql",
         "rpc_fallbacks": [
             "https://mainnet.evercloud.dev/graphql",
         ],
@@ -397,7 +397,7 @@ write_config_if_missing() {
     {
       "id": "everscale",
       "name": "Everscale",
-      "rpc": "https://mainnet.evercloud.dev/89a3b8f46a484f2ea3bdd364ddaee3a3/graphql",
+      "rpc": "https://mainnet.evercloud.dev/graphql",
       "rpc_fallbacks": [
         "https://mainnet.evercloud.dev/graphql"
       ],

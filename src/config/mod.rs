@@ -62,8 +62,9 @@ pub(crate) fn load_config(path: Option<&Path>) -> Result<LoadedConfig> {
         }
     };
 
-    let config =
+    let mut config: AppConfig =
         serde_json::from_str(&content).context("failed to parse validator clock config")?;
+    config.apply_endpoint_overrides();
     Ok(LoadedConfig { config, source })
 }
 

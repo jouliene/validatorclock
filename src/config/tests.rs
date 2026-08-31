@@ -1,3 +1,4 @@
+use super::app::rpc_override_env_name;
 use super::*;
 use std::path::{Path, PathBuf};
 
@@ -379,4 +380,45 @@ fn load_config_reports_explicit_source() {
     assert_eq!(loaded.source.path(), Some(path));
     assert!(loaded.config.validate().is_ok());
     assert!(loaded.config.chain("ton").is_some());
+}
+
+#[test]
+fn chain_endpoints_can_come_from_the_environment() {
+    let mut config = test_config();
+    let original_fallbacks = config.chains[0].rpc_fallbacks.clone();
+
+    config.apply_endpoint_overrides_from(|variable| {
+        (variable == "VALIDATORCLOCK_RPC_TEST")
+            .then(|| "  https://mainnet.evercloud.dev/secret/graphql  ".to_owned())
+    });
+
+    assert_eq!(
+        config.chains[0].rpc,
+        "https://mainnet.evercloud.dev/secret/graphql"
+    );
+    assert_eq!(config.chains[0].rpc_fallbacks, original_fallbacks);
+}
+
+#[test]
+fn a_blank_or_missing_override_keeps_the_configured_endpoint() {
+    let mut config = test_config();
+    let configured = config.chains[0].rpc.clone();
+
+    config.apply_endpoint_overrides_from(|_| None);
+    assert_eq!(config.chains[0].rpc, configured);
+
+    config.apply_endpoint_overrides_from(|_| Some("   ".to_owned()));
+    assert_eq!(config.chains[0].rpc, configured);
+}
+
+#[test]
+fn override_variables_are_named_after_the_chain_id() {
+    assert_eq!(
+        rpc_override_env_name("everscale"),
+        "VALIDATORCLOCK_RPC_EVERSCALE"
+    );
+    assert_eq!(
+        rpc_override_env_name("tycho-testnet"),
+        "VALIDATORCLOCK_RPC_TYCHO_TESTNET"
+    );
 }
