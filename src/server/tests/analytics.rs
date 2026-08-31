@@ -135,6 +135,52 @@ async fn visitor_stats_ignore_obvious_bot_user_agents() {
     assert!(json["visitors"].as_array().unwrap().is_empty());
 }
 
+#[tokio::test]
+async fn repeat_heartbeats_do_not_rewrite_the_analytics_store() {
+    let analytics_path = temp_state_path("analytics_heartbeat_writes");
+    let mut config = test_config(Vec::new());
+    config.analytics_path = Some(analytics_path.clone());
+    let state = state_from_config(config);
+
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.5:1200").await;
+    let written_at = std::fs::metadata(&analytics_path)
+        .unwrap()
+        .modified()
+        .unwrap();
+
+    for _ in 0..3 {
+        analytics_event_response(Arc::clone(&state), "heartbeat", "198.51.100.5:1201").await;
+    }
+
+    assert_eq!(
+        std::fs::metadata(&analytics_path)
+            .unwrap()
+            .modified()
+            .unwrap(),
+        written_at,
+        "a heartbeat that changes no counter should not rewrite the store"
+    );
+
+    let json = response_json(app_response(Arc::clone(&state), "/api/analytics/public").await).await;
+    assert_eq!(json["today"]["visits"], 1);
+    assert_eq!(json["today"]["unique_visitors"], 1);
+
+    // A visitor the day has not seen changes the counters, so it is written.
+    // Aggregation is by /24, so this needs a different network.
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.101.6:1202").await;
+
+    assert_ne!(
+        std::fs::metadata(&analytics_path)
+            .unwrap()
+            .modified()
+            .unwrap(),
+        written_at
+    );
+    let json = response_json(app_response(state, "/api/analytics/public").await).await;
+    assert_eq!(json["today"]["visits"], 2);
+    assert_eq!(json["today"]["unique_visitors"], 2);
+}
+
 async fn analytics_event_response(
     state: Arc<AppState>,
     event: &str,

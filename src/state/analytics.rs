@@ -138,7 +138,7 @@ impl AppState {
             runtime
                 .sessions
                 .retain(|_, last_seen| now.saturating_sub(*last_seen) <= SESSION_TIMEOUT_SECONDS);
-            prune_visitor_hashes(runtime.store.get_mut(), today_index);
+            let pruned = prune_visitor_hashes(runtime.store.get_mut(), today_index);
 
             let starts_visit = runtime
                 .sessions
@@ -146,9 +146,10 @@ impl AppState {
                 .is_none_or(|last_seen| now.saturating_sub(*last_seen) > SESSION_TIMEOUT_SECONDS);
             let counts_pageview = event == AnalyticsEventKind::PageOpen;
 
-            {
+            let counted_new_visitor = {
                 let day = runtime.store.get_mut().days.entry(today).or_default();
-                if day.visitor_hashes.insert(visitor_key.clone()) {
+                let counted_new_visitor = day.visitor_hashes.insert(visitor_key.clone());
+                if counted_new_visitor {
                     day.unique_visitors = day.unique_visitors.saturating_add(1);
                 }
                 if starts_visit {
@@ -157,7 +158,8 @@ impl AppState {
                 if counts_pageview {
                     day.pageviews = day.pageviews.saturating_add(1);
                 }
-            }
+                counted_new_visitor
+            };
 
             {
                 let all_time = &mut runtime.store.get_mut().all_time;
@@ -170,7 +172,13 @@ impl AppState {
             }
 
             runtime.sessions.insert(visitor_key, now);
-            runtime.store.take_snapshot(now, 0)
+
+            // A heartbeat from a session already counted today leaves the
+            // stored counters exactly as they were, so it is not written back.
+            let changed = starts_visit || counts_pageview || counted_new_visitor || pruned;
+            changed
+                .then(|| runtime.store.take_snapshot(now, 0))
+                .flatten()
         };
 
         if let Some(snapshot) = snapshot {
@@ -383,14 +391,18 @@ impl EmptyStringExt for String {
     }
 }
 
-fn prune_visitor_hashes(disk: &mut AnalyticsDisk, today_index: i64) {
+fn prune_visitor_hashes(disk: &mut AnalyticsDisk, today_index: i64) -> bool {
+    let mut pruned = false;
     for (day, stats) in &mut disk.days {
-        if let Some(day_index) = parse_day_index(day)
+        if !stats.visitor_hashes.is_empty()
+            && let Some(day_index) = parse_day_index(day)
             && today_index.saturating_sub(day_index) >= VISITOR_HASH_RETENTION_DAYS
         {
             stats.visitor_hashes.clear();
+            pruned = true;
         }
     }
+    pruned
 }
 
 fn analytics_window(disk: &AnalyticsDisk, today_index: i64, days: i64) -> PublicAnalyticsWindow {
