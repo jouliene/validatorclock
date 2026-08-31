@@ -35,6 +35,40 @@ pub(crate) struct AppConfig {
     pub(crate) chains: Vec<ChainConfig>,
 }
 
+#[cfg(test)]
+impl AppConfig {
+    /// Baseline config for tests; override the fields a test cares about with
+    /// struct update syntax.
+    pub(crate) fn for_test(chains: Vec<ChainConfig>) -> Self {
+        Self {
+            listen: "127.0.0.1:8787".to_owned(),
+            refresh_seconds: 60,
+            refresh_timeout_seconds: 90,
+            cache_path: PathBuf::from("/var/lib/validatorclock/cache.json"),
+            analytics_path: None,
+            visitors_path: None,
+            history_path: None,
+            tycho_map_nodes_path: None,
+            map_nodes_paths: HashMap::new(),
+            node_locations: NodeLocationsConfig::default(),
+            security: SecurityConfig::default(),
+            tls: TlsConfig::default(),
+            chains,
+        }
+    }
+
+    /// Baseline config that keeps every state file inside one directory.
+    pub(crate) fn for_test_in(state_dir: &std::path::Path, chains: Vec<ChainConfig>) -> Self {
+        Self {
+            cache_path: state_dir.join("cache.json"),
+            analytics_path: Some(state_dir.join("analytics.json")),
+            visitors_path: Some(state_dir.join("visitors.json")),
+            history_path: Some(state_dir.join("history.json")),
+            ..Self::for_test(chains)
+        }
+    }
+}
+
 impl AppConfig {
     pub(crate) fn validate(&self) -> Result<()> {
         if self.chains.is_empty() {

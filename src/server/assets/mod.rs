@@ -117,3 +117,40 @@ fn asset_response_headers(content_type: &'static str) -> [(header::HeaderName, H
         (header::CACHE_CONTROL, ASSET_CACHE_CONTROL),
     ]
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // The bundle order lives in a hand-written list, so a new file in
+    // public/app/ can be written, styled, and never shipped.
+    #[test]
+    fn every_frontend_script_is_bundled() {
+        let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("public/app");
+        let mut scripts = std::fs::read_dir(&script_dir)
+            .expect("public/app should be readable")
+            .map(|entry| entry.expect("directory entry should be readable").path())
+            .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("js"))
+            .collect::<Vec<_>>();
+        scripts.sort();
+
+        let missing = scripts
+            .iter()
+            .filter(|path| {
+                let source = std::fs::read_to_string(path).expect("script should be readable");
+                !APP_JS_PARTS.iter().any(|part| *part == source)
+            })
+            .filter_map(|path| path.file_name().and_then(|name| name.to_str()))
+            .collect::<Vec<_>>();
+
+        assert!(
+            missing.is_empty(),
+            "these scripts are not in APP_JS_PARTS, so they never reach the browser: {missing:?}"
+        );
+        assert_eq!(
+            APP_JS_PARTS.len(),
+            scripts.len() + 1,
+            "APP_JS_PARTS should hold every public/app script plus public/app.js"
+        );
+    }
+}

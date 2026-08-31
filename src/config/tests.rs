@@ -1,5 +1,4 @@
 use super::*;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 fn test_chain() -> ChainConfig {
@@ -15,21 +14,7 @@ fn test_chain() -> ChainConfig {
 }
 
 fn test_config() -> AppConfig {
-    AppConfig {
-        listen: "127.0.0.1:8787".to_owned(),
-        refresh_seconds: 60,
-        refresh_timeout_seconds: 90,
-        cache_path: PathBuf::from("/var/lib/validatorclock/cache.json"),
-        analytics_path: None,
-        visitors_path: None,
-        history_path: None,
-        tycho_map_nodes_path: None,
-        map_nodes_paths: HashMap::new(),
-        node_locations: Default::default(),
-        security: SecurityConfig::default(),
-        tls: TlsConfig::default(),
-        chains: vec![test_chain()],
-    }
+    AppConfig::for_test(vec![test_chain()])
 }
 
 #[test]

@@ -1,11 +1,10 @@
 use super::*;
-use crate::config::{AppConfig, SecurityConfig, TlsConfig};
+use crate::config::AppConfig;
 use axum::Router;
 use axum::extract::{Json, State};
 use axum::routing::{get, post};
 use minik2::{HashBytes, ValidatorSet};
 use serde_json::{Value, json};
-use std::collections::HashMap;
 use std::num::NonZeroU16;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -21,27 +20,19 @@ async fn broxus_failure_uses_toncenter_fallback_and_enrichment() -> Result<()> {
     let endpoint = spawn_mock_toncenter(Arc::clone(&mock)).await?;
     let state_dir = test_state_dir()?;
     let config = Arc::new(AppConfig {
-        listen: "127.0.0.1:0".to_owned(),
-        refresh_seconds: 60,
         refresh_timeout_seconds: 15,
-        cache_path: state_dir.join("cache.json"),
-        analytics_path: Some(state_dir.join("analytics.json")),
-        visitors_path: Some(state_dir.join("visitors.json")),
-        history_path: Some(state_dir.join("history.json")),
-        tycho_map_nodes_path: None,
-        map_nodes_paths: HashMap::new(),
-        node_locations: Default::default(),
-        security: SecurityConfig::default(),
-        tls: TlsConfig::default(),
-        chains: vec![ChainConfig {
-            id: "ton".to_owned(),
-            name: "TON".to_owned(),
-            rpc: "http://127.0.0.1:9/broxus-disabled".to_owned(),
-            rpc_fallbacks: vec![format!("{endpoint}/api/v2/jsonRPC")],
-            color: "#0098ea".to_owned(),
-            token_symbol: "TON".to_owned(),
-            rpc_label: None,
-        }],
+        ..AppConfig::for_test_in(
+            &state_dir,
+            vec![ChainConfig {
+                id: "ton".to_owned(),
+                name: "TON".to_owned(),
+                rpc: "http://127.0.0.1:9/broxus-disabled".to_owned(),
+                rpc_fallbacks: vec![format!("{endpoint}/api/v2/jsonRPC")],
+                color: "#0098ea".to_owned(),
+                token_symbol: "TON".to_owned(),
+                rpc_label: None,
+            }],
+        )
     });
     let state = Arc::new(AppState::new(config));
 
@@ -76,27 +67,19 @@ async fn toncenter_primary_fetches_snapshot_and_enrichment() -> Result<()> {
     let state_dir = test_state_dir()?;
     let toncenter_endpoint = format!("{endpoint}/api/v2/jsonRPC");
     let config = Arc::new(AppConfig {
-        listen: "127.0.0.1:0".to_owned(),
-        refresh_seconds: 60,
         refresh_timeout_seconds: 15,
-        cache_path: state_dir.join("cache.json"),
-        analytics_path: Some(state_dir.join("analytics.json")),
-        visitors_path: Some(state_dir.join("visitors.json")),
-        history_path: Some(state_dir.join("history.json")),
-        tycho_map_nodes_path: None,
-        map_nodes_paths: HashMap::new(),
-        node_locations: Default::default(),
-        security: SecurityConfig::default(),
-        tls: TlsConfig::default(),
-        chains: vec![ChainConfig {
-            id: "ton".to_owned(),
-            name: "TON".to_owned(),
-            rpc: toncenter_endpoint.clone(),
-            rpc_fallbacks: vec!["http://127.0.0.1:9/broxus-disabled".to_owned()],
-            color: "#0098ea".to_owned(),
-            token_symbol: "TON".to_owned(),
-            rpc_label: None,
-        }],
+        ..AppConfig::for_test_in(
+            &state_dir,
+            vec![ChainConfig {
+                id: "ton".to_owned(),
+                name: "TON".to_owned(),
+                rpc: toncenter_endpoint.clone(),
+                rpc_fallbacks: vec!["http://127.0.0.1:9/broxus-disabled".to_owned()],
+                color: "#0098ea".to_owned(),
+                token_symbol: "TON".to_owned(),
+                rpc_label: None,
+            }],
+        )
     });
     let state = Arc::new(AppState::new(config));
 
@@ -507,27 +490,19 @@ fn graphql_test_config(
     rpc_fallbacks: Vec<String>,
 ) -> AppConfig {
     AppConfig {
-        listen: "127.0.0.1:0".to_owned(),
-        refresh_seconds: 60,
         refresh_timeout_seconds: 15,
-        cache_path: state_dir.join("cache.json"),
-        analytics_path: Some(state_dir.join("analytics.json")),
-        visitors_path: Some(state_dir.join("visitors.json")),
-        history_path: Some(state_dir.join("history.json")),
-        tycho_map_nodes_path: None,
-        map_nodes_paths: HashMap::new(),
-        node_locations: Default::default(),
-        security: SecurityConfig::default(),
-        tls: TlsConfig::default(),
-        chains: vec![ChainConfig {
-            id: "everscale".to_owned(),
-            name: "Everscale".to_owned(),
-            rpc,
-            rpc_fallbacks,
-            color: "#6347F5".to_owned(),
-            token_symbol: "EVER".to_owned(),
-            rpc_label: None,
-        }],
+        ..AppConfig::for_test_in(
+            state_dir,
+            vec![ChainConfig {
+                id: "everscale".to_owned(),
+                name: "Everscale".to_owned(),
+                rpc,
+                rpc_fallbacks,
+                color: "#6347F5".to_owned(),
+                token_symbol: "EVER".to_owned(),
+                rpc_label: None,
+            }],
+        )
     }
 }
 

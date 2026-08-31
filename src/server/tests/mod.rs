@@ -4,7 +4,6 @@ use crate::state::AppState;
 use axum::body::to_bytes;
 use axum::http::{HeaderMap, header};
 use serde_json::Value;
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tower::ServiceExt as _;
@@ -40,16 +39,10 @@ fn now_sec_for_test() -> u64 {
 
 fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
     AppConfig {
-        listen: "127.0.0.1:8787".to_owned(),
-        refresh_seconds: 60,
-        refresh_timeout_seconds: 90,
         cache_path: temp_state_path("cache"),
         analytics_path: Some(temp_state_path("analytics")),
         visitors_path: Some(temp_state_path("visitors")),
         history_path: Some(temp_state_path("history")),
-        tycho_map_nodes_path: None,
-        map_nodes_paths: HashMap::new(),
-        node_locations: Default::default(),
         security: SecurityConfig {
             allowed_hosts,
             stats_auth: test_stats_auth(),
@@ -59,7 +52,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
             public_url: "https://allowed.example".to_owned(),
             ..TlsConfig::default()
         },
-        chains: vec![ChainConfig {
+        ..AppConfig::for_test(vec![ChainConfig {
             id: "test".to_owned(),
             name: "Test".to_owned(),
             rpc: "https://example.com".to_owned(),
@@ -67,7 +60,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
             color: "#38bdf8".to_owned(),
             token_symbol: "TEST".to_owned(),
             rpc_label: None,
-        }],
+        }])
     }
 }
 
