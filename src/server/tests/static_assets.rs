@@ -111,6 +111,43 @@ async fn app_router_versions_and_caches_static_assets() {
 }
 
 #[tokio::test]
+async fn text_responses_are_compressed_when_the_client_accepts_gzip() {
+    let state = test_state(Vec::new());
+
+    let plain = app_response(Arc::clone(&state), "/app.js").await;
+    assert!(plain.headers().get(header::CONTENT_ENCODING).is_none());
+    let plain_size = to_bytes(plain.into_body(), usize::MAX).await.unwrap().len();
+
+    let compressed = crate::server::routes::app_router(state)
+        .oneshot(
+            axum::http::Request::builder()
+                .uri("/app.js")
+                .header(header::ACCEPT_ENCODING, "gzip")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(
+        compressed
+            .headers()
+            .get(header::CONTENT_ENCODING)
+            .and_then(|value| value.to_str().ok()),
+        Some("gzip")
+    );
+    assert_header_starts_with(compressed.headers(), header::VARY, "accept-encoding");
+    let compressed_size = to_bytes(compressed.into_body(), usize::MAX)
+        .await
+        .unwrap()
+        .len();
+    assert!(
+        compressed_size * 2 < plain_size,
+        "gzip should more than halve the bundle: {compressed_size} vs {plain_size}"
+    );
+}
+
+#[tokio::test]
 async fn revalidated_responses_carry_entity_tags_and_answer_304() {
     let state = test_state(Vec::new());
 

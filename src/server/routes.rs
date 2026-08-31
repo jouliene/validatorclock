@@ -19,9 +19,11 @@ use axum::middleware;
 use axum::routing::{get, post};
 use std::sync::Arc;
 use tower::ServiceBuilder;
+use tower_http::compression::CompressionLayer;
 
 pub(super) fn app_router(state: Arc<AppState>) -> Router {
     let layers = ServiceBuilder::new()
+        .layer(CompressionLayer::new())
         .layer(middleware::from_fn(add_entity_tags))
         .layer(middleware::from_fn(add_security_headers))
         .layer(middleware::from_fn_with_state(
