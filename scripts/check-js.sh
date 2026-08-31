@@ -11,7 +11,7 @@ fi
 while IFS= read -r file; do
   node --check "${file}"
 done < <(
-  find "${ROOT_DIR}/public/app" -type f -name '*.js' -print
+  find "${ROOT_DIR}/public/app" "${ROOT_DIR}/public/shared" -type f -name '*.js' -print
   printf '%s\n' "${ROOT_DIR}/public/app.js"
   printf '%s\n' "${ROOT_DIR}/public/stats.js"
 )

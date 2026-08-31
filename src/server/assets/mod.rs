@@ -9,7 +9,7 @@ mod version;
 
 use embedded::{
     APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, PORTRAIT_IMAGES, SMOKING_MAN_PNG,
-    STATS_HTML, STATS_JS, STYLES_CSS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    STATS_HTML, STATS_JS_PARTS, STYLES_CSS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(super) use version::asset_version;
@@ -22,6 +22,7 @@ const PRIVATE_ASSET_CACHE_CONTROL: HeaderValue =
 static INDEX_PAGE: LazyLock<String> = LazyLock::new(|| render_page(INDEX_HTML));
 static STATS_PAGE: LazyLock<String> = LazyLock::new(|| render_page(STATS_HTML));
 static APP_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| APP_JS_PARTS.join("\n\n"));
+static STATS_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| STATS_JS_PARTS.join("\n\n"));
 
 pub(super) async fn index() -> Html<&'static str> {
     Html(INDEX_PAGE.as_str())
@@ -40,7 +41,7 @@ pub(super) async fn stats_js() -> impl IntoResponse {
             ),
             (header::CACHE_CONTROL, PRIVATE_ASSET_CACHE_CONTROL),
         ],
-        STATS_JS,
+        STATS_JS_BUNDLE.as_str(),
     )
 }
 
@@ -126,12 +127,8 @@ mod tests {
     // public/app/ can be written, styled, and never shipped.
     #[test]
     fn every_frontend_script_is_bundled() {
-        let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("public/app");
-        let mut scripts = std::fs::read_dir(&script_dir)
-            .expect("public/app should be readable")
-            .map(|entry| entry.expect("directory entry should be readable").path())
-            .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("js"))
-            .collect::<Vec<_>>();
+        let mut scripts = scripts_in("public/app");
+        scripts.extend(scripts_in("public/shared"));
         scripts.sort();
 
         let missing = scripts
@@ -150,7 +147,23 @@ mod tests {
         assert_eq!(
             APP_JS_PARTS.len(),
             scripts.len() + 1,
-            "APP_JS_PARTS should hold every public/app script plus public/app.js"
+            "APP_JS_PARTS should hold every public/app and public/shared script plus public/app.js"
         );
+    }
+
+    #[test]
+    fn the_stats_page_ships_the_shared_analytics_client() {
+        assert!(STATS_JS_BUNDLE.contains("function sendAnalyticsEvent"));
+        assert!(STATS_JS_BUNDLE.contains("function formatAnalyticsNumber"));
+        assert!(STATS_JS_BUNDLE.contains("/stats/visitors"));
+    }
+
+    fn scripts_in(directory: &str) -> Vec<std::path::PathBuf> {
+        let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(directory);
+        std::fs::read_dir(&script_dir)
+            .unwrap_or_else(|_| panic!("{directory} should be readable"))
+            .map(|entry| entry.expect("directory entry should be readable").path())
+            .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("js"))
+            .collect()
     }
 }

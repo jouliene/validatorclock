@@ -2,6 +2,8 @@ pub(super) const INDEX_HTML: &str = include_str!("../../../public/index.html");
 pub(super) const STYLES_CSS: &str = include_str!("../../../public/styles.css");
 pub(super) const STATS_HTML: &str = include_str!("../../../public/stats.html");
 pub(super) const STATS_JS: &str = include_str!("../../../public/stats.js");
+pub(super) const SHARED_ANALYTICS_CLIENT_JS: &str =
+    include_str!("../../../public/shared/analytics_client.js");
 pub(super) const APP_STATE_JS: &str = include_str!("../../../public/app/state.js");
 pub(super) const APP_API_JS: &str = include_str!("../../../public/app/api.js");
 pub(super) const APP_FORMAT_ADDRESSES_JS: &str =
@@ -197,8 +199,11 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_RUNTIME_CLOCK_JS,
     APP_RUNTIME_MESSAGES_JS,
     APP_RUNTIME_SETTINGS_JS,
+    SHARED_ANALYTICS_CLIENT_JS,
     APP_ANALYTICS_JS,
     APP_NETWORK_PORTRAITS_JS,
     APP_RUNTIME_JS,
     APP_ENTRY_JS,
 ];
+
+pub(super) const STATS_JS_PARTS: &[&str] = &[SHARED_ANALYTICS_CLIENT_JS, STATS_JS];

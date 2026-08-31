@@ -1,7 +1,6 @@
 (function () {
   const PUBLIC_ENDPOINT = "/api/analytics/public";
   const VISITORS_ENDPOINT = "/stats/visitors";
-  const EVENT_ENDPOINT = "/api/analytics/event";
   const REFRESH_MS = 30_000;
   const HEARTBEAT_MS = 30_000;
 
@@ -29,10 +28,10 @@
   function boot() {
     renderHeader();
     setupFilter();
-    sendEvent("page_open");
+    sendAnalyticsEvent("page_open");
     refresh();
     window.setInterval(refresh, REFRESH_MS);
-    window.setInterval(sendVisibleHeartbeat, HEARTBEAT_MS);
+    window.setInterval(sendVisibleAnalyticsHeartbeat, HEARTBEAT_MS);
     document.addEventListener("visibilitychange", handleVisibility);
   }
 
@@ -40,35 +39,8 @@
     if (document.visibilityState !== "visible") {
       return;
     }
-    sendEvent("heartbeat");
+    sendAnalyticsEvent("heartbeat");
     refresh();
-  }
-
-  function sendVisibleHeartbeat() {
-    if (document.visibilityState === "visible") {
-      sendEvent("heartbeat");
-    }
-  }
-
-  function sendEvent(event) {
-    try {
-      const payload = JSON.stringify({
-        event,
-        path: window.location.pathname || "/stats",
-        visible: document.visibilityState === "visible",
-        ts: Date.now(),
-      });
-      const blob = new Blob([payload], { type: "application/json" });
-      if (navigator.sendBeacon && navigator.sendBeacon(EVENT_ENDPOINT, blob)) {
-        return;
-      }
-      fetch(EVENT_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        keepalive: true,
-      }).catch(() => {});
-    } catch (_) {}
   }
 
   async function refresh() {
@@ -81,7 +53,7 @@
       return;
     }
 
-    setText("statsTodayVisits", formatNumber(stats.today.visits));
+    setText("statsTodayVisits", formatAnalyticsNumber(stats.today.visits));
     setText(
       "statsTodayDetail",
       `${pluralize(stats.today.visits, "visit")} · ${pluralize(
@@ -89,7 +61,7 @@
         "unique visitor",
       )}`,
     );
-    setText("statsMonthVisits", formatNumber(stats.last_30_days.visits));
+    setText("statsMonthVisits", formatAnalyticsNumber(stats.last_30_days.visits));
     setText(
       "statsMonthDetail",
       `${pluralize(stats.last_30_days.visits, "visit")} · ${pluralize(
@@ -97,7 +69,7 @@
         "unique visitor",
       )}`,
     );
-    setText("statsAllTimeVisits", formatNumber(stats.all_time.visits));
+    setText("statsAllTimeVisits", formatAnalyticsNumber(stats.all_time.visits));
     setText("statsAllTimeDetail", pluralize(stats.all_time.visits, "visit"));
   }
 
@@ -109,7 +81,7 @@
 
     state.visitors = payload.visitors;
     state.generatedAt = Number(payload.generated_at) || 0;
-    setText("statsOnlineNow", formatNumber(payload.online_now));
+    setText("statsOnlineNow", formatAnalyticsNumber(payload.online_now));
     setText("statsKnownVisitors", `${pluralize(payload.known_visitors, "address")} seen`);
     setText("statsUpdated", formatClock(state.generatedAt));
     renderRows();
@@ -249,7 +221,7 @@
       return badge;
     }
     if (column.kind === "number") {
-      return document.createTextNode(formatNumber(value));
+      return document.createTextNode(formatAnalyticsNumber(value));
     }
     if (column.kind === "time") {
       return document.createTextNode(formatRelative(value));
@@ -308,19 +280,11 @@
     return trimmed === "" ? "-" : trimmed;
   }
 
-  function formatNumber(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number) || number < 0) {
-      return "0";
-    }
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(number);
-  }
-
   function pluralize(value, noun) {
     const number = Number(value);
     const safe = Number.isFinite(number) && number >= 0 ? number : 0;
     const plural = noun.endsWith("s") ? `${noun}es` : `${noun}s`;
-    return `${formatNumber(safe)} ${safe === 1 ? noun : plural}`;
+    return `${formatAnalyticsNumber(safe)} ${safe === 1 ? noun : plural}`;
   }
 
   function formatRelative(value) {

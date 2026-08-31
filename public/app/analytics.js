@@ -1,5 +1,4 @@
 (function () {
-  const EVENT_ENDPOINT = "/api/analytics/event";
   const PUBLIC_ENDPOINT = "/api/analytics/public";
   const HEARTBEAT_MS = 30_000;
   const STATS_REFRESH_MS = 60_000;
@@ -17,7 +16,7 @@
     sendAnalyticsEvent("page_open");
     refreshPublicStats();
 
-    heartbeatTimer = window.setInterval(sendVisibleHeartbeat, HEARTBEAT_MS);
+    heartbeatTimer = window.setInterval(sendVisibleAnalyticsHeartbeat, HEARTBEAT_MS);
     statsTimer = window.setInterval(refreshPublicStats, STATS_REFRESH_MS);
     document.addEventListener("visibilitychange", handleAnalyticsVisibility);
   }
@@ -28,33 +27,6 @@
     }
     sendAnalyticsEvent("heartbeat");
     refreshPublicStats();
-  }
-
-  function sendVisibleHeartbeat() {
-    if (document.visibilityState === "visible") {
-      sendAnalyticsEvent("heartbeat");
-    }
-  }
-
-  function sendAnalyticsEvent(event) {
-    try {
-      const payload = JSON.stringify({
-        event,
-        path: window.location.pathname || "/",
-        visible: document.visibilityState === "visible",
-        ts: Date.now(),
-      });
-      const blob = new Blob([payload], { type: "application/json" });
-      if (navigator.sendBeacon && navigator.sendBeacon(EVENT_ENDPOINT, blob)) {
-        return;
-      }
-      fetch(EVENT_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        keepalive: true,
-      }).catch(() => {});
-    } catch (_) {}
   }
 
   async function refreshPublicStats() {
@@ -106,14 +78,6 @@
     labelEl.className = "public-stats-label";
     labelEl.textContent = label;
     element.append(labelEl, document.createTextNode(` ${parts.join(" · ")}`));
-  }
-
-  function formatAnalyticsNumber(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number) || number < 0) {
-      return "0";
-    }
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(number);
   }
 
   window.startAnalytics = startAnalytics;
