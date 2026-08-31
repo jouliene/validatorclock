@@ -79,6 +79,7 @@ const state = {
   lastClockRefreshAttempt: 0,
   roundRenderKey: null,
   selectedValidatorKey: null,
+  visibilityBound: false,
 };
 
 const palette = {
