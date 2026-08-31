@@ -42,6 +42,10 @@ function replaceChildren(node, children) {
   return appendChildren(node, children);
 }
 
+function fragment(children) {
+  return appendChildren(document.createDocumentFragment(), children);
+}
+
 // Constant markup only: icons and filter definitions that carry no data.
 function setStaticMarkup(node, markup) {
   node.innerHTML = markup;

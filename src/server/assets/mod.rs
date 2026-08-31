@@ -215,6 +215,28 @@ mod tests {
         }
     }
 
+    // Data reaches the page as text nodes; the one place allowed to assign
+    // markup is the shared DOM helper, which only ever takes constant icons.
+    #[test]
+    fn only_the_dom_helper_assigns_markup() {
+        let offenders = APP_JS_PARTS
+            .iter()
+            .chain(STATS_JS_PARTS.iter())
+            .filter(|part| !part.contains("// Element builder shared by both pages."))
+            .flat_map(|part| part.lines())
+            .filter(|line| {
+                let code = line.split("//").next().unwrap_or_default();
+                code.contains("innerHTML") || code.contains("insertAdjacentHTML")
+            })
+            .map(str::trim)
+            .collect::<Vec<_>>();
+
+        assert!(
+            offenders.is_empty(),
+            "render data through the DOM instead of markup, or use setStaticMarkup for constant icons: {offenders:?}"
+        );
+    }
+
     fn top_level_declarations(source: &str) -> Vec<String> {
         source
             .lines()

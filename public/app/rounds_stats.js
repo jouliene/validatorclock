@@ -77,7 +77,7 @@ function roundStatIcon(label) {
   const icon = document.createElement("span");
   const key = label.toLowerCase();
   icon.className = "round-stat-icon";
-  icon.innerHTML = roundStatSvg(key);
+  setStaticMarkup(icon, roundStatSvg(key));
   return icon;
 }
 

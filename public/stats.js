@@ -128,18 +128,18 @@
 
     header.replaceChildren();
     for (const column of COLUMNS) {
-      const cell = document.createElement("button");
-      cell.type = "button";
-      cell.className = `stats-cell stats-head-cell ${cellClass(column)}`;
-      cell.dataset.key = column.key;
-      cell.setAttribute("role", "columnheader");
-
-      const label = document.createElement("span");
-      label.textContent = column.label;
-      const marker = document.createElement("span");
-      marker.className = "stats-sort-marker";
-      marker.textContent = sortMarker(column.key);
-      cell.append(label, marker);
+      const cell = el(
+        "button",
+        {
+          className: `stats-cell stats-head-cell ${cellClass(column)}`,
+          attrs: { type: "button", role: "columnheader" },
+          dataset: { key: column.key },
+        },
+        [
+          el("span", { text: column.label }),
+          el("span", { className: "stats-sort-marker", text: sortMarker(column.key) }),
+        ],
+      );
 
       cell.addEventListener("click", () => {
         if (state.sortKey === column.key) {
@@ -194,31 +194,33 @@
   }
 
   function buildRow(visitor) {
-    const row = document.createElement("div");
-    row.className = "stats-row";
-    row.setAttribute("role", "row");
-    if (visitor.online) {
-      row.classList.add("is-online");
-    }
-
-    for (const column of COLUMNS) {
-      const cell = document.createElement("div");
-      cell.className = `stats-cell ${cellClass(column)}`;
-      cell.setAttribute("role", "cell");
-      cell.dataset.label = column.label;
-      cell.append(buildCellContent(column, visitor));
-      row.append(cell);
-    }
-    return row;
+    return el(
+      "div",
+      {
+        className: visitor.online ? "stats-row is-online" : "stats-row",
+        attrs: { role: "row" },
+      },
+      COLUMNS.map((column) =>
+        el(
+          "div",
+          {
+            className: `stats-cell ${cellClass(column)}`,
+            attrs: { role: "cell" },
+            dataset: { label: column.label },
+          },
+          [buildCellContent(column, visitor)],
+        ),
+      ),
+    );
   }
 
   function buildCellContent(column, visitor) {
     const value = visitor[column.key];
     if (column.kind === "flag") {
-      const badge = document.createElement("span");
-      badge.className = value ? "stats-flag is-yes" : "stats-flag is-no";
-      badge.textContent = value ? "yes" : "no";
-      return badge;
+      return el("span", {
+        className: value ? "stats-flag is-yes" : "stats-flag is-no",
+        text: value ? "yes" : "no",
+      });
     }
     if (column.kind === "number") {
       return document.createTextNode(formatAnalyticsNumber(value));

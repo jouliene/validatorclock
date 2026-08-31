@@ -47,13 +47,13 @@ function validatorTypeHeaderCell(cell, options) {
   help.setAttribute("aria-expanded", "false");
   help.validatorGlossaryLabels = normalizedGlossaryLabels(options.glossaryLabels);
   setValidatorTooltip(help, "Type glossary");
-  help.innerHTML = `
+  setStaticMarkup(help, `
     <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
       <circle cx="12" cy="12" r="8.5"></circle>
       <path d="M12 11.5v5"></path>
       <path d="M12 8h.01"></path>
     </svg>
-  `;
+  `);
   help.addEventListener("click", (event) => {
     event.stopPropagation();
     toggleValidatorTypeGlossary(help);

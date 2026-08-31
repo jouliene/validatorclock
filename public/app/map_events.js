@@ -70,7 +70,7 @@ function handleValidatorNodeClick(event) {
 
   validatorMapPopup("720px")
     .setLngLat(feature.geometry.coordinates)
-    .setHTML(locationPopupHtml(feature.properties))
+    .setDOMContent(locationPopupContent(feature.properties))
     .addTo(validatorMap);
 }
 
@@ -116,7 +116,7 @@ async function handleValidatorClusterClick(event) {
     window.setTimeout(() => {
       validatorMapPopup("720px")
         .setLngLat(cluster.geometry.coordinates)
-        .setHTML(clusterLeavesPopupHtml(pointCount, totalNodes, leaves))
+        .setDOMContent(clusterLeavesPopupContent(pointCount, totalNodes, leaves))
         .addTo(validatorMap);
     }, 480);
   }
@@ -131,7 +131,7 @@ function handleValidatorClusterContextMenu(event) {
 
   validatorMapPopup("420px")
     .setLngLat(cluster.geometry.coordinates)
-    .setHTML(clusterPopupHtml(pointCount, totalNodes))
+    .setDOMContent(clusterPopupContent(pointCount, totalNodes))
     .addTo(validatorMap);
 }
 

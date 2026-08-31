@@ -67,12 +67,12 @@ function recentRoundPanel(color, validators, snapshot) {
 function recentRoundTitleIcon() {
   const icon = document.createElement("span");
   icon.className = "recent-title-icon";
-  icon.innerHTML = [
+  setStaticMarkup(icon, [
     '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">',
     '<path d="M2.5 12s3.4-6.2 9.5-6.2 9.5 6.2 9.5 6.2-3.4 6.2-9.5 6.2S2.5 12 2.5 12Z"></path>',
     '<circle cx="12" cy="12" r="2.7"></circle>',
     '<path d="m17.8 17.8 3 3"></path>',
     '</svg>',
-  ].join("");
+  ].join(""));
   return icon;
 }

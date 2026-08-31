@@ -1,6 +1,6 @@
 function drawDefs(svg) {
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  defs.innerHTML = `
+  setStaticMarkup(defs, `
     <filter id="roundGlow" x="-18%" y="-18%" width="136%" height="136%">
       <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000712" flood-opacity="0.36"/>
       <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#36bdf6" flood-opacity="0.035"/>
@@ -98,6 +98,6 @@ function drawDefs(svg) {
       <stop offset="0.5" stop-color="#ffd462"/>
       <stop offset="1" stop-color="#d59a38"/>
     </linearGradient>
-  `;
+  `);
   svg.appendChild(defs);
 }

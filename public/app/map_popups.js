@@ -1,4 +1,4 @@
-function locationPopupHtml(properties) {
+function locationPopupContent(properties) {
   let nodes = [];
 
   try {
@@ -9,32 +9,37 @@ function locationPopupHtml(properties) {
 
   const nodeCount = Number(properties.node_count || nodes.length || 0);
 
-  return `
-    <div class="popup-title">${escapeHtml(properties.city)}, ${escapeHtml(properties.country)}</div>
-    <div class="popup-muted">${nodeCount} validator${nodeCount === 1 ? "" : "s"} at this location</div>
-    ${nodeTableHtml(nodes)}
-  `;
+  return fragment([
+    el("div", { className: "popup-title", text: `${properties.city}, ${properties.country}` }),
+    el("div", {
+      className: "popup-muted",
+      text: `${nodeCount} validator${nodeCount === 1 ? "" : "s"} at this location`,
+    }),
+    nodeTableElement(nodes),
+  ]);
 }
 
-function clusterPopupHtml(clusterPointCount, totalNodeCount) {
-  return `
-    <div class="popup-title">Node cluster</div>
-    <div class="popup-muted">${clusterPointCount} locations</div>
-    <div class="popup-node-row">
-      <div class="popup-ip">${totalNodeCount} total nodes</div>
-      <div class="popup-isp">Cluster</div>
-      <div class="popup-peer">Click to zoom in</div>
-    </div>
-  `;
+function clusterPopupContent(clusterPointCount, totalNodeCount) {
+  return fragment([
+    el("div", { className: "popup-title", text: "Node cluster" }),
+    el("div", { className: "popup-muted", text: `${clusterPointCount} locations` }),
+    el("div", "popup-node-row", [
+      el("div", { className: "popup-ip", text: `${totalNodeCount} total nodes` }),
+      el("div", { className: "popup-isp", text: "Cluster" }),
+      el("div", { className: "popup-peer", text: "Click to zoom in" }),
+    ]),
+  ]);
 }
 
-function clusterLeavesPopupHtml(clusterPointCount, totalNodeCount, leaves) {
-  const nodes = nodesFromClusterLeaves(leaves);
-  return `
-    <div class="popup-title">Node cluster</div>
-    <div class="popup-muted">${totalNodeCount} validators / ${clusterPointCount} locations</div>
-    ${nodeTableHtml(nodes)}
-  `;
+function clusterLeavesPopupContent(clusterPointCount, totalNodeCount, leaves) {
+  return fragment([
+    el("div", { className: "popup-title", text: "Node cluster" }),
+    el("div", {
+      className: "popup-muted",
+      text: `${totalNodeCount} validators / ${clusterPointCount} locations`,
+    }),
+    nodeTableElement(nodesFromClusterLeaves(leaves)),
+  ]);
 }
 
 function nodesFromClusterLeaves(leaves) {
@@ -47,74 +52,72 @@ function nodesFromClusterLeaves(leaves) {
   });
 }
 
-function nodeTableHtml(nodes) {
+function nodeTableElement(nodes) {
   const safeNodes = Array.isArray(nodes) ? nodes : [];
   if (!safeNodes.length) {
-    return "";
+    return null;
   }
 
-  return `
-    <div class="popup-node-list">
-      <table class="popup-node-table">
-        <colgroup>
-          <col class="popup-col-ip">
-          <col class="popup-col-isp">
-          <col class="popup-col-row">
-          <col class="popup-col-validator">
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">IP</th>
-            <th scope="col">ISP</th>
-            <th scope="col">Row</th>
-            <th scope="col">Validator</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${safeNodes.map((node) => `
-          <tr>
-            <td class="popup-ip">${escapeHtml(node.ip)}</td>
-            <td class="popup-isp">${escapeHtml(node.isp)}</td>
-            <td class="popup-row-cell">${nodeValidatorRowHtml(node)}</td>
-            <td class="popup-peer-cell">${nodeValidatorDetailsHtml(node)}</td>
-          </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
+  return el("div", "popup-node-list", [
+    el("table", "popup-node-table", [
+      el(
+        "colgroup",
+        {},
+        ["ip", "isp", "row", "validator"].map((key) => el("col", `popup-col-${key}`)),
+      ),
+      el("thead", {}, [
+        el(
+          "tr",
+          {},
+          ["IP", "ISP", "Row", "Validator"].map((label) =>
+            el("th", { text: label, attrs: { scope: "col" } }),
+          ),
+        ),
+      ]),
+      el(
+        "tbody",
+        {},
+        safeNodes.map((node) =>
+          el("tr", {}, [
+            el("td", { className: "popup-ip", text: node.ip }),
+            el("td", { className: "popup-isp", text: node.isp }),
+            el("td", "popup-row-cell", [nodeValidatorRowButton(node)]),
+            el("td", "popup-peer-cell", [nodeValidatorDetails(node)]),
+          ]),
+        ),
+      ),
+    ]),
+  ]);
 }
 
-function nodeValidatorRowHtml(node) {
-  const peer = String(node?.peer || "");
-  const peerKey = peer.toLowerCase();
+function nodeValidatorRowButton(node) {
+  const peerKey = String(node?.peer || "").toLowerCase();
   const row = Number(node?.validator_row || 0);
   const rowLabel = row > 0 ? `#${row}` : "#-";
 
-  return `
-    <button class="popup-row-link" type="button" data-peer="${escapeHtml(peerKey)}" aria-label="Focus validator row ${escapeHtml(rowLabel)}">
-      ${escapeHtml(rowLabel)}
-    </button>
-  `;
+  return el("button", {
+    className: "popup-row-link",
+    text: rowLabel,
+    attrs: { type: "button", "aria-label": `Focus validator row ${rowLabel}` },
+    dataset: { peer: peerKey },
+  });
 }
 
-function nodeValidatorDetailsHtml(node) {
+function nodeValidatorDetails(node) {
   const peer = String(node?.peer || "");
-  const wallet = String(node?.validator_wallet || "");
-  const address = nodeValidatorAddressDisplay(wallet);
+  const address = nodeValidatorAddressDisplay(String(node?.validator_wallet || ""));
 
-  return `
-    <div class="popup-validator-details">
-      <div class="popup-validator-detail">
-        <span class="popup-validator-label">Pubkey</span>
-        <code class="popup-validator-value">${escapeHtml(peer || "-")}</code>
-      </div>
-      <div class="popup-validator-detail">
-        <span class="popup-validator-label">Address</span>
-        <code class="popup-validator-value">${escapeHtml(address)}</code>
-      </div>
-    </div>
-  `;
+  return el("div", "popup-validator-details", [
+    popupValidatorDetail("Pubkey", peer || "-"),
+    popupValidatorDetail("Address", address),
+  ]);
+}
+
+function popupValidatorDetail(label, value) {
+  return el("div", "popup-validator-detail", [
+    el("span", { className: "popup-validator-label", text: label }),
+    el("code", { className: "popup-validator-value", text: value }),
+  ]);
 }
 
 function nodeValidatorAddressDisplay(wallet) {
@@ -128,14 +131,4 @@ function nodeValidatorAddressDisplay(wallet) {
     addressType: selectedAddressType(state.selectedChainId),
   });
   return formatted.value || formatted.text || raw;
-}
-
-function escapeHtml(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;",
-    "'": "&#39;"
-  })[char]);
 }
