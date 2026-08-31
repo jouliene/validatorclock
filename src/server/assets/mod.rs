@@ -190,6 +190,46 @@ mod tests {
         assert!(STATS_JS_BUNDLE.contains("/stats/visitors"));
     }
 
+    // The bundle shares one global scope across 60 files, so two files can
+    // declare the same name and the last one silently wins.
+    #[test]
+    fn bundled_scripts_do_not_declare_the_same_name_twice() {
+        for (bundle, parts) in [("app.js", APP_JS_PARTS), ("stats", STATS_JS_PARTS)] {
+            let mut seen = std::collections::BTreeMap::<String, usize>::new();
+            for part in parts {
+                for name in top_level_declarations(part) {
+                    *seen.entry(name).or_default() += 1;
+                }
+            }
+
+            let clashes = seen
+                .into_iter()
+                .filter(|(_, count)| *count > 1)
+                .map(|(name, count)| format!("{name} ({count}x)"))
+                .collect::<Vec<_>>();
+
+            assert!(
+                clashes.is_empty(),
+                "the {bundle} bundle declares these names more than once: {clashes:?}"
+            );
+        }
+    }
+
+    fn top_level_declarations(source: &str) -> Vec<String> {
+        source
+            .lines()
+            .filter_map(|line| {
+                let rest = ["async function ", "function ", "const ", "let ", "class "]
+                    .iter()
+                    .find_map(|keyword| line.strip_prefix(*keyword))?;
+                let name = rest
+                    .split(|ch: char| !(ch.is_alphanumeric() || ch == '_' || ch == '$'))
+                    .next()?;
+                (!name.is_empty()).then(|| name.to_owned())
+            })
+            .collect()
+    }
+
     fn scripts_in(directory: &str) -> Vec<std::path::PathBuf> {
         let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(directory);
         std::fs::read_dir(&script_dir)
