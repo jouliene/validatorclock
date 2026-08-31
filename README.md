@@ -198,6 +198,9 @@ Important data files:
 
 ```text
 validatorclock.production.json
+validatorclock_cache_everscale.json
+validatorclock_cache_tycho-testnet.json
+validatorclock_cache_ton.json
 validatorclock_history_everscale.json
 validatorclock_history_tycho-testnet.json
 validatorclock_history_ton.json
@@ -205,3 +208,7 @@ validatorclock_validator_types.json
 validatorclock_visitors.json
 acme/
 ```
+
+The snapshot cache and the round history keep one file per chain, so a refresh
+rewrites only the chain it refreshed. A `validatorclock_cache.json` left by an
+earlier release is split into per-chain files on the next start and removed.

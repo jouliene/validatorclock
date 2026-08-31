@@ -10,6 +10,55 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+/// Splits a base state path into one file per chain:
+/// `state.json` plus `everscale` becomes `state_everscale.json`.
+pub(crate) fn chain_file_path(base_path: &Path, chain_id: &str) -> PathBuf {
+    let safe_chain_id = sanitize_chain_id(chain_id);
+    let mut path = base_path.to_path_buf();
+
+    let file_name = base_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| {
+            let stem = base_path
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .unwrap_or(name);
+            let extension = base_path
+                .extension()
+                .and_then(|extension| extension.to_str());
+            match extension {
+                Some(extension) if !extension.is_empty() => {
+                    format!("{stem}_{safe_chain_id}.{extension}")
+                }
+                _ => format!("{name}_{safe_chain_id}"),
+            }
+        })
+        .unwrap_or_else(|| format!("validatorclock_{safe_chain_id}.json"));
+
+    path.set_file_name(file_name);
+    path
+}
+
+fn sanitize_chain_id(chain_id: &str) -> String {
+    let sanitized = chain_id
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_') {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>();
+
+    if sanitized.is_empty() {
+        "chain".to_owned()
+    } else {
+        sanitized
+    }
+}
+
 pub(crate) fn write_file_atomic(path: &Path, data: &[u8], mode: u32) -> Result<()> {
     ensure_parent_dir(path)?;
     let tmp = temp_file_path(path);

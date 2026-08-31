@@ -20,6 +20,18 @@ impl RoundHistoryStore {
         changed
     }
 
+    /// A copy holding one chain, for saving without cloning the other chains.
+    pub(crate) fn single_chain(&self, chain_id: &str) -> Self {
+        Self {
+            chains: self
+                .chains
+                .get(chain_id)
+                .map(|chain| (chain_id.to_owned(), chain.clone()))
+                .into_iter()
+                .collect(),
+        }
+    }
+
     pub(crate) fn record_snapshot(
         &mut self,
         chain_id: &str,

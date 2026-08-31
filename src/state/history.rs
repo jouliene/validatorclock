@@ -74,7 +74,7 @@ impl AppState {
                     "round history scheduled for save"
                 );
             }
-            (changed || !history_path.exists()).then(|| history.clone())
+            (changed || !history_path.exists()).then(|| history.single_chain(&chain_id))
         };
 
         let Some(history_to_save) = history_to_save else {
