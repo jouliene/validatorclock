@@ -20,6 +20,7 @@ pub(super) const STATS_HTML: &str = include_str!("../../../public/stats.html");
 pub(super) const STATS_JS: &str = include_str!("../../../public/stats.js");
 pub(super) const SHARED_ANALYTICS_CLIENT_JS: &str =
     include_str!("../../../public/shared/analytics_client.js");
+pub(super) const SHARED_DOM_JS: &str = include_str!("../../../public/shared/dom.js");
 pub(super) const APP_STATE_JS: &str = include_str!("../../../public/app/state.js");
 pub(super) const APP_API_JS: &str = include_str!("../../../public/app/api.js");
 pub(super) const APP_FORMAT_ADDRESSES_JS: &str =
@@ -163,6 +164,7 @@ pub(super) const PORTRAIT_IMAGES: &[(&str, &[u8])] = &[
 ];
 
 pub(super) const APP_JS_PARTS: &[&str] = &[
+    SHARED_DOM_JS,
     APP_STATE_JS,
     APP_API_JS,
     APP_FORMAT_ADDRESSES_JS,
@@ -228,7 +230,7 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_ENTRY_JS,
 ];
 
-pub(super) const STATS_JS_PARTS: &[&str] = &[SHARED_ANALYTICS_CLIENT_JS, STATS_JS];
+pub(super) const STATS_JS_PARTS: &[&str] = &[SHARED_DOM_JS, SHARED_ANALYTICS_CLIENT_JS, STATS_JS];
 
 pub(super) const STYLES_CSS_PARTS: &[&str] = &[
     STYLES_TOKENS_CSS,

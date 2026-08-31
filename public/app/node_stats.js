@@ -129,7 +129,7 @@ function renderNodeStatsLoading() {
     clearNodeStatsSummary(summary);
   }
   if (content) {
-    content.innerHTML = `<div class="node-stats-state">Loading node statistics</div>`;
+    replaceChildren(content, el("div", { className: "node-stats-state", text: "Loading node statistics" }));
   }
 }
 
@@ -142,7 +142,13 @@ function renderNodeStatsError(error) {
     clearNodeStatsSummary(summary);
   }
   if (content) {
-    content.innerHTML = `<div class="node-stats-state is-error">${escapeHtml(formatValidatorMapError(error))}</div>`;
+    replaceChildren(
+      content,
+      el("div", {
+        className: "node-stats-state is-error",
+        text: formatValidatorMapError(error),
+      }),
+    );
   }
 }
 
@@ -167,43 +173,90 @@ function renderNodeStats() {
   if (!stats.mappedNodes) {
     clearNodeStatsSummary(summary);
     hideNodeStatsTooltip();
-    content.innerHTML = resolutionNotice
-      ? `<div class="node-stats-state is-notice">${escapeHtml(resolutionNotice)}</div>`
-      : `<div class="node-stats-state">No mapped ${escapeHtml(nodeStatsChainName())} validators</div>`;
+    replaceChildren(
+      content,
+      resolutionNotice
+        ? el("div", { className: "node-stats-state is-notice", text: resolutionNotice })
+        : el("div", {
+            className: "node-stats-state",
+            text: `No mapped ${nodeStatsChainName()} validators`,
+          }),
+    );
     return;
   }
 
   clearNodeStatsSummary(summary);
   hideNodeStatsTooltip();
-  content.innerHTML = `
-    <div class="node-stats-overview">
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.round, nodeStatsRoundValue(stats), "", NODE_STATS_LABELS.tooltips.round, false, `is-summary-round is-round ${nodeStatsRoundCardClass(stats.roundColor)}`)}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalNodes, formatNodeStatsInteger(stats.networkValidators), "", NODE_STATS_LABELS.tooltips.totalNodes, false, "is-summary-total-nodes")}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedNodes, formatNodeStatsInteger(stats.mappedNodes), "", NODE_STATS_LABELS.tooltips.mappedNodes, false, "is-summary-mapped-nodes")}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.totalStake, formatNodeStatsStake(stats.networkStake), "", NODE_STATS_LABELS.tooltips.totalStake, false, "is-summary-total-stake")}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.mappedStake, formatPercent(stats.mappedStakePercent), "", NODE_STATS_LABELS.tooltips.mappedStake, false, "is-summary-mapped-stake")}
-      ${nodeStatsCardHtml(NODE_STATS_LABELS.cards.bestGeoLocation, stats.medoid?.label || "-", "", NODE_STATS_LABELS.tooltips.bestGeoLocation, true, "is-summary-best-location")}
-    </div>
-    <div class="node-stats-layout">
-      <section class="node-stats-block node-stats-block-countries">
-        ${nodeStatsBlockTitleHtml(NODE_STATS_LABELS.blocks.countries, "countries")}
-        ${nodeStatsCountryTableHtml(stats.countryRows)}
-      </section>
-      <section class="node-stats-block node-stats-block-isps">
-        ${nodeStatsBlockTitleHtml(NODE_STATS_LABELS.blocks.isps, "isp")}
-        ${nodeStatsRankTableHtml(stats.ispRows)}
-      </section>
-      <section class="node-stats-block node-stats-block-cities">
-        ${nodeStatsBlockTitleHtml(NODE_STATS_LABELS.blocks.cities, "city")}
-        ${nodeStatsRankTableHtml(stats.locationRows)}
-      </section>
-      <section class="${escapeHtml(nodeStatsPlacementBlockClass())}">
-        ${nodeStatsBlockTitleHtml(NODE_STATS_LABELS.blocks.geoRanking, "ranking")}
-        ${nodeStatsPlacementHtml(stats)}
-      </section>
-    </div>
-  `;
-  wireNodeStatsCardTooltips(content);
+  replaceChildren(content, [
+    el("div", "node-stats-overview", [
+      nodeStatsCard(
+        NODE_STATS_LABELS.cards.round,
+        nodeStatsRoundValue(stats),
+        "",
+        NODE_STATS_LABELS.tooltips.round,
+        false,
+        `is-summary-round is-round ${nodeStatsRoundCardClass(stats.roundColor)}`,
+      ),
+      nodeStatsCard(
+        NODE_STATS_LABELS.cards.totalNodes,
+        formatNodeStatsInteger(stats.networkValidators),
+        "",
+        NODE_STATS_LABELS.tooltips.totalNodes,
+        false,
+        "is-summary-total-nodes",
+      ),
+      nodeStatsCard(
+        NODE_STATS_LABELS.cards.mappedNodes,
+        formatNodeStatsInteger(stats.mappedNodes),
+        "",
+        NODE_STATS_LABELS.tooltips.mappedNodes,
+        false,
+        "is-summary-mapped-nodes",
+      ),
+      nodeStatsCard(
+        NODE_STATS_LABELS.cards.totalStake,
+        formatNodeStatsStake(stats.networkStake),
+        "",
+        NODE_STATS_LABELS.tooltips.totalStake,
+        false,
+        "is-summary-total-stake",
+      ),
+      nodeStatsCard(
+        NODE_STATS_LABELS.cards.mappedStake,
+        formatPercent(stats.mappedStakePercent),
+        "",
+        NODE_STATS_LABELS.tooltips.mappedStake,
+        false,
+        "is-summary-mapped-stake",
+      ),
+      nodeStatsCard(
+        NODE_STATS_LABELS.cards.bestGeoLocation,
+        stats.medoid?.label || "-",
+        "",
+        NODE_STATS_LABELS.tooltips.bestGeoLocation,
+        true,
+        "is-summary-best-location",
+      ),
+    ]),
+    el("div", "node-stats-layout", [
+      el("section", "node-stats-block node-stats-block-countries", [
+        nodeStatsBlockTitle(NODE_STATS_LABELS.blocks.countries, "countries"),
+        nodeStatsCountryTable(stats.countryRows),
+      ]),
+      el("section", "node-stats-block node-stats-block-isps", [
+        nodeStatsBlockTitle(NODE_STATS_LABELS.blocks.isps, "isp"),
+        nodeStatsRankTable(stats.ispRows),
+      ]),
+      el("section", "node-stats-block node-stats-block-cities", [
+        nodeStatsBlockTitle(NODE_STATS_LABELS.blocks.cities, "city"),
+        nodeStatsRankTable(stats.locationRows),
+      ]),
+      el("section", nodeStatsPlacementBlockClass(), [
+        nodeStatsBlockTitle(NODE_STATS_LABELS.blocks.geoRanking, "ranking"),
+        nodeStatsPlacement(stats),
+      ]),
+    ]),
+  ]);
   wireNodeStatsRankingToggle(content);
   wireNodeStatsTableScrollHints(content);
 }

@@ -1,19 +1,17 @@
-// Node location statistics: the cards, tables, and ranking markup.
-function nodeStatsCardHtml(label, value, detail, tooltip = "", featured = false, extraClass = "") {
-  const className = ["node-stats-card", featured ? "is-featured" : "", extraClass].filter(Boolean).join(" ");
-  return `
-    <div class="${escapeHtml(className)}"${tooltip ? ` data-node-stats-tooltip="${escapeHtml(tooltip)}"` : ""}>
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value)}</strong>
-      ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
-    </div>
-  `;
-}
-
-function wireNodeStatsCardTooltips(root) {
-  for (const card of root.querySelectorAll("[data-node-stats-tooltip]")) {
-    setValidatorTooltip(card, card.dataset.nodeStatsTooltip || "");
+// Node location statistics: the cards, tables, and ranking elements.
+function nodeStatsCard(label, value, detail, tooltip = "", featured = false, extraClass = "") {
+  const className = ["node-stats-card", featured ? "is-featured" : "", extraClass]
+    .filter(Boolean)
+    .join(" ");
+  const card = el("div", { className }, [
+    el("span", { text: label }),
+    el("strong", { text: value }),
+    detail ? el("small", { text: detail }) : null,
+  ]);
+  if (tooltip) {
+    setValidatorTooltip(card, tooltip);
   }
+  return card;
 }
 
 function hideNodeStatsTooltip() {
@@ -36,15 +34,17 @@ function wireNodeStatsTableScrollHints(root) {
   }
 }
 
-function nodeStatsBlockTitleHtml(label, icon) {
-  return `
-    <h3 class="node-stats-block-title">
-      <span class="node-stats-block-icon node-stats-icon-${escapeHtml(icon)}" aria-hidden="true">
-        ${nodeStatsBlockIconSvg(icon)}
-      </span>
-      <span>${escapeHtml(label)}</span>
-    </h3>
-  `;
+function nodeStatsBlockTitle(label, icon) {
+  return el("h3", "node-stats-block-title", [
+    setStaticMarkup(
+      el("span", {
+        className: `node-stats-block-icon node-stats-icon-${icon}`,
+        attrs: { "aria-hidden": "true" },
+      }),
+      nodeStatsBlockIconSvg(icon),
+    ),
+    el("span", { text: label }),
+  ]);
 }
 
 function nodeStatsBlockIconSvg(icon) {
@@ -117,53 +117,56 @@ function wireNodeStatsRankingToggle(root) {
   });
 }
 
-function nodeStatsCountryTableHtml(rows) {
-  return nodeStatsAggregateTableHtml(rows, NODE_STATS_LABELS.columns.country, "country", "countries");
+function nodeStatsCountryTable(rows) {
+  return nodeStatsAggregateTable(rows, NODE_STATS_LABELS.columns.country, "country", "countries");
 }
 
-function nodeStatsRankTableHtml(rows) {
-  return nodeStatsAggregateTableHtml(rows, NODE_STATS_LABELS.columns.cluster, "cluster", "clusters");
+function nodeStatsRankTable(rows) {
+  return nodeStatsAggregateTable(rows, NODE_STATS_LABELS.columns.cluster, "cluster", "clusters");
 }
 
-function nodeStatsAggregateTableHtml(rows, nameHeader, singularLabel, pluralLabel) {
+function nodeStatsAggregateTable(rows, nameHeader, singularLabel, pluralLabel) {
   const tableRows = nodeStatsVisibleRows(rows, singularLabel, pluralLabel);
-  return `
-    <div class="node-stats-table-shell">
-      <table class="node-stats-table">
-        <colgroup>
-          <col class="node-stats-col-rank">
-          <col class="node-stats-col-name">
-          <col class="node-stats-col-count">
-          <col class="node-stats-col-stake">
-          <col class="node-stats-col-percent">
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.rank)}</th>
-            <th scope="col">${escapeHtml(nameHeader)}</th>
-            <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.nodes)}</th>
-            <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.stake)}</th>
-            <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.weightPercent)}</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${tableRows.map((row, index) => nodeStatsAggregateRowHtml(row, index)).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
+  return nodeStatsTableShell(
+    "node-stats-table",
+    ["rank", "name", "count", "stake", "percent"],
+    [
+      NODE_STATS_LABELS.columns.rank,
+      nameHeader,
+      NODE_STATS_LABELS.columns.nodes,
+      NODE_STATS_LABELS.columns.stake,
+      NODE_STATS_LABELS.columns.weightPercent,
+    ],
+    tableRows.map((row, index) =>
+      el("tr", { className: row.isRemainder ? "is-remainder" : "" }, [
+        el("td", { text: formatNodeStatsInteger(index + 1) }),
+        el("td", { text: row.label }),
+        el("td", { text: formatNodeStatsInteger(row.nodes) }),
+        el("td", { text: formatNodeStatsStake(row.stake) }),
+        el("td", { text: formatPercent(row.weightPercent) }),
+      ]),
+    ),
+  );
 }
 
-function nodeStatsAggregateRowHtml(row, index) {
-  return `
-    <tr${row.isRemainder ? ` class="is-remainder"` : ""}>
-      <td>${formatNodeStatsInteger(index + 1)}</td>
-      <td>${escapeHtml(row.label)}</td>
-      <td>${formatNodeStatsInteger(row.nodes)}</td>
-      <td>${formatNodeStatsStake(row.stake)}</td>
-      <td>${formatPercent(row.weightPercent)}</td>
-    </tr>
-  `;
+function nodeStatsTableShell(tableClass, columnKeys, headers, rows) {
+  return el("div", "node-stats-table-shell", [
+    el("table", tableClass, [
+      el(
+        "colgroup",
+        {},
+        columnKeys.map((key) => el("col", `node-stats-col-${key}`)),
+      ),
+      el("thead", {}, [
+        el(
+          "tr",
+          {},
+          headers.map((header) => el("th", { text: header, attrs: { scope: "col" } })),
+        ),
+      ]),
+      el("tbody", {}, rows),
+    ]),
+  ]);
 }
 
 function nodeStatsVisibleRows(rows, singularLabel, pluralLabel) {
@@ -187,52 +190,56 @@ function nodeStatsVisibleRows(rows, singularLabel, pluralLabel) {
   ];
 }
 
-function nodeStatsPlacementHtml(stats) {
+function nodeStatsPlacement(stats) {
   const mappedLocations = stats.mappedLocationRows;
   const visibleCount = Math.min(5, mappedLocations.length);
   const extraCount = Math.max(0, mappedLocations.length - visibleCount);
   const expanded = isNodeStatsLocationRankingExpanded();
-  return `
-    <div class="node-stats-placement">
-      <div class="node-stats-table-shell">
-        <table class="node-stats-table node-stats-ranking-table">
-          <colgroup>
-            <col class="node-stats-col-rank">
-            <col class="node-stats-col-location">
-            <col class="node-stats-col-distance-primary">
-            <col class="node-stats-col-distance-secondary">
-            <col class="node-stats-col-distance-tertiary">
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.rank)}</th>
-              <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.mappedLocation)}</th>
-              <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.weightedAverage)}</th>
-              <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.median)}</th>
-              <th scope="col">${escapeHtml(NODE_STATS_LABELS.columns.p90)}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${mappedLocations.map((row, index) => `
-            <tr${nodeStatsPlacementRowClass(index, visibleCount)}>
-              <td>${formatNodeStatsInteger(index + 1)}</td>
-              <td>${escapeHtml(row.label)}</td>
-              <td>${formatNodeStatsDistance(row.weightedAverageKm)}</td>
-              <td>${formatNodeStatsDistance(row.medianKm)}</td>
-              <td>${formatNodeStatsDistance(row.p90Km)}</td>
-            </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-      ${extraCount ? `
-      <div class="node-stats-ranking-footer">
-        <span data-node-stats-ranking-summary data-visible-count="${visibleCount}" data-total-count="${mappedLocations.length}">${escapeHtml(nodeStatsRankingSummaryText(visibleCount, mappedLocations.length, expanded))}</span>
-        <button class="node-stats-ranking-action" type="button" data-node-stats-ranking-toggle aria-expanded="${expanded ? "true" : "false"}">${escapeHtml(nodeStatsRankingActionText(expanded))}</button>
-      </div>
-      ` : ""}
-    </div>
-  `;
+
+  const table = nodeStatsTableShell(
+    "node-stats-table node-stats-ranking-table",
+    ["rank", "location", "distance-primary", "distance-secondary", "distance-tertiary"],
+    [
+      NODE_STATS_LABELS.columns.rank,
+      NODE_STATS_LABELS.columns.mappedLocation,
+      NODE_STATS_LABELS.columns.weightedAverage,
+      NODE_STATS_LABELS.columns.median,
+      NODE_STATS_LABELS.columns.p90,
+    ],
+    mappedLocations.map((row, index) =>
+      el("tr", { className: nodeStatsPlacementRowClass(index, visibleCount) }, [
+        el("td", { text: formatNodeStatsInteger(index + 1) }),
+        el("td", { text: row.label }),
+        el("td", { text: formatNodeStatsDistance(row.weightedAverageKm) }),
+        el("td", { text: formatNodeStatsDistance(row.medianKm) }),
+        el("td", { text: formatNodeStatsDistance(row.p90Km) }),
+      ]),
+    ),
+  );
+
+  return el("div", "node-stats-placement", [
+    table,
+    extraCount ? nodeStatsRankingFooter(visibleCount, mappedLocations.length, expanded) : null,
+  ]);
+}
+
+function nodeStatsRankingFooter(visibleCount, totalCount, expanded) {
+  return el("div", "node-stats-ranking-footer", [
+    el("span", {
+      text: nodeStatsRankingSummaryText(visibleCount, totalCount, expanded),
+      attrs: { "data-node-stats-ranking-summary": true },
+      dataset: { visibleCount, totalCount },
+    }),
+    el("button", {
+      className: "node-stats-ranking-action",
+      text: nodeStatsRankingActionText(expanded),
+      attrs: {
+        type: "button",
+        "data-node-stats-ranking-toggle": true,
+        "aria-expanded": expanded ? "true" : "false",
+      },
+    }),
+  ]);
 }
 
 function nodeStatsPlacementBlockClass() {
@@ -240,7 +247,9 @@ function nodeStatsPlacementBlockClass() {
     "node-stats-block",
     "node-stats-block-placement",
     isNodeStatsLocationRankingExpanded() ? "is-ranking-expanded" : "",
-  ].filter(Boolean).join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 function isNodeStatsLocationRankingExpanded() {
@@ -248,7 +257,9 @@ function isNodeStatsLocationRankingExpanded() {
 }
 
 function nodeStatsRankingActionText(expanded) {
-  return expanded ? NODE_STATS_LABELS.actions.showTopFive : NODE_STATS_LABELS.actions.viewFullRanking;
+  return expanded
+    ? NODE_STATS_LABELS.actions.showTopFive
+    : NODE_STATS_LABELS.actions.viewFullRanking;
 }
 
 function nodeStatsRankingSummaryText(visibleCount, totalCount, expanded) {
@@ -268,9 +279,8 @@ function nodeStatsPlacementRowClass(index, visibleCount) {
   if (index >= visibleCount) {
     classes.push("is-extra-ranking");
   }
-  return classes.length ? ` class="${classes.join(" ")}"` : "";
+  return classes.join(" ");
 }
-
 
 function formatNodeStatsRoundColor(value) {
   const color = String(value || "").trim();
