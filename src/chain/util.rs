@@ -1,6 +1,5 @@
 use super::RoundColor;
-use anyhow::{Context, Result};
-use std::time::{SystemTime, UNIX_EPOCH};
+use anyhow::Result;
 
 pub(super) fn round_color(round_id: u32) -> RoundColor {
     if round_id.is_multiple_of(2) {
@@ -63,10 +62,7 @@ pub(super) fn fresh_cache_seconds(refresh_seconds: u64) -> u64 {
 }
 
 pub(super) fn now_sec() -> Result<u64> {
-    Ok(SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .context("system time is before UNIX epoch")?
-        .as_secs())
+    crate::timeutil::now_sec_checked()
 }
 
 #[cfg(test)]

@@ -1,10 +1,11 @@
 use crate::state::AppState;
 use crate::state::visitors::VisitorGeo;
+use crate::timeutil::now_sec as now_seconds;
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{info, warn};
 
@@ -130,13 +131,6 @@ fn is_public_ipv6(ip: Ipv6Addr) -> bool {
         || ip.is_unspecified()
         || (first & 0xfe00) == 0xfc00
         || (first & 0xffc0) == 0xfe80)
-}
-
-fn now_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
 }
 
 #[derive(Debug, Deserialize)]

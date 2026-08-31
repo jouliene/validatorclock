@@ -35,10 +35,7 @@ fn assert_header_starts_with(headers: &HeaderMap, name: header::HeaderName, expe
 }
 
 fn now_sec_for_test() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs()
+    crate::timeutil::now_sec()
 }
 
 fn test_config(allowed_hosts: Vec<String>) -> AppConfig {

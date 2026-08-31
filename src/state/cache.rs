@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
 
 const SNAPSHOT_CACHE_VERSION: u32 = 1;
@@ -143,10 +142,7 @@ impl AppState {
 }
 
 fn now_sec() -> Option<u64> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .ok()
-        .map(|duration| duration.as_secs())
+    crate::timeutil::now_sec_checked().ok()
 }
 
 #[cfg(test)]

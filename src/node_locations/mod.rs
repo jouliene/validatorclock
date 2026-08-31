@@ -1,6 +1,7 @@
 use crate::config::{NodeLocationChainConfig, NodeLocationsConfig};
 use crate::fsutil::write_file_atomic;
 use crate::state::AppState;
+use crate::timeutil::now_sec;
 use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -9,7 +10,7 @@ use std::fs;
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, UNIX_EPOCH};
 use tokio::task::JoinSet;
 use tokio::time::sleep;
 use tracing::{info, warn};
@@ -1321,13 +1322,6 @@ fn ip_api_source() -> String {
 
 fn medium_confidence() -> String {
     "medium".to_owned()
-}
-
-fn now_sec() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
 }
 
 #[cfg(test)]

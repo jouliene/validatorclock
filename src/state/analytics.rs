@@ -9,17 +9,16 @@ use std::fs;
 use std::io::Read;
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::{info, warn};
 
 use super::AppState;
+use crate::timeutil::{day_index, day_string, now_sec as now_seconds, parse_day_index};
 
 type HmacSha256 = Hmac<Sha256>;
 
 const SESSION_TIMEOUT_SECONDS: u64 = 1_800;
 const ONLINE_WINDOW_SECONDS: u64 = 120;
 const VISITOR_HASH_RETENTION_DAYS: i64 = 35;
-const SECONDS_PER_DAY: u64 = 86_400;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AnalyticsEventKind {
@@ -136,7 +135,7 @@ impl AppState {
         };
         self.record_visitor(peer_addr.ip()).await;
         let now = now_seconds();
-        let today_index = (now / SECONDS_PER_DAY) as i64;
+        let today_index = day_index(now);
         let today = day_string(today_index);
         let visitor_key = {
             let runtime = self.analytics.lock().await;
@@ -191,7 +190,7 @@ impl AppState {
 
     pub(crate) async fn public_analytics(&self) -> PublicAnalytics {
         let now = now_seconds();
-        let today_index = (now / SECONDS_PER_DAY) as i64;
+        let today_index = day_index(now);
         let today_key = day_string(today_index);
         let mut runtime = self.analytics.lock().await;
         runtime
@@ -434,53 +433,6 @@ fn analytics_window(disk: &AnalyticsDisk, today_index: i64, days: i64) -> Public
     window
 }
 
-fn now_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
-}
-
-pub(super) fn day_string(day_index: i64) -> String {
-    let (year, month, day) = civil_from_days(day_index);
-    format!("{year:04}-{month:02}-{day:02}")
-}
-
-pub(super) fn parse_day_index(value: &str) -> Option<i64> {
-    let mut parts = value.split('-');
-    let year = parts.next()?.parse::<i32>().ok()?;
-    let month = parts.next()?.parse::<u32>().ok()?;
-    let day = parts.next()?.parse::<u32>().ok()?;
-    if parts.next().is_some() || !(1..=12).contains(&month) || !(1..=31).contains(&day) {
-        return None;
-    }
-    Some(days_from_civil(year, month, day))
-}
-
-fn civil_from_days(day_index: i64) -> (i32, u32, u32) {
-    let z = day_index + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let y = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = mp + if mp < 10 { 3 } else { -9 };
-    let year = y + i64::from(month <= 2);
-    (year as i32, month as u32, day as u32)
-}
-
-fn days_from_civil(mut year: i32, month: u32, day: u32) -> i64 {
-    year -= i32::from(month <= 2);
-    let era = if year >= 0 { year } else { year - 399 } / 400;
-    let yoe = year - era * 400;
-    let adjusted_month = month as i32 + if month > 2 { -3 } else { 9 };
-    let doy = (153 * adjusted_month + 2) / 5 + day as i32 - 1;
-    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
-    i64::from(era) * 146_097 + i64::from(doe) - 719_468
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -498,16 +450,6 @@ mod tests {
                 0x2001, 0xdb8, 0x1234, 0x5678, 0xabcd, 0, 0, 1
             ))),
             "2001:db8:1234:5678::/64"
-        );
-    }
-
-    #[test]
-    fn day_conversion_uses_utc_epoch_days() {
-        assert_eq!(day_string(0), "1970-01-01");
-        assert_eq!(parse_day_index("1970-01-01"), Some(0));
-        assert_eq!(
-            parse_day_index("2026-06-29").map(day_string),
-            Some("2026-06-29".to_owned())
         );
     }
 

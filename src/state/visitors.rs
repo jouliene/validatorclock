@@ -5,15 +5,15 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::net::IpAddr;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::warn;
 
 use super::AppState;
-use super::analytics::{day_string, parse_day_index};
+use crate::timeutil::{
+    SECONDS_PER_DAY, day_index, day_string, now_sec as now_seconds, parse_day_index,
+};
 
 const SESSION_TIMEOUT_SECONDS: u64 = 1_800;
 const ONLINE_WINDOW_SECONDS: u64 = 120;
-const SECONDS_PER_DAY: u64 = 86_400;
 const DAY_RETENTION_DAYS: i64 = 31;
 const RECORD_RETENTION_DAYS: i64 = 365;
 const MAX_VISITOR_RECORDS: usize = 5_000;
@@ -112,7 +112,7 @@ pub(super) fn load_initial_runtime(path: &Path) -> VisitorsRuntime {
 impl AppState {
     pub(crate) async fn record_visitor(&self, ip: IpAddr) {
         let now = now_seconds();
-        let today_index = (now / SECONDS_PER_DAY) as i64;
+        let today_index = day_index(now);
         let today = day_string(today_index);
 
         let snapshot = {
@@ -145,7 +145,7 @@ impl AppState {
 
     pub(crate) async fn public_visitors(&self) -> PublicVisitors {
         let now = now_seconds();
-        let today_index = (now / SECONDS_PER_DAY) as i64;
+        let today_index = day_index(now);
         let today = day_string(today_index);
         let window_start = today_index.saturating_sub(29);
         let runtime = self.visitors.lock().await;
@@ -292,13 +292,6 @@ fn load_visitors_disk(path: &Path) -> Result<VisitorsDisk> {
 fn save_visitors_disk(path: &Path, disk: &VisitorsDisk) -> Result<()> {
     let content = serde_json::to_vec_pretty(disk)?;
     fsutil::write_file_atomic(path, &content, 0o600)
-}
-
-fn now_seconds() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs()
 }
 
 #[cfg(test)]
