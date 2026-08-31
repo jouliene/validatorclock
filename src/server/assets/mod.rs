@@ -2,6 +2,7 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::http::header::{self, HeaderValue};
 use axum::response::{Html, IntoResponse, Response};
+use std::sync::LazyLock;
 
 mod embedded;
 mod version;
@@ -18,12 +19,16 @@ const ASSET_CACHE_CONTROL: HeaderValue =
 const PRIVATE_ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("private, max-age=31536000, immutable");
 
-pub(super) async fn index() -> Html<String> {
-    Html(render_page(INDEX_HTML))
+static INDEX_PAGE: LazyLock<String> = LazyLock::new(|| render_page(INDEX_HTML));
+static STATS_PAGE: LazyLock<String> = LazyLock::new(|| render_page(STATS_HTML));
+static APP_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| APP_JS_PARTS.join("\n\n"));
+
+pub(super) async fn index() -> Html<&'static str> {
+    Html(INDEX_PAGE.as_str())
 }
 
-pub(super) async fn stats_page() -> Html<String> {
-    Html(render_page(STATS_HTML))
+pub(super) async fn stats_page() -> Html<&'static str> {
+    Html(STATS_PAGE.as_str())
 }
 
 pub(super) async fn stats_js() -> impl IntoResponse {
@@ -41,7 +46,7 @@ pub(super) async fn stats_js() -> impl IntoResponse {
 
 fn render_page(template: &str) -> String {
     template
-        .replace("__ASSET_VERSION__", &asset_version())
+        .replace("__ASSET_VERSION__", asset_version())
         .replace("__APP_VERSION__", env!("CARGO_PKG_VERSION"))
 }
 
@@ -52,7 +57,7 @@ pub(super) async fn styles() -> impl IntoResponse {
 pub(super) async fn app_js() -> impl IntoResponse {
     (
         asset_response_headers("application/javascript; charset=utf-8"),
-        APP_JS_PARTS.join("\n\n"),
+        APP_JS_BUNDLE.as_str(),
     )
 }
 
