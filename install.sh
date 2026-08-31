@@ -192,8 +192,14 @@ default_chains = [
     },
 ]
 
-with config_path.open("r", encoding="utf-8") as fh:
-    config = json.load(fh)
+try:
+    with config_path.open("r", encoding="utf-8") as fh:
+        config = json.load(fh)
+except json.JSONDecodeError as error:
+    raise SystemExit(
+        f"{config_path} is not valid JSON: {error}\n"
+        "Fix the config (a trailing comma before } or ] is the usual cause) and run the script again."
+    )
 
 chains = config.setdefault("chains", [])
 if not isinstance(chains, list):
