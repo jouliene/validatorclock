@@ -7,6 +7,7 @@ use super::assets::{
     app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, stats_js,
     stats_page, styles, ton_logo, tycho_logo,
 };
+use super::conditional::add_entity_tags;
 use super::responses::not_found;
 use super::security::{
     add_security_headers, enforce_allowed_host, handle_options, require_stats_auth,
@@ -21,6 +22,7 @@ use tower::ServiceBuilder;
 
 pub(super) fn app_router(state: Arc<AppState>) -> Router {
     let layers = ServiceBuilder::new()
+        .layer(middleware::from_fn(add_entity_tags))
         .layer(middleware::from_fn(add_security_headers))
         .layer(middleware::from_fn_with_state(
             Arc::clone(&state),

@@ -64,7 +64,13 @@ pub(super) async fn require_stats_auth(
             if secret_eq(&username, &stats_auth.username)
                 && secret_eq(&offered_password, &password) =>
         {
-            next.run(request).await
+            let mut response = next.run(request).await;
+            if !response.headers().contains_key(header::CACHE_CONTROL) {
+                response
+                    .headers_mut()
+                    .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+            }
+            response
         }
         offered => {
             if offered.is_some() {
@@ -145,7 +151,7 @@ pub(super) fn redirect_response(state: &AppState, headers: &HeaderMap, uri: &Uri
 
 fn add_common_headers(headers: &mut HeaderMap) {
     if !headers.contains_key(header::CACHE_CONTROL) {
-        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
     }
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,

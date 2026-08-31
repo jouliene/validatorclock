@@ -1,3 +1,4 @@
+use crate::server::conditional::Fnv1a64;
 use std::sync::LazyLock;
 
 use super::embedded::{
@@ -26,32 +27,4 @@ fn build_asset_version() -> String {
     hash.update(JOKES_JSON.as_bytes());
 
     format!("{}-{:016x}", env!("CARGO_PKG_VERSION"), hash.finish())
-}
-
-struct Fnv1a64 {
-    value: u64,
-}
-
-impl Fnv1a64 {
-    const OFFSET: u64 = 0xcbf29ce484222325;
-    const PRIME: u64 = 0x100000001b3;
-
-    fn new() -> Self {
-        Self {
-            value: Self::OFFSET,
-        }
-    }
-
-    fn update(&mut self, bytes: &[u8]) {
-        for byte in bytes {
-            self.value ^= u64::from(*byte);
-            self.value = self.value.wrapping_mul(Self::PRIME);
-        }
-        self.value ^= 0xff;
-        self.value = self.value.wrapping_mul(Self::PRIME);
-    }
-
-    fn finish(self) -> u64 {
-        self.value
-    }
 }

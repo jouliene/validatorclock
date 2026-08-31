@@ -124,6 +124,23 @@ async fn app_response(state: std::sync::Arc<AppState>, uri: &str) -> axum::respo
         .unwrap()
 }
 
+async fn conditional_response(
+    state: std::sync::Arc<AppState>,
+    uri: &str,
+    if_none_match: &str,
+) -> axum::response::Response {
+    crate::server::routes::app_router(state)
+        .oneshot(
+            axum::http::Request::builder()
+                .uri(uri)
+                .header(header::IF_NONE_MATCH, if_none_match)
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+}
+
 async fn stats_response(
     state: std::sync::Arc<AppState>,
     uri: &str,

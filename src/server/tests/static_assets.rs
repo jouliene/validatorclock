@@ -15,7 +15,7 @@ async fn app_router_versions_and_caches_static_assets() {
             .headers()
             .get(header::CACHE_CONTROL)
             .and_then(|value| value.to_str().ok()),
-        Some("no-store")
+        Some("no-cache")
     );
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
@@ -107,6 +107,66 @@ async fn app_router_versions_and_caches_static_assets() {
         response.headers(),
         header::CONTENT_TYPE,
         "image/svg+xml; charset=utf-8",
+    );
+}
+
+#[tokio::test]
+async fn revalidated_responses_carry_entity_tags_and_answer_304() {
+    let state = test_state(Vec::new());
+
+    let response = app_response(Arc::clone(&state), "/api/chains").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let entity_tag = response
+        .headers()
+        .get(header::ETAG)
+        .and_then(|value| value.to_str().ok())
+        .expect("chains response should carry an entity tag")
+        .to_owned();
+    assert!(entity_tag.starts_with("W/\""));
+
+    let response = conditional_response(Arc::clone(&state), "/api/chains", &entity_tag).await;
+
+    assert_eq!(response.status(), StatusCode::NOT_MODIFIED);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::ETAG)
+            .and_then(|value| value.to_str().ok()),
+        Some(entity_tag.as_str())
+    );
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    assert!(body.is_empty());
+
+    let response = conditional_response(state, "/api/chains", "W/\"stale\"").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+}
+
+#[tokio::test]
+async fn private_stats_responses_are_never_revalidated_from_a_stored_copy() {
+    let state = test_state(Vec::new());
+
+    let response = authed_stats_response(Arc::clone(&state), "/stats/visitors").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("no-store")
+    );
+    assert!(response.headers().get(header::ETAG).is_none());
+
+    let response = authed_stats_response(state, "/stats").await;
+
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CACHE_CONTROL)
+            .and_then(|value| value.to_str().ok()),
+        Some("no-store")
     );
 }
 
