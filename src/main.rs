@@ -9,6 +9,7 @@ mod chain;
 mod config;
 mod decimal;
 mod fsutil;
+mod geoip;
 mod history;
 mod http;
 mod logging;

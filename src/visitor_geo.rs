@@ -1,18 +1,17 @@
+use crate::geoip;
 use crate::state::AppState;
 use crate::state::visitors::VisitorGeo;
 use crate::timeutil::now_sec as now_seconds;
-use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::sleep;
-use tracing::{info, warn};
+use tracing::info;
 
 const STARTUP_DELAY_SECONDS: u64 = 20;
 const REFRESH_SECONDS: u64 = 120;
 const BATCH_SIZE: usize = 100;
-const REQUEST_TIMEOUT_SECONDS: u64 = 20;
 
 pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
     tokio::spawn(async move {
@@ -50,49 +49,34 @@ async fn refresh_pending_visitor_geo(state: &AppState) {
 
     if !public.is_empty() {
         let endpoint = &state.config.node_locations.ip_api_batch_endpoint;
-        let http = crate::http::shared_client();
-        locations.extend(lookup_ip_api_locations(http, endpoint, &public, now).await);
+        locations.extend(
+            geoip::lookup_batch(endpoint, &public)
+                .await
+                .into_iter()
+                .map(|located| (located.ip, visitor_geo_from_lookup(located, now))),
+        );
     }
 
     state.apply_visitor_geo(locations).await;
 }
 
-async fn lookup_ip_api_locations(
-    http: &reqwest::Client,
-    endpoint: &str,
-    ips: &[IpAddr],
-    now: u64,
-) -> BTreeMap<IpAddr, VisitorGeo> {
-    let mut output = BTreeMap::new();
-    for chunk in ips.chunks(BATCH_SIZE) {
-        let requests = chunk.iter().map(IpAddr::to_string).collect::<Vec<_>>();
-        let response = match http
-            .post(endpoint)
-            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECONDS))
-            .json(&requests)
-            .send()
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => {
-                warn!(error = ?error, "visitor geo batch lookup failed");
-                continue;
-            }
+fn visitor_geo_from_lookup(located: geoip::IpApiLocation, now: u64) -> VisitorGeo {
+    if !located.resolved {
+        return VisitorGeo {
+            country: Some("Unknown".to_owned()),
+            updated_at: now,
+            ..VisitorGeo::default()
         };
-        if !response.status().is_success() {
-            warn!(status = %response.status(), "visitor geo batch lookup returned an error");
-            continue;
-        }
-        let raw = match response.json::<Vec<IpApiVisitorResponse>>().await {
-            Ok(raw) => raw,
-            Err(error) => {
-                warn!(error = ?error, "failed to decode visitor geo batch response");
-                continue;
-            }
-        };
-        output.extend(raw.into_iter().filter_map(|item| item.into_geo(now)));
     }
-    output
+
+    VisitorGeo {
+        country: located.country,
+        country_code: located.country_code,
+        city: located.city,
+        isp: located.isp,
+        asn: located.asn,
+        updated_at: now,
+    }
 }
 
 fn local_network_geo(now: u64) -> VisitorGeo {
@@ -133,64 +117,6 @@ fn is_public_ipv6(ip: Ipv6Addr) -> bool {
         || (first & 0xffc0) == 0xfe80)
 }
 
-#[derive(Debug, Deserialize)]
-struct IpApiVisitorResponse {
-    #[serde(default)]
-    status: Option<String>,
-    #[serde(default)]
-    query: Option<String>,
-    #[serde(default)]
-    country: Option<String>,
-    #[serde(default, rename = "countryCode")]
-    country_code: Option<String>,
-    #[serde(default)]
-    city: Option<String>,
-    #[serde(default)]
-    isp: Option<String>,
-    #[serde(default, rename = "as")]
-    as_text: Option<String>,
-}
-
-impl IpApiVisitorResponse {
-    fn into_geo(self, now: u64) -> Option<(IpAddr, VisitorGeo)> {
-        let ip = self.query?.parse::<IpAddr>().ok()?;
-        if self.status.as_deref() != Some("success") {
-            return Some((
-                ip,
-                VisitorGeo {
-                    country: Some("Unknown".to_owned()),
-                    updated_at: now,
-                    ..VisitorGeo::default()
-                },
-            ));
-        }
-        Some((
-            ip,
-            VisitorGeo {
-                country: self.country.and_then(trimmed_non_empty),
-                country_code: self.country_code.and_then(trimmed_non_empty),
-                city: self.city.and_then(trimmed_non_empty),
-                isp: self.isp.and_then(trimmed_non_empty),
-                asn: self.as_text.as_deref().and_then(parse_asn),
-                updated_at: now,
-            },
-        ))
-    }
-}
-
-fn trimmed_non_empty(value: String) -> Option<String> {
-    let trimmed = value.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_owned())
-}
-
-fn parse_asn(value: &str) -> Option<String> {
-    let token = value.split_whitespace().next()?;
-    token
-        .strip_prefix("AS")
-        .filter(|digits| !digits.is_empty() && digits.chars().all(|ch| ch.is_ascii_digit()))
-        .map(|_| token.to_owned())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,40 +135,24 @@ mod tests {
     }
 
     #[test]
-    fn ip_api_success_maps_to_visitor_geo() {
-        let raw = serde_json::json!({
-            "status": "success",
-            "query": "203.0.113.9",
-            "country": "United States",
-            "countryCode": "US",
-            "city": "San Francisco",
-            "isp": "OVH SAS",
-            "as": "AS16276 OVH SAS",
-        });
-        let response = serde_json::from_value::<IpApiVisitorResponse>(raw).unwrap();
+    fn a_failed_lookup_is_still_marked_as_resolved() {
+        let located = geoip::IpApiLocation {
+            ip: "203.0.113.9".parse().unwrap(),
+            resolved: false,
+            country: None,
+            country_code: None,
+            city: None,
+            isp: None,
+            asn: None,
+            as_name: None,
+            lat: None,
+            lon: None,
+        };
 
-        let (ip, geo) = response.into_geo(1_700_000_000).unwrap();
-
-        assert_eq!(ip, "203.0.113.9".parse::<IpAddr>().unwrap());
-        assert_eq!(geo.country.as_deref(), Some("United States"));
-        assert_eq!(geo.city.as_deref(), Some("San Francisco"));
-        assert_eq!(geo.isp.as_deref(), Some("OVH SAS"));
-        assert_eq!(geo.asn.as_deref(), Some("AS16276"));
-        assert_eq!(geo.updated_at, 1_700_000_000);
-    }
-
-    #[test]
-    fn ip_api_failure_still_marks_the_address_as_resolved() {
-        let raw = serde_json::json!({
-            "status": "fail",
-            "query": "203.0.113.9",
-            "message": "reserved range",
-        });
-        let response = serde_json::from_value::<IpApiVisitorResponse>(raw).unwrap();
-
-        let (_, geo) = response.into_geo(42).unwrap();
+        let geo = visitor_geo_from_lookup(located, 42);
 
         assert_eq!(geo.country.as_deref(), Some("Unknown"));
         assert_eq!(geo.city, None);
+        assert_eq!(geo.updated_at, 42);
     }
 }

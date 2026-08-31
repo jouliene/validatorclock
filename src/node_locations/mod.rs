@@ -1,5 +1,6 @@
 use crate::config::{NodeLocationChainConfig, NodeLocationsConfig};
 use crate::fsutil::write_file_atomic;
+use crate::geoip::{self, trimmed_non_empty};
 use crate::state::AppState;
 use crate::timeutil::now_sec;
 use anyhow::{Context, Result, anyhow};
@@ -15,9 +16,8 @@ use tokio::task::JoinSet;
 use tokio::time::sleep;
 use tracing::{info, warn};
 
-const IP_API_BATCH_SIZE: usize = 100;
-const LOOKUP_TIMEOUT: Duration = Duration::from_secs(20);
 const IPINFO_CONCURRENCY: usize = 16;
+const IPINFO_LOOKUP_TIMEOUT: Duration = Duration::from_secs(20);
 const MAP_NODE_RETENTION_SECONDS: u64 = 60 * 60;
 
 pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
@@ -136,7 +136,7 @@ async fn refresh_chain_locations(
         .collect::<Vec<_>>();
 
     let fetched =
-        lookup_ip_api_locations(http, &node_config.ip_api_batch_endpoint, &lookup_ips, now).await;
+        lookup_ip_api_locations(&node_config.ip_api_batch_endpoint, &lookup_ips, now).await;
     let mut cache_changed = false;
     for (ip, mut location) in fetched {
         if let Some(existing) = geo_cache.location(ip) {
@@ -372,41 +372,15 @@ fn unique_candidates(candidates: Vec<CandidateNode>) -> Vec<CandidateNode> {
 }
 
 async fn lookup_ip_api_locations(
-    http: &reqwest::Client,
     endpoint: &str,
     ips: &[IpAddr],
     now: u64,
 ) -> BTreeMap<IpAddr, CachedGeoLocation> {
-    let mut output = BTreeMap::new();
-    for chunk in ips.chunks(IP_API_BATCH_SIZE) {
-        let requests = chunk.iter().map(IpAddr::to_string).collect::<Vec<_>>();
-        let response = match http
-            .post(endpoint)
-            .timeout(LOOKUP_TIMEOUT)
-            .json(&requests)
-            .send()
-            .await
-        {
-            Ok(response) => response,
-            Err(error) => {
-                warn!(error = ?error, "ip-api batch lookup failed");
-                continue;
-            }
-        };
-        if !response.status().is_success() {
-            warn!(status = %response.status(), "ip-api batch lookup returned an error");
-            continue;
-        }
-        let raw = match response.json::<Vec<IpApiResponse>>().await {
-            Ok(raw) => raw,
-            Err(error) => {
-                warn!(error = ?error, "failed to decode ip-api batch response");
-                continue;
-            }
-        };
-        output.extend(raw.into_iter().filter_map(|item| item.into_location(now)));
-    }
-    output
+    geoip::lookup_batch(endpoint, ips)
+        .await
+        .into_iter()
+        .filter_map(|located| Some((located.ip, CachedGeoLocation::from_lookup(located, now)?)))
+        .collect()
 }
 
 async fn refresh_ipinfo_verification(
@@ -500,7 +474,7 @@ async fn lookup_ipinfo_lite_one(
     };
     url.query_pairs_mut().append_pair("token", &token);
 
-    let response = match http.get(url).timeout(LOOKUP_TIMEOUT).send().await {
+    let response = match http.get(url).timeout(IPINFO_LOOKUP_TIMEOUT).send().await {
         Ok(response) => response,
         Err(error) => {
             warn!(ip = %ip, error = ?error, "ipinfo lookup failed");
@@ -838,6 +812,28 @@ struct CachedGeoLocation {
 }
 
 impl CachedGeoLocation {
+    fn from_lookup(located: geoip::IpApiLocation, now: u64) -> Option<Self> {
+        if !located.resolved {
+            return None;
+        }
+        Some(Self {
+            city: located.city.unwrap_or_else(unknown_string),
+            country: located.country.unwrap_or_else(unknown_string),
+            country_code: located.country_code,
+            isp: located.isp.unwrap_or_else(unknown_string),
+            asn: located.asn,
+            as_name: located.as_name,
+            lat: located.lat?,
+            lon: located.lon?,
+            source: ip_api_source(),
+            confidence: medium_confidence(),
+            updated_at: now,
+            ipinfo: None,
+            ipinfo_conflict: false,
+            ipinfo_conflict_reason: None,
+        })
+    }
+
     fn has_coordinates(&self) -> bool {
         self.lat.is_finite() && self.lon.is_finite()
     }
@@ -941,61 +937,6 @@ fn save_geo_cache(path: &Path, cache: &GeoCache) -> Result<()> {
     let data =
         serde_json::to_vec_pretty(&cache.locations).context("failed to serialize geo cache")?;
     write_file_atomic(path, &data, 0o600)
-}
-
-#[derive(Debug, Deserialize)]
-struct IpApiResponse {
-    #[serde(default)]
-    status: Option<String>,
-    #[serde(default)]
-    query: Option<String>,
-    #[serde(default)]
-    country: Option<String>,
-    #[serde(default, rename = "countryCode")]
-    country_code: Option<String>,
-    #[serde(default)]
-    city: Option<String>,
-    #[serde(default)]
-    lat: Option<f64>,
-    #[serde(default)]
-    lon: Option<f64>,
-    #[serde(default)]
-    isp: Option<String>,
-    #[serde(default, rename = "as")]
-    as_text: Option<String>,
-}
-
-impl IpApiResponse {
-    fn into_location(self, now: u64) -> Option<(IpAddr, CachedGeoLocation)> {
-        if self.status.as_deref() != Some("success") {
-            return None;
-        }
-        let ip = self.query?.parse::<IpAddr>().ok()?;
-        let lat = self.lat?;
-        let lon = self.lon?;
-        if !lat.is_finite() || !lon.is_finite() {
-            return None;
-        }
-        Some((
-            ip,
-            CachedGeoLocation {
-                city: self.city.unwrap_or_else(unknown_string),
-                country: self.country.unwrap_or_else(unknown_string),
-                country_code: self.country_code.and_then(trimmed_non_empty),
-                isp: self.isp.unwrap_or_else(unknown_string),
-                asn: self.as_text.as_deref().and_then(parse_asn),
-                as_name: self.as_text.as_deref().and_then(parse_as_name),
-                lat,
-                lon,
-                source: ip_api_source(),
-                confidence: medium_confidence(),
-                updated_at: now,
-                ipinfo: None,
-                ipinfo_conflict: false,
-                ipinfo_conflict_reason: None,
-            },
-        ))
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1220,32 +1161,6 @@ fn string_field(value: &Value, field: &str) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_owned)
-}
-
-fn trimmed_non_empty(value: String) -> Option<String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_owned())
-    }
-}
-
-fn parse_asn(value: &str) -> Option<String> {
-    value
-        .split_whitespace()
-        .next()
-        .map(str::trim)
-        .filter(|asn| asn.starts_with("AS") && asn.len() > 2)
-        .map(str::to_owned)
-}
-
-fn parse_as_name(value: &str) -> Option<String> {
-    let mut parts = value.splitn(2, char::is_whitespace);
-    let _asn = parts.next()?;
-    parts
-        .next()
-        .and_then(|name| trimmed_non_empty(name.to_owned()))
 }
 
 fn normalized_code(value: &Option<String>) -> Option<String> {
