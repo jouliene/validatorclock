@@ -155,9 +155,7 @@ default_chains = [
         "id": "everscale",
         "name": "Everscale",
         "rpc": "https://mainnet.evercloud.dev/graphql",
-        "rpc_fallbacks": [
-            "https://mainnet.evercloud.dev/graphql",
-        ],
+        "rpc_fallbacks": [],
         "retired_rpc": [
             "https://jrpc.everwallet.net",
         ],
@@ -398,9 +396,7 @@ write_config_if_missing() {
       "id": "everscale",
       "name": "Everscale",
       "rpc": "https://mainnet.evercloud.dev/graphql",
-      "rpc_fallbacks": [
-        "https://mainnet.evercloud.dev/graphql"
-      ],
+      "rpc_fallbacks": [],
       "color": "#6347F5",
       "token_symbol": "EVER",
       "rpc_label": "mainnet.evercloud.dev"
