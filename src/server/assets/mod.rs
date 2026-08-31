@@ -15,6 +15,8 @@ pub(super) use version::asset_version;
 
 const ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("public, max-age=31536000, immutable");
+const PRIVATE_ASSET_CACHE_CONTROL: HeaderValue =
+    HeaderValue::from_static("private, max-age=31536000, immutable");
 
 pub(super) async fn index() -> Html<String> {
     Html(render_page(INDEX_HTML))
@@ -25,7 +27,16 @@ pub(super) async fn stats_page() -> Html<String> {
 }
 
 pub(super) async fn stats_js() -> impl IntoResponse {
-    text_asset_response("application/javascript; charset=utf-8", STATS_JS)
+    (
+        [
+            (
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/javascript; charset=utf-8"),
+            ),
+            (header::CACHE_CONTROL, PRIVATE_ASSET_CACHE_CONTROL),
+        ],
+        STATS_JS,
+    )
 }
 
 fn render_page(template: &str) -> String {

@@ -111,23 +111,27 @@ async fn app_router_versions_and_caches_static_assets() {
 }
 
 #[tokio::test]
-async fn app_router_serves_the_public_visitor_stats_page() {
+async fn app_router_serves_the_visitor_stats_page_to_authenticated_requests() {
     let state = test_state(Vec::new());
     let asset_version = asset_version();
 
-    let response = app_response(Arc::clone(&state), "/stats").await;
+    let response = authed_stats_response(Arc::clone(&state), "/stats").await;
 
     assert_eq!(response.status(), StatusCode::OK);
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
     assert!(body.contains(&format!("/styles.css?v={asset_version}")));
-    assert!(body.contains(&format!("/stats.js?v={asset_version}")));
+    assert!(body.contains(&format!("/stats/app.js?v={asset_version}")));
     assert!(body.contains(&format!("version {}", env!("CARGO_PKG_VERSION"))));
     assert!(!body.contains("__ASSET_VERSION__"));
     assert!(!body.contains("__APP_VERSION__"));
     assert_no_native_title_attributes(&body);
 
-    let response = app_response(Arc::clone(&state), &format!("/stats.js?v={asset_version}")).await;
+    let response = authed_stats_response(
+        Arc::clone(&state),
+        &format!("/stats/app.js?v={asset_version}"),
+    )
+    .await;
 
     assert_eq!(response.status(), StatusCode::OK);
     assert_header_starts_with(
@@ -137,8 +141,72 @@ async fn app_router_serves_the_public_visitor_stats_page() {
     );
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
-    assert!(body.contains("/api/analytics/visitors"));
+    assert!(body.contains("/stats/visitors"));
     assert_no_native_title_assignments(&body);
+}
+
+#[tokio::test]
+async fn stats_routes_challenge_requests_without_valid_credentials() {
+    let state = test_state(Vec::new());
+
+    for uri in ["/stats", "/stats/", "/stats/app.js", "/stats/visitors"] {
+        let response = stats_response(Arc::clone(&state), uri, None).await;
+
+        assert_eq!(
+            response.status(),
+            StatusCode::UNAUTHORIZED,
+            "`{uri}` should be protected"
+        );
+        assert_header_starts_with(response.headers(), header::WWW_AUTHENTICATE, "Basic realm=");
+    }
+
+    let wrong_password = stats_credentials(TEST_STATS_USERNAME, "not-the-password");
+    let response = stats_response(Arc::clone(&state), "/stats", Some(&wrong_password)).await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let wrong_user = stats_credentials("someone", TEST_STATS_PASSWORD);
+    let response = stats_response(Arc::clone(&state), "/stats", Some(&wrong_user)).await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+    let response = stats_response(Arc::clone(&state), "/stats", Some("Basic not-base64")).await;
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn stats_routes_stay_hidden_when_no_password_is_configured() {
+    let mut config = test_config(Vec::new());
+    config.security.stats_auth = crate::config::StatsAuthConfig {
+        password: None,
+        password_env: "VALIDATORCLOCK_STATS_PASSWORD_UNSET_FOR_TESTS".to_owned(),
+        ..crate::config::StatsAuthConfig::default()
+    };
+    let state = state_from_config(config);
+
+    for uri in ["/stats", "/stats/visitors"] {
+        let response = stats_response(Arc::clone(&state), uri, None).await;
+
+        assert_eq!(
+            response.status(),
+            StatusCode::NOT_FOUND,
+            "`{uri}` should stay hidden without a configured password"
+        );
+        assert!(response.headers().get(header::WWW_AUTHENTICATE).is_none());
+    }
+}
+
+#[tokio::test]
+async fn old_public_stats_routes_are_gone() {
+    let state = test_state(Vec::new());
+
+    for uri in ["/stats.js", "/stats.html", "/api/analytics/visitors"] {
+        let response = authed_stats_response(Arc::clone(&state), uri).await;
+
+        assert_eq!(
+            response.status(),
+            StatusCode::NOT_FOUND,
+            "`{uri}` should no longer be routed"
+        );
+    }
 }
 
 #[tokio::test]

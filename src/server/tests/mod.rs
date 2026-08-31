@@ -1,5 +1,5 @@
 use crate::chain::{ClockSnapshot, test_clock_snapshot};
-use crate::config::{AppConfig, ChainConfig, SecurityConfig, TlsConfig};
+use crate::config::{AppConfig, ChainConfig, SecurityConfig, StatsAuthConfig, TlsConfig};
 use crate::state::AppState;
 use axum::body::to_bytes;
 use axum::http::{HeaderMap, header};
@@ -54,6 +54,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         node_locations: Default::default(),
         security: SecurityConfig {
             allowed_hosts,
+            stats_auth: test_stats_auth(),
             ..SecurityConfig::default()
         },
         tls: TlsConfig {
@@ -70,6 +71,25 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
             rpc_label: None,
         }],
     }
+}
+
+const TEST_STATS_USERNAME: &str = "stats";
+const TEST_STATS_PASSWORD: &str = "stats-password";
+
+fn test_stats_auth() -> StatsAuthConfig {
+    StatsAuthConfig {
+        username: TEST_STATS_USERNAME.to_owned(),
+        password: Some(TEST_STATS_PASSWORD.to_owned()),
+        ..StatsAuthConfig::default()
+    }
+}
+
+fn stats_credentials(username: &str, password: &str) -> String {
+    use base64::Engine;
+    format!(
+        "Basic {}",
+        base64::engine::general_purpose::STANDARD.encode(format!("{username}:{password}"))
+    )
 }
 
 fn test_state(allowed_hosts: Vec<String>) -> std::sync::Arc<AppState> {
@@ -102,6 +122,29 @@ async fn app_response(state: std::sync::Arc<AppState>, uri: &str) -> axum::respo
         )
         .await
         .unwrap()
+}
+
+async fn stats_response(
+    state: std::sync::Arc<AppState>,
+    uri: &str,
+    credentials: Option<&str>,
+) -> axum::response::Response {
+    let mut request = axum::http::Request::builder().uri(uri);
+    if let Some(credentials) = credentials {
+        request = request.header(header::AUTHORIZATION, credentials);
+    }
+    crate::server::routes::app_router(state)
+        .oneshot(request.body(axum::body::Body::empty()).unwrap())
+        .await
+        .unwrap()
+}
+
+async fn authed_stats_response(
+    state: std::sync::Arc<AppState>,
+    uri: &str,
+) -> axum::response::Response {
+    let credentials = stats_credentials(TEST_STATS_USERNAME, TEST_STATS_PASSWORD);
+    stats_response(state, uri, Some(&credentials)).await
 }
 
 fn temp_state_path(name: &str) -> PathBuf {

@@ -10,6 +10,8 @@ mod tls;
 pub(crate) use acme::AcmeConfig;
 pub(crate) use app::{AppConfig, ChainConfig, NodeLocationChainConfig, NodeLocationsConfig};
 pub(crate) use security::SecurityConfig;
+#[cfg(test)]
+pub(crate) use security::StatsAuthConfig;
 pub(crate) use tls::TlsConfig;
 
 const DEFAULT_CONFIG: &str = include_str!("../../validatorclock.json");

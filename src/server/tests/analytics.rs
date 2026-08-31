@@ -74,7 +74,7 @@ async fn visitor_stats_expose_ip_level_traffic_for_the_public_stats_page() {
     analytics_event_response(Arc::clone(&state), "heartbeat", "198.51.100.7:1201").await;
     analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.8:1202").await;
 
-    let json = response_json(app_response(state, "/api/analytics/visitors").await).await;
+    let json = response_json(authed_stats_response(state, "/stats/visitors").await).await;
 
     assert_eq!(json["known_visitors"], 2);
     assert_eq!(json["listed_visitors"], 2);
@@ -129,7 +129,7 @@ async fn visitor_stats_ignore_obvious_bot_user_agents() {
         .await
         .unwrap();
 
-    let json = response_json(app_response(state, "/api/analytics/visitors").await).await;
+    let json = response_json(authed_stats_response(state, "/stats/visitors").await).await;
 
     assert_eq!(json["known_visitors"], 0);
     assert!(json["visitors"].as_array().unwrap().is_empty());

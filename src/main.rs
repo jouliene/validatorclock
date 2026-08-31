@@ -3,7 +3,7 @@ use config::load_config;
 use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
-use tracing::info;
+use tracing::{info, warn};
 
 mod chain;
 mod config;
@@ -41,6 +41,8 @@ async fn main() -> Result<()> {
         info!(config_source = config_source.label(), "loaded config");
     }
 
+    log_stats_auth_state(&config);
+
     let state = Arc::new(AppState::new(Arc::clone(&config)));
     chain::spawn_background_refresh(Arc::clone(&state));
     node_locations::spawn_background_refresh(Arc::clone(&state));
@@ -50,6 +52,23 @@ async fn main() -> Result<()> {
         server::run_tls_server(state).await
     } else {
         server::run_plain_http_server(state).await
+    }
+}
+
+fn log_stats_auth_state(config: &config::AppConfig) {
+    let stats_auth = &config.security.stats_auth;
+    if !stats_auth.enabled {
+        warn!("visitor stats page is public: security.stats_auth.enabled is false");
+    } else if stats_auth.effective_password().is_some() {
+        info!(
+            username = %stats_auth.username,
+            "visitor stats page requires basic auth"
+        );
+    } else {
+        warn!(
+            password_env = %stats_auth.password_env,
+            "visitor stats page is hidden and returns 404: set security.stats_auth.password or the password env var to open it"
+        );
     }
 }
 

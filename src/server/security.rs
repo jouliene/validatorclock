@@ -1,13 +1,21 @@
 use crate::config::AppConfig;
-use crate::server::responses::json_error;
+use crate::server::responses::{json_error, not_found};
 use crate::state::AppState;
 use axum::extract::{Request, State};
 use axum::http::header::{self, HeaderName, HeaderValue};
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64;
+use sha2::{Digest, Sha256};
 use std::net::IpAddr;
 use std::sync::Arc;
+use std::time::Duration;
+
+const STATS_AUTH_CHALLENGE: HeaderValue =
+    HeaderValue::from_static("Basic realm=\"Validator Clock stats\", charset=\"UTF-8\"");
+const FAILED_AUTH_DELAY: Duration = Duration::from_millis(250);
 
 pub(super) async fn handle_options(request: Request, next: Next) -> Response {
     if request.method() == Method::OPTIONS {
@@ -27,6 +35,80 @@ pub(super) async fn enforce_allowed_host(
     }
 
     next.run(request).await
+}
+
+pub(super) async fn require_stats_auth(
+    State(state): State<Arc<AppState>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let stats_auth = &state.config.security.stats_auth;
+    if !stats_auth.enabled {
+        return next.run(request).await;
+    }
+
+    // Without a password the page cannot be protected, so it stays hidden
+    // instead of being served to everyone.
+    let Some(password) = stats_auth.effective_password() else {
+        return not_found().await;
+    };
+
+    let offered = request
+        .headers()
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(basic_credentials);
+
+    match offered {
+        Some((username, offered_password))
+            if secret_eq(&username, &stats_auth.username)
+                && secret_eq(&offered_password, &password) =>
+        {
+            next.run(request).await
+        }
+        offered => {
+            if offered.is_some() {
+                tokio::time::sleep(FAILED_AUTH_DELAY).await;
+            }
+            unauthorized_response()
+        }
+    }
+}
+
+fn unauthorized_response() -> Response {
+    let mut response = json_error(
+        StatusCode::UNAUTHORIZED,
+        "unauthorized",
+        "authentication required",
+    );
+    response
+        .headers_mut()
+        .insert(header::WWW_AUTHENTICATE, STATS_AUTH_CHALLENGE);
+    response
+}
+
+fn basic_credentials(header_value: &str) -> Option<(String, String)> {
+    let encoded = header_value
+        .strip_prefix("Basic ")
+        .or_else(|| header_value.strip_prefix("basic "))?
+        .trim();
+    let decoded = BASE64.decode(encoded).ok()?;
+    let decoded = String::from_utf8(decoded).ok()?;
+    let (username, password) = decoded.split_once(':')?;
+    Some((username.to_owned(), password.to_owned()))
+}
+
+fn secret_eq(left: &str, right: &str) -> bool {
+    // Digests are compared instead of the raw secrets so neither the contents
+    // nor the length of the expected value leaks through timing.
+    let left = Sha256::digest(left.as_bytes());
+    let right = Sha256::digest(right.as_bytes());
+    left.iter()
+        .zip(right.iter())
+        .fold(0u8, |differences, (left, right)| {
+            differences | (left ^ right)
+        })
+        == 0
 }
 
 pub(super) async fn add_security_headers(request: Request, next: Next) -> Response {

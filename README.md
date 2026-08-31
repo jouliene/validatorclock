@@ -102,11 +102,11 @@ sudo by stopping the current app process and letting systemd start it again.
 straight to the GitHub version. Plain `git pull` can create a merge commit on
 the server if there are local changes.
 
-## Public Stats
+## Visitor Stats
 
 The footer of the main page shows aggregate traffic (today, last 30 days, all
-time). A public, unlinked page at `/stats` breaks the same traffic down per IP
-address:
+time) and stays public. A password-protected page breaks the same traffic down
+per IP address:
 
 ```text
 https://validatorclock.xyz/stats
@@ -117,6 +117,34 @@ ip-api.com), visits today, visits over the last 30 days, visits all time, when
 the address was last seen, and whether it is on the site right now. A visit is a
 session from one address; a new visit starts after 30 minutes without activity,
 and days are counted in UTC.
+
+### Password
+
+`/stats`, `/stats/app.js`, and `/stats/visitors` are behind HTTP Basic auth. Set
+the password in the production config, which survives `install.sh` re-runs:
+
+```json
+"security": {
+  "allowed_hosts": ["validatorclock.xyz", "www.validatorclock.xyz"],
+  "stats_auth": {
+    "username": "admin",
+    "password": "your-long-random-password"
+  }
+}
+```
+
+Generate one with `openssl rand -base64 24`, keep the config file at mode `600`,
+and restart the service. Instead of the config field the password can come from
+the `VALIDATORCLOCK_STATS_PASSWORD` environment variable (set
+`security.stats_auth.password_env` to read a different name), which suits a
+systemd `EnvironmentFile`.
+
+Without a password the page and its API return `404`, so a fresh install never
+exposes visitor addresses by accident. The startup log says which of the three
+states is active. Setting `security.stats_auth.enabled` to `false` makes the
+page public again.
+
+### Storage
 
 Visitor addresses live in `validatorclock_visitors.json` next to the other state
 files. Per-address day counters are kept for 31 days, records for addresses that

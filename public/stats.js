@@ -1,6 +1,6 @@
 (function () {
   const PUBLIC_ENDPOINT = "/api/analytics/public";
-  const VISITORS_ENDPOINT = "/api/analytics/visitors";
+  const VISITORS_ENDPOINT = "/stats/visitors";
   const EVENT_ENDPOINT = "/api/analytics/event";
   const REFRESH_MS = 30_000;
   const HEARTBEAT_MS = 30_000;
@@ -23,6 +23,7 @@
     filter: "",
     sortKey: "last_seen",
     sortDescending: true,
+    authExpired: false,
   };
 
   function boot() {
@@ -119,10 +120,17 @@
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
         cache: "no-store",
+        credentials: "same-origin",
       });
+      if (response.status === 401 || response.status === 403) {
+        state.authExpired = true;
+        renderRows();
+        return null;
+      }
       if (!response.ok) {
         return null;
       }
+      state.authExpired = false;
       return await response.json();
     } catch (_) {
       return null;
@@ -198,11 +206,19 @@
 
     setText("statsRowCount", `${pluralize(rows.length, "address")} shown`);
     if (empty) {
-      empty.hidden = rows.length > 0;
-      empty.textContent = state.visitors.length
-        ? "No addresses match the filter."
-        : "No visitors recorded yet.";
+      empty.hidden = rows.length > 0 && !state.authExpired;
+      empty.textContent = emptyMessage(rows.length);
     }
+  }
+
+  function emptyMessage(rowCount) {
+    if (state.authExpired) {
+      return "Sign-in expired. Reload the page and enter the password again.";
+    }
+    if (state.visitors.length === 0) {
+      return "No visitors recorded yet.";
+    }
+    return rowCount === 0 ? "No addresses match the filter." : "";
   }
 
   function buildRow(visitor) {

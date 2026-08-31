@@ -8,7 +8,9 @@ use super::assets::{
     stats_page, styles, ton_logo, tycho_logo,
 };
 use super::responses::not_found;
-use super::security::{add_security_headers, enforce_allowed_host, handle_options};
+use super::security::{
+    add_security_headers, enforce_allowed_host, handle_options, require_stats_auth,
+};
 use crate::state::AppState;
 use axum::Router;
 use axum::extract::DefaultBodyLimit;
@@ -27,13 +29,11 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .layer(middleware::from_fn(handle_options));
 
     Router::new()
+        .merge(stats_router(Arc::clone(&state)))
         .route("/", get(index))
         .route("/index.html", get(index))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
-        .route("/stats", get(stats_page))
-        .route("/stats.html", get(stats_page))
-        .route("/stats.js", get(stats_js))
         .route("/jokes.json", get(jokes_json))
         .route("/brands/everscale.svg", get(everscale_logo))
         .route("/brands/tycho.svg", get(tycho_logo))
@@ -47,7 +47,6 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
             post(analytics_event).layer(DefaultBodyLimit::max(1024)),
         )
         .route("/api/analytics/public", get(public_analytics))
-        .route("/api/analytics/visitors", get(public_visitors))
         .route("/api/chains", get(list_chains))
         .route("/api/chains/{chain_id}/clock", get(chain_clock))
         .route("/api/chains/{chain_id}/map", get(chain_map))
@@ -55,6 +54,15 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .fallback(not_found)
         .with_state(state)
         .layer(layers)
+}
+
+fn stats_router(state: Arc<AppState>) -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/stats", get(stats_page))
+        .route("/stats/", get(stats_page))
+        .route("/stats/app.js", get(stats_js))
+        .route("/stats/visitors", get(public_visitors))
+        .layer(middleware::from_fn_with_state(state, require_stats_auth))
 }
 
 pub(super) fn challenge_redirect_router(state: Arc<AppState>) -> Router {
