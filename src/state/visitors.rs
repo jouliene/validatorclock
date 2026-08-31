@@ -1,13 +1,10 @@
-use crate::fsutil;
-use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
-use std::fs;
 use std::net::IpAddr;
 use std::path::Path;
-use tracing::warn;
 
 use super::AppState;
+use super::json_store::JsonStore;
 use crate::timeutil::{
     SECONDS_PER_DAY, day_index, day_string, now_sec as now_seconds, parse_day_index,
 };
@@ -23,8 +20,7 @@ const SAVE_INTERVAL_SECONDS: u64 = 15;
 
 #[derive(Debug)]
 pub(super) struct VisitorsRuntime {
-    disk: VisitorsDisk,
-    last_saved: u64,
+    store: JsonStore<VisitorsDisk>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -91,21 +87,8 @@ struct PublicVisitor {
 }
 
 pub(super) fn load_initial_runtime(path: &Path) -> VisitorsRuntime {
-    let disk = match load_visitors_disk(path) {
-        Ok(disk) => disk,
-        Err(error) => {
-            warn!(
-                path = %path.display(),
-                error = ?error,
-                "failed to load visitor store; starting with empty visitor state"
-            );
-            VisitorsDisk::default()
-        }
-    };
-
     VisitorsRuntime {
-        disk,
-        last_saved: 0,
+        store: JsonStore::load(path.to_path_buf(), "visitor"),
     }
 }
 
@@ -117,7 +100,12 @@ impl AppState {
 
         let snapshot = {
             let mut runtime = self.visitors.lock().await;
-            let record = runtime.disk.visitors.entry(ip.to_string()).or_default();
+            let record = runtime
+                .store
+                .get_mut()
+                .visitors
+                .entry(ip.to_string())
+                .or_default();
             let starts_visit = record.first_seen == 0
                 || now.saturating_sub(record.last_seen) > SESSION_TIMEOUT_SECONDS;
             if record.first_seen == 0 {
@@ -132,15 +120,18 @@ impl AppState {
 
             // Heartbeats only move `last_seen`, so they are flushed on an interval
             // instead of rewriting the whole store on every beat.
-            if !starts_visit && now.saturating_sub(runtime.last_saved) < SAVE_INTERVAL_SECONDS {
-                return;
-            }
-            prune_visitors(&mut runtime.disk, today_index);
-            runtime.last_saved = now;
-            runtime.disk.clone()
+            let save_interval = if starts_visit {
+                0
+            } else {
+                SAVE_INTERVAL_SECONDS
+            };
+            prune_visitors(runtime.store.get_mut(), today_index);
+            runtime.store.take_snapshot(now, save_interval)
         };
 
-        self.save_visitors(&snapshot);
+        if let Some(snapshot) = snapshot {
+            snapshot.write();
+        }
     }
 
     pub(crate) async fn public_visitors(&self) -> PublicVisitors {
@@ -151,7 +142,8 @@ impl AppState {
         let runtime = self.visitors.lock().await;
 
         let mut visitors = runtime
-            .disk
+            .store
+            .get()
             .visitors
             .iter()
             .map(|(ip, record)| {
@@ -198,7 +190,8 @@ impl AppState {
         let now = now_seconds();
         let runtime = self.visitors.lock().await;
         runtime
-            .disk
+            .store
+            .get()
             .visitors
             .iter()
             .filter(|(_, record)| {
@@ -220,24 +213,15 @@ impl AppState {
         let snapshot = {
             let mut runtime = self.visitors.lock().await;
             for (ip, geo) in locations {
-                if let Some(record) = runtime.disk.visitors.get_mut(&ip.to_string()) {
+                if let Some(record) = runtime.store.get_mut().visitors.get_mut(&ip.to_string()) {
                     record.geo = Some(geo);
                 }
             }
-            runtime.last_saved = now_seconds();
-            runtime.disk.clone()
+            runtime.store.take_snapshot(now_seconds(), 0)
         };
 
-        self.save_visitors(&snapshot);
-    }
-
-    fn save_visitors(&self, disk: &VisitorsDisk) {
-        if let Err(error) = save_visitors_disk(&self.visitors_path, disk) {
-            warn!(
-                path = %self.visitors_path.display(),
-                error = ?error,
-                "failed to persist visitor store"
-            );
+        if let Some(snapshot) = snapshot {
+            snapshot.write();
         }
     }
 }
@@ -278,20 +262,6 @@ fn prune_visitors(disk: &mut VisitorsDisk, today_index: i64) {
             disk.visitors.remove(&ip);
         }
     }
-}
-
-fn load_visitors_disk(path: &Path) -> Result<VisitorsDisk> {
-    match fs::read_to_string(path) {
-        Ok(content) => serde_json::from_str(&content)
-            .with_context(|| format!("failed to parse {}", path.display())),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(VisitorsDisk::default()),
-        Err(error) => Err(error).with_context(|| format!("failed to read {}", path.display())),
-    }
-}
-
-fn save_visitors_disk(path: &Path, disk: &VisitorsDisk) -> Result<()> {
-    let content = serde_json::to_vec_pretty(disk)?;
-    fsutil::write_file_atomic(path, &content, 0o600)
 }
 
 #[cfg(test)]

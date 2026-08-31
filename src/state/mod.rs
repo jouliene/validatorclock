@@ -2,6 +2,7 @@ mod acme;
 pub(crate) mod analytics;
 mod cache;
 mod history;
+mod json_store;
 mod map_annotations;
 mod runtime;
 mod validator_types;
@@ -26,9 +27,7 @@ pub(crate) struct AppState {
     cache_path: PathBuf,
     cache_save_lock: Mutex<()>,
     analytics: Mutex<analytics::AnalyticsRuntime>,
-    analytics_path: PathBuf,
     visitors: Mutex<visitors::VisitorsRuntime>,
-    visitors_path: PathBuf,
     chain_status: RwLock<HashMap<String, ChainRuntimeStatus>>,
     validator_type_cache_path: PathBuf,
     validator_type_cache: RwLock<ValidatorTypeCache>,
@@ -67,9 +66,7 @@ impl AppState {
             cache_path: config.cache_path.clone(),
             cache_save_lock: Mutex::new(()),
             analytics: Mutex::new(analytics),
-            analytics_path,
             visitors: Mutex::new(visitors),
-            visitors_path,
             chain_status: RwLock::new(HashMap::new()),
             validator_type_cache: RwLock::new(validator_type_cache),
             validator_type_cache_path,

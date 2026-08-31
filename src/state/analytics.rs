@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
 use super::AppState;
+use super::json_store::JsonStore;
 use crate::timeutil::{day_index, day_string, now_sec as now_seconds, parse_day_index};
 
 type HmacSha256 = Hmac<Sha256>;
@@ -54,7 +55,7 @@ struct PublicAnalyticsAllTime {
 
 #[derive(Debug)]
 pub(super) struct AnalyticsRuntime {
-    disk: AnalyticsDisk,
+    store: JsonStore<AnalyticsDisk>,
     secret: [u8; 32],
     sessions: HashMap<String, u64>,
 }
@@ -88,17 +89,7 @@ struct AnalyticsDay {
 }
 
 pub(super) fn load_initial_runtime(path: &Path) -> AnalyticsRuntime {
-    let disk = match load_analytics_disk(path) {
-        Ok(disk) => disk,
-        Err(error) => {
-            warn!(
-                path = %path.display(),
-                error = ?error,
-                "failed to load analytics store; starting with empty analytics state"
-            );
-            AnalyticsDisk::default()
-        }
-    };
+    let store = JsonStore::load(path.to_path_buf(), "analytics");
     let secret_path = analytics_secret_path(path);
     let secret = match load_or_create_secret(&secret_path) {
         Ok(secret) => secret,
@@ -113,7 +104,7 @@ pub(super) fn load_initial_runtime(path: &Path) -> AnalyticsRuntime {
     };
 
     AnalyticsRuntime {
-        disk,
+        store,
         secret,
         sessions: HashMap::new(),
     }
@@ -147,7 +138,7 @@ impl AppState {
             runtime
                 .sessions
                 .retain(|_, last_seen| now.saturating_sub(*last_seen) <= SESSION_TIMEOUT_SECONDS);
-            prune_visitor_hashes(&mut runtime.disk, today_index);
+            prune_visitor_hashes(runtime.store.get_mut(), today_index);
 
             let starts_visit = runtime
                 .sessions
@@ -156,7 +147,7 @@ impl AppState {
             let counts_pageview = event == AnalyticsEventKind::PageOpen;
 
             {
-                let day = runtime.disk.days.entry(today).or_default();
+                let day = runtime.store.get_mut().days.entry(today).or_default();
                 if day.visitor_hashes.insert(visitor_key.clone()) {
                     day.unique_visitors = day.unique_visitors.saturating_add(1);
                 }
@@ -168,23 +159,22 @@ impl AppState {
                 }
             }
 
-            if starts_visit {
-                runtime.disk.all_time.visits = runtime.disk.all_time.visits.saturating_add(1);
-            }
-            if counts_pageview {
-                runtime.disk.all_time.pageviews = runtime.disk.all_time.pageviews.saturating_add(1);
+            {
+                let all_time = &mut runtime.store.get_mut().all_time;
+                if starts_visit {
+                    all_time.visits = all_time.visits.saturating_add(1);
+                }
+                if counts_pageview {
+                    all_time.pageviews = all_time.pageviews.saturating_add(1);
+                }
             }
 
             runtime.sessions.insert(visitor_key, now);
-            runtime.disk.clone()
+            runtime.store.take_snapshot(now, 0)
         };
 
-        if let Err(error) = save_analytics_disk(&self.analytics_path, &snapshot) {
-            warn!(
-                path = %self.analytics_path.display(),
-                error = ?error,
-                "failed to persist analytics store"
-            );
+        if let Some(snapshot) = snapshot {
+            snapshot.write();
         }
     }
 
@@ -202,7 +192,8 @@ impl AppState {
             .filter(|last_seen| now.saturating_sub(**last_seen) <= ONLINE_WINDOW_SECONDS)
             .count() as u64;
         let today = runtime
-            .disk
+            .store
+            .get()
             .days
             .get(&today_key)
             .cloned()
@@ -213,27 +204,13 @@ impl AppState {
                 unique_visitors: today.unique_visitors,
                 visits: today.visits,
             },
-            last_7_days: analytics_window(&runtime.disk, today_index, 7),
-            last_30_days: analytics_window(&runtime.disk, today_index, 30),
+            last_7_days: analytics_window(runtime.store.get(), today_index, 7),
+            last_30_days: analytics_window(runtime.store.get(), today_index, 30),
             all_time: PublicAnalyticsAllTime {
-                visits: runtime.disk.all_time.visits,
+                visits: runtime.store.get().all_time.visits,
             },
         }
     }
-}
-
-fn load_analytics_disk(path: &Path) -> Result<AnalyticsDisk> {
-    match fs::read_to_string(path) {
-        Ok(content) => serde_json::from_str(&content)
-            .with_context(|| format!("failed to parse {}", path.display())),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(AnalyticsDisk::default()),
-        Err(error) => Err(error).with_context(|| format!("failed to read {}", path.display())),
-    }
-}
-
-fn save_analytics_disk(path: &Path, disk: &AnalyticsDisk) -> Result<()> {
-    let content = serde_json::to_vec_pretty(disk)?;
-    fsutil::write_file_atomic(path, &content, 0o600)
 }
 
 fn analytics_secret_path(path: &Path) -> PathBuf {
