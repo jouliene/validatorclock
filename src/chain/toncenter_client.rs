@@ -1,10 +1,12 @@
 use super::rpc_retry::{RpcCallError, retry_transient_call};
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Result, anyhow, bail};
 use reqwest::{Client, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::env;
 use tokio::time::Duration;
+
+const TONCENTER_REQUEST_TIMEOUT: Duration = Duration::from_secs(25);
 
 #[derive(Debug, Clone)]
 pub(super) struct TonCenterJsonRpcClient {
@@ -21,11 +23,7 @@ impl TonCenterJsonRpcClient {
         }
 
         Ok(Self {
-            client: Client::builder()
-                .connect_timeout(Duration::from_secs(5))
-                .timeout(Duration::from_secs(25))
-                .build()
-                .context("failed to build TON Center HTTP client")?,
+            client: crate::http::shared_client().clone(),
             endpoint: endpoint.to_owned(),
             api_key: env::var("VALIDATORCLOCK_TONCENTER_API_KEY").ok(),
         })
@@ -59,7 +57,11 @@ impl TonCenterJsonRpcClient {
             "method": method,
             "params": params,
         });
-        let mut builder = self.client.post(&self.endpoint).json(&request);
+        let mut builder = self
+            .client
+            .post(&self.endpoint)
+            .timeout(TONCENTER_REQUEST_TIMEOUT)
+            .json(&request);
         if let Some(api_key) = &self.api_key {
             builder = builder.header("X-API-Key", api_key);
         }

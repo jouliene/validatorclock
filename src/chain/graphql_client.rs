@@ -7,7 +7,6 @@ use serde_json::{Value, json};
 use std::env;
 use tokio::time::Duration;
 
-const GRAPHQL_CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
 const GRAPHQL_REQUEST_TIMEOUT: Duration = Duration::from_secs(25);
 const GRAPHQL_API_KEY_ENV: &str = "VALIDATORCLOCK_GRAPHQL_API_KEY";
 const GRAPHQL_ERROR_BODY_LIMIT: usize = 400;
@@ -29,11 +28,7 @@ impl GraphqlClient {
         Url::parse(endpoint).context("invalid GraphQL endpoint URL")?;
 
         Ok(Self {
-            client: Client::builder()
-                .connect_timeout(GRAPHQL_CONNECT_TIMEOUT)
-                .timeout(GRAPHQL_REQUEST_TIMEOUT)
-                .build()
-                .context("failed to build GraphQL HTTP client")?,
+            client: crate::http::shared_client().clone(),
             endpoint: endpoint.to_owned(),
             label: endpoint_label(endpoint),
             api_key: env::var(GRAPHQL_API_KEY_ENV)
@@ -67,7 +62,11 @@ impl GraphqlClient {
             request["variables"] = variables.clone();
         }
 
-        let mut builder = self.client.post(&self.endpoint).json(&request);
+        let mut builder = self
+            .client
+            .post(&self.endpoint)
+            .timeout(GRAPHQL_REQUEST_TIMEOUT)
+            .json(&request);
         if let Some(api_key) = &self.api_key {
             builder = builder.header("Authorization", format!("Bearer {api_key}"));
         }

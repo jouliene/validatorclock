@@ -10,6 +10,7 @@ mod config;
 mod decimal;
 mod fsutil;
 mod history;
+mod http;
 mod logging;
 mod node_locations;
 mod server;
@@ -42,6 +43,10 @@ async fn main() -> Result<()> {
     }
 
     log_stats_auth_state(&config);
+
+    // Touch the shared HTTP client at startup so a broken TLS stack fails here
+    // instead of inside the first refresh.
+    let _ = http::shared_client();
 
     let state = Arc::new(AppState::new(Arc::clone(&config)));
     chain::spawn_background_refresh(Arc::clone(&state));

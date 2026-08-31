@@ -15,6 +15,7 @@ use tokio::time::sleep;
 use tracing::{info, warn};
 
 const IP_API_BATCH_SIZE: usize = 100;
+const LOOKUP_TIMEOUT: Duration = Duration::from_secs(20);
 const IPINFO_CONCURRENCY: usize = 16;
 const MAP_NODE_RETENTION_SECONDS: u64 = 60 * 60;
 
@@ -50,16 +51,7 @@ async fn background_refresh_loop(state: Arc<AppState>) {
 }
 
 async fn refresh_all_chains(state: Arc<AppState>) {
-    let http = match reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .build()
-    {
-        Ok(http) => http,
-        Err(error) => {
-            warn!(error = ?error, "failed to build node location HTTP client");
-            return;
-        }
-    };
+    let http = crate::http::shared_client();
     let now = now_sec();
     let ttl = Duration::from_secs(state.config.node_locations.geo_cache_ttl_seconds);
     let mut geo_cache = match load_geo_cache(&state.config.node_locations.geo_cache_path) {
@@ -82,7 +74,7 @@ async fn refresh_all_chains(state: Arc<AppState>) {
         }
 
         match refresh_chain_locations(
-            &http,
+            http,
             &state.config.node_locations,
             &chain.id,
             &chain_config,
@@ -387,7 +379,13 @@ async fn lookup_ip_api_locations(
     let mut output = BTreeMap::new();
     for chunk in ips.chunks(IP_API_BATCH_SIZE) {
         let requests = chunk.iter().map(IpAddr::to_string).collect::<Vec<_>>();
-        let response = match http.post(endpoint).json(&requests).send().await {
+        let response = match http
+            .post(endpoint)
+            .timeout(LOOKUP_TIMEOUT)
+            .json(&requests)
+            .send()
+            .await
+        {
             Ok(response) => response,
             Err(error) => {
                 warn!(error = ?error, "ip-api batch lookup failed");
@@ -501,7 +499,7 @@ async fn lookup_ipinfo_lite_one(
     };
     url.query_pairs_mut().append_pair("token", &token);
 
-    let response = match http.get(url).send().await {
+    let response = match http.get(url).timeout(LOOKUP_TIMEOUT).send().await {
         Ok(response) => response,
         Err(error) => {
             warn!(ip = %ip, error = ?error, "ipinfo lookup failed");

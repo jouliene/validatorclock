@@ -48,18 +48,9 @@ async fn refresh_pending_visitor_geo(state: &AppState) {
         .collect::<BTreeMap<_, _>>();
 
     if !public.is_empty() {
-        let http = match reqwest::Client::builder()
-            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECONDS))
-            .build()
-        {
-            Ok(http) => http,
-            Err(error) => {
-                warn!(error = ?error, "failed to build visitor geo HTTP client");
-                return;
-            }
-        };
         let endpoint = &state.config.node_locations.ip_api_batch_endpoint;
-        locations.extend(lookup_ip_api_locations(&http, endpoint, &public, now).await);
+        let http = crate::http::shared_client();
+        locations.extend(lookup_ip_api_locations(http, endpoint, &public, now).await);
     }
 
     state.apply_visitor_geo(locations).await;
@@ -74,7 +65,13 @@ async fn lookup_ip_api_locations(
     let mut output = BTreeMap::new();
     for chunk in ips.chunks(BATCH_SIZE) {
         let requests = chunk.iter().map(IpAddr::to_string).collect::<Vec<_>>();
-        let response = match http.post(endpoint).json(&requests).send().await {
+        let response = match http
+            .post(endpoint)
+            .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECONDS))
+            .json(&requests)
+            .send()
+            .await
+        {
             Ok(response) => response,
             Err(error) => {
                 warn!(error = ?error, "visitor geo batch lookup failed");
