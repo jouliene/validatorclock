@@ -71,6 +71,10 @@ pub(super) const APP_MAP_DATA_JS: &str = include_str!("../../../public/app/map_d
 pub(super) const APP_MAP_FEATURES_JS: &str = include_str!("../../../public/app/map_features.js");
 pub(super) const APP_MAP_GEOMETRY_JS: &str = include_str!("../../../public/app/map_geometry.js");
 pub(super) const APP_MAP_POPUPS_JS: &str = include_str!("../../../public/app/map_popups.js");
+pub(super) const APP_NODE_STATS_MODEL_JS: &str =
+    include_str!("../../../public/app/node_stats_model.js");
+pub(super) const APP_NODE_STATS_TABLES_JS: &str =
+    include_str!("../../../public/app/node_stats_tables.js");
 pub(super) const APP_NODE_STATS_JS: &str = include_str!("../../../public/app/node_stats.js");
 pub(super) const APP_MAP_POPUP_STATE_JS: &str =
     include_str!("../../../public/app/map_popup_state.js");
@@ -186,6 +190,8 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_MAP_FEATURES_JS,
     APP_MAP_GEOMETRY_JS,
     APP_MAP_POPUPS_JS,
+    APP_NODE_STATS_MODEL_JS,
+    APP_NODE_STATS_TABLES_JS,
     APP_NODE_STATS_JS,
     APP_MAP_POPUP_STATE_JS,
     APP_MAP_STYLE_JS,
