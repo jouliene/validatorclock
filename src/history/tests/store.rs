@@ -284,3 +284,59 @@ fn recording_same_complete_round_is_not_dirty() {
     assert!(chain.record_set(&set(10, RoundColor::Blue, vec!["alice"]), 100));
     assert!(!chain.record_set(&set(10, RoundColor::Blue, vec!["alice"]), 200));
 }
+
+#[test]
+fn refreshes_within_one_sighting_bucket_leave_the_round_unchanged() {
+    let mut chain = ChainRoundHistory::default();
+    let mut round = set(10, RoundColor::Blue, vec!["alice", "bob"]);
+    for validator in &mut round.validators {
+        validator.map_node = Some(map_node("203.0.113.9", "OVH", "Paris", "France"));
+    }
+
+    assert!(chain.record_set(&round, 3_000), "the first sighting is new");
+    assert!(
+        !chain.record_set(&round, 3_000 + 60),
+        "a refresh a minute later carries no new data"
+    );
+    assert!(
+        !chain.record_set(&round, 3_000 + 120),
+        "nor does the one after it"
+    );
+
+    let seen_at = chain.rounds[&10].validators["alice"].map_seen_at;
+    assert_eq!(seen_at, Some(3_000), "the sighting is stored per bucket");
+}
+
+#[test]
+fn a_sighting_in_the_next_bucket_updates_the_round() {
+    let mut chain = ChainRoundHistory::default();
+    let mut round = set(10, RoundColor::Blue, vec!["alice"]);
+    for validator in &mut round.validators {
+        validator.map_node = Some(map_node("203.0.113.9", "OVH", "Paris", "France"));
+    }
+    chain.record_set(&round, 3_000);
+
+    assert!(
+        chain.record_set(&round, 3_000 + MAP_SEEN_BUCKET_SECONDS),
+        "a sighting in the next bucket is recorded"
+    );
+    assert_eq!(
+        chain.rounds[&10].validators["alice"].map_seen_at,
+        Some(3_000 + MAP_SEEN_BUCKET_SECONDS)
+    );
+}
+
+#[test]
+fn real_changes_are_still_recorded_inside_one_bucket() {
+    let mut chain = ChainRoundHistory::default();
+    let round = set(10, RoundColor::Blue, vec!["alice"]);
+    chain.record_set(&round, 3_000);
+
+    let grown = set(10, RoundColor::Blue, vec!["alice", "bob"]);
+
+    assert!(
+        chain.record_set(&grown, 3_000 + 30),
+        "a new validator is new data whatever the bucket says"
+    );
+    assert!(chain.rounds[&10].validators.contains_key("bob"));
+}

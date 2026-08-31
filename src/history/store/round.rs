@@ -1,4 +1,5 @@
 use super::super::StoredRound;
+use super::super::types::map_seen_bucket;
 
 impl StoredRound {
     pub(in crate::history) fn validator_for_identity(
@@ -65,9 +66,12 @@ impl StoredRound {
                     validator.map_node = existing.map_node.clone();
                 }
                 if validator.map_seen_at.is_none() {
-                    validator.map_seen_at = existing
-                        .map_seen_at
-                        .or_else(|| existing.map_node.is_some().then_some(self.observed_at));
+                    validator.map_seen_at = existing.map_seen_at.or_else(|| {
+                        existing
+                            .map_node
+                            .is_some()
+                            .then(|| map_seen_bucket(self.observed_at))
+                    });
                 }
             }
         }

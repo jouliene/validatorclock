@@ -1,3 +1,4 @@
+use super::types::map_seen_bucket;
 use super::{
     ChainRoundHistory, RoundHistoryRetention, RoundHistoryStore, StoredRound, StoredValidator,
 };
@@ -123,7 +124,9 @@ impl ChainRoundHistory {
                             })
                             .flatten()
                     });
-                    let map_seen_at = current_map_node.is_some().then_some(observed_at);
+                    let map_seen_at = current_map_node
+                        .is_some()
+                        .then(|| map_seen_bucket(observed_at));
                     (
                         public_key,
                         StoredValidator {

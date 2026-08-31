@@ -152,3 +152,13 @@ where
             .collect()),
     }
 }
+
+/// How long a validator stays mapped without a fresh sighting is measured in
+/// hours, so the sighting itself is stored to the nearest few minutes. Two
+/// refreshes inside one bucket then produce the same round, and an unchanged
+/// round is never written back to disk.
+pub(super) const MAP_SEEN_BUCKET_SECONDS: u64 = 5 * 60;
+
+pub(super) fn map_seen_bucket(seconds: u64) -> u64 {
+    seconds - seconds % MAP_SEEN_BUCKET_SECONDS
+}

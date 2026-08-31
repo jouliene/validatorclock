@@ -1,3 +1,4 @@
+use super::types::MAP_SEEN_BUCKET_SECONDS;
 use super::*;
 use crate::chain::{RoundColor, ValidatorDto, ValidatorMapNodeDto, ValidatorSetDto};
 use std::path::PathBuf;
