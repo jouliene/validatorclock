@@ -10,7 +10,7 @@ mod map;
 mod round_stats;
 mod status;
 
-pub(super) use analytics::{analytics_event, public_analytics};
+pub(super) use analytics::{analytics_event, public_analytics, public_visitors};
 pub(super) use chains::list_chains;
 pub(super) use clock::chain_clock;
 pub(super) use map::chain_map;

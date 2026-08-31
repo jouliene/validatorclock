@@ -1,5 +1,7 @@
 pub(super) const INDEX_HTML: &str = include_str!("../../../public/index.html");
 pub(super) const STYLES_CSS: &str = include_str!("../../../public/styles.css");
+pub(super) const STATS_HTML: &str = include_str!("../../../public/stats.html");
+pub(super) const STATS_JS: &str = include_str!("../../../public/stats.js");
 pub(super) const APP_STATE_JS: &str = include_str!("../../../public/app/state.js");
 pub(super) const APP_API_JS: &str = include_str!("../../../public/app/api.js");
 pub(super) const APP_FORMAT_ADDRESSES_JS: &str =

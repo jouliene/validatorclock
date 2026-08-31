@@ -134,6 +134,7 @@ impl AppState {
         let Some(peer_addr) = peer_addr else {
             return;
         };
+        self.record_visitor(peer_addr.ip()).await;
         let now = now_seconds();
         let today_index = (now / SECONDS_PER_DAY) as i64;
         let today = day_string(today_index);
@@ -440,12 +441,12 @@ fn now_seconds() -> u64 {
         .as_secs()
 }
 
-fn day_string(day_index: i64) -> String {
+pub(super) fn day_string(day_index: i64) -> String {
     let (year, month, day) = civil_from_days(day_index);
     format!("{year:04}-{month:02}-{day:02}")
 }
 
-fn parse_day_index(value: &str) -> Option<i64> {
+pub(super) fn parse_day_index(value: &str) -> Option<i64> {
     let mut parts = value.split('-');
     let year = parts.next()?.parse::<i32>().ok()?;
     let month = parts.next()?.parse::<u32>().ok()?;

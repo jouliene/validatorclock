@@ -66,6 +66,75 @@ async fn analytics_ignores_obvious_bot_user_agents() {
     assert!(json["today"].get("pageviews").is_none());
 }
 
+#[tokio::test]
+async fn visitor_stats_expose_ip_level_traffic_for_the_public_stats_page() {
+    let state = test_state(Vec::new());
+
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.7:1200").await;
+    analytics_event_response(Arc::clone(&state), "heartbeat", "198.51.100.7:1201").await;
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.8:1202").await;
+
+    let json = response_json(app_response(state, "/api/analytics/visitors").await).await;
+
+    assert_eq!(json["known_visitors"], 2);
+    assert_eq!(json["listed_visitors"], 2);
+    assert_eq!(json["online_now"], 2);
+    let visitors = json["visitors"].as_array().unwrap();
+    assert_eq!(visitors.len(), 2);
+    let addresses = visitors
+        .iter()
+        .map(|visitor| visitor["ip"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert!(addresses.contains(&"198.51.100.7"));
+    assert!(addresses.contains(&"198.51.100.8"));
+    let first = visitors
+        .iter()
+        .find(|visitor| visitor["ip"] == "198.51.100.7")
+        .unwrap();
+    assert_eq!(first["today_visits"], 1);
+    assert_eq!(first["last_30_days_visits"], 1);
+    assert_eq!(first["total_visits"], 1);
+    assert_eq!(first["online"], true);
+}
+
+#[tokio::test]
+async fn visitor_store_keeps_addresses_while_the_aggregate_store_stays_anonymous() {
+    let analytics_path = temp_state_path("analytics_visitor_split");
+    let visitors_path = temp_state_path("visitors_split");
+    let mut config = test_config(Vec::new());
+    config.analytics_path = Some(analytics_path.clone());
+    config.visitors_path = Some(visitors_path.clone());
+    let state = state_from_config(config);
+
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.77:1200").await;
+
+    let analytics = std::fs::read_to_string(&analytics_path).unwrap();
+    assert!(!analytics.contains("198.51.100.77"));
+    let visitors = std::fs::read_to_string(&visitors_path).unwrap();
+    assert!(visitors.contains("198.51.100.77"));
+    assert!(!visitors.contains("Firefox"));
+    assert!(!visitors.contains("en-US"));
+}
+
+#[tokio::test]
+async fn visitor_stats_ignore_obvious_bot_user_agents() {
+    let state = test_state(Vec::new());
+
+    crate::server::routes::app_router(Arc::clone(&state))
+        .oneshot(analytics_request(
+            "page_open",
+            "198.51.100.9:1200",
+            "Mozilla/5.0 (compatible; Googlebot/2.1)",
+        ))
+        .await
+        .unwrap();
+
+    let json = response_json(app_response(state, "/api/analytics/visitors").await).await;
+
+    assert_eq!(json["known_visitors"], 0);
+    assert!(json["visitors"].as_array().unwrap().is_empty());
+}
+
 async fn analytics_event_response(
     state: Arc<AppState>,
     event: &str,

@@ -1,11 +1,11 @@
 use super::acme::{acme_challenge, redirect_to_https};
 use super::api::{
     analytics_event, chain_clock, chain_map, chain_round_stats, health, list_chains,
-    public_analytics, status,
+    public_analytics, public_visitors, status,
 };
 use super::assets::{
-    app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, styles, ton_logo,
-    tycho_logo,
+    app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, stats_js,
+    stats_page, styles, ton_logo, tycho_logo,
 };
 use super::responses::not_found;
 use super::security::{add_security_headers, enforce_allowed_host, handle_options};
@@ -31,6 +31,9 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/index.html", get(index))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
+        .route("/stats", get(stats_page))
+        .route("/stats.html", get(stats_page))
+        .route("/stats.js", get(stats_js))
         .route("/jokes.json", get(jokes_json))
         .route("/brands/everscale.svg", get(everscale_logo))
         .route("/brands/tycho.svg", get(tycho_logo))
@@ -44,6 +47,7 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
             post(analytics_event).layer(DefaultBodyLimit::max(1024)),
         )
         .route("/api/analytics/public", get(public_analytics))
+        .route("/api/analytics/visitors", get(public_visitors))
         .route("/api/chains", get(list_chains))
         .route("/api/chains/{chain_id}/clock", get(chain_clock))
         .route("/api/chains/{chain_id}/map", get(chain_map))

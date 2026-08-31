@@ -8,7 +8,7 @@ mod version;
 
 use embedded::{
     APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, PORTRAIT_IMAGES, SMOKING_MAN_PNG,
-    STYLES_CSS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    STATS_HTML, STATS_JS, STYLES_CSS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(super) use version::asset_version;
@@ -17,11 +17,21 @@ const ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("public, max-age=31536000, immutable");
 
 pub(super) async fn index() -> Html<String> {
-    Html(
-        INDEX_HTML
-            .replace("__ASSET_VERSION__", &asset_version())
-            .replace("__APP_VERSION__", env!("CARGO_PKG_VERSION")),
-    )
+    Html(render_page(INDEX_HTML))
+}
+
+pub(super) async fn stats_page() -> Html<String> {
+    Html(render_page(STATS_HTML))
+}
+
+pub(super) async fn stats_js() -> impl IntoResponse {
+    text_asset_response("application/javascript; charset=utf-8", STATS_JS)
+}
+
+fn render_page(template: &str) -> String {
+    template
+        .replace("__ASSET_VERSION__", &asset_version())
+        .replace("__APP_VERSION__", env!("CARGO_PKG_VERSION"))
 }
 
 pub(super) async fn styles() -> impl IntoResponse {

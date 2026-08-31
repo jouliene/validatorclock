@@ -47,6 +47,7 @@ fn test_config(allowed_hosts: Vec<String>) -> AppConfig {
         refresh_timeout_seconds: 90,
         cache_path: temp_state_path("cache"),
         analytics_path: Some(temp_state_path("analytics")),
+        visitors_path: Some(temp_state_path("visitors")),
         history_path: Some(temp_state_path("history")),
         tycho_map_nodes_path: None,
         map_nodes_paths: HashMap::new(),

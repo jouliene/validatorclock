@@ -13,4 +13,5 @@ while IFS= read -r file; do
 done < <(
   find "${ROOT_DIR}/public/app" -type f -name '*.js' -print
   printf '%s\n' "${ROOT_DIR}/public/app.js"
+  printf '%s\n' "${ROOT_DIR}/public/stats.js"
 )

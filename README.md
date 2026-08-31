@@ -102,6 +102,27 @@ sudo by stopping the current app process and letting systemd start it again.
 straight to the GitHub version. Plain `git pull` can create a merge commit on
 the server if there are local changes.
 
+## Public Stats
+
+The footer of the main page shows aggregate traffic (today, last 30 days, all
+time). A public, unlinked page at `/stats` breaks the same traffic down per IP
+address:
+
+```text
+https://validatorclock.xyz/stats
+```
+
+Each row shows the address, its country, city, and provider (resolved through
+ip-api.com), visits today, visits over the last 30 days, visits all time, when
+the address was last seen, and whether it is on the site right now. A visit is a
+session from one address; a new visit starts after 30 minutes without activity,
+and days are counted in UTC.
+
+Visitor addresses live in `validatorclock_visitors.json` next to the other state
+files. Per-address day counters are kept for 31 days, records for addresses that
+stop visiting are dropped after a year, and the store holds at most 5000
+addresses (the least recently seen are evicted first).
+
 ## Check Production
 
 ```bash
@@ -140,5 +161,6 @@ validatorclock_history_everscale.json
 validatorclock_history_tycho-testnet.json
 validatorclock_history_ton.json
 validatorclock_validator_types.json
+validatorclock_visitors.json
 acme/
 ```

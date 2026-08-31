@@ -110,6 +110,50 @@ async fn app_router_versions_and_caches_static_assets() {
     );
 }
 
+#[tokio::test]
+async fn app_router_serves_the_public_visitor_stats_page() {
+    let state = test_state(Vec::new());
+    let asset_version = asset_version();
+
+    let response = app_response(Arc::clone(&state), "/stats").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = String::from_utf8(body.to_vec()).unwrap();
+    assert!(body.contains(&format!("/styles.css?v={asset_version}")));
+    assert!(body.contains(&format!("/stats.js?v={asset_version}")));
+    assert!(body.contains(&format!("version {}", env!("CARGO_PKG_VERSION"))));
+    assert!(!body.contains("__ASSET_VERSION__"));
+    assert!(!body.contains("__APP_VERSION__"));
+    assert_no_native_title_attributes(&body);
+
+    let response = app_response(Arc::clone(&state), &format!("/stats.js?v={asset_version}")).await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(
+        response.headers(),
+        header::CONTENT_TYPE,
+        "application/javascript; charset=utf-8",
+    );
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = String::from_utf8(body.to_vec()).unwrap();
+    assert!(body.contains("/api/analytics/visitors"));
+    assert_no_native_title_assignments(&body);
+}
+
+#[tokio::test]
+async fn index_no_longer_claims_that_addresses_are_not_stored() {
+    let state = test_state(Vec::new());
+
+    let response = app_response(state, "/").await;
+
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let body = String::from_utf8(body.to_vec()).unwrap();
+    assert!(body.contains("Public Stats"));
+    assert!(!body.contains("IP addresses are not stored"));
+    assert!(!body.contains("No analytics cookies"));
+}
+
 fn assert_app_js_order(body: &str, needles: &[&str]) {
     let mut previous = 0;
     for needle in needles {

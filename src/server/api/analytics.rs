@@ -47,6 +47,12 @@ pub(in crate::server) async fn public_analytics(
     Json(state.public_analytics().await)
 }
 
+pub(in crate::server) async fn public_visitors(
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    Json(state.public_visitors().await)
+}
+
 fn parse_event_body(body: Bytes) -> Option<AnalyticsEventKind> {
     let payload = serde_json::from_slice::<AnalyticsEventPayload>(&body).ok()?;
     let _ = (&payload.path, payload.visible, payload.ts);

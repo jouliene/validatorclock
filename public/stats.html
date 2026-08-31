@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validator Clock - Visitor Stats</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="stylesheet" href="/styles.css?v=__ASSET_VERSION__">
+  <script src="/stats.js?v=__ASSET_VERSION__" defer></script>
+</head>
+<body>
+  <div class="app-shell stats-shell">
+    <header class="titlebar stats-titlebar">
+      <a class="stats-home-link" href="/">Validator Clock</a>
+      <h1>VISITOR STATS</h1>
+      <div class="stats-refreshed">
+        <span>Updated</span>
+        <strong id="statsUpdated">-</strong>
+      </div>
+    </header>
+
+    <section class="info-panel stats-panel" aria-label="Traffic summary">
+      <h2>Traffic</h2>
+      <div id="statsSummary" class="stats-summary" aria-live="polite">
+        <div class="stats-summary-card">
+          <span class="stats-summary-label">Today</span>
+          <strong id="statsTodayVisits" class="stats-summary-value">-</strong>
+          <span id="statsTodayDetail" class="stats-summary-detail">visits</span>
+        </div>
+        <div class="stats-summary-card">
+          <span class="stats-summary-label">Last 30 days</span>
+          <strong id="statsMonthVisits" class="stats-summary-value">-</strong>
+          <span id="statsMonthDetail" class="stats-summary-detail">visits</span>
+        </div>
+        <div class="stats-summary-card">
+          <span class="stats-summary-label">All time</span>
+          <strong id="statsAllTimeVisits" class="stats-summary-value">-</strong>
+          <span id="statsAllTimeDetail" class="stats-summary-detail">visits</span>
+        </div>
+        <div class="stats-summary-card is-online">
+          <span class="stats-summary-label">On site now</span>
+          <strong id="statsOnlineNow" class="stats-summary-value">-</strong>
+          <span id="statsKnownVisitors" class="stats-summary-detail">addresses seen</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="info-panel stats-panel" aria-label="Visitors by IP address">
+      <h2>Visitors</h2>
+      <div class="stats-toolbar">
+        <label class="stats-search">
+          <span class="stats-search-label">Filter</span>
+          <input id="statsFilter" type="search" placeholder="IP, country, city, provider" autocomplete="off" spellcheck="false">
+        </label>
+        <span id="statsRowCount" class="stats-row-count">-</span>
+      </div>
+      <div class="stats-table" role="table" aria-label="Visitors by IP address">
+        <div class="stats-table-scroll">
+          <div id="statsTableHeader" class="stats-header" role="row"></div>
+          <div id="statsTableBody" class="stats-body" role="rowgroup"></div>
+        </div>
+      </div>
+      <p id="statsEmpty" class="stats-empty" hidden>No visitors recorded yet.</p>
+      <p class="stats-note">
+        A visit is a session from one IP address; a new visit starts after 30 minutes without activity.
+        Days are counted in UTC. Per-address history starts when this page went live and keeps the last 30 days.
+      </p>
+    </section>
+
+    <footer class="site-footer stats-footer" aria-label="Site footer">
+      <div class="site-version" aria-label="Application version">version __APP_VERSION__</div>
+    </footer>
+  </div>
+</body>
+</html>

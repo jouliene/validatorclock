@@ -17,6 +17,7 @@ mod state;
 mod tls;
 mod validator_map;
 mod validator_types;
+mod visitor_geo;
 
 use state::AppState;
 
@@ -43,6 +44,7 @@ async fn main() -> Result<()> {
     let state = Arc::new(AppState::new(Arc::clone(&config)));
     chain::spawn_background_refresh(Arc::clone(&state));
     node_locations::spawn_background_refresh(Arc::clone(&state));
+    visitor_geo::spawn_background_refresh(Arc::clone(&state));
 
     if config.tls.enabled {
         server::run_tls_server(state).await
