@@ -9,7 +9,7 @@ mod version;
 
 use embedded::{
     APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, PORTRAIT_IMAGES, SMOKING_MAN_PNG,
-    STATS_HTML, STATS_JS_PARTS, STYLES_CSS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    STATS_HTML, STATS_JS_PARTS, STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(super) use version::asset_version;
@@ -23,6 +23,7 @@ static INDEX_PAGE: LazyLock<String> = LazyLock::new(|| render_page(INDEX_HTML));
 static STATS_PAGE: LazyLock<String> = LazyLock::new(|| render_page(STATS_HTML));
 static APP_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| APP_JS_PARTS.join("\n\n"));
 static STATS_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| STATS_JS_PARTS.join("\n\n"));
+static STYLES_BUNDLE: LazyLock<String> = LazyLock::new(|| STYLES_CSS_PARTS.join("\n"));
 
 pub(super) async fn index() -> Html<&'static str> {
     Html(INDEX_PAGE.as_str())
@@ -52,7 +53,10 @@ fn render_page(template: &str) -> String {
 }
 
 pub(super) async fn styles() -> impl IntoResponse {
-    text_asset_response("text/css; charset=utf-8", STYLES_CSS)
+    (
+        asset_response_headers("text/css; charset=utf-8"),
+        STYLES_BUNDLE.as_str(),
+    )
 }
 
 pub(super) async fn app_js() -> impl IntoResponse {
@@ -149,6 +153,34 @@ mod tests {
             scripts.len() + 1,
             "APP_JS_PARTS should hold every public/app and public/shared script plus public/app.js"
         );
+    }
+
+    #[test]
+    fn every_stylesheet_is_bundled() {
+        let sheets = std::fs::read_dir(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("public/styles"),
+        )
+        .expect("public/styles should be readable")
+        .map(|entry| entry.expect("directory entry should be readable").path())
+        .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("css"))
+        .collect::<Vec<_>>();
+
+        let missing = sheets
+            .iter()
+            .filter(|path| {
+                let source = std::fs::read_to_string(path).expect("stylesheet should be readable");
+                !STYLES_CSS_PARTS
+                    .iter()
+                    .any(|part| part.trim_end() == source.trim_end())
+            })
+            .filter_map(|path| path.file_name().and_then(|name| name.to_str()))
+            .collect::<Vec<_>>();
+
+        assert!(
+            missing.is_empty(),
+            "these stylesheets never reach the browser: {missing:?}"
+        );
+        assert_eq!(STYLES_CSS_PARTS.len(), sheets.len());
     }
 
     #[test]

@@ -1,0 +1,173 @@
+/* Election timing */
+.status-display {
+  display: grid;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--divider);
+}
+
+#metricStatus {
+  color: var(--gold);
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.08;
+  text-shadow: 0 0 7px rgba(214, 173, 88, 0.06);
+}
+
+.election-timing-groups {
+  display: grid;
+  gap: var(--rhythm-card-gap);
+}
+
+.election-time-card {
+  position: relative;
+  overflow: hidden;
+  padding: 12px 15px;
+  border: 1px solid rgba(217, 231, 246, 0.105);
+  border-left: 4px solid color-mix(in srgb, var(--card-accent, rgba(47, 147, 220, 0.78)) 68%, white 4%);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--card-accent, rgba(47, 147, 220, 0.78)) 8%, transparent), transparent 54%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.008)),
+    var(--surface-card),
+    rgba(255, 255, 255, 0.014);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 10px 22px rgba(0, 0, 0, 0.12);
+}
+
+.election-time-card::before {
+  display: none;
+}
+
+.election-time-card.is-active-round {
+  --card-accent: rgba(47, 147, 220, 0.78);
+}
+
+.election-time-card.is-elections {
+  --card-accent: rgba(202, 168, 92, 0.86);
+}
+
+.election-time-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.election-time-card h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--label-size);
+  font-weight: 620;
+  letter-spacing: 0;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.countdown-block {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  text-align: right;
+}
+
+.countdown-block span {
+  color: var(--muted-2);
+  font-size: var(--label-size);
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.election-countdown {
+  color: rgba(222, 232, 242, 0.88);
+  font-size: 18px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.12;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.is-active-round .election-countdown {
+  color: var(--card-accent-text, var(--text));
+  text-shadow: 0 0 7px var(--card-accent-glow, rgba(47, 147, 220, 0.075));
+}
+
+.is-elections .election-countdown {
+  color: var(--gold);
+  text-shadow: 0 0 7px rgba(202, 168, 92, 0.075);
+}
+
+.election-date-stack {
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.date-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.date-label {
+  color: var(--muted-2);
+  font-size: var(--label-size);
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.date-value {
+  color: rgba(212, 224, 236, 0.86);
+  font-size: var(--body-size);
+  font-weight: 520;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+dl div {
+  display: grid;
+  grid-template-columns: minmax(92px, 38%) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+  min-height: 43px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.021);
+}
+
+dt {
+  color: var(--muted);
+  font-size: var(--label-size);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: var(--body-size);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.date-stack {
+  display: grid;
+  gap: 4px;
+}

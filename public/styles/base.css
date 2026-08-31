@@ -1,0 +1,207 @@
+/* Base layout */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(69, 171, 225, 0.042), transparent 27%),
+    radial-gradient(circle at 50% 34%, rgba(64, 202, 123, 0.018), transparent 31%),
+    radial-gradient(circle at 17% 27%, rgba(214, 173, 88, 0.012), transparent 23%),
+    radial-gradient(circle at 82% 31%, rgba(94, 215, 255, 0.014), transparent 25%),
+    linear-gradient(180deg, #05080d 0%, #030509 56%, #06080c 100%);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings: "tnum" 1, "ss01" 1;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1510px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 18px 0 30px;
+}
+
+.site-footer {
+  margin-top: 22px;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  color: rgba(171, 196, 217, 0.58);
+  text-align: center;
+}
+
+.public-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 11px;
+  max-width: 980px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.public-stats strong {
+  flex-basis: 100%;
+  color: rgba(231, 244, 255, 0.76);
+  font-weight: 700;
+}
+
+.public-stats-label {
+  color: rgba(231, 244, 255, 0.72);
+  font-weight: 700;
+}
+
+.site-version {
+  color: rgba(171, 196, 217, 0.46);
+  font-size: 11px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.titlebar {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 66px;
+  padding: 0 0 13px;
+  text-align: center;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  display: grid;
+  justify-items: center;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 27px;
+  line-height: 1.08;
+  font-weight: 800;
+  text-shadow:
+    0 0 8px rgba(130, 216, 255, 0.04),
+    0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+h1::after {
+  content: "";
+  display: block;
+  width: 232px;
+  height: 16px;
+  margin-top: 8px;
+  background:
+    linear-gradient(90deg, transparent, rgba(216, 168, 75, 0.72), transparent) left 20px center / 82px 1px no-repeat,
+    linear-gradient(90deg, transparent, rgba(216, 168, 75, 0.72), transparent) right 20px center / 82px 1px no-repeat,
+    radial-gradient(circle, rgba(244, 216, 138, 0.95) 0 2.7px, rgba(200, 145, 54, 0.44) 3.2px, transparent 3.8px) center / 10px 10px no-repeat;
+  filter: drop-shadow(0 0 3px rgba(220, 172, 79, 0.09));
+}
+
+.header-updated,
+.runtime-status {
+  position: absolute;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.header-updated {
+  right: 0;
+  gap: 7px;
+  min-height: 32px;
+  border: 1px solid rgba(168, 205, 231, 0.17);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-control);
+  color: rgba(198, 209, 224, 0.78);
+  font-family: var(--font-sans);
+}
+
+.runtime-status {
+  left: 0;
+  gap: 8px;
+  min-height: 34px;
+  max-width: 240px;
+  border: 1px solid rgba(168, 205, 231, 0.17);
+  background: var(--surface-glass);
+  box-shadow: var(--shadow-control);
+  color: var(--muted);
+}
+
+.runtime-status[hidden] {
+  display: none;
+}
+
+.runtime-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--muted-2);
+  box-shadow: 0 0 0 3px rgba(111, 123, 140, 0.12);
+}
+
+.header-updated > span,
+.runtime-status strong {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 560;
+}
+
+.header-updated > span {
+  color: rgba(198, 209, 224, 0.82);
+  font-weight: 560;
+}
+
+.updated-refresh {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  overflow: visible;
+  fill: none;
+  stroke: rgba(182, 213, 235, 0.68);
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#runtimeFreshness {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.runtime-status.is-ok .runtime-dot {
+  background: var(--green);
+  box-shadow: 0 0 0 3px rgba(50, 175, 104, 0.14);
+}
+
+.runtime-status.is-warn .runtime-dot {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px rgba(202, 168, 92, 0.14);
+}
+
+.runtime-status.is-bad .runtime-dot {
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(220, 63, 77, 0.16);
+}
+
+.header-updated strong,
+#runtimeFreshness {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}

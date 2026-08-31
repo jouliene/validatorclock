@@ -1,5 +1,21 @@
 pub(super) const INDEX_HTML: &str = include_str!("../../../public/index.html");
-pub(super) const STYLES_CSS: &str = include_str!("../../../public/styles.css");
+pub(super) const STYLES_TOKENS_CSS: &str = include_str!("../../../public/styles/tokens.css");
+pub(super) const STYLES_BASE_CSS: &str = include_str!("../../../public/styles/base.css");
+pub(super) const STYLES_SHELL_CSS: &str = include_str!("../../../public/styles/shell.css");
+pub(super) const STYLES_ELECTION_CSS: &str = include_str!("../../../public/styles/election.css");
+pub(super) const STYLES_NETWORKS_CSS: &str = include_str!("../../../public/styles/networks.css");
+pub(super) const STYLES_MAP_CSS: &str = include_str!("../../../public/styles/map.css");
+pub(super) const STYLES_ROUND_STATS_CSS: &str =
+    include_str!("../../../public/styles/round_stats.css");
+pub(super) const STYLES_MAP_PANEL_CSS: &str = include_str!("../../../public/styles/map_panel.css");
+pub(super) const STYLES_ROUNDS_CSS: &str = include_str!("../../../public/styles/rounds.css");
+pub(super) const STYLES_VALIDATORS_CSS: &str =
+    include_str!("../../../public/styles/validators.css");
+pub(super) const STYLES_STATUS_CSS: &str = include_str!("../../../public/styles/status.css");
+pub(super) const STYLES_RESPONSIVE_CSS: &str =
+    include_str!("../../../public/styles/responsive.css");
+pub(super) const STYLES_VISITOR_STATS_CSS: &str =
+    include_str!("../../../public/styles/visitor_stats.css");
 pub(super) const STATS_HTML: &str = include_str!("../../../public/stats.html");
 pub(super) const STATS_JS: &str = include_str!("../../../public/stats.js");
 pub(super) const SHARED_ANALYTICS_CLIENT_JS: &str =
@@ -213,3 +229,19 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
 ];
 
 pub(super) const STATS_JS_PARTS: &[&str] = &[SHARED_ANALYTICS_CLIENT_JS, STATS_JS];
+
+pub(super) const STYLES_CSS_PARTS: &[&str] = &[
+    STYLES_TOKENS_CSS,
+    STYLES_BASE_CSS,
+    STYLES_SHELL_CSS,
+    STYLES_ELECTION_CSS,
+    STYLES_NETWORKS_CSS,
+    STYLES_MAP_CSS,
+    STYLES_ROUND_STATS_CSS,
+    STYLES_MAP_PANEL_CSS,
+    STYLES_ROUNDS_CSS,
+    STYLES_VALIDATORS_CSS,
+    STYLES_STATUS_CSS,
+    STYLES_RESPONSIVE_CSS,
+    STYLES_VISITOR_STATS_CSS,
+];

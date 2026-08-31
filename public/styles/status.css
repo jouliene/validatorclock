@@ -1,0 +1,22 @@
+/* Status messages */
+.empty-state {
+  padding: 18px;
+  border: 1px solid var(--table-line);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.008)),
+    rgba(255, 255, 255, 0.01);
+  color: rgba(188, 199, 213, 0.86);
+  font-size: var(--body-size);
+  font-weight: 590;
+  line-height: 1.45;
+}
+
+.error-banner {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(220, 63, 77, 0.55);
+  border-radius: var(--radius-md);
+  background: rgba(220, 63, 77, 0.12);
+  color: #ffd2d2;
+}
