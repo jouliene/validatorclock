@@ -209,12 +209,14 @@ by_id = {
     if isinstance(chain, dict) and isinstance(chain.get("id"), str)
 }
 added = []
+added_settings = []
 updated = []
 
-basemap_dir = str(config_path.parent / "basemap")
-if config.get("basemap_dir") != basemap_dir:
-    config["basemap_dir"] = basemap_dir
-    updated.append("basemap_dir")
+# A default, not a setting this script owns: an operator who moved the
+# archive - it weighs gigabytes - kept having the path reset under them.
+if "basemap_dir" not in config:
+    config["basemap_dir"] = str(config_path.parent / "basemap")
+    added_settings.append("basemap_dir")
 
 for default in default_chains:
     retired_rpc = default.get("retired_rpc") or []
@@ -262,7 +264,7 @@ for default in default_chains:
             chain["rpc_fallbacks"] = kept
             updated.append(f"{default['id']}.rpc_fallbacks")
 
-if not added and not updated:
+if not added and not added_settings and not updated:
     print(f"Existing config already has built-in chains: {config_path}")
     raise SystemExit(0)
 
@@ -279,6 +281,8 @@ with tmp_path.open("w", encoding="utf-8") as fh:
 tmp_path.chmod(config_path.stat().st_mode & 0o777)
 tmp_path.replace(config_path)
 
+if added_settings:
+    print(f"Added missing settings to existing config: {', '.join(added_settings)}")
 if added:
     print(f"Added built-in chains to existing config: {', '.join(added)}")
 if updated:
@@ -440,7 +444,24 @@ install_basemap() {
     return
   fi
 
-  "${REPO_DIR}/scripts/install_basemap.sh" "${STATE_DIR}/basemap"
+  # Install where the config says the app will read from, so an archive moved
+  # to another disk is found rather than downloaded again.
+  "${REPO_DIR}/scripts/install_basemap.sh" "$(configured_basemap_dir)"
+}
+
+configured_basemap_dir() {
+  python3 - "$CONFIG_PATH" "${STATE_DIR}/basemap" <<'CONFIG_READER'
+import json
+import sys
+
+config_path, fallback = sys.argv[1], sys.argv[2]
+try:
+    with open(config_path, encoding="utf-8") as handle:
+        configured = json.load(handle).get("basemap_dir")
+except (OSError, ValueError):
+    configured = None
+print(configured or fallback)
+CONFIG_READER
 }
 
 write_systemd_service() {
@@ -457,7 +478,7 @@ Type=simple
 User=${RUN_USER}
 Group=${RUN_GROUP}
 WorkingDirectory=${REPO_DIR}
-ExecStart=${BIN_PATH} --config ${CONFIG_PATH}
+ExecStart="${BIN_PATH}" --config "${CONFIG_PATH}"
 Restart=always
 RestartSec=5
 
@@ -470,8 +491,8 @@ UMask=0077
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
-ReadOnlyPaths=${REPO_DIR} ${BIN_DIR}
-ReadWritePaths=${STATE_DIR}
+ReadOnlyPaths="${REPO_DIR}" "${BIN_DIR}"
+ReadWritePaths="${STATE_DIR}"
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
