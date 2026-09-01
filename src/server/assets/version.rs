@@ -22,8 +22,6 @@ fn build_asset_version() -> String {
     for part in APP_JS_PARTS {
         hash.update(part.as_bytes());
     }
-    // The key is substituted into the bundle, so it belongs in its version.
-    hash.update(super::carto_api_key().as_bytes());
     hash.update(EVERSCALE_LOGO_SVG.as_bytes());
     hash.update(TYCHO_LOGO_SVG.as_bytes());
     hash.update(TON_LOGO_SVG.as_bytes());

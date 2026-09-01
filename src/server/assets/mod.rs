@@ -21,11 +21,7 @@ const PRIVATE_ASSET_CACHE_CONTROL: HeaderValue =
 
 static INDEX_PAGE: LazyLock<String> = LazyLock::new(|| render_page(INDEX_HTML));
 static STATS_PAGE: LazyLock<String> = LazyLock::new(|| render_page(STATS_HTML));
-static APP_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| {
-    APP_JS_PARTS
-        .join("\n\n")
-        .replace("__CARTO_API_KEY__", &carto_api_key())
-});
+static APP_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| APP_JS_PARTS.join("\n\n"));
 static STATS_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| STATS_JS_PARTS.join("\n\n"));
 static STYLES_BUNDLE: LazyLock<String> = LazyLock::new(|| STYLES_CSS_PARTS.join("\n"));
 
@@ -48,14 +44,6 @@ pub(super) async fn stats_js() -> impl IntoResponse {
         ],
         STATS_JS_BUNDLE.as_str(),
     )
-}
-
-/// A basemap key is public by nature: the browser fetches the tiles. It lives
-/// in the environment so it never has to be written into the repository.
-pub(in crate::server) fn carto_api_key() -> String {
-    std::env::var("VALIDATORCLOCK_CARTO_API_KEY")
-        .map(|key| key.trim().to_owned())
-        .unwrap_or_default()
 }
 
 fn render_page(template: &str) -> String {

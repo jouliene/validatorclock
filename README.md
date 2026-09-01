@@ -115,31 +115,6 @@ sudo by stopping the current app process and letting systemd start it again.
 straight to the GitHub version. Plain `git pull` can create a merge commit on
 the server if there are local changes.
 
-## Node Map
-
-The basemap comes from CARTO when `VALIDATORCLOCK_CARTO_API_KEY` is set, and
-from VersaTiles otherwise. CARTO began stamping "API KEY REQUIRED" across
-keyless tiles; a free key from `carto.com/basemaps/apikey` restores the original
-look. The key reaches the browser with the tiles, so it is public by nature and
-belongs in the environment rather than in the repository:
-
-```bash
-export VALIDATORCLOCK_CARTO_API_KEY=your-key
-```
-
-Node locations come from ip-api and are double-checked against ipinfo. When the
-two disagree about the country, a third source (`ipwho.is` by default) settles
-it: the side it agrees with wins, and when it backs ipinfo its own city and
-coordinates are used, since ipinfo lite has neither. Only a three-way
-disagreement waits for a person in `manual_review/`. To turn the third opinion
-off and review every conflict by hand:
-
-```json
-"node_locations": {
-  "auto_resolve_conflicts": false
-}
-```
-
 ## Visitor Stats
 
 The footer of the main page shows aggregate traffic (today, last 30 days, all
