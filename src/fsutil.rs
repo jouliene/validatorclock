@@ -59,6 +59,22 @@ fn sanitize_chain_id(chain_id: &str) -> String {
     }
 }
 
+/// Moves a file whose contents no longer parse out of the way and reports
+/// where it went. Writing fresh state over it would destroy data that only a
+/// person can make sense of. Use this for a file that was read but could not
+/// be understood - never for one that merely could not be read, which may be
+/// perfectly good.
+pub(crate) fn keep_unreadable_file(path: &Path) -> Result<PathBuf> {
+    let name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .with_context(|| format!("{} has no file name", path.display()))?;
+    let kept = path.with_file_name(format!("{name}.unreadable-{}", crate::timeutil::now_sec()));
+
+    fs::rename(path, &kept).with_context(|| format!("failed to move {} aside", path.display()))?;
+    Ok(kept)
+}
+
 pub(crate) fn write_file_atomic(path: &Path, data: &[u8], mode: u32) -> Result<()> {
     ensure_parent_dir(path)?;
     let tmp = temp_file_path(path);

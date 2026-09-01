@@ -99,7 +99,7 @@ fn load_round_history_for_chains_ignores_legacy_combined_file() {
     )
     .unwrap();
 
-    let loaded = load_round_history_for_chains(&path, ["everscale", "tycho-testnet"]).unwrap();
+    let loaded = load_round_history_for_chains(&path, ["everscale", "tycho-testnet"]);
 
     let everscale_rounds = loaded.chains["everscale"]
         .rounds
@@ -133,4 +133,104 @@ fn round_history_lock_path_adds_lock_suffix() {
         round_history_lock_path(Path::new("validatorclock_history.json")),
         PathBuf::from("validatorclock_history.json.lock")
     );
+}
+
+/// One chain whose file no longer parses used to abort the whole load, so
+/// every chain started with an empty history.
+#[test]
+fn a_chain_whose_file_does_not_parse_does_not_empty_the_others() {
+    let path = temp_history_path("corrupt_neighbour");
+    let everscale_path = round_history_chain_path(&path, "everscale");
+    let tycho_path = round_history_chain_path(&path, "tycho-testnet");
+
+    let mut everscale_history = RoundHistoryStore::default();
+    record_rounds(&mut everscale_history, "everscale", &[22, 23]);
+    let disk = RoundHistoryDisk {
+        version: 1,
+        chains: everscale_history.chains,
+    };
+    fs::write(
+        &everscale_path,
+        serde_json::to_string_pretty(&disk).unwrap(),
+    )
+    .unwrap();
+    fs::write(&tycho_path, b"{ this is not history").unwrap();
+
+    let loaded = load_round_history_for_chains(&path, ["everscale", "tycho-testnet"]);
+
+    assert_eq!(
+        loaded.chains["everscale"]
+            .rounds
+            .keys()
+            .copied()
+            .collect::<Vec<_>>(),
+        vec![22, 23],
+        "a healthy chain should keep its history"
+    );
+    assert!(!loaded.chains.contains_key("tycho-testnet"));
+    assert!(
+        !tycho_path.exists(),
+        "the unparsable file should have been moved aside"
+    );
+
+    remove_kept_files(&tycho_path);
+    let _ = fs::remove_file(&everscale_path);
+}
+
+/// Leaving the unparsable file in place made every later save for that chain
+/// fail on it, so the chain stopped recording rounds for good.
+#[test]
+fn a_chain_whose_file_does_not_parse_can_save_again() {
+    let path = temp_history_path("corrupt_save");
+    let chain_path = round_history_chain_path(&path, "everscale");
+    fs::write(&chain_path, b"{ this is not history").unwrap();
+
+    let mut history = RoundHistoryStore::default();
+    record_rounds(&mut history, "everscale", &[30, 31]);
+
+    let saved = save_round_history_merged(
+        &path,
+        "everscale",
+        &history,
+        &RoundHistoryRetention::default(),
+    )
+    .expect("an unparsable file should not block the save");
+
+    assert_eq!(
+        saved.chains["everscale"]
+            .rounds
+            .keys()
+            .copied()
+            .collect::<Vec<_>>(),
+        vec![30, 31]
+    );
+    let kept = kept_files(&chain_path);
+    assert_eq!(kept.len(), 1, "the old bytes should be kept: {kept:?}");
+    assert_eq!(fs::read(&kept[0]).unwrap(), b"{ this is not history");
+
+    remove_kept_files(&chain_path);
+    let _ = fs::remove_file(&chain_path);
+}
+
+fn kept_files(path: &Path) -> Vec<PathBuf> {
+    let name = path.file_name().and_then(|name| name.to_str()).unwrap();
+    let prefix = format!("{name}.unreadable-");
+    let mut kept = fs::read_dir(path.parent().unwrap())
+        .unwrap()
+        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+        .filter(|entry| {
+            entry
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(&prefix))
+        })
+        .collect::<Vec<_>>();
+    kept.sort();
+    kept
+}
+
+fn remove_kept_files(path: &Path) {
+    for kept in kept_files(path) {
+        let _ = fs::remove_file(kept);
+    }
 }

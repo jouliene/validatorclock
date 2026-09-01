@@ -7,29 +7,71 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
-use tracing::info;
+use tracing::{info, warn};
 
 #[cfg(test)]
 pub(super) fn load_round_history(path: &Path) -> Result<RoundHistoryStore> {
-    Ok(load_round_history_optional(path)?.unwrap_or_default())
+    load_round_history_or_keep_aside(path)
 }
 
 pub(crate) fn load_round_history_for_chains<'a>(
     base_path: &Path,
     chain_ids: impl IntoIterator<Item = &'a str>,
-) -> Result<RoundHistoryStore> {
+) -> RoundHistoryStore {
     let mut history = RoundHistoryStore::default();
 
     for chain_id in chain_ids {
         let chain_path = round_history_chain_path(base_path, chain_id);
-        let chain_history = load_round_history_optional(&chain_path)?.unwrap_or_default();
+        // One chain that cannot be read must not cost the others their
+        // history: this used to return early and start every chain empty.
+        let chain_history = match load_round_history_or_keep_aside(&chain_path) {
+            Ok(history) => history,
+            Err(error) => {
+                warn!(
+                    chain_id,
+                    path = %chain_path.display(),
+                    error = ?error,
+                    "failed to load chain round history"
+                );
+                continue;
+            }
+        };
         if let Some(chain) = chain_history.chains.get(chain_id).cloned() {
             history.chains.insert(chain_id.to_owned(), chain);
         }
     }
 
     history.remove_incomplete_rounds();
-    Ok(history)
+    history
+}
+
+/// History that no longer parses is moved aside and the chain starts empty:
+/// leaving it in place blocked every later save for that chain, so the chain
+/// stopped recording rounds for good.
+///
+/// A file that could not be *read* is a different matter - it may be perfectly
+/// good - so that error is passed on and the caller does not get to replace it.
+fn load_round_history_or_keep_aside(path: &Path) -> Result<RoundHistoryStore> {
+    match load_round_history_optional(path) {
+        Ok(history) => Ok(history.unwrap_or_default()),
+        Err(error) if is_unparsable(&error) => {
+            warn!(path = %path.display(), error = ?error, "chain round history does not parse");
+            match crate::fsutil::keep_unreadable_file(path) {
+                Ok(kept) => {
+                    warn!(kept = %kept.display(), "kept the unreadable round history aside");
+                }
+                Err(error) => {
+                    warn!(error = ?error, "failed to keep the unreadable round history aside");
+                }
+            }
+            Ok(RoundHistoryStore::default())
+        }
+        Err(error) => Err(error),
+    }
+}
+
+fn is_unparsable(error: &anyhow::Error) -> bool {
+    error.downcast_ref::<serde_json::Error>().is_some()
 }
 
 fn load_round_history_optional(path: &Path) -> Result<Option<RoundHistoryStore>> {
@@ -68,7 +110,7 @@ pub(crate) fn save_round_history_merged(
 ) -> Result<RoundHistoryStore> {
     let path = round_history_chain_path(base_path, chain_id);
     let _lock = RoundHistoryFileLock::acquire(&path)?;
-    let mut disk_history = load_round_history_optional(&path)?.unwrap_or_default();
+    let mut disk_history = load_round_history_or_keep_aside(&path)?;
     let rounds_before = disk_history.round_count_for_chain(chain_id);
     disk_history
         .chains

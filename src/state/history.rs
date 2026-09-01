@@ -25,11 +25,7 @@ pub(super) fn load_initial_store(
     let round_history = load_round_history_for_chains(
         round_history_path,
         config.chains.iter().map(|chain| chain.id.as_str()),
-    )
-    .unwrap_or_else(|error| {
-        warn!(path = %round_history_path.display(), error = ?error, "failed to load round history");
-        RoundHistoryStore::default()
-    });
+    );
 
     for chain in &config.chains {
         let history_path = round_history_chain_path(round_history_path, &chain.id);

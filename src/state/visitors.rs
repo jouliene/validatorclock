@@ -148,7 +148,7 @@ impl AppState {
         };
 
         if let Some(snapshot) = snapshot {
-            snapshot.write();
+            snapshot.write().await;
         }
         event
     }
@@ -253,7 +253,7 @@ impl AppState {
         };
 
         if let Some(snapshot) = snapshot {
-            snapshot.write();
+            snapshot.write().await;
         }
     }
 }
