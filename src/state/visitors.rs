@@ -92,13 +92,22 @@ pub(super) fn load_initial_runtime(path: &Path) -> VisitorsRuntime {
     }
 }
 
+/// What one recorded event meant for the address that sent it. The aggregate
+/// counters are built from these, so both readings of the traffic share one
+/// notion of a visit and one notion of a visitor.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct VisitorEvent {
+    pub(crate) starts_visit: bool,
+    pub(crate) first_visit_today: bool,
+}
+
 impl AppState {
-    pub(crate) async fn record_visitor(&self, ip: IpAddr) {
+    pub(crate) async fn record_visitor(&self, ip: IpAddr) -> VisitorEvent {
         let now = now_seconds();
         let today_index = day_index(now);
         let today = day_string(today_index);
 
-        let snapshot = {
+        let (event, snapshot) = {
             let mut runtime = self.visitors.lock().await;
             let record = runtime
                 .store
@@ -106,9 +115,18 @@ impl AppState {
                 .visitors
                 .entry(ip.to_string())
                 .or_default();
-            let starts_visit = record.first_seen == 0
+            let first_visit_ever = record.first_seen == 0;
+            let first_visit_today = !record.days.contains_key(&today);
+            // A day boundary starts a visit even mid-session, so an address seen
+            // today always shows up in today's numbers.
+            let starts_visit = first_visit_ever
+                || first_visit_today
                 || now.saturating_sub(record.last_seen) > SESSION_TIMEOUT_SECONDS;
-            if record.first_seen == 0 {
+            let event = VisitorEvent {
+                starts_visit,
+                first_visit_today,
+            };
+            if first_visit_ever {
                 record.first_seen = now;
             }
             if starts_visit {
@@ -126,12 +144,26 @@ impl AppState {
                 SAVE_INTERVAL_SECONDS
             };
             prune_visitors(runtime.store.get_mut(), today_index);
-            runtime.store.take_snapshot(now, save_interval)
+            (event, runtime.store.take_snapshot(now, save_interval))
         };
 
         if let Some(snapshot) = snapshot {
             snapshot.write();
         }
+        event
+    }
+
+    /// Addresses seen within the online window, for the traffic summary.
+    pub(crate) async fn visitors_online(&self) -> u64 {
+        let now = now_seconds();
+        let runtime = self.visitors.lock().await;
+        runtime
+            .store
+            .get()
+            .visitors
+            .values()
+            .filter(|record| now.saturating_sub(record.last_seen) <= ONLINE_WINDOW_SECONDS)
+            .count() as u64
     }
 
     pub(crate) async fn public_visitors(&self) -> PublicVisitors {

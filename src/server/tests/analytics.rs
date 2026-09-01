@@ -43,7 +43,10 @@ async fn analytics_store_does_not_persist_raw_request_identifiers() {
     assert!(!content.contains("198.51.100.0"));
     assert!(!content.contains("Firefox"));
     assert!(!content.contains("en-US"));
-    assert!(content.contains("visitor_hashes"));
+    assert!(
+        content.contains("unique_visitors"),
+        "the aggregate keeps counts only"
+    );
 }
 
 #[tokio::test]
@@ -179,6 +182,71 @@ async fn repeat_heartbeats_do_not_rewrite_the_analytics_store() {
     let json = response_json(app_response(state, "/api/analytics/public").await).await;
     assert_eq!(json["today"]["visits"], 2);
     assert_eq!(json["today"]["unique_visitors"], 2);
+}
+
+#[tokio::test]
+async fn the_summary_and_the_address_table_agree_on_visits_and_visitors() {
+    let state = test_state(Vec::new());
+
+    // Two addresses, one of them sending several events in one session.
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.7:1200").await;
+    analytics_event_response(Arc::clone(&state), "heartbeat", "198.51.100.7:1201").await;
+    analytics_event_response(Arc::clone(&state), "page_open", "203.0.113.8:1202").await;
+    analytics_event_response(Arc::clone(&state), "heartbeat", "203.0.113.8:1203").await;
+
+    let summary = response_json(app_response(Arc::clone(&state), "/api/analytics/public").await)
+        .await["today"]
+        .clone();
+    let table = response_json(authed_stats_response(state, "/stats/visitors").await).await;
+
+    let listed_addresses = table["visitors"].as_array().unwrap();
+    let visits_today: u64 = listed_addresses
+        .iter()
+        .map(|visitor| visitor["today_visits"].as_u64().unwrap())
+        .sum();
+    let addresses_today = listed_addresses
+        .iter()
+        .filter(|visitor| visitor["today_visits"].as_u64().unwrap() > 0)
+        .count() as u64;
+
+    assert_eq!(
+        summary["visits"].as_u64(),
+        Some(visits_today),
+        "the summary counts the visits the table shows"
+    );
+    assert_eq!(
+        summary["unique_visitors"].as_u64(),
+        Some(addresses_today),
+        "a unique visitor is an address, in both readings"
+    );
+    assert_eq!(summary["online_now"].as_u64(), table["online_now"].as_u64());
+    assert_eq!(visits_today, 2);
+    assert_eq!(addresses_today, 2);
+}
+
+#[tokio::test]
+async fn a_restart_does_not_invent_a_visit_for_a_live_session() {
+    let analytics_path = temp_state_path("analytics_restart");
+    let visitors_path = temp_state_path("visitors_restart");
+    let mut config = test_config(Vec::new());
+    config.analytics_path = Some(analytics_path.clone());
+    config.visitors_path = Some(visitors_path.clone());
+    let state = state_from_config(config.clone());
+
+    analytics_event_response(Arc::clone(&state), "page_open", "198.51.100.7:1200").await;
+    let json = response_json(app_response(state, "/api/analytics/public").await).await;
+    assert_eq!(json["today"]["visits"], 1);
+
+    // The process starts again while the visitor keeps the page open.
+    let restarted = state_from_config(config);
+    analytics_event_response(Arc::clone(&restarted), "heartbeat", "198.51.100.7:1201").await;
+
+    let json = response_json(app_response(restarted, "/api/analytics/public").await).await;
+    assert_eq!(
+        json["today"]["visits"], 1,
+        "the session survived the restart, so no new visit was counted"
+    );
+    assert_eq!(json["today"]["unique_visitors"], 1);
 }
 
 async fn analytics_event_response(

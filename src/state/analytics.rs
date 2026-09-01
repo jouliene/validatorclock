@@ -1,25 +1,12 @@
-use crate::fsutil;
-use anyhow::{Context, Result, anyhow};
 use axum::http::HeaderMap;
-use hmac::{Hmac, Mac};
 use serde::{Deserialize, Serialize};
-use sha2::Sha256;
-use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::fs;
-use std::io::Read;
-use std::net::{IpAddr, SocketAddr};
-use std::path::{Path, PathBuf};
-use tracing::{info, warn};
+use std::collections::BTreeMap;
+use std::net::SocketAddr;
+use std::path::Path;
 
 use super::AppState;
 use super::json_store::JsonStore;
 use crate::timeutil::{day_index, day_string, now_sec as now_seconds, parse_day_index};
-
-type HmacSha256 = Hmac<Sha256>;
-
-const SESSION_TIMEOUT_SECONDS: u64 = 1_800;
-const ONLINE_WINDOW_SECONDS: u64 = 120;
-const VISITOR_HASH_RETENTION_DAYS: i64 = 35;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AnalyticsEventKind {
@@ -56,8 +43,6 @@ struct PublicAnalyticsAllTime {
 #[derive(Debug)]
 pub(super) struct AnalyticsRuntime {
     store: JsonStore<AnalyticsDisk>,
-    secret: [u8; 32],
-    sessions: HashMap<String, u64>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -84,29 +69,11 @@ struct AnalyticsDay {
     visits: u64,
     #[serde(default)]
     unique_visitors: u64,
-    #[serde(default)]
-    visitor_hashes: BTreeSet<String>,
 }
 
 pub(super) fn load_initial_runtime(path: &Path) -> AnalyticsRuntime {
-    let store = JsonStore::load(path.to_path_buf(), "analytics");
-    let secret_path = analytics_secret_path(path);
-    let secret = match load_or_create_secret(&secret_path) {
-        Ok(secret) => secret,
-        Err(error) => {
-            warn!(
-                path = %secret_path.display(),
-                error = ?error,
-                "failed to load analytics secret; using a process-local fallback"
-            );
-            fallback_process_secret()
-        }
-    };
-
     AnalyticsRuntime {
-        store,
-        secret,
-        sessions: HashMap::new(),
+        store: JsonStore::load(path.to_path_buf(), "analytics"),
     }
 }
 
@@ -124,46 +91,36 @@ impl AppState {
         let Some(peer_addr) = peer_addr else {
             return;
         };
-        self.record_visitor(peer_addr.ip()).await;
+
+        // The visitor store decides what the event means, so the summary and
+        // the per-address table always agree on what a visit and a visitor are.
+        let visit = self.record_visitor(peer_addr.ip()).await;
+        let counts_pageview = event == AnalyticsEventKind::PageOpen;
+        if !visit.starts_visit && !counts_pageview {
+            return;
+        }
+
         let now = now_seconds();
-        let today_index = day_index(now);
-        let today = day_string(today_index);
-        let visitor_key = {
-            let runtime = self.analytics.lock().await;
-            visitor_key(&runtime.secret, &today, peer_addr.ip(), headers)
-        };
+        let today = day_string(day_index(now));
 
         let snapshot = {
             let mut runtime = self.analytics.lock().await;
-            runtime
-                .sessions
-                .retain(|_, last_seen| now.saturating_sub(*last_seen) <= SESSION_TIMEOUT_SECONDS);
-            let pruned = prune_visitor_hashes(runtime.store.get_mut(), today_index);
-
-            let starts_visit = runtime
-                .sessions
-                .get(&visitor_key)
-                .is_none_or(|last_seen| now.saturating_sub(*last_seen) > SESSION_TIMEOUT_SECONDS);
-            let counts_pageview = event == AnalyticsEventKind::PageOpen;
-
-            let counted_new_visitor = {
+            {
                 let day = runtime.store.get_mut().days.entry(today).or_default();
-                let counted_new_visitor = day.visitor_hashes.insert(visitor_key.clone());
-                if counted_new_visitor {
+                if visit.first_visit_today {
                     day.unique_visitors = day.unique_visitors.saturating_add(1);
                 }
-                if starts_visit {
+                if visit.starts_visit {
                     day.visits = day.visits.saturating_add(1);
                 }
                 if counts_pageview {
                     day.pageviews = day.pageviews.saturating_add(1);
                 }
-                counted_new_visitor
-            };
+            }
 
             {
                 let all_time = &mut runtime.store.get_mut().all_time;
-                if starts_visit {
+                if visit.starts_visit {
                     all_time.visits = all_time.visits.saturating_add(1);
                 }
                 if counts_pageview {
@@ -171,14 +128,7 @@ impl AppState {
                 }
             }
 
-            runtime.sessions.insert(visitor_key, now);
-
-            // A heartbeat from a session already counted today leaves the
-            // stored counters exactly as they were, so it is not written back.
-            let changed = starts_visit || counts_pageview || counted_new_visitor || pruned;
-            changed
-                .then(|| runtime.store.take_snapshot(now, 0))
-                .flatten()
+            runtime.store.take_snapshot(now, 0)
         };
 
         if let Some(snapshot) = snapshot {
@@ -190,15 +140,8 @@ impl AppState {
         let now = now_seconds();
         let today_index = day_index(now);
         let today_key = day_string(today_index);
-        let mut runtime = self.analytics.lock().await;
-        runtime
-            .sessions
-            .retain(|_, last_seen| now.saturating_sub(*last_seen) <= SESSION_TIMEOUT_SECONDS);
-        let online_now = runtime
-            .sessions
-            .values()
-            .filter(|last_seen| now.saturating_sub(**last_seen) <= ONLINE_WINDOW_SECONDS)
-            .count() as u64;
+        let online_now = self.visitors_online().await;
+        let runtime = self.analytics.lock().await;
         let today = runtime
             .store
             .get()
@@ -219,103 +162,6 @@ impl AppState {
             },
         }
     }
-}
-
-fn analytics_secret_path(path: &Path) -> PathBuf {
-    let file_name = path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("validatorclock_analytics.json");
-    path.with_file_name(format!("{file_name}.secret"))
-}
-
-fn load_or_create_secret(path: &Path) -> Result<[u8; 32]> {
-    match fs::read_to_string(path) {
-        Ok(content) => {
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                fs::set_permissions(path, fs::Permissions::from_mode(0o600))
-                    .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-            }
-            decode_secret(content.trim()).with_context(|| format!("invalid {}", path.display()))
-        }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            let secret = generate_secret()?;
-            let content = format!("{}\n", hex::encode(secret));
-            fsutil::write_file_atomic(path, content.as_bytes(), 0o600)?;
-            info!(path = %path.display(), "created analytics secret");
-            Ok(secret)
-        }
-        Err(error) => Err(error).with_context(|| format!("failed to read {}", path.display())),
-    }
-}
-
-fn decode_secret(value: &str) -> Result<[u8; 32]> {
-    let bytes = hex::decode(value)?;
-    bytes
-        .try_into()
-        .map_err(|bytes: Vec<u8>| anyhow!("expected 32 secret bytes, got {}", bytes.len()))
-}
-
-fn generate_secret() -> Result<[u8; 32]> {
-    let mut secret = [0u8; 32];
-    fs::File::open("/dev/urandom")
-        .context("failed to open /dev/urandom")?
-        .read_exact(&mut secret)
-        .context("failed to read /dev/urandom")?;
-    Ok(secret)
-}
-
-fn fallback_process_secret() -> [u8; 32] {
-    let mut secret = [0u8; 32];
-    let seed = now_seconds().to_le_bytes();
-    for chunk in secret.chunks_mut(seed.len()) {
-        let len = chunk.len();
-        chunk.copy_from_slice(&seed[..len]);
-    }
-    secret
-}
-
-fn visitor_key(secret: &[u8; 32], day: &str, ip: IpAddr, headers: &HeaderMap) -> String {
-    let ip_prefix = masked_ip_prefix(ip);
-    let user_agent_family =
-        header_family(headers, axum::http::header::USER_AGENT, user_agent_family);
-    let language_family = header_family(
-        headers,
-        axum::http::header::ACCEPT_LANGUAGE,
-        accept_language_family,
-    );
-    let input = format!("{day}|{ip_prefix}|{user_agent_family}|{language_family}");
-    let mut mac = HmacSha256::new_from_slice(secret).expect("HMAC accepts fixed-size keys");
-    mac.update(input.as_bytes());
-    hex::encode(mac.finalize().into_bytes())
-}
-
-fn masked_ip_prefix(ip: IpAddr) -> String {
-    match ip {
-        IpAddr::V4(ip) => {
-            let [a, b, c, _] = ip.octets();
-            format!("{a}.{b}.{c}.0/24")
-        }
-        IpAddr::V6(ip) => {
-            let mut octets = ip.octets();
-            octets[8..].fill(0);
-            format!("{}/64", std::net::Ipv6Addr::from(octets))
-        }
-    }
-}
-
-fn header_family(
-    headers: &HeaderMap,
-    name: axum::http::header::HeaderName,
-    mapper: fn(&str) -> String,
-) -> String {
-    headers
-        .get(name)
-        .and_then(|value| value.to_str().ok())
-        .map(mapper)
-        .unwrap_or_else(|| "unknown".to_owned())
 }
 
 fn is_bot_request(headers: &HeaderMap) -> bool {
@@ -341,70 +187,6 @@ fn is_bot_request(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
-fn user_agent_family(value: &str) -> String {
-    let lower = value.to_ascii_lowercase();
-    if lower.contains("edg/") || lower.contains("edge/") {
-        "edge".to_owned()
-    } else if lower.contains("firefox/") || lower.contains("fxios/") {
-        "firefox".to_owned()
-    } else if lower.contains("chrome/") || lower.contains("crios/") || lower.contains("chromium/") {
-        "chromium".to_owned()
-    } else if lower.contains("safari/") {
-        "safari".to_owned()
-    } else {
-        "other".to_owned()
-    }
-}
-
-fn accept_language_family(value: &str) -> String {
-    value
-        .split(',')
-        .next()
-        .unwrap_or_default()
-        .split(';')
-        .next()
-        .unwrap_or_default()
-        .split('-')
-        .next()
-        .unwrap_or_default()
-        .chars()
-        .filter(|ch| ch.is_ascii_alphabetic())
-        .take(8)
-        .collect::<String>()
-        .to_ascii_lowercase()
-        .chars()
-        .collect::<String>()
-        .if_empty("unknown")
-}
-
-trait EmptyStringExt {
-    fn if_empty(self, fallback: &str) -> String;
-}
-
-impl EmptyStringExt for String {
-    fn if_empty(self, fallback: &str) -> String {
-        if self.is_empty() {
-            fallback.to_owned()
-        } else {
-            self
-        }
-    }
-}
-
-fn prune_visitor_hashes(disk: &mut AnalyticsDisk, today_index: i64) -> bool {
-    let mut pruned = false;
-    for (day, stats) in &mut disk.days {
-        if !stats.visitor_hashes.is_empty()
-            && let Some(day_index) = parse_day_index(day)
-            && today_index.saturating_sub(day_index) >= VISITOR_HASH_RETENTION_DAYS
-        {
-            stats.visitor_hashes.clear();
-            pruned = true;
-        }
-    }
-    pruned
-}
-
 fn analytics_window(disk: &AnalyticsDisk, today_index: i64, days: i64) -> PublicAnalyticsWindow {
     let first_day = today_index.saturating_sub(days.saturating_sub(1));
     let mut window = PublicAnalyticsWindow {
@@ -426,41 +208,49 @@ fn analytics_window(disk: &AnalyticsDisk, today_index: i64, days: i64) -> Public
 mod tests {
     use super::*;
     use axum::http::HeaderValue;
-    use std::net::{Ipv4Addr, Ipv6Addr};
 
     #[test]
-    fn masks_ip_prefixes() {
-        assert_eq!(
-            masked_ip_prefix(IpAddr::V4(Ipv4Addr::new(203, 0, 113, 42))),
-            "203.0.113.0/24"
-        );
-        assert_eq!(
-            masked_ip_prefix(IpAddr::V6(Ipv6Addr::new(
-                0x2001, 0xdb8, 0x1234, 0x5678, 0xabcd, 0, 0, 1
-            ))),
-            "2001:db8:1234:5678::/64"
-        );
-    }
+    fn known_crawlers_are_not_counted_as_traffic() {
+        for agent in [
+            "Mozilla/5.0 (compatible; Googlebot/2.1)",
+            "Slackbot-LinkExpanding 1.0",
+            "TelegramBot (like TwitterBot)",
+            "WhatsApp/2.23",
+        ] {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                axum::http::header::USER_AGENT,
+                HeaderValue::from_str(agent).unwrap(),
+            );
+            assert!(is_bot_request(&headers), "{agent} should be filtered out");
+        }
 
-    #[test]
-    fn visitor_key_uses_header_families_not_raw_headers() {
         let mut headers = HeaderMap::new();
         headers.insert(
             axum::http::header::USER_AGENT,
             HeaderValue::from_static("Mozilla/5.0 Firefox/127.0"),
         );
-        headers.insert(
-            axum::http::header::ACCEPT_LANGUAGE,
-            HeaderValue::from_static("en-US,en;q=0.9"),
-        );
-        let secret = [7u8; 32];
-        let key = visitor_key(
-            &secret,
-            "2026-06-29",
-            IpAddr::V4(Ipv4Addr::new(203, 0, 113, 42)),
-            &headers,
-        );
-        assert_eq!(key.len(), 64);
-        assert!(key.chars().all(|ch| ch.is_ascii_hexdigit()));
+        assert!(!is_bot_request(&headers));
+        assert!(!is_bot_request(&HeaderMap::new()));
+    }
+
+    #[test]
+    fn windows_add_up_the_days_they_cover() {
+        let mut disk = AnalyticsDisk::default();
+        let today = day_index(now_seconds());
+        for (offset, visits) in [(0, 3), (2, 5), (10, 7), (40, 100)] {
+            disk.days.insert(
+                day_string(today - offset),
+                AnalyticsDay {
+                    pageviews: visits,
+                    visits,
+                    unique_visitors: 1,
+                },
+            );
+        }
+
+        assert_eq!(analytics_window(&disk, today, 7).visits, 8);
+        assert_eq!(analytics_window(&disk, today, 30).visits, 15);
+        assert_eq!(analytics_window(&disk, today, 30).unique_visitors, 3);
     }
 }
