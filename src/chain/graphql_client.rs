@@ -73,17 +73,23 @@ impl GraphqlClient {
 
         // Queries are read-only, so a connection that never produced a response
         // is retried instead of failing the whole refresh on one bad second.
+        // The endpoint carries the project id in its path, and this message
+        // reaches the public /api/status and the clock warning. A reqwest
+        // error prints the URL it failed on, which would put the id there in
+        // full, right beside the label that exists to mask it.
         let response = builder.send().await.map_err(|error| {
             RpcCallError::Transient(anyhow!(
-                "failed to send GraphQL `{name}` request to {}: {error}",
-                self.label
+                "failed to send GraphQL `{name}` request to {}: {}",
+                self.label,
+                error.without_url()
             ))
         })?;
         let status = response.status();
         let body = response.text().await.map_err(|error| {
             RpcCallError::Transient(anyhow!(
-                "failed to read GraphQL `{name}` response from {}: {error}",
-                self.label
+                "failed to read GraphQL `{name}` response from {}: {}",
+                self.label,
+                error.without_url()
             ))
         })?;
 
@@ -236,5 +242,41 @@ mod tests {
 
         assert!(truncated.len() < body.len());
         assert!(truncated.ends_with('…'));
+    }
+
+    /// The project id lives in the endpoint path, and this client's messages
+    /// reach the unauthenticated /api/status and the clock warning. A reqwest
+    /// error prints the URL it failed on, so the error must not be formatted
+    /// as it comes - the masked label is the only form of the endpoint that
+    /// may travel.
+    #[tokio::test]
+    async fn a_failed_request_does_not_carry_the_endpoint_secret() {
+        const SECRET: &str = "0123456789abcdef0123456789abcdef";
+
+        // A port nothing listens on: the request is refused at once.
+        let closed_port = {
+            let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let port = listener.local_addr().unwrap().port();
+            drop(listener);
+            port
+        };
+        let client =
+            GraphqlClient::new(&format!("http://127.0.0.1:{closed_port}/{SECRET}/graphql"))
+                .unwrap();
+
+        let error = client
+            .query::<Value>("test", "{ info { version } }", Value::Null)
+            .await
+            .expect_err("a refused request should fail");
+        let message = format!("{error:?}");
+
+        assert!(
+            !message.contains(SECRET),
+            "the endpoint secret must not reach the message: {message}"
+        );
+        assert!(
+            message.contains("***"),
+            "the masked label should still name the endpoint: {message}"
+        );
     }
 }

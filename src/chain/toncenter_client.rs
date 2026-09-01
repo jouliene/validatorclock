@@ -66,15 +66,20 @@ impl TonCenterJsonRpcClient {
             builder = builder.header("X-API-Key", api_key);
         }
 
+        // This message reaches the public /api/status and the clock warning,
+        // and a reqwest error prints the URL it failed on - which may carry a
+        // key in its path or query.
         let response = builder.send().await.map_err(|error| {
             RpcCallError::Transient(anyhow!(
-                "failed to send TON Center `{method}` request: {error}"
+                "failed to send TON Center `{method}` request: {}",
+                error.without_url()
             ))
         })?;
         let status = response.status();
         let value = response.json::<Value>().await.map_err(|error| {
             RpcCallError::Transient(anyhow!(
-                "failed to parse TON Center `{method}` response: {error}"
+                "failed to parse TON Center `{method}` response: {}",
+                error.without_url()
             ))
         })?;
 

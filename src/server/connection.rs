@@ -21,6 +21,9 @@ const REQUEST_TIMEOUT_SECS: u64 = 10;
 const HEADER_READ_TIMEOUT_SECS: u64 = 20;
 const CONNECTION_LIFETIME_SECS: u64 = 300;
 const TLS_HANDSHAKE_TIMEOUT_SECS: u64 = 15;
+/// How long to wait before accepting again after an error that is not about
+/// one connection - a descriptor limit, say - so the loop cannot spin hot.
+const ACCEPT_RETRY_DELAY: Duration = Duration::from_secs(1);
 
 pub(super) async fn serve_plain_connections(
     listener: TcpListener,
@@ -31,7 +34,22 @@ pub(super) async fn serve_plain_connections(
     let permits = Arc::new(Semaphore::new(max_connections));
 
     loop {
-        let (stream, peer_addr) = listener.accept().await?;
+        let (stream, peer_addr) = match listener.accept().await {
+            Ok(accepted) => accepted,
+            Err(error) => {
+                // accept(2) hands back errors that belong to the connection
+                // being dequeued, not to the listener: a client that went away,
+                // a route that dropped under it. Ending the loop on one of
+                // those retired the listener for the life of the process - and
+                // the port 80 listener is spawned without a handle, so nothing
+                // noticed it had gone until a certificate renewal failed.
+                if !is_connection_error(&error) {
+                    warn!(error = ?error, label, "accept failed; retrying");
+                    tokio::time::sleep(ACCEPT_RETRY_DELAY).await;
+                }
+                continue;
+            }
+        };
         let permit = Arc::clone(&permits).acquire_owned().await?;
         let app = app.clone();
         tokio::spawn(async move {
@@ -50,7 +68,22 @@ pub(super) async fn serve_tls_connections(
     let permits = Arc::new(Semaphore::new(max_connections));
 
     loop {
-        let (stream, peer_addr) = listener.accept().await?;
+        let (stream, peer_addr) = match listener.accept().await {
+            Ok(accepted) => accepted,
+            Err(error) => {
+                // accept(2) hands back errors that belong to the connection
+                // being dequeued, not to the listener: a client that went away,
+                // a route that dropped under it. Ending the loop on one of
+                // those retired the listener for the life of the process - and
+                // the port 80 listener is spawned without a handle, so nothing
+                // noticed it had gone until a certificate renewal failed.
+                if !is_connection_error(&error) {
+                    warn!(error = ?error, label = "HTTPS", "accept failed; retrying");
+                    tokio::time::sleep(ACCEPT_RETRY_DELAY).await;
+                }
+                continue;
+            }
+        };
         let acceptor = acceptor.read().await.clone();
         let permit = Arc::clone(&permits).acquire_owned().await?;
         let app = app.clone();
@@ -71,6 +104,17 @@ pub(super) async fn serve_tls_connections(
             }
         });
     }
+}
+
+/// An error about the connection being dequeued, not about the listener. The
+/// client is simply gone, and the next accept is the right answer.
+fn is_connection_error(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        std::io::ErrorKind::ConnectionRefused
+            | std::io::ErrorKind::ConnectionAborted
+            | std::io::ErrorKind::ConnectionReset
+    )
 }
 
 async fn serve_connection<S>(stream: S, peer_addr: SocketAddr, app: Router, label: &'static str)

@@ -11,7 +11,7 @@ use std::time::{Duration as StdDuration, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
 use tokio::time::{Duration, sleep};
 use tokio_rustls::TlsAcceptor;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use x509_parser::parse_x509_certificate;
 
 pub(crate) async fn ensure_acme_certificate(state: &AppState) -> Result<()> {
@@ -20,7 +20,54 @@ pub(crate) async fn ensure_acme_certificate(state: &AppState) -> Result<()> {
         return Ok(());
     }
 
-    issue_acme_certificate(state).await
+    let Err(error) = issue_acme_certificate(state).await else {
+        return Ok(());
+    };
+
+    // A certificate that is only due for renewal still serves, and renewal
+    // starts a month before it expires. Refusing to start on it hands the
+    // whole site to whatever was briefly wrong with the ACME server, and the
+    // service manager restarts straight back into the same failure - each
+    // restart opening a fresh order against Let's Encrypt's rate limits. The
+    // renewal loop retries in the background instead.
+    if certificate_still_serves(tls) {
+        warn!(
+            error = ?error,
+            "ACME issuance failed; starting with the certificate already on disk"
+        );
+        return Ok(());
+    }
+
+    Err(error)
+}
+
+/// Whether the pair on disk can be loaded and has not expired. Being due for
+/// renewal does not stop a certificate serving; being unusable does.
+fn certificate_still_serves(tls: &TlsConfig) -> bool {
+    let Ok(certs) = load_cert_chain(&tls.cert_path) else {
+        return false;
+    };
+    let Ok(key) = load_private_key(&tls.key_path) else {
+        return false;
+    };
+    if build_server_config(certs.clone(), key).is_err() {
+        return false;
+    }
+    let Some(leaf) = certs.first() else {
+        return false;
+    };
+    let Ok((_, certificate)) = parse_x509_certificate(leaf.as_ref()) else {
+        return false;
+    };
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or(StdDuration::ZERO)
+        .as_secs()
+        .min(i64::MAX as u64) as i64;
+    let validity = certificate.validity();
+
+    validity.not_before.timestamp() <= now && now < validity.not_after.timestamp()
 }
 
 pub(crate) async fn acme_renewal_loop(state: Arc<AppState>, acceptor: Arc<RwLock<TlsAcceptor>>) {

@@ -52,6 +52,7 @@ async fn main() -> Result<()> {
 
     let state = Arc::new(AppState::new(Arc::clone(&config)));
     chain::spawn_background_refresh(Arc::clone(&state));
+    node_locations::warn_if_geo_lookups_are_cleartext(&config.node_locations);
     node_locations::spawn_background_refresh(Arc::clone(&state));
     visitor_geo::spawn_background_refresh(Arc::clone(&state));
 

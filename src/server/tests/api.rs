@@ -135,3 +135,33 @@ async fn app_router_reports_not_found_code() {
     assert_eq!(body["error"], "not found");
     assert_eq!(body["code"], "not_found");
 }
+
+/// One answer costs several sequential upstream calls, so requests arriving
+/// together used to mean one fan-out each against a metered API. The handler
+/// takes a per-chain guard and leaves its answer behind it, so the second
+/// caller is served from the hold rather than going upstream.
+#[tokio::test]
+async fn concurrent_round_stats_requests_do_not_each_go_upstream() {
+    let state = test_state(Vec::new());
+    state
+        .hold_round_stats("test", &crate::chain::test_round_stats("test"))
+        .await;
+
+    // The chain's rpc is example.com and unreachable from a test, so a request
+    // that actually went upstream would take the timeout and answer 500. Being
+    // served the held answer is what proves the handler consulted the hold.
+    let response = tokio::time::timeout(
+        Duration::from_secs(3),
+        app_response(
+            std::sync::Arc::clone(&state),
+            "/api/chains/test/round-stats",
+        ),
+    )
+    .await
+    .expect("the held answer should be returned without an upstream call");
+
+    assert_eq!(response.status(), axum::http::StatusCode::OK);
+    let body = response_json(response).await;
+    assert_eq!(body["chain"]["id"], "test");
+    assert_eq!(body["active_round_id"], 7);
+}

@@ -110,7 +110,7 @@ impl TonCenterValidatorSourceProvider {
         let mut url = Url::parse(&self.account_states_endpoint).map_err(|error| {
             RpcCallError::Other(anyhow!(
                 "invalid TON Center account states endpoint `{}`: {error}",
-                self.account_states_endpoint
+                crate::chain::util::endpoint_label(&self.account_states_endpoint)
             ))
         })?;
         {

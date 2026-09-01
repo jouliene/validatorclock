@@ -35,6 +35,30 @@ pub(crate) async fn apply_cached_validator_types_to_snapshot(
 }
 
 #[cfg(test)]
+pub(crate) fn test_round_stats(chain_id: &str) -> ChainRoundStatsDto {
+    ChainRoundStatsDto {
+        chain: ChainMeta {
+            id: chain_id.to_owned(),
+            name: "Test".to_owned(),
+            color: "#38bdf8".to_owned(),
+            token_symbol: "TEST".to_owned(),
+            rpc_label: "example.com".to_owned(),
+        },
+        fetched_at: 123,
+        active_round_id: 7,
+        active_round_color: RoundColor::Blue,
+        blue: dto::RoundStatsColorDto {
+            round_color: RoundColor::Blue,
+            rounds: Vec::new(),
+        },
+        green: dto::RoundStatsColorDto {
+            round_color: RoundColor::Green,
+            rounds: Vec::new(),
+        },
+    }
+}
+
+#[cfg(test)]
 pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
     ClockSnapshot {
         chain: ChainMeta {

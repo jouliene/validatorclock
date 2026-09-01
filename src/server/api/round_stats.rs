@@ -37,6 +37,14 @@ pub(in crate::server) async fn chain_round_stats(
         return Json(stats).into_response();
     }
 
+    // Concurrent callers queue here instead of each starting its own fan-out
+    // of sequential upstream calls. Whoever gets through first leaves the
+    // answer behind, and the rest find it already waiting.
+    let _fetch_guard = state.round_stats_fetch_guard(&chain_id).await;
+    if let Some(stats) = state.held_round_stats(&chain_id).await {
+        return Json(stats).into_response();
+    }
+
     let timeout_seconds = state.config.refresh_timeout_seconds.min(8);
     match timeout(
         Duration::from_secs(timeout_seconds),
@@ -44,7 +52,10 @@ pub(in crate::server) async fn chain_round_stats(
     )
     .await
     {
-        Ok(Ok(stats)) => Json(stats).into_response(),
+        Ok(Ok(stats)) => {
+            state.hold_round_stats(&chain_id, &stats).await;
+            Json(stats).into_response()
+        }
         Ok(Err(error)) => {
             error!(chain_id, error = ?error, "round stats request failed");
             if let Some(stats) = cached_stats {

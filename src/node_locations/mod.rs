@@ -246,3 +246,17 @@ async fn refresh_chain_locations(
 
     Ok(cache_changed)
 }
+
+/// ip-api answers only over cleartext on the keyless tier - https returns 403 -
+/// so this cannot simply be switched. Saying so once at startup keeps the
+/// trade-off visible: the addresses looked up travel in the clear, and the
+/// answer arrives from a channel anyone on the path can rewrite. Everything
+/// that answer carries is folded, capped and range-checked before it is
+/// stored, so a rewritten answer cannot do more than lie about a location.
+pub(crate) fn warn_if_geo_lookups_are_cleartext(config: &NodeLocationsConfig) {
+    if config.ip_api_batch_endpoint.starts_with("http://") {
+        warn!(
+            "geo lookups run over cleartext HTTP; the addresses looked up are visible on the path"
+        );
+    }
+}

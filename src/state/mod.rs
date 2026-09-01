@@ -4,6 +4,7 @@ mod cache;
 mod history;
 mod json_store;
 mod map_annotations;
+mod round_stats_cache;
 mod runtime;
 mod validator_types;
 pub(crate) mod visitors;
@@ -34,6 +35,8 @@ pub(crate) struct AppState {
     round_history_path: PathBuf,
     round_history: RwLock<RoundHistoryStore>,
     acme_challenges: RwLock<HashMap<String, String>>,
+    round_stats_hold: RwLock<round_stats_cache::RoundStatsHold>,
+    round_stats_locks: Mutex<HashMap<String, Arc<Mutex<()>>>>,
 }
 
 impl AppState {
@@ -73,6 +76,8 @@ impl AppState {
             round_history: RwLock::new(round_history),
             round_history_path,
             acme_challenges: RwLock::new(HashMap::new()),
+            round_stats_hold: RwLock::new(round_stats_cache::RoundStatsHold::default()),
+            round_stats_locks: Mutex::new(HashMap::new()),
         }
     }
 
