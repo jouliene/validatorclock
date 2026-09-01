@@ -115,6 +115,18 @@ sudo by stopping the current app process and letting systemd start it again.
 straight to the GitHub version. Plain `git pull` can create a merge commit on
 the server if there are local changes.
 
+## Node Map
+
+The basemap comes from VersaTiles: open data, open infrastructure, no key and
+no account. CARTO, which served the basemap before, now stamps "API KEY
+REQUIRED" across keyless tiles and has no free tier.
+
+A label layer must ask for a font the style actually serves. VersaTiles serves
+`noto_sans_bold`; a font it does not have answers 404, and that failure takes
+down every layer sharing the source, so the node circles vanish with the
+labels. The font stack therefore lives in `map_style.js` next to the style, and
+a test fails the build if a layer names a font inline.
+
 ## Visitor Stats
 
 The footer of the main page shows aggregate traffic (today, last 30 days, all

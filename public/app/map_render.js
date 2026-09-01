@@ -78,7 +78,10 @@ function renderValidatorMap() {
     [179.9, 75]
   ]);
 
-  validatorMap.on("load", () => addValidatorNodeLayers(features));
+  validatorMap.on("load", () => {
+    applyValidatorMapPalette(validatorMap);
+    addValidatorNodeLayers(features);
+  });
 }
 
 function refreshValidatorMapSource() {

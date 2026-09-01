@@ -252,6 +252,38 @@ mod tests {
             .collect()
     }
 
+    // A label layer that asks for a font the basemap style does not serve gets
+    // a 404, and that failure takes down every layer sharing its source: the
+    // node circles disappear with the labels. The font stack therefore comes
+    // from the module that picks the style.
+    #[test]
+    fn label_layers_take_their_font_from_the_basemap_module() {
+        let layers = APP_JS_PARTS
+            .iter()
+            .find(|part| part.contains("function validatorNodeLayers("))
+            .expect("the map layer module should be bundled");
+
+        for line in layers.lines() {
+            let Some(font) = line.split("\"text-font\":").nth(1) else {
+                continue;
+            };
+            assert!(
+                font.contains("validatorMapFontStack()"),
+                "name the font through validatorMapFontStack(), not inline: {}",
+                line.trim()
+            );
+        }
+
+        let style = APP_JS_PARTS
+            .iter()
+            .find(|part| part.contains("function validatorMapFontStack("))
+            .expect("the basemap module should be bundled");
+        assert!(
+            style.contains("VALIDATOR_MAP_STYLE_URL"),
+            "the font stack belongs next to the style it belongs to"
+        );
+    }
+
     fn scripts_in(directory: &str) -> Vec<std::path::PathBuf> {
         let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(directory);
         std::fs::read_dir(&script_dir)

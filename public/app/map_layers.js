@@ -94,7 +94,7 @@ function validatorClusterCountLayer() {
     layout: {
       "text-field": ["to-string", ["get", "total_nodes"]],
       "text-size": 10,
-      "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+      "text-font": validatorMapFontStack(),
       "text-allow-overlap": true,
       "text-ignore-placement": true
     },
@@ -162,7 +162,7 @@ function validatorLocationCountLayer() {
     layout: {
       "text-field": ["to-string", ["get", "node_count"]],
       "text-size": 10,
-      "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+      "text-font": validatorMapFontStack(),
       "text-allow-overlap": true,
       "text-ignore-placement": true
     },
