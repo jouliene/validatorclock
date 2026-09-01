@@ -23,6 +23,7 @@ fn cached_location(city: &str, country: &str, country_code: &str) -> CachedGeoLo
         ipinfo: None,
         ipinfo_conflict: false,
         ipinfo_conflict_reason: None,
+        tiebreak: None,
     }
 }
 

@@ -5,6 +5,7 @@ use super::fields::{
     number_u64_field, string_field, unknown_string,
 };
 use super::ipinfo::IpInfoLiteLocation;
+use super::tiebreak::TiebreakLocation;
 use crate::fsutil::write_file_atomic;
 use crate::geoip;
 use anyhow::{Context, Result};
@@ -75,6 +76,8 @@ pub(super) struct CachedGeoLocation {
     pub(super) ipinfo_conflict: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) ipinfo_conflict_reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) tiebreak: Option<TiebreakLocation>,
 }
 
 impl CachedGeoLocation {
@@ -97,6 +100,7 @@ impl CachedGeoLocation {
             ipinfo: None,
             ipinfo_conflict: false,
             ipinfo_conflict_reason: None,
+            tiebreak: None,
         })
     }
 
@@ -193,6 +197,7 @@ pub(super) fn migrate_versioned_geo_cache(value: Value) -> GeoCache {
                 ipinfo: None,
                 ipinfo_conflict: false,
                 ipinfo_conflict_reason: None,
+                tiebreak: None,
             },
         );
     }
