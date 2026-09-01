@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Installs the offline basemap: one pmtiles archive plus the fonts and sprite
-# its style needs. Everything already in place is left alone, so running this
-# again after an update costs nothing.
+# Installs the offline basemap: one pmtiles archive plus the fonts its style
+# needs. Everything already in place is left alone, so running this again after
+# an update costs nothing.
 set -euo pipefail
 
 BASEMAP_DIR="${1:-${HOME}/.validatorclock/basemap}"
@@ -14,7 +14,6 @@ FONT_STACKS=("Noto Sans Regular" "Noto Sans Medium" "Noto Sans Italic")
 
 TILES_PATH="${BASEMAP_DIR}/tiles.pmtiles"
 FONTS_DIR="${BASEMAP_DIR}/fonts"
-SPRITE_DIR="${BASEMAP_DIR}/sprite"
 TOOLS_DIR="${BASEMAP_DIR}/.tools"
 PMTILES_BIN="${TOOLS_DIR}/pmtiles"
 
@@ -81,35 +80,32 @@ fonts_installed() {
     [[ -d "${FONTS_DIR}/${stack}" ]] || return 1
     [[ "$(find "${FONTS_DIR}/${stack}" -name '*.pbf' | wc -l)" -ge 200 ]] || return 1
   done
-  [[ -s "${SPRITE_DIR}/dark.json" && -s "${SPRITE_DIR}/dark.png" ]]
 }
 
-install_fonts_and_sprite() {
+install_fonts() {
   if fonts_installed; then
-    log "fonts and sprite already installed, skipping the download"
+    log "fonts already installed, skipping the download"
     return
   fi
 
-  log "downloading fonts and sprite"
+  log "downloading fonts"
   local tmp
   tmp="$(mktemp -d)"
   curl -fsSL --retry 3 -o "${tmp}/assets.tar.gz" "$ASSETS_URL"
   tar xzf "${tmp}/assets.tar.gz" -C "$tmp"
   local root="${tmp}/basemaps-assets-main"
 
-  mkdir -p "$FONTS_DIR" "$SPRITE_DIR"
+  mkdir -p "$FONTS_DIR"
   local stack
   for stack in "${FONT_STACKS[@]}"; do
     rm -rf "${FONTS_DIR:?}/${stack}"
     cp -r "${root}/fonts/${stack}" "${FONTS_DIR}/${stack}"
   done
-  cp "${root}/sprites/v4/dark.json" "${root}/sprites/v4/dark.png" "$SPRITE_DIR"
-  cp "${root}/sprites/v4/dark@2x.json" "${root}/sprites/v4/dark@2x.png" "$SPRITE_DIR" 2>/dev/null || true
   rm -rf "$tmp"
-  log "fonts and sprite installed: $(du -sh "$FONTS_DIR" | cut -f1)"
+  log "fonts installed: $(du -sh "$FONTS_DIR" | cut -f1)"
 }
 
 install_pmtiles_cli
 install_tiles
-install_fonts_and_sprite
+install_fonts
 log "basemap ready in ${BASEMAP_DIR}"

@@ -1,3 +1,11 @@
+// The node marks are the point of this map, so they are drawn as light: a
+// saturated core, a bright rim and a soft glow. The basemap labels are painted
+// dim in the style for the same reason — nothing on the ground competes with a
+// node for attention.
+const VALIDATOR_MAP_NODE_COLOR = "#5ed7ff";
+const VALIDATOR_MAP_NODE_RIM = "#eaf8ff";
+const VALIDATOR_MAP_GLOW_OPACITY = 0.3;
+
 function addValidatorNodeLayers(features) {
   addValidatorNodeSource(features);
   for (const layer of validatorNodeLayers()) {
@@ -41,11 +49,11 @@ function validatorClusterHaloLayer() {
     source: "nodes",
     filter: ["has", "point_count"],
     paint: {
-      "circle-color": "#58c9f6",
+      "circle-color": VALIDATOR_MAP_NODE_COLOR,
       "circle-radius": [
         "step",
         ["get", "total_nodes"],
-        12,
+        13,
         4,
         16,
         8,
@@ -53,8 +61,8 @@ function validatorClusterHaloLayer() {
         16,
         24
       ],
-      "circle-opacity": 0.16,
-      "circle-blur": 0.55
+      "circle-opacity": VALIDATOR_MAP_GLOW_OPACITY,
+      "circle-blur": 0.8
     }
   };
 }
@@ -66,21 +74,21 @@ function validatorClusterLayer() {
     source: "nodes",
     filter: ["has", "point_count"],
     paint: {
-      "circle-color": "#58c9f6",
+      "circle-color": VALIDATOR_MAP_NODE_COLOR,
       "circle-radius": [
         "step",
         ["get", "total_nodes"],
-        5,
+        6,
         4,
-        7,
         8,
-        9,
+        8,
+        10,
         16,
-        11
+        12
       ],
-      "circle-opacity": 0.78,
-      "circle-stroke-width": 1.3,
-      "circle-stroke-color": "#d3f1ff"
+      "circle-opacity": 0.95,
+      "circle-stroke-width": 1.6,
+      "circle-stroke-color": VALIDATOR_MAP_NODE_RIM
     }
   };
 }
@@ -99,7 +107,9 @@ function validatorClusterCountLayer() {
       "text-ignore-placement": true
     },
     paint: {
-      "text-color": "#ffffff"
+      "text-color": "#04070b",
+      "text-halo-color": VALIDATOR_MAP_NODE_RIM,
+      "text-halo-width": 0.6
     }
   };
 }
@@ -111,17 +121,17 @@ function validatorNodeHaloLayer() {
     source: "nodes",
     filter: ["!", ["has", "point_count"]],
     paint: {
-      "circle-color": "#58c9f6",
+      "circle-color": VALIDATOR_MAP_NODE_COLOR,
       "circle-radius": [
         "interpolate",
         ["linear"],
         ["zoom"],
-        1.35, ["+", 6, ["*", ["get", "node_count"], 1.0]],
-        5, ["+", 9, ["*", ["get", "node_count"], 1.2]],
-        9, ["+", 12, ["*", ["get", "node_count"], 1.4]]
+        1.35, ["min", ["+", 9, ["*", ["get", "node_count"], 0.9]], 22],
+        5, ["min", ["+", 12, ["*", ["get", "node_count"], 1.1]], 26],
+        9, ["min", ["+", 15, ["*", ["get", "node_count"], 1.3]], 30]
       ],
-      "circle-opacity": 0.14,
-      "circle-blur": 0.65
+      "circle-opacity": VALIDATOR_MAP_GLOW_OPACITY,
+      "circle-blur": 0.8
     }
   };
 }
@@ -133,18 +143,18 @@ function validatorNodePointLayer() {
     source: "nodes",
     filter: ["!", ["has", "point_count"]],
     paint: {
-      "circle-color": "#58c9f6",
+      "circle-color": VALIDATOR_MAP_NODE_COLOR,
       "circle-radius": [
         "interpolate",
         ["linear"],
         ["zoom"],
-        1.35, ["+", 2.8, ["*", ["get", "node_count"], 0.25]],
-        5, ["+", 4.2, ["*", ["get", "node_count"], 0.32]],
-        9, ["+", 5.8, ["*", ["get", "node_count"], 0.38]]
+        1.35, ["min", ["+", 5, ["*", ["get", "node_count"], 0.28]], 11],
+        5, ["min", ["+", 6.2, ["*", ["get", "node_count"], 0.34]], 13],
+        9, ["min", ["+", 7, ["*", ["get", "node_count"], 0.4]], 15]
       ],
-      "circle-opacity": 0.90,
-      "circle-stroke-width": 1.25,
-      "circle-stroke-color": "#d3f1ff"
+      "circle-opacity": 1,
+      "circle-stroke-width": 1.6,
+      "circle-stroke-color": VALIDATOR_MAP_NODE_RIM
     }
   };
 }
@@ -167,7 +177,9 @@ function validatorLocationCountLayer() {
       "text-ignore-placement": true
     },
     paint: {
-      "text-color": "#ffffff"
+      "text-color": "#04070b",
+      "text-halo-color": VALIDATOR_MAP_NODE_RIM,
+      "text-halo-width": 0.6
     }
   };
 }

@@ -264,6 +264,35 @@ mod tests {
         assert_eq!(style_with_max_zoom("not json", Some(8)), "not json");
     }
 
+    /// MapLibre refuses a relative sprite URL and drops the whole style, and a
+    /// layer that names an icon without a sprite logs a missing image on every
+    /// load. Both went unnoticed once, so the style is checked here.
+    #[test]
+    fn the_style_names_no_icon_it_cannot_load() {
+        let style: serde_json::Value =
+            serde_json::from_str(super::super::assets::BASEMAP_STYLE_JSON).unwrap();
+
+        let sprite = style.get("sprite").and_then(|value| value.as_str());
+        assert!(
+            sprite.is_none_or(|url| url.starts_with("http")),
+            "a sprite URL must be absolute, got {sprite:?}"
+        );
+
+        if sprite.is_none() {
+            let with_icons = style["layers"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|layer| layer.pointer("/layout/icon-image").is_some())
+                .map(|layer| layer["id"].as_str().unwrap_or_default())
+                .collect::<Vec<_>>();
+            assert!(
+                with_icons.is_empty(),
+                "these layers ask for an icon but the style has no sprite: {with_icons:?}"
+            );
+        }
+    }
+
     #[test]
     fn glyph_ranges_are_recognised() {
         assert!(is_glyph_range("fonts/Noto Sans Medium/0-255.pbf"));

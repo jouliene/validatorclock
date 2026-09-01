@@ -19,9 +19,10 @@ PALETTE = {
     "rail": "#1b2431",
     "boundary_country": "#3c4a5e",
     "boundary_region": "#28323f",
-    "label": "#9fb2c6",
-    "label_strong": "#d3dfec",
-    "label_water": "#54687e",
+    # Подписи специально приглушены: самое яркое на карте — точки нод.
+    "label": "#5c6b7f",
+    "label_strong": "#7d8ea3",
+    "label_water": "#3f4e5f",
     "halo": "#04070b",
 }
 
@@ -30,6 +31,13 @@ def fill(layer, color):
 
 def line(layer, color):
     layer.setdefault("paint", {})["line-color"] = color
+
+def drop_icon(layer):
+    """Убирает иконку подписи: спрайт из стиля удалён."""
+    layout = layer.get("layout", {})
+    for key in ("icon-image", "icon-size", "icon-padding"):
+        layout.pop(key, None)
+
 
 def label(layer, color):
     paint = layer.setdefault("paint", {})
@@ -40,7 +48,10 @@ def label(layer, color):
 style = json.load(open(source))
 style["name"] = "Validator Clock dark"
 style["glyphs"] = "/basemap/fonts/{fontstack}/{range}.pbf"
-style["sprite"] = "/basemap/sprite/dark"
+# Спрайта нет намеренно: MapLibre принимает только абсолютный sprite-URL, а
+# единственное, что из него бралось, — точки-кружки у названий городов. Они
+# спорили с точками нод, ради которых карта и рисуется.
+style.pop("sprite", None)
 style["sources"] = {
     "protomaps": {
         "type": "vector",
@@ -95,6 +106,7 @@ for layer in style["layers"]:
         label(layer, PALETTE["label"])
     elif name.startswith("places"):
         label(layer, PALETTE["label_strong"])
+        drop_icon(layer)
     elif layer["type"] == "symbol":
         label(layer, PALETTE["label"])
 
