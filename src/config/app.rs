@@ -281,6 +281,10 @@ pub(crate) struct NodeLocationsConfig {
     pub(crate) ipinfo_token_env: String,
     #[serde(default = "default_ipinfo_lite_base_url")]
     pub(crate) ipinfo_lite_base_url: String,
+    #[serde(default = "default_auto_resolve_conflicts")]
+    pub(crate) auto_resolve_conflicts: bool,
+    #[serde(default = "default_tiebreak_base_url")]
+    pub(crate) tiebreak_base_url: String,
     #[serde(default = "default_manual_review_dir")]
     pub(crate) manual_review_dir: PathBuf,
     #[serde(default = "default_manual_resolved_dir")]
@@ -301,6 +305,8 @@ impl Default for NodeLocationsConfig {
             ipinfo_token: None,
             ipinfo_token_env: default_ipinfo_token_env(),
             ipinfo_lite_base_url: default_ipinfo_lite_base_url(),
+            auto_resolve_conflicts: default_auto_resolve_conflicts(),
+            tiebreak_base_url: default_tiebreak_base_url(),
             manual_review_dir: default_manual_review_dir(),
             manual_resolved_dir: default_manual_resolved_dir(),
             chains: default_node_location_chains(),
@@ -327,6 +333,9 @@ impl NodeLocationsConfig {
         }
         if self.ipinfo_lite_base_url.trim().is_empty() {
             bail!("node_locations.ipinfo_lite_base_url cannot be empty");
+        }
+        if self.auto_resolve_conflicts && self.tiebreak_base_url.trim().is_empty() {
+            bail!("node_locations.tiebreak_base_url cannot be empty when auto resolution is on");
         }
         if self.manual_review_dir.as_os_str().is_empty() {
             bail!("node_locations.manual_review_dir cannot be empty");
@@ -514,6 +523,14 @@ fn default_ip_api_batch_endpoint() -> String {
 
 fn default_ipinfo_token_env() -> String {
     "IPINFO_TOKEN".to_owned()
+}
+
+fn default_auto_resolve_conflicts() -> bool {
+    true
+}
+
+fn default_tiebreak_base_url() -> String {
+    "https://ipwho.is".to_owned()
 }
 
 fn default_ipinfo_lite_base_url() -> String {

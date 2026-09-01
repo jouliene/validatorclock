@@ -148,6 +148,19 @@ vanish with the labels; a missing glyph range is therefore answered with no
 glyphs instead of 404, and a test fails the build if a layer names a font
 inline.
 
+Node locations come from ip-api and are double-checked against ipinfo. When the
+two disagree about the country, a third source (`ipwho.is` by default) settles
+it: the side it agrees with wins, and when it backs ipinfo its own city and
+coordinates are used, since ipinfo lite has neither. Only a three-way
+disagreement waits for a person in `manual_review/`. To review every conflict by
+hand instead:
+
+```json
+"node_locations": {
+  "auto_resolve_conflicts": false
+}
+```
+
 ## Visitor Stats
 
 The footer of the main page shows aggregate traffic (today, last 30 days, all

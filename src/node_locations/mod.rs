@@ -7,6 +7,7 @@ mod geo_cache;
 mod ipinfo;
 mod manual_review;
 mod map_nodes;
+mod tiebreak;
 
 #[cfg(test)]
 mod tests;
@@ -171,6 +172,10 @@ async fn refresh_chain_locations(
     cache_changed |= ipinfo_lookup_count > 0;
     cache_changed |= refresh_ipinfo_conflicts(&ips, geo_cache);
 
+    let auto_resolved_count =
+        tiebreak::resolve_conflicts(node_config, &ips, geo_cache, now, ttl).await;
+    cache_changed |= auto_resolved_count > 0;
+
     let manual_review_count = write_manual_review_files(
         &node_config.manual_review_dir,
         &node_config.manual_resolved_dir,
@@ -209,6 +214,7 @@ async fn refresh_chain_locations(
         ip_api_lookup_count = lookup_ips.len(),
         ipinfo_lookup_count,
         manual_resolved_count = manual_resolved.len(),
+        auto_resolved_count,
         manual_review_count,
         retained_node_count = built_nodes.retained_node_count,
         mapped_node_count = built_nodes.nodes.len(),
