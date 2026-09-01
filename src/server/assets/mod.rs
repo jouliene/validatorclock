@@ -7,6 +7,7 @@ use std::sync::LazyLock;
 mod embedded;
 mod version;
 
+pub(in crate::server) use embedded::BASEMAP_STYLE_JSON;
 use embedded::{
     APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, PORTRAIT_IMAGES, SMOKING_MAN_PNG,
     STATS_HTML, STATS_JS_PARTS, STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,

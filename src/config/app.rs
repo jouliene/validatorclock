@@ -21,6 +21,8 @@ pub(crate) struct AppConfig {
     pub(crate) analytics_path: Option<PathBuf>,
     #[serde(default)]
     pub(crate) visitors_path: Option<PathBuf>,
+    #[serde(default = "default_basemap_dir")]
+    pub(crate) basemap_dir: Option<PathBuf>,
     #[serde(default)]
     pub(crate) history_path: Option<PathBuf>,
     #[serde(default)]
@@ -48,6 +50,7 @@ impl AppConfig {
             cache_path: PathBuf::from("/var/lib/validatorclock/cache.json"),
             analytics_path: None,
             visitors_path: None,
+            basemap_dir: default_basemap_dir(),
             history_path: None,
             tycho_map_nodes_path: None,
             map_nodes_paths: HashMap::new(),
@@ -456,6 +459,12 @@ pub(super) fn rpc_override_env_name(chain_id: &str) -> String {
         })
         .collect::<String>();
     format!("VALIDATORCLOCK_RPC_{key}")
+}
+
+/// The map falls back to a plain canvas when this directory is absent, so a
+/// checkout without the basemap bundle still runs.
+fn default_basemap_dir() -> Option<PathBuf> {
+    Some(PathBuf::from(".local_maps/basemap"))
 }
 
 fn default_listen() -> String {

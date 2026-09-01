@@ -117,15 +117,36 @@ the server if there are local changes.
 
 ## Node Map
 
-The basemap comes from VersaTiles: open data, open infrastructure, no key and
-no account. CARTO, which served the basemap before, now stamps "API KEY
-REQUIRED" across keyless tiles and has no free tier.
+The basemap is served by this app from disk: a pmtiles archive plus the fonts
+and sprite its style needs. No tile service, no key, no watermark. CARTO, which
+served the basemap before, now stamps "API KEY REQUIRED" across keyless tiles
+and sells no free tier.
 
-A label layer must ask for a font the style actually serves. VersaTiles serves
-`noto_sans_bold`; a font it does not have answers 404, and that failure takes
-down every layer sharing the source, so the node circles vanish with the
-labels. The font stack therefore lives in `map_style.js` next to the style, and
-a test fails the build if a layer names a font inline.
+`install.sh` installs it, so `./update.sh` keeps it in place too. Everything
+already present is left alone, so a second run costs a second and downloads
+nothing:
+
+```bash
+scripts/install_basemap.sh ~/.validatorclock/basemap
+```
+
+The archive holds zooms 0-10 and takes about 3.5 GB; the extract pulls only
+those zooms out of the 128 GB planet build, so it transfers 3.5 GB, not 128.
+`VALIDATORCLOCK_BASEMAP_MAX_ZOOM` picks a different depth,
+`VALIDATORCLOCK_SKIP_BASEMAP=1` skips the step entirely. Without the archive the
+map still draws the nodes, on an empty canvas.
+
+The style ships inside the binary and takes its zoom range from the installed
+archive, so the two cannot drift: a style promising zooms the archive lacks
+makes MapLibre request tiles that are not there, and the map goes blank in
+patches. `scripts/build_basemap_style.py` regenerates the style from the
+Protomaps dark theme in the dashboard palette.
+
+A label layer must ask for a font the style serves. A missing font answers 404,
+and that failure takes down every layer sharing the tile, so the node circles
+vanish with the labels; a missing glyph range is therefore answered with no
+glyphs instead of 404, and a test fails the build if a layer names a font
+inline.
 
 ## Visitor Stats
 

@@ -16,6 +16,8 @@ pub(super) const STYLES_RESPONSIVE_CSS: &str =
     include_str!("../../../public/styles/responsive.css");
 pub(super) const STYLES_VISITOR_STATS_CSS: &str =
     include_str!("../../../public/styles/visitor_stats.css");
+pub(in crate::server) const BASEMAP_STYLE_JSON: &str =
+    include_str!("../../../public/basemap/style.json");
 pub(super) const STATS_HTML: &str = include_str!("../../../public/stats.html");
 pub(super) const STATS_JS: &str = include_str!("../../../public/stats.js");
 pub(super) const SHARED_ANALYTICS_CLIENT_JS: &str =

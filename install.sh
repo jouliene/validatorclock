@@ -211,6 +211,11 @@ by_id = {
 added = []
 updated = []
 
+basemap_dir = str(config_path.parent / "basemap")
+if config.get("basemap_dir") != basemap_dir:
+    config["basemap_dir"] = basemap_dir
+    updated.append("basemap_dir")
+
 for default in default_chains:
     retired_rpc = default.get("retired_rpc") or []
     chain = by_id.get(default["id"])
@@ -368,6 +373,7 @@ write_config_if_missing() {
   "refresh_seconds": 60,
   "refresh_timeout_seconds": 90,
   "cache_path": "$(json_escape "$STATE_DIR")/validatorclock_cache.json",
+  "basemap_dir": "$(json_escape "$STATE_DIR")/basemap",
   "history_path": "$(json_escape "$STATE_DIR")/validatorclock_history.json",
   "security": {
     "allowed_hosts": ${allowed_hosts_json},
@@ -426,6 +432,15 @@ EOF
   install -m 0600 "$tmp_config" "$CONFIG_PATH"
   rm -f "$tmp_config"
   echo "Created config: $CONFIG_PATH"
+}
+
+install_basemap() {
+  if [[ "${VALIDATORCLOCK_SKIP_BASEMAP:-0}" == "1" ]]; then
+    echo "Skipping the offline basemap because VALIDATORCLOCK_SKIP_BASEMAP=1"
+    return
+  fi
+
+  "${REPO_DIR}/scripts/install_basemap.sh" "${STATE_DIR}/basemap"
 }
 
 write_systemd_service() {
@@ -491,6 +506,8 @@ fi
 chmod 700 "$ACME_DIR"
 
 write_config_if_missing
+
+install_basemap
 
 ensure_rust
 

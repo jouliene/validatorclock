@@ -7,6 +7,7 @@ use super::assets::{
     app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, stats_js,
     stats_page, styles, ton_logo, tycho_logo,
 };
+use super::basemap::basemap_asset;
 use super::conditional::add_entity_tags;
 use super::responses::not_found;
 use super::security::{
@@ -38,6 +39,7 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/index.html", get(index))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
+        .route("/basemap/{*path}", get(basemap_asset))
         .route("/jokes.json", get(jokes_json))
         .route("/brands/everscale.svg", get(everscale_logo))
         .route("/brands/tycho.svg", get(tycho_logo))

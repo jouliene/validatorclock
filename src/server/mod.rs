@@ -10,6 +10,7 @@ use tracing::{error, info};
 mod acme;
 mod api;
 mod assets;
+mod basemap;
 mod conditional;
 mod connection;
 mod responses;

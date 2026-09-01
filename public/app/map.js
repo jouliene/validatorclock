@@ -1,6 +1,7 @@
 const BUNDLED_TYCHO_MAP_CHAIN_ID = "tycho-testnet";
 const MAP_CHAIN_IDS = new Set([BUNDLED_TYCHO_MAP_CHAIN_ID, "ton", "everscale"]);
 const MAPLIBRE_JS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js";
+const PMTILES_JS_URL = "https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js";
 const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css";
 const VALIDATOR_MAP_DEFAULT_BOUNDS = [
   [-130, -42],

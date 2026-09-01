@@ -33,16 +33,36 @@ function ensureMapLibre() {
       document.head.appendChild(link);
     }
 
-    const script = document.createElement("script");
-    script.id = "maplibreJs";
-    script.src = MAPLIBRE_JS_URL;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("MapLibre assets failed to load"));
-    document.head.appendChild(script);
+    loadMapScript("maplibreJs", MAPLIBRE_JS_URL)
+      .then(() => loadMapScript("pmtilesJs", PMTILES_JS_URL))
+      .then(() => {
+        // The basemap is a pmtiles archive this app serves, so MapLibre needs
+        // the protocol that reads it over byte ranges.
+        maplibregl.addProtocol("pmtiles", new pmtiles.Protocol().tile);
+        resolve();
+      })
+      .catch(reject);
   });
 
   return mapLibrePromise;
+}
+
+function loadMapScript(id, url) {
+  return new Promise((resolve, reject) => {
+    const existing = document.getElementById(id);
+    if (existing) {
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.id = id;
+    script.src = url;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`${url} failed to load`));
+    document.head.appendChild(script);
+  });
 }
 
 function renderValidatorMap() {
