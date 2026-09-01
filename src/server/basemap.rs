@@ -129,42 +129,30 @@ fn is_glyph_range(asset_path: &str) -> bool {
 
 /// Keeps the request inside the basemap directory: no absolute paths, no
 /// parent hops, no hidden files.
+///
+/// The router has already percent-decoded the path by the time it arrives, so
+/// nothing is decoded here. Decoding a second time turned a doubly-encoded
+/// %252f back into a separator, and a segment that decoded to an absolute path
+/// replaced the whole base directory - `PathBuf::push` does that - so every
+/// file the process could read was served to anyone who asked.
 fn resolve_asset_path(base_dir: &std::path::Path, asset_path: &str) -> Option<PathBuf> {
     let mut path = base_dir.to_path_buf();
     for segment in asset_path.split('/') {
-        let segment = percent_decode(segment);
         if segment.is_empty()
             || segment == "."
             || segment == ".."
             || segment.starts_with('.')
             || segment.contains('\\')
+            || std::path::Path::new(segment).is_absolute()
         {
             return None;
         }
         path.push(segment);
     }
-    Some(path)
-}
 
-fn percent_decode(segment: &str) -> String {
-    let bytes = segment.as_bytes();
-    let mut decoded = Vec::with_capacity(bytes.len());
-    let mut index = 0;
-
-    while index < bytes.len() {
-        if bytes[index] == b'%' && index + 2 < bytes.len() {
-            let hex = std::str::from_utf8(&bytes[index + 1..index + 3]).unwrap_or_default();
-            if let Ok(byte) = u8::from_str_radix(hex, 16) {
-                decoded.push(byte);
-                index += 3;
-                continue;
-            }
-        }
-        decoded.push(bytes[index]);
-        index += 1;
-    }
-
-    String::from_utf8_lossy(&decoded).into_owned()
+    // A last check on the joined path, so a segment nobody thought of cannot
+    // walk out of the directory this is allowed to serve.
+    path.starts_with(base_dir).then_some(path)
 }
 
 struct BasemapAsset {
@@ -344,8 +332,10 @@ mod tests {
     fn asset_paths_stay_inside_the_basemap_directory() {
         let base = std::path::Path::new("/srv/basemap");
 
+        // The router decodes before the handler sees it, so a space arrives
+        // as a space.
         assert_eq!(
-            resolve_asset_path(base, "fonts/Noto%20Sans%20Regular/0-255.pbf"),
+            resolve_asset_path(base, "fonts/Noto Sans Regular/0-255.pbf"),
             Some(PathBuf::from(
                 "/srv/basemap/fonts/Noto Sans Regular/0-255.pbf"
             ))
@@ -358,5 +348,11 @@ mod tests {
         assert_eq!(resolve_asset_path(base, "fonts/../../secret"), None);
         assert_eq!(resolve_asset_path(base, ".ssh/id_rsa"), None);
         assert_eq!(resolve_asset_path(base, "a//b"), None);
+
+        // What a second round of decoding used to produce. `PathBuf::push`
+        // replaces the whole buffer when handed an absolute path, so this was
+        // an unauthenticated read of any file the process could open.
+        assert_eq!(resolve_asset_path(base, "/etc/passwd"), None);
+        assert_eq!(resolve_asset_path(base, "/home/admin/.ssh/id_rsa"), None);
     }
 }

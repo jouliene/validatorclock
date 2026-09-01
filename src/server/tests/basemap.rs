@@ -77,6 +77,48 @@ async fn a_small_asset_still_carries_an_entity_tag() {
     std::fs::remove_dir_all(&dir).ok();
 }
 
+/// The router percent-decodes a path parameter before the handler sees it, and
+/// the handler used to decode a second time. A doubly-encoded separator came
+/// back as a separator, the segment decoded to an absolute path, and
+/// `PathBuf::push` threw the base directory away: any file the process could
+/// open was served to anyone who asked, with no credentials.
+#[tokio::test]
+async fn a_doubly_encoded_path_cannot_escape_the_basemap_directory() {
+    let dir = temp_basemap_dir("escape");
+    std::fs::write(dir.join("style-ok.json"), b"{}").unwrap();
+    let secret = dir.parent().unwrap().join("validatorclock_escape_secret");
+    std::fs::write(&secret, b"tls-private-key").unwrap();
+
+    for escape in [
+        "%2fetc%2fhostname",
+        "%252fetc%252fhostname",
+        &format!(
+            "%252f{}",
+            secret
+                .display()
+                .to_string()
+                .trim_start_matches('/')
+                .replace('/', "%252f")
+        ),
+        "fonts%252f..%252f..%252fCargo.toml",
+        "..%252f..%252fetc%252fpasswd",
+    ] {
+        let response = app_response(state_with_basemap(&dir), &format!("/basemap/{escape}")).await;
+        let status = response.status();
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+
+        assert_eq!(
+            status,
+            StatusCode::NOT_FOUND,
+            "{escape} should not resolve to a file"
+        );
+        assert!(body.is_empty(), "{escape} returned {} bytes", body.len());
+    }
+
+    std::fs::remove_file(&secret).ok();
+    std::fs::remove_dir_all(&dir).ok();
+}
+
 fn state_with_basemap(dir: &std::path::Path) -> std::sync::Arc<AppState> {
     let mut config = test_config(Vec::new());
     config.basemap_dir = Some(dir.to_path_buf());
