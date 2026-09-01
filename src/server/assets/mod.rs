@@ -309,6 +309,46 @@ mod tests {
         );
     }
 
+    // A request with no deadline never settles, and the callers that share an
+    // in-flight request would wait on it for the life of the page: the clock
+    // simply stops refreshing, with nothing on screen to say so.
+    #[test]
+    fn every_request_carries_a_deadline() {
+        let api = APP_JS_PARTS
+            .iter()
+            .find(|part| part.contains("async function fetchJson("))
+            .expect("the api module should be bundled");
+
+        assert!(
+            api.contains("signal:"),
+            "fetchJson should hand fetch a signal that gives up"
+        );
+        assert!(
+            api.contains("AbortSignal.timeout"),
+            "the signal should be a timeout, not just an abort handle"
+        );
+    }
+
+    // The style is fetched over the network and the selected chain can change
+    // while it arrives. Reading the nodes when the map was created drew the
+    // previous chain's nodes on the new chain's map.
+    #[test]
+    fn the_map_reads_its_nodes_when_the_style_has_loaded() {
+        let render = APP_JS_PARTS
+            .iter()
+            .find(|part| part.contains("function renderValidatorMap("))
+            .expect("the map render module should be bundled");
+        let load_handler = render
+            .split_once("validatorMap.on(\"load\"")
+            .expect("the map should draw its nodes once the style has loaded")
+            .1;
+
+        assert!(
+            load_handler.contains("addValidatorNodeLayers(validatorMapFeatures())"),
+            "read the nodes inside the load handler, not before the map is built"
+        );
+    }
+
     fn scripts_in(directory: &str) -> Vec<std::path::PathBuf> {
         let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(directory);
         std::fs::read_dir(&script_dir)

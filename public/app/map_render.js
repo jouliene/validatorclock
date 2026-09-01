@@ -1,4 +1,16 @@
-async function loadValidatorMap() {
+function loadValidatorMap() {
+  // Opening the map twice in quick succession used to build two maps on one
+  // container and leak the first. The second call waits for the first.
+  validatorMapLoading =
+    validatorMapLoading ||
+    buildValidatorMap().finally(() => {
+      validatorMapLoading = null;
+    });
+
+  return validatorMapLoading;
+}
+
+async function buildValidatorMap() {
   await loadValidatorMapNodes();
 
   if (validatorMapLoaded) {
@@ -24,7 +36,7 @@ function ensureMapLibre() {
     return mapLibrePromise;
   }
 
-  mapLibrePromise = new Promise((resolve, reject) => {
+  const loading = new Promise((resolve, reject) => {
     if (!document.getElementById("maplibreCss")) {
       const link = document.createElement("link");
       link.id = "maplibreCss";
@@ -44,6 +56,14 @@ function ensureMapLibre() {
       .catch(reject);
   });
 
+  // A failed load must not be remembered. Holding on to the rejected promise
+  // meant one bad moment at the CDN left the map unable to load for the rest
+  // of the session, however long the network had been back.
+  mapLibrePromise = loading.catch((error) => {
+    mapLibrePromise = null;
+    throw error;
+  });
+
   return mapLibrePromise;
 }
 
@@ -60,7 +80,12 @@ function loadMapScript(id, url) {
     script.src = url;
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error(`${url} failed to load`));
+    script.onerror = () => {
+      // A tag that failed is taken back out: left in place, the next attempt
+      // would find it by id and report the library as already loaded.
+      script.remove();
+      reject(new Error(`${url} failed to load`));
+    };
     document.head.appendChild(script);
   });
 }
@@ -70,8 +95,6 @@ function renderValidatorMap() {
   if (!container || !window.maplibregl) {
     return;
   }
-
-  const features = validatorMapFeatures();
 
   validatorMap = new maplibregl.Map({
     container,
@@ -100,7 +123,10 @@ function renderValidatorMap() {
 
   validatorMap.on("load", () => {
     applyValidatorMapPalette(validatorMap);
-    addValidatorNodeLayers(features);
+    // The style is fetched over the network and the selected chain can change
+    // while it arrives, so the nodes are read here rather than captured when
+    // the map was created - otherwise the previous chain's nodes get drawn.
+    addValidatorNodeLayers(validatorMapFeatures());
   });
 }
 

@@ -3,6 +3,7 @@
   const VISITORS_ENDPOINT = "/stats/visitors";
   const REFRESH_MS = 30_000;
   const HEARTBEAT_MS = 30_000;
+  const FETCH_TIMEOUT_MS = 15_000;
 
   const COLUMNS = [
     { key: "ip", label: "IP address", kind: "text", className: "stats-cell-ip" },
@@ -93,6 +94,12 @@
         headers: { Accept: "application/json" },
         cache: "no-store",
         credentials: "same-origin",
+        // A hung request would otherwise leave the table stuck on its last
+        // reading with no sign that refreshing had stopped.
+        signal:
+          typeof AbortSignal !== "undefined" && AbortSignal.timeout
+            ? AbortSignal.timeout(FETCH_TIMEOUT_MS)
+            : undefined,
       });
       if (response.status === 401 || response.status === 403) {
         state.authExpired = true;
