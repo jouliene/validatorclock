@@ -99,6 +99,10 @@ pub(super) fn load_initial_runtime(path: &Path) -> VisitorsRuntime {
 pub(crate) struct VisitorEvent {
     pub(crate) starts_visit: bool,
     pub(crate) first_visit_today: bool,
+    /// The moment this store filed the event. Analytics files it under the
+    /// same one, so an event that crosses UTC midnight between the two cannot
+    /// land on a different day than the visit it came from.
+    pub(crate) recorded_at: u64,
 }
 
 impl AppState {
@@ -125,6 +129,7 @@ impl AppState {
             let event = VisitorEvent {
                 starts_visit,
                 first_visit_today,
+                recorded_at: now,
             };
             if first_visit_ever {
                 record.first_seen = now;

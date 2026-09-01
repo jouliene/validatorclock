@@ -110,6 +110,14 @@ fn is_public_ipv4(ip: Ipv4Addr) -> bool {
 }
 
 fn is_public_ipv6(ip: Ipv6Addr) -> bool {
+    // A dual-stack client can arrive as ::ffff:a.b.c.d, which is only as
+    // public as the IPv4 address inside it. Judged as a v6 address it looked
+    // public whatever it wrapped, so a machine on a private network was sent
+    // off for a geo lookup.
+    if let Some(mapped) = ip.to_ipv4_mapped() {
+        return is_public_ipv4(mapped);
+    }
+
     let first = ip.segments()[0];
     !(ip.is_loopback()
         || ip.is_unspecified()
@@ -120,6 +128,21 @@ fn is_public_ipv6(ip: Ipv6Addr) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A dual-stack client arrives as ::ffff:a.b.c.d. Judged as a v6 address
+    /// it looked public whatever it wrapped, so a machine on a private network
+    /// was sent off for a geo lookup.
+    #[test]
+    fn an_ipv4_address_inside_an_ipv6_one_is_judged_on_its_contents() {
+        assert!(!is_public_ip("::ffff:192.168.1.10".parse().unwrap()));
+        assert!(!is_public_ip("::ffff:127.0.0.1".parse().unwrap()));
+        assert!(!is_public_ip("::ffff:10.0.0.7".parse().unwrap()));
+        assert!(is_public_ip("::ffff:8.8.8.8".parse().unwrap()));
+        // 203.0.113.0/24 is documentation, so it is not public inside a v6
+        // address either.
+        assert!(!is_public_ip("::ffff:203.0.113.9".parse().unwrap()));
+        assert!(is_public_ip("2001:db8::1".parse().unwrap()));
+    }
 
     #[test]
     fn private_and_loopback_addresses_are_not_public() {

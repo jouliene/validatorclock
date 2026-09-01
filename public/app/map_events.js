@@ -90,11 +90,29 @@ async function handleValidatorClusterClick(event) {
   const source = validatorMap.getSource("nodes");
   const pointCount = Number(cluster.properties.point_count || 0);
   const totalNodes = Number(cluster.properties.total_nodes || pointCount);
-  const leaves = await source.getClusterLeaves(clusterId, Math.max(pointCount, 1), 0);
+  // A refresh can replace the source between the click and these lookups, and
+  // the cluster the click named is then gone. That rejected out of the event
+  // handler and the click simply did nothing; stepping in still gets the
+  // reader closer, and the next click works on the new clusters.
+  let leaves;
+  let expansionZoom;
+  try {
+    leaves = await source.getClusterLeaves(clusterId, Math.max(pointCount, 1), 0);
+    expansionZoom = await source.getClusterExpansionZoom(clusterId);
+  } catch (error) {
+    console.warn("Cluster went away before it could be opened", error);
+    validatorMap.easeTo({
+      center: cluster.geometry.coordinates,
+      zoom: Math.min(VALIDATOR_MAP_MAX_ZOOM, validatorMap.getZoom() + 1.25),
+      duration: 450
+    });
+    return;
+  }
+
   const bounds = boundsForFeatures(leaves);
   const zoom = Math.min(
     VALIDATOR_MAP_MAX_ZOOM,
-    Math.max(validatorMap.getZoom() + 1.25, await source.getClusterExpansionZoom(clusterId))
+    Math.max(validatorMap.getZoom() + 1.25, expansionZoom)
   );
 
   closeValidatorMapPopups();

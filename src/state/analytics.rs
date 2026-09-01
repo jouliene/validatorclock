@@ -100,7 +100,10 @@ impl AppState {
             return;
         }
 
-        let now = now_seconds();
+        // The same instant the visitor store used, not a second reading of the
+        // clock: across UTC midnight the two would file the same event under
+        // different days and count the visitor as new on both.
+        let now = visit.recorded_at;
         let today = day_string(day_index(now));
 
         let snapshot = {
