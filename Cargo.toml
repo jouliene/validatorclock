@@ -1,6 +1,6 @@
 [package]
 name = "validatorclock"
-version = "1.1.35"
+version = "1.1.36"
 edition = "2024"
 
 [dependencies]
@@ -19,8 +19,9 @@ rustls-pemfile = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
-tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+tokio-util = { version = "0.7", features = ["io"] }
 tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["compression-gzip"] }
 tracing = "0.1"

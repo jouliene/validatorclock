@@ -369,3 +369,37 @@ fn manual_review_file_name_is_ipv6_safe() {
         "2804_388_425b_c8b_10d3_81b7_646c_9b32.json"
     );
 }
+
+/// The ipinfo token rides in the query string, and a reqwest error prints the
+/// URL it failed on. Logging the error as it comes would put the token in the
+/// log, so the URL is dropped first.
+#[tokio::test]
+async fn a_failed_ipinfo_lookup_is_logged_without_the_token() {
+    const TOKEN: &str = "token-that-must-not-be-logged";
+
+    // A port nothing listens on: the request is refused at once.
+    let closed_port = {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        drop(listener);
+        port
+    };
+
+    let error = reqwest::Client::new()
+        .get(format!(
+            "http://127.0.0.1:{closed_port}/lite/203.0.113.1?token={TOKEN}"
+        ))
+        .timeout(std::time::Duration::from_secs(2))
+        .send()
+        .await
+        .expect_err("a refused request should fail");
+
+    assert!(
+        format!("{error:?}").contains(TOKEN),
+        "this test proves nothing unless the raw error carries the token"
+    );
+    assert!(
+        !format!("{:?}", error.without_url()).contains(TOKEN),
+        "the form that reaches the log must not carry the token"
+    );
+}

@@ -285,6 +285,30 @@ mod tests {
         );
     }
 
+    // Every later refresh hangs off the timers boot() starts. They used to be
+    // started only after the first clock load returned, so one blip while the
+    // page was opening left it dead until a manual reload.
+    #[test]
+    fn boot_starts_the_refresh_timers_even_when_the_first_load_fails() {
+        let entry = APP_JS_PARTS
+            .iter()
+            .find(|part| part.contains("async function boot("))
+            .expect("the boot module should be bundled");
+        let after_catch = entry
+            .split_once("} catch (error) {")
+            .expect("boot should handle a failed load")
+            .1;
+
+        assert!(
+            after_catch.contains("} finally {"),
+            "boot should finish its setup in a finally block"
+        );
+        assert!(
+            after_catch.contains("startTimers()"),
+            "startTimers() belongs after the catch, so a failed first load still polls"
+        );
+    }
+
     fn scripts_in(directory: &str) -> Vec<std::path::PathBuf> {
         let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(directory);
         std::fs::read_dir(&script_dir)

@@ -20,6 +20,7 @@ use tracing::{debug, warn};
 const REQUEST_TIMEOUT_SECS: u64 = 10;
 const HEADER_READ_TIMEOUT_SECS: u64 = 20;
 const CONNECTION_LIFETIME_SECS: u64 = 300;
+const TLS_HANDSHAKE_TIMEOUT_SECS: u64 = 15;
 
 pub(super) async fn serve_plain_connections(
     listener: TcpListener,
@@ -55,9 +56,18 @@ pub(super) async fn serve_tls_connections(
         let app = app.clone();
         tokio::spawn(async move {
             let _permit = permit;
-            match acceptor.accept(stream).await {
-                Ok(tls_stream) => serve_connection(tls_stream, peer_addr, app, "HTTPS").await,
-                Err(error) => debug!(error = ?error, "TLS handshake failed"),
+            // The permit is held for the whole handshake, so a client that
+            // opens a connection and then says nothing must not keep one. The
+            // header read timeout only starts once TLS is up.
+            match timeout(
+                Duration::from_secs(TLS_HANDSHAKE_TIMEOUT_SECS),
+                acceptor.accept(stream),
+            )
+            .await
+            {
+                Ok(Ok(tls_stream)) => serve_connection(tls_stream, peer_addr, app, "HTTPS").await,
+                Ok(Err(error)) => debug!(error = ?error, "TLS handshake failed"),
+                Err(_) => debug!(peer = %peer_addr, "TLS handshake timed out"),
             }
         });
     }

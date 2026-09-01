@@ -10,6 +10,7 @@ use tower::ServiceExt as _;
 
 mod analytics;
 mod api;
+mod basemap;
 mod clock;
 mod connection;
 mod map;

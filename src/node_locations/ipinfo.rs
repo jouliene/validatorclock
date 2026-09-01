@@ -109,7 +109,9 @@ pub(super) async fn lookup_ipinfo_lite_one(
     let response = match http.get(url).timeout(IPINFO_LOOKUP_TIMEOUT).send().await {
         Ok(response) => response,
         Err(error) => {
-            warn!(ip = %ip, error = ?error, "ipinfo lookup failed");
+            // The token rides in the query string and a reqwest error prints
+            // the URL it failed on, so the URL is dropped before logging.
+            warn!(ip = %ip, error = ?error.without_url(), "ipinfo lookup failed");
             return None;
         }
     };
@@ -120,7 +122,7 @@ pub(super) async fn lookup_ipinfo_lite_one(
     let raw = match response.json::<IpInfoLiteResponse>().await {
         Ok(raw) => raw,
         Err(error) => {
-            warn!(ip = %ip, error = ?error, "failed to decode ipinfo response");
+            warn!(ip = %ip, error = ?error.without_url(), "failed to decode ipinfo response");
             return None;
         }
     };

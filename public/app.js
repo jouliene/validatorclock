@@ -13,9 +13,13 @@ async function boot() {
     window.setTimeout(prefetchValidatorMapNodes, 250);
     await loadClock(false);
     loadRuntimeStatus();
-    startTimers();
   } catch (error) {
     setError(error.message);
+  } finally {
+    // Every later refresh hangs off these timers and each tick handles its own
+    // failure, so they start even when the first load did not. Without this a
+    // single blip while the page was opening left it dead until a reload.
+    startTimers();
   }
 }
 

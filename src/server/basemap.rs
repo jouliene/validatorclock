@@ -8,9 +8,11 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::http::header::{self, HeaderMap, HeaderValue};
 use axum::response::{IntoResponse, Response};
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{Read, SeekFrom};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::io::{AsyncReadExt, AsyncSeekExt};
+use tokio_util::io::ReaderStream;
 use tracing::warn;
 
 // Tiles, fonts and the sprite never change under the same name; the style is
@@ -18,6 +20,10 @@ use tracing::warn;
 const STATIC_CACHE_CONTROL: HeaderValue = HeaderValue::from_static("public, max-age=86400");
 const STYLE_CACHE_CONTROL: HeaderValue = HeaderValue::from_static("no-cache");
 const MAX_RANGE_BYTES: u64 = 8 * 1024 * 1024;
+// Anything larger is streamed rather than read into memory. One request must
+// never cost as much memory as the file it names: the tile archive weighs
+// gigabytes, and a plain GET of it used to allocate all of them at once.
+const MAX_BUFFERED_BYTES: u64 = 8 * 1024 * 1024;
 
 pub(super) async fn basemap_asset(
     State(state): State<Arc<AppState>>,
@@ -48,7 +54,7 @@ pub(super) async fn basemap_asset(
         STATIC_CACHE_CONTROL
     };
 
-    match read_asset(&path, range) {
+    match read_asset(&path, range).await {
         Ok(asset) => asset.into_response(content_type_for(&path), cache_control),
         Err(error) => {
             if error.kind() != std::io::ErrorKind::NotFound {
@@ -60,7 +66,8 @@ pub(super) async fn basemap_asset(
             // answered with no glyphs instead.
             if is_glyph_range(&asset_path) {
                 return BasemapAsset {
-                    bytes: Vec::new(),
+                    body: Body::empty(),
+                    length: 0,
                     range: None,
                 }
                 .into_response(content_type_for(&path), cache_control);
@@ -161,7 +168,8 @@ fn percent_decode(segment: &str) -> String {
 }
 
 struct BasemapAsset {
-    bytes: Vec<u8>,
+    body: Body,
+    length: u64,
     range: Option<(u64, u64, u64)>,
 }
 
@@ -171,11 +179,13 @@ impl BasemapAsset {
             Some(_) => StatusCode::PARTIAL_CONTENT,
             None => StatusCode::OK,
         };
-        let mut response = (status, Body::from(self.bytes)).into_response();
+        let mut response = (status, self.body).into_response();
         let headers = response.headers_mut();
         headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
         headers.insert(header::CACHE_CONTROL, cache_control);
         headers.insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+        // A streamed body carries no length of its own, so it is stated here.
+        headers.insert(header::CONTENT_LENGTH, self.length.into());
         if let Some((start, end, total)) = self.range
             && let Ok(value) = HeaderValue::from_str(&format!("bytes {start}-{end}/{total}"))
         {
@@ -185,17 +195,34 @@ impl BasemapAsset {
     }
 }
 
-fn read_asset(
+/// Reads off the runtime's blocking-free path: the handler is async, so the
+/// file is opened and read through tokio rather than blocking a worker thread
+/// for as long as the disk takes.
+async fn read_asset(
     path: &std::path::Path,
     range: Option<(u64, Option<u64>)>,
 ) -> std::io::Result<BasemapAsset> {
-    let mut file = std::fs::File::open(path)?;
-    let total = file.metadata()?.len();
+    let mut file = tokio::fs::File::open(path).await?;
+    let total = file.metadata().await?.len();
 
     let Some((start, end)) = range else {
+        // A small file is buffered, so it can still carry an entity tag. A
+        // large one is streamed: the response then costs a buffer, not the
+        // whole archive.
+        if total > MAX_BUFFERED_BYTES {
+            return Ok(BasemapAsset {
+                body: Body::from_stream(ReaderStream::new(file)),
+                length: total,
+                range: None,
+            });
+        }
         let mut bytes = Vec::with_capacity(total as usize);
-        file.read_to_end(&mut bytes)?;
-        return Ok(BasemapAsset { bytes, range: None });
+        file.read_to_end(&mut bytes).await?;
+        return Ok(BasemapAsset {
+            length: bytes.len() as u64,
+            body: Body::from(bytes),
+            range: None,
+        });
     };
 
     if start >= total {
@@ -210,12 +237,13 @@ fn read_asset(
         .min(start + MAX_RANGE_BYTES - 1);
     let length = end - start + 1;
 
-    file.seek(SeekFrom::Start(start))?;
+    file.seek(SeekFrom::Start(start)).await?;
     let mut bytes = vec![0u8; length as usize];
-    file.read_exact(&mut bytes)?;
+    file.read_exact(&mut bytes).await?;
 
     Ok(BasemapAsset {
-        bytes,
+        body: Body::from(bytes),
+        length,
         range: Some((start, end, total)),
     })
 }
