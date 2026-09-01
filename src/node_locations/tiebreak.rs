@@ -212,13 +212,16 @@ impl TiebreakResponse {
         if self.success == Some(false) {
             return None;
         }
+        // An answer that names no country decides nothing, and storing it
+        // would keep the conflict from being asked about again for a week.
+        let country_code = self.country_code.and_then(trimmed_non_empty)?;
         let connection = self.connection.unwrap_or(TiebreakConnection {
             isp: None,
             org: None,
         });
         Some(TiebreakLocation {
             country: self.country.and_then(trimmed_non_empty),
-            country_code: self.country_code.and_then(trimmed_non_empty),
+            country_code: Some(country_code),
             city: self.city.and_then(trimmed_non_empty),
             isp: connection
                 .isp
@@ -241,6 +244,10 @@ impl CachedGeoLocation {
     pub(super) fn clear_conflict(&mut self) {
         self.ipinfo_conflict = false;
         self.ipinfo_conflict_reason = None;
+        // The sources still disagree; what changed is that the disagreement
+        // has been decided. Recording that keeps it from being rediscovered
+        // and re-decided on every refresh.
+        self.ipinfo_conflict_settled = true;
     }
 
     /// Takes the third source's location, which unlike ipinfo lite carries a

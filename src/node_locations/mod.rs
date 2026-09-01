@@ -13,6 +13,7 @@ mod tiebreak;
 mod tests;
 
 use candidates::collect_local_file_candidates;
+use fields::normalized_code;
 use geo_cache::{GeoCache, load_geo_cache, lookup_ip_api_locations, save_geo_cache};
 use ipinfo::{refresh_ipinfo_conflicts, refresh_ipinfo_verification};
 use manual_review::{load_manual_resolved_locations, write_manual_review_files};
@@ -152,8 +153,17 @@ async fn refresh_chain_locations(
     for (ip, mut location) in fetched {
         if let Some(existing) = geo_cache.location(ip) {
             location.ipinfo = existing.ipinfo.clone();
+            location.ipinfo_checked_at = existing.ipinfo_checked_at;
             location.ipinfo_conflict = existing.ipinfo_conflict;
             location.ipinfo_conflict_reason = existing.ipinfo_conflict_reason.clone();
+            // A third source's answer outlives a routine ip-api refresh, so it
+            // is not thrown away and asked for again.
+            location.tiebreak = existing.tiebreak.clone();
+            // A settled disagreement stays settled unless ip-api has changed
+            // its mind about the country.
+            location.ipinfo_conflict_settled = existing.ipinfo_conflict_settled
+                && normalized_code(&existing.country_code)
+                    == normalized_code(&location.country_code);
         }
         geo_cache.locations.insert(ip.to_string(), location);
         cache_changed = true;
@@ -176,6 +186,9 @@ async fn refresh_chain_locations(
         tiebreak::resolve_conflicts(node_config, &ips, geo_cache, now, ttl).await;
     cache_changed |= auto_resolved_count > 0;
 
+    // Bookkeeping for a person to read. It runs after every external lookup
+    // is already paid for, so a filesystem error here must not throw the map
+    // away and make the whole cycle happen again.
     let manual_review_count = write_manual_review_files(
         &node_config.manual_review_dir,
         &node_config.manual_resolved_dir,
@@ -184,7 +197,16 @@ async fn refresh_chain_locations(
         geo_cache,
         &manual_resolved,
         now,
-    )?;
+    )
+    .unwrap_or_else(|error| {
+        warn!(
+            chain_id,
+            dir = %node_config.manual_review_dir.display(),
+            error = ?error,
+            "failed to write the manual review files"
+        );
+        0
+    });
 
     let previous_nodes = match load_existing_map_nodes(&chain_config.output_path) {
         Ok(nodes) => nodes,

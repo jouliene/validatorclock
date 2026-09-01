@@ -1,8 +1,8 @@
 //! Cached ip-api locations for node addresses.
 
 use super::fields::{
-    ip_api_source, is_false, medium_confidence, normalized_code, normalized_name, number_field,
-    number_u64_field, string_field, unknown_string,
+    ip_api_source, is_false, is_zero, medium_confidence, normalized_code, normalized_name,
+    number_field, number_u64_field, string_field, unknown_string,
 };
 use super::ipinfo::IpInfoLiteLocation;
 use super::tiebreak::TiebreakLocation;
@@ -72,8 +72,18 @@ pub(super) struct CachedGeoLocation {
     pub(super) updated_at: u64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) ipinfo: Option<IpInfoLiteLocation>,
+    /// When ipinfo was last asked about this address, answer or not. A lookup
+    /// costs one request per address, so a failure that is not remembered
+    /// means asking again every cycle, for good.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub(super) ipinfo_checked_at: u64,
     #[serde(default, skip_serializing_if = "is_false")]
     pub(super) ipinfo_conflict: bool,
+    /// A disagreement a third source already decided. The sources still
+    /// disagree, so without this the same conflict is found and settled again
+    /// every cycle, rewriting the cache file each time.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub(super) ipinfo_conflict_settled: bool,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) ipinfo_conflict_reason: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -92,13 +102,15 @@ impl CachedGeoLocation {
             isp: located.isp.unwrap_or_else(unknown_string),
             asn: located.asn,
             as_name: located.as_name,
-            lat: located.lat?,
-            lon: located.lon?,
+            lat: located.lat.filter(|lat| (-90.0..=90.0).contains(lat))?,
+            lon: located.lon.filter(|lon| (-180.0..=180.0).contains(lon))?,
             source: ip_api_source(),
             confidence: medium_confidence(),
             updated_at: now,
             ipinfo: None,
+            ipinfo_checked_at: 0,
             ipinfo_conflict: false,
+            ipinfo_conflict_settled: false,
             ipinfo_conflict_reason: None,
             tiebreak: None,
         })
@@ -118,18 +130,28 @@ impl CachedGeoLocation {
             .is_some_and(|ipinfo| now.saturating_sub(ipinfo.updated_at) < ttl.as_secs())
     }
 
+    /// True while the last attempt is recent enough that asking again would
+    /// only spend another request on the same silence.
+    pub(super) fn ipinfo_asked_recently(&self, now: u64, retry_after: Duration) -> bool {
+        self.ipinfo_checked_at > 0
+            && now.saturating_sub(self.ipinfo_checked_at) < retry_after.as_secs()
+    }
+
     pub(super) fn ipinfo_conflict_reason(&self) -> Option<String> {
         let ipinfo = self.ipinfo.as_ref()?;
+        // Two sources that agree on the ISO code agree, whatever they call
+        // the country: "Czechia" and "Czech Republic" are the same place, and
+        // treating them as a conflict spent a third lookup to prove it.
         if let (Some(ip_api_code), Some(ipinfo_code)) = (
             normalized_code(&self.country_code),
             normalized_code(&ipinfo.country_code),
-        ) && ip_api_code != ipinfo_code
-        {
-            return Some(format!(
-                "country_code mismatch: ip-api={ip_api_code}, ipinfo={ipinfo_code}"
-            ));
+        ) {
+            return (ip_api_code != ipinfo_code).then(|| {
+                format!("country_code mismatch: ip-api={ip_api_code}, ipinfo={ipinfo_code}")
+            });
         }
 
+        // Only when a code is missing does the name get to decide.
         let ip_api_country = normalized_name(&self.country);
         let ipinfo_country = normalized_name(&ipinfo.country);
         if let (Some(ip_api_country), Some(ipinfo_country)) = (ip_api_country, ipinfo_country)
@@ -195,7 +217,9 @@ pub(super) fn migrate_versioned_geo_cache(value: Value) -> GeoCache {
                     .unwrap_or_else(medium_confidence),
                 updated_at: number_u64_field(decision, "geo_updated_at").unwrap_or_default(),
                 ipinfo: None,
+                ipinfo_checked_at: 0,
                 ipinfo_conflict: false,
+                ipinfo_conflict_settled: false,
                 ipinfo_conflict_reason: None,
                 tiebreak: None,
             },

@@ -9,9 +9,7 @@ pub(super) fn string_field(value: &Value, field: &str) -> Option<String> {
     value
         .get(field)
         .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_owned)
+        .and_then(crate::geoip::sanitized_field)
 }
 pub(super) fn normalized_code(value: &Option<String>) -> Option<String> {
     value
@@ -42,6 +40,9 @@ pub(super) fn number_field(value: &Value, field: &str) -> Option<f64> {
     value
         .get(field)
         .and_then(|value| value.as_f64().or_else(|| value.as_str()?.parse().ok()))
+        // "NaN" parses as a number but is not one: it would place a node
+        // nowhere and travel all the way to the map.
+        .filter(|value| value.is_finite())
 }
 pub(super) fn number_u64_field(value: &Value, field: &str) -> Option<u64> {
     value
@@ -49,12 +50,7 @@ pub(super) fn number_u64_field(value: &Value, field: &str) -> Option<u64> {
         .and_then(|value| value.as_u64().or_else(|| value.as_str()?.parse().ok()))
 }
 pub(super) fn unknown_if_empty(value: &str) -> String {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        unknown_string()
-    } else {
-        trimmed.to_owned()
-    }
+    crate::geoip::sanitized_field(value).unwrap_or_else(unknown_string)
 }
 pub(super) fn unknown_string() -> String {
     "Unknown".to_owned()

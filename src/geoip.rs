@@ -59,9 +59,29 @@ pub(crate) async fn lookup_batch(endpoint: &str, ips: &[IpAddr]) -> Vec<IpApiLoc
     located
 }
 
+/// The longest a third-party answer may be. Country, city and provider names
+/// are far shorter than this; anything longer is a broken or hostile answer.
+const MAX_FIELD_CHARS: usize = 120;
+
+/// Third-party geo answers reach the node map, the public API and a tooltip
+/// that lays out one line per row. Control characters are folded away, a
+/// newline above all, and the value is capped, so nothing downstream has to
+/// trust what a stranger's API returned.
+pub(crate) fn sanitized_field(value: &str) -> Option<String> {
+    let folded = value
+        .chars()
+        .map(|ch| if ch.is_control() { ' ' } else { ch })
+        .collect::<String>();
+    let collapsed = folded.split_whitespace().collect::<Vec<_>>().join(" ");
+    if collapsed.is_empty() {
+        return None;
+    }
+
+    Some(collapsed.chars().take(MAX_FIELD_CHARS).collect())
+}
+
 pub(crate) fn trimmed_non_empty(value: String) -> Option<String> {
-    let trimmed = value.trim();
-    (!trimmed.is_empty()).then(|| trimmed.to_owned())
+    sanitized_field(&value)
 }
 
 /// ip-api reports autonomous systems as `AS16276 OVH SAS`.
@@ -129,6 +149,27 @@ mod tests {
         serde_json::from_value::<IpApiResponse>(raw)
             .unwrap()
             .into_location()
+    }
+
+    /// These values reach the node map, the public API and a tooltip that
+    /// lays out one line per fact, so a newline in a provider name could forge
+    /// a row of its own.
+    #[test]
+    fn a_third_party_answer_is_folded_to_one_harmless_line() {
+        assert_eq!(
+            sanitized_field("  Amsterdam  ").as_deref(),
+            Some("Amsterdam")
+        );
+        assert_eq!(
+            sanitized_field("Amsterdam\n[danger] seized").as_deref(),
+            Some("Amsterdam [danger] seized")
+        );
+        assert_eq!(sanitized_field("A\u{0}B\tC").as_deref(), Some("A B C"));
+        assert_eq!(sanitized_field(" \t\r\n ").as_deref(), None);
+        assert_eq!(
+            sanitized_field(&"x".repeat(500)).unwrap().chars().count(),
+            MAX_FIELD_CHARS
+        );
     }
 
     #[test]

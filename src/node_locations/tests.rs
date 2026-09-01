@@ -6,6 +6,8 @@ use super::manual_review::*;
 use super::map_nodes::*;
 use serde_json::json;
 use std::collections::BTreeMap;
+use std::net::IpAddr;
+use std::time::Duration;
 
 fn cached_location(city: &str, country: &str, country_code: &str) -> CachedGeoLocation {
     CachedGeoLocation {
@@ -21,7 +23,9 @@ fn cached_location(city: &str, country: &str, country_code: &str) -> CachedGeoLo
         confidence: medium_confidence(),
         updated_at: 1_700_000_000,
         ipinfo: None,
+        ipinfo_checked_at: 0,
         ipinfo_conflict: false,
+        ipinfo_conflict_settled: false,
         ipinfo_conflict_reason: None,
         tiebreak: None,
     }
@@ -401,5 +405,101 @@ async fn a_failed_ipinfo_lookup_is_logged_without_the_token() {
     assert!(
         !format!("{:?}", error.without_url()).contains(TOKEN),
         "the form that reaches the log must not carry the token"
+    );
+}
+
+fn ipinfo_location(country: &str, country_code: &str) -> IpInfoLiteLocation {
+    IpInfoLiteLocation {
+        asn: Some("AS64500".to_owned()),
+        as_name: Some("Test ISP".to_owned()),
+        as_domain: Some("example.net".to_owned()),
+        country_code: Some(country_code.to_owned()),
+        country: country.to_owned(),
+        continent_code: Some("EU".to_owned()),
+        continent: Some("Europe".to_owned()),
+        updated_at: 1_700_000_001,
+    }
+}
+
+/// Two sources that agree on the ISO code agree. Calling the same country by
+/// two names used to raise a conflict, and settling it spent a third lookup.
+#[test]
+fn agreeing_on_the_country_code_is_not_a_conflict() {
+    let mut location = cached_location("Prague", "Czech Republic", "CZ");
+    location.ipinfo = Some(ipinfo_location("Czechia", "CZ"));
+
+    assert_eq!(location.ipinfo_conflict_reason(), None);
+
+    location.ipinfo = Some(ipinfo_location("Netherlands", "NL"));
+    assert!(
+        location.ipinfo_conflict_reason().is_some(),
+        "a real disagreement should still be reported"
+    );
+}
+
+/// A settled disagreement stays settled: the sources still disagree, so it was
+/// found and settled again on every refresh, rewriting the cache each time.
+#[test]
+fn a_settled_conflict_is_not_raised_again() {
+    let ip: IpAddr = "203.0.113.11".parse().unwrap();
+    let mut cache = GeoCache::default();
+    let mut location = cached_location("Test City", "United States", "US");
+    location.ipinfo = Some(ipinfo_location("Brazil", "BR"));
+    cache.locations.insert(ip.to_string(), location);
+
+    assert!(refresh_ipinfo_conflicts(&[ip], &mut cache));
+    assert!(cache.location(ip).unwrap().ipinfo_conflict);
+
+    cache.location_mut(ip).unwrap().clear_conflict();
+
+    assert!(
+        !refresh_ipinfo_conflicts(&[ip], &mut cache),
+        "a settled conflict should not be raised again, nor rewrite the cache"
+    );
+    assert!(!cache.location(ip).unwrap().ipinfo_conflict);
+}
+
+/// ipinfo answers one address per request, so an address it could not place
+/// used to cost a request on every cycle for as long as the node was up.
+#[test]
+fn an_address_ipinfo_could_not_place_is_not_asked_again_at_once() {
+    let now = 1_700_000_000;
+    let mut location = cached_location("Test City", "United States", "US");
+    location.ipinfo_checked_at = now;
+
+    assert!(location.ipinfo_asked_recently(now + 60, Duration::from_secs(6 * 60 * 60)));
+    assert!(!location.ipinfo_asked_recently(now + 7 * 60 * 60, Duration::from_secs(6 * 60 * 60)));
+
+    let never_asked = cached_location("Test City", "United States", "US");
+    assert!(!never_asked.ipinfo_asked_recently(now, Duration::from_secs(6 * 60 * 60)));
+}
+
+/// A location off the globe would place a node nowhere and travel all the way
+/// to the map.
+#[test]
+fn coordinates_outside_the_globe_are_not_a_location() {
+    let off_globe = crate::geoip::IpApiLocation {
+        ip: "203.0.113.12".parse().unwrap(),
+        resolved: true,
+        country: Some("Nowhere".to_owned()),
+        country_code: Some("NW".to_owned()),
+        city: Some("Nowhere".to_owned()),
+        isp: Some("Test ISP".to_owned()),
+        asn: None,
+        as_name: None,
+        lat: Some(120.0),
+        lon: Some(4.9),
+    };
+
+    assert!(CachedGeoLocation::from_lookup(off_globe.clone(), 1).is_none());
+    assert!(
+        CachedGeoLocation::from_lookup(
+            crate::geoip::IpApiLocation {
+                lat: Some(52.37),
+                ..off_globe
+            },
+            1
+        )
+        .is_some()
     );
 }

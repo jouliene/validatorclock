@@ -14,6 +14,10 @@ use tracing::warn;
 
 pub(super) const IPINFO_CONCURRENCY: usize = 16;
 pub(super) const IPINFO_LOOKUP_TIMEOUT: Duration = Duration::from_secs(20);
+/// ipinfo answers one address per request, so an address it cannot place used
+/// to cost a request on every refresh cycle, for as long as the node was up.
+/// A failure waits this long before it is worth asking again.
+const IPINFO_RETRY_AFTER: Duration = Duration::from_secs(6 * 60 * 60);
 
 pub(super) async fn refresh_ipinfo_verification(
     http: &reqwest::Client,
@@ -29,9 +33,10 @@ pub(super) async fn refresh_ipinfo_verification(
         .copied()
         .filter(|ip| !manual_resolved.contains_key(ip))
         .filter(|ip| {
-            geo_cache
-                .location(*ip)
-                .is_some_and(|location| !location.has_fresh_ipinfo(now, ttl))
+            geo_cache.location(*ip).is_some_and(|location| {
+                !location.has_fresh_ipinfo(now, ttl)
+                    && !location.ipinfo_asked_recently(now, IPINFO_RETRY_AFTER)
+            })
         })
         .collect::<Vec<_>>();
     if lookup_ips.is_empty() {
@@ -52,6 +57,16 @@ pub(super) async fn refresh_ipinfo_verification(
     for (ip, ipinfo) in fetched {
         if let Some(location) = geo_cache.location_mut(ip) {
             location.ipinfo = Some(ipinfo);
+            // A fresh answer deserves a fresh look, even where an older
+            // disagreement had already been settled.
+            location.ipinfo_conflict_settled = false;
+        }
+    }
+    // Every address that was asked is marked, answered or not, so silence is
+    // not paid for again on the next cycle.
+    for ip in &lookup_ips {
+        if let Some(location) = geo_cache.location_mut(*ip) {
+            location.ipinfo_checked_at = now;
         }
     }
     lookup_ips.len()
@@ -135,6 +150,11 @@ pub(super) fn refresh_ipinfo_conflicts(ips: &[IpAddr], geo_cache: &mut GeoCache)
         let Some(location) = geo_cache.location_mut(*ip) else {
             continue;
         };
+        if location.ipinfo_conflict_settled {
+            // A third source already decided this one. Finding the same
+            // disagreement again every cycle only rewrote the cache file.
+            continue;
+        }
         let reason = location.ipinfo_conflict_reason();
         let conflict = reason.is_some();
         if location.ipinfo_conflict != conflict || location.ipinfo_conflict_reason != reason {
