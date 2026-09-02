@@ -46,7 +46,12 @@ pub(crate) async fn lookup_batch(endpoint: &str, ips: &[IpAddr]) -> Vec<IpApiLoc
             warn!(status = %response.status(), "ip-api batch lookup returned an error");
             continue;
         }
-        let raw = match response.json::<Vec<IpApiResponse>>().await {
+        let raw = match crate::http::json_within::<Vec<IpApiResponse>>(
+            response,
+            crate::http::MAX_GEO_RESPONSE_BYTES,
+        )
+        .await
+        {
             Ok(raw) => raw,
             Err(error) => {
                 warn!(error = ?error, "failed to decode ip-api batch response");

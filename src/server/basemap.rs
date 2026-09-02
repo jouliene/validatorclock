@@ -13,7 +13,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
-use tracing::warn;
+use tracing::debug;
 
 // Tiles, fonts and the sprite never change under the same name; the style is
 // edited by hand, so it is revalidated instead of pinned for a day.
@@ -56,11 +56,15 @@ pub(super) async fn basemap_asset(
 
     match read_asset(&path, range).await {
         Ok(asset) => asset.into_response(content_type_for(&path), cache_control),
-        Err(error) => {
-            if error.kind() != std::io::ErrorKind::NotFound {
-                warn!(path = %path.display(), error = ?error, "failed to read a basemap asset");
-                return StatusCode::NOT_FOUND.into_response();
-            }
+        Err(AssetError::Unsatisfiable { total }) => unsatisfiable_range(total),
+        Err(AssetError::Unreadable(error)) => {
+            // A caller chooses the path, so this is reachable by asking for a
+            // directory. At warn it wrote a line per request into the journal,
+            // where it can crowd out what an operator actually needs to see.
+            debug!(path = %path.display(), error = ?error, "failed to read a basemap asset");
+            StatusCode::NOT_FOUND.into_response()
+        }
+        Err(AssetError::Missing) => {
             // A missing glyph range answered with 404 takes down every layer
             // that shares the tile, so an alphabet nobody labelled here is
             // answered with no glyphs instead.
@@ -75,6 +79,20 @@ pub(super) async fn basemap_asset(
             StatusCode::NOT_FOUND.into_response()
         }
     }
+}
+
+/// RFC 9110: a range nothing can satisfy is answered with 416 and the real
+/// length, so the client can ask again. Answering the whole file instead sent
+/// gigabytes to a client that asked for a few hundred bytes.
+fn unsatisfiable_range(total: u64) -> Response {
+    let mut response = StatusCode::RANGE_NOT_SATISFIABLE.into_response();
+    if let Ok(value) = HeaderValue::from_str(&format!("bytes */{total}")) {
+        response.headers_mut().insert(header::CONTENT_RANGE, value);
+    }
+    response
+        .headers_mut()
+        .insert(header::ACCEPT_RANGES, HeaderValue::from_static("bytes"));
+    response
 }
 
 fn basemap_style(base_dir: &std::path::Path) -> Response {
@@ -186,14 +204,31 @@ impl BasemapAsset {
 /// Reads off the runtime's blocking-free path: the handler is async, so the
 /// file is opened and read through tokio rather than blocking a worker thread
 /// for as long as the disk takes.
+/// What went wrong reading an asset, so the handler can answer each case the
+/// way the specification asks rather than turning them all into 404.
+enum AssetError {
+    Missing,
+    /// Nothing in the file can satisfy the range that was asked for.
+    Unsatisfiable {
+        total: u64,
+    },
+    Unreadable(std::io::Error),
+}
+
 async fn read_asset(
     path: &std::path::Path,
-    range: Option<(u64, Option<u64>)>,
-) -> std::io::Result<BasemapAsset> {
-    let mut file = tokio::fs::File::open(path).await?;
-    let total = file.metadata().await?.len();
+    range: Option<ByteRange>,
+) -> Result<BasemapAsset, AssetError> {
+    let mut file = tokio::fs::File::open(path).await.map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            AssetError::Missing
+        } else {
+            AssetError::Unreadable(error)
+        }
+    })?;
+    let total = file.metadata().await.map_err(AssetError::Unreadable)?.len();
 
-    let Some((start, end)) = range else {
+    let Some(range) = range else {
         // A small file is buffered, so it can still carry an entity tag. A
         // large one is streamed: the response then costs a buffer, not the
         // whole archive.
@@ -205,7 +240,9 @@ async fn read_asset(
             });
         }
         let mut bytes = Vec::with_capacity(total as usize);
-        file.read_to_end(&mut bytes).await?;
+        file.read_to_end(&mut bytes)
+            .await
+            .map_err(AssetError::Unreadable)?;
         return Ok(BasemapAsset {
             length: bytes.len() as u64,
             body: Body::from(bytes),
@@ -213,45 +250,82 @@ async fn read_asset(
         });
     };
 
-    if start >= total {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidInput,
-            "range starts past the end of the file",
-        ));
-    }
-    let end = end
-        .unwrap_or(total - 1)
-        .min(total - 1)
-        .min(start + MAX_RANGE_BYTES - 1);
+    let Some((start, end)) = range.resolve(total) else {
+        return Err(AssetError::Unsatisfiable { total });
+    };
     let length = end - start + 1;
 
-    file.seek(SeekFrom::Start(start)).await?;
-    let mut bytes = vec![0u8; length as usize];
-    file.read_exact(&mut bytes).await?;
+    // Streamed like the whole file: a range is capped at a few megabytes, but
+    // one buffer per connection still adds up to gigabytes across the
+    // connection limit, held for as long as a client declines to read.
+    file.seek(SeekFrom::Start(start))
+        .await
+        .map_err(AssetError::Unreadable)?;
 
     Ok(BasemapAsset {
-        body: Body::from(bytes),
+        body: Body::from_stream(ReaderStream::new(file.take(length))),
         length,
         range: Some((start, end, total)),
     })
 }
 
-/// Only the single-range form pmtiles uses.
-fn parse_byte_range(value: &str) -> Option<(u64, Option<u64>)> {
+/// The single-range forms of RFC 9110: `bytes=start-end`, `bytes=start-`, and
+/// the suffix `bytes=-last`. The suffix form used to fail to parse, and an
+/// unparsed range is treated as no range at all - so a client asking for the
+/// last few bytes of the archive was handed the whole of it.
+fn parse_byte_range(value: &str) -> Option<ByteRange> {
     let spec = value.trim().strip_prefix("bytes=")?;
     if spec.contains(',') {
         return None;
     }
     let (start, end) = spec.split_once('-')?;
-    let start = start.trim().parse::<u64>().ok()?;
-    let end = match end.trim() {
+    let (start, end) = (start.trim(), end.trim());
+
+    if start.is_empty() {
+        return Some(ByteRange::Suffix(end.parse::<u64>().ok()?));
+    }
+
+    let start = start.parse::<u64>().ok()?;
+    let end = match end {
         "" => None,
         value => Some(value.parse::<u64>().ok()?),
     };
     if end.is_some_and(|end| end < start) {
         return None;
     }
-    Some((start, end))
+    Some(ByteRange::From { start, end })
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ByteRange {
+    From {
+        start: u64,
+        end: Option<u64>,
+    },
+    /// The last N bytes, which is how a client probes a footer.
+    Suffix(u64),
+}
+
+impl ByteRange {
+    /// Resolves against the real length, or reports that nothing can satisfy
+    /// it - which RFC 9110 answers with 416, not with the whole file.
+    fn resolve(self, total: u64) -> Option<(u64, u64)> {
+        let (start, end) = match self {
+            ByteRange::From { start, end } => {
+                if start >= total {
+                    return None;
+                }
+                (start, end.unwrap_or(total - 1).min(total - 1))
+            }
+            ByteRange::Suffix(last) => {
+                if last == 0 || total == 0 {
+                    return None;
+                }
+                (total.saturating_sub(last), total - 1)
+            }
+        };
+        Some((start, end.min(start + MAX_RANGE_BYTES - 1)))
+    }
 }
 
 fn content_type_for(path: &std::path::Path) -> &'static str {
@@ -320,12 +394,48 @@ mod tests {
 
     #[test]
     fn ranges_are_parsed_in_the_form_pmtiles_sends() {
-        assert_eq!(parse_byte_range("bytes=0-16383"), Some((0, Some(16383))));
-        assert_eq!(parse_byte_range("bytes=128-"), Some((128, None)));
-        assert_eq!(parse_byte_range(" bytes=5-9 "), Some((5, Some(9))));
+        assert_eq!(
+            parse_byte_range("bytes=0-16383"),
+            Some(ByteRange::From {
+                start: 0,
+                end: Some(16383)
+            })
+        );
+        assert_eq!(
+            parse_byte_range("bytes=128-"),
+            Some(ByteRange::From {
+                start: 128,
+                end: None
+            })
+        );
+        assert_eq!(
+            parse_byte_range(" bytes=5-9 "),
+            Some(ByteRange::From {
+                start: 5,
+                end: Some(9)
+            })
+        );
         assert_eq!(parse_byte_range("bytes=9-5"), None);
         assert_eq!(parse_byte_range("bytes=0-1,4-5"), None);
         assert_eq!(parse_byte_range("items=0-1"), None);
+
+        // The suffix form. It used to fail to parse, and an unparsed range is
+        // no range at all - so a client asking for the last 500 bytes of a
+        // multi-gigabyte archive was handed the whole of it.
+        assert_eq!(parse_byte_range("bytes=-500"), Some(ByteRange::Suffix(500)));
+
+        assert_eq!(ByteRange::Suffix(500).resolve(2_000), Some((1_500, 1_999)));
+        assert_eq!(ByteRange::Suffix(9_000).resolve(2_000), Some((0, 1_999)));
+        assert_eq!(ByteRange::Suffix(0).resolve(2_000), None);
+        assert_eq!(
+            ByteRange::From {
+                start: 2_000,
+                end: None
+            }
+            .resolve(2_000),
+            None,
+            "a range past the end can satisfy nothing"
+        );
     }
 
     #[test]

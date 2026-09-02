@@ -159,7 +159,12 @@ async fn lookup_locations(
                     warn!(ip = %ip, status = %response.status(), "conflict tiebreak lookup returned an error");
                     return None;
                 }
-                match response.json::<TiebreakResponse>().await {
+                match crate::http::json_within::<TiebreakResponse>(
+                    response,
+                    crate::http::MAX_GEO_RESPONSE_BYTES,
+                )
+                .await
+                {
                     Ok(raw) => raw.into_location(now).map(|location| (ip, location)),
                     Err(error) => {
                         warn!(ip = %ip, error = ?error, "failed to decode the conflict tiebreak response");

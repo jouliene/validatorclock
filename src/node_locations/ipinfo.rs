@@ -134,10 +134,15 @@ pub(super) async fn lookup_ipinfo_lite_one(
         warn!(ip = %ip, status = %response.status(), "ipinfo lookup returned an error");
         return None;
     }
-    let raw = match response.json::<IpInfoLiteResponse>().await {
+    let raw = match crate::http::json_within::<IpInfoLiteResponse>(
+        response,
+        crate::http::MAX_GEO_RESPONSE_BYTES,
+    )
+    .await
+    {
         Ok(raw) => raw,
         Err(error) => {
-            warn!(ip = %ip, error = ?error.without_url(), "failed to decode ipinfo response");
+            warn!(ip = %ip, error = ?error, "failed to decode ipinfo response");
             return None;
         }
     };

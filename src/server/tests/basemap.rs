@@ -119,6 +119,55 @@ async fn a_doubly_encoded_path_cannot_escape_the_basemap_directory() {
     std::fs::remove_dir_all(&dir).ok();
 }
 
+/// A client probing a footer asks for the last few bytes. The suffix form did
+/// not parse, and an unparsed range is no range at all - so the answer was the
+/// whole multi-gigabyte archive.
+#[tokio::test]
+async fn a_suffix_range_returns_the_end_of_the_file() {
+    let dir = temp_basemap_dir("suffix");
+    std::fs::write(dir.join("tiles.pmtiles"), b"0123456789").unwrap();
+    let state = state_with_basemap(&dir);
+
+    let response = ranged_response(state, "/basemap/tiles.pmtiles", "bytes=-4").await;
+
+    assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CONTENT_RANGE)
+            .and_then(|value| value.to_str().ok()),
+        Some("bytes 6-9/10")
+    );
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    assert_eq!(&body[..], b"6789");
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+/// A range nothing can satisfy is a 416 with the real length, not the whole
+/// file and not a 404.
+#[tokio::test]
+async fn a_range_past_the_end_is_answered_with_416() {
+    let dir = temp_basemap_dir("unsatisfiable");
+    std::fs::write(dir.join("tiles.pmtiles"), b"0123456789").unwrap();
+    let state = state_with_basemap(&dir);
+
+    let response = ranged_response(state, "/basemap/tiles.pmtiles", "bytes=99999-").await;
+
+    assert_eq!(response.status(), StatusCode::RANGE_NOT_SATISFIABLE);
+    assert_eq!(
+        response
+            .headers()
+            .get(header::CONTENT_RANGE)
+            .and_then(|value| value.to_str().ok()),
+        Some("bytes */10")
+    );
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    assert!(body.is_empty(), "416 should not carry the file");
+
+    std::fs::remove_dir_all(&dir).ok();
+}
+
 fn state_with_basemap(dir: &std::path::Path) -> std::sync::Arc<AppState> {
     let mut config = test_config(Vec::new());
     config.basemap_dir = Some(dir.to_path_buf());

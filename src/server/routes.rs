@@ -21,10 +21,19 @@ use axum::routing::{get, post};
 use std::sync::Arc;
 use tower::ServiceBuilder;
 use tower_http::compression::CompressionLayer;
+use tower_http::compression::predicate::{DefaultPredicate, NotForContentType, Predicate};
 
 pub(super) fn app_router(state: Arc<AppState>) -> Router {
+    // The tile archive is already compressed inside, and it is gigabytes: a
+    // deflate pass over it saves nothing and costs a runtime worker for as
+    // long as the transfer lasts. Nothing else this server sends is
+    // octet-stream, so excluding it costs no real compression.
+    let compression = CompressionLayer::new().compress_when(
+        DefaultPredicate::new().and(NotForContentType::new("application/octet-stream")),
+    );
+
     let layers = ServiceBuilder::new()
-        .layer(CompressionLayer::new())
+        .layer(compression)
         .layer(middleware::from_fn(add_entity_tags))
         .layer(middleware::from_fn(add_security_headers))
         .layer(middleware::from_fn_with_state(
