@@ -19,6 +19,7 @@ const VALIDATOR_MAP_PROVIDER_CITY_RADIUS_KM = 25;
 const VALIDATOR_MAP_EARTH_RADIUS_KM = 6371.0088;
 
 let mapLibrePromise = null;
+let validatorMapLibraryReady = false;
 let validatorMapLoading = null;
 let validatorMap = null;
 let validatorMapLoaded = false;

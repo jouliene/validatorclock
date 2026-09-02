@@ -142,8 +142,11 @@ function roundAprCountLabel(count) {
 }
 
 function averageRoundStatsProfitability(rounds) {
+  // A round with no reward data arrives as null, and Number(null) is 0 - which
+  // passes Number.isFinite, so the round the filter meant to drop was averaged
+  // in as a flat zero and pulled the published rate down.
   const values = (rounds || [])
-    .map((round) => Number(round?.profitability_percent))
+    .map((round) => roundStatsNumber(round?.profitability_percent))
     .filter(Number.isFinite);
   if (!values.length) {
     return { average: NaN, count: 0 };

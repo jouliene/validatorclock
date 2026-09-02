@@ -42,7 +42,7 @@ const ROUND_STATS_CHARTS = [
     series: [{
       key: "validators",
       label: "Validators",
-      value: (round) => Number(round.validator_count),
+      value: (round) => roundStatsNumber(round.validator_count),
       tooltip: (round) => formatWeight(round.validator_count || 0),
     }],
     latest: (round) => round?.validator_count ? formatWeight(round.validator_count) : "-",
@@ -54,7 +54,7 @@ const ROUND_STATS_CHARTS = [
     series: [{
       key: "profitability",
       label: "Profitability",
-      value: (round) => Number(round.profitability_percent),
+      value: (round) => roundStatsNumber(round.profitability_percent),
       tooltip: (round) => formatRoundStatsExactPercent(round.profitability_percent),
     }],
     latest: (round) => formatRoundStatsPercent(round?.profitability_percent),

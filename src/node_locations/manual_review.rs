@@ -122,8 +122,19 @@ pub(super) fn load_manual_resolved_locations(
                 continue;
             }
         };
-        if !manual.geo.latitude.is_finite() || !manual.geo.longitude.is_finite() {
-            warn!(path = %path.display(), ip = %manual.ip, "manual resolved IP has invalid coordinates");
+        // On the globe, like every other source. This file is written by hand,
+        // and a typed 552.37 reaches the public map and then throws inside
+        // MapLibre when a visitor opens the cluster holding it.
+        if !(-90.0..=90.0).contains(&manual.geo.latitude)
+            || !(-180.0..=180.0).contains(&manual.geo.longitude)
+        {
+            warn!(
+                path = %path.display(),
+                ip = %manual.ip,
+                latitude = manual.geo.latitude,
+                longitude = manual.geo.longitude,
+                "manual resolved IP has coordinates that are not on the globe"
+            );
             continue;
         }
         output.insert(manual.ip, manual);

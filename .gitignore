@@ -1,5 +1,11 @@
 /target
 validatorclock_cache.json
+# Per-chain caches; the visitor store holds one record per IP address that has
+# loaded the dashboard, with timestamps and a resolved location. Neither was
+# matched by the patterns above, so both sat in the checkout untracked - one
+# `git add -A` from being published.
+validatorclock_cache_*.json
+validatorclock_visitors.json
 validatorclock_analytics.json
 validatorclock_analytics.json.secret
 validatorclock_history*.json

@@ -318,16 +318,32 @@ fn window_visits(record: &VisitorRecord, window_start: i64) -> u64 {
 
 fn prune_visitors(disk: &mut VisitorsDisk, today_index: i64) {
     let day_floor = today_index.saturating_sub(DAY_RETENTION_DAYS);
+    let record_floor = today_index
+        .saturating_sub(RECORD_RETENTION_DAYS)
+        .saturating_mul(SECONDS_PER_DAY as i64)
+        .max(0) as u64;
+
+    // A clock that has jumped forward - a restored snapshot, a dead RTC, one
+    // bad NTP peer - puts these floors above everything on file. Pruning would
+    // then empty the store in a single pass, and the empty store is what gets
+    // written, so a wrong clock for one moment costs every visitor on record.
+    // Retention never has a reason to remove everything at once, so a floor
+    // that would is read as a wrong clock rather than obeyed.
+    let would_empty_the_store = !disk.visitors.is_empty()
+        && disk
+            .visitors
+            .values()
+            .all(|record| record.last_seen < record_floor);
+    if would_empty_the_store {
+        return;
+    }
+
     for record in disk.visitors.values_mut() {
         record
             .days
             .retain(|day, _| parse_day_index(day).is_some_and(|index| index > day_floor));
     }
 
-    let record_floor = today_index
-        .saturating_sub(RECORD_RETENTION_DAYS)
-        .saturating_mul(SECONDS_PER_DAY as i64)
-        .max(0) as u64;
     disk.visitors
         .retain(|_, record| record.last_seen >= record_floor);
 
@@ -423,6 +439,34 @@ mod tests {
         let kept = disk.visitors.get("203.0.113.5").unwrap();
         assert_eq!(kept.days.len(), 1);
         assert!(kept.days.contains_key("2026-08-31"));
+    }
+
+    /// A clock that reads years ahead puts the retention floor above every
+    /// record, and the emptied store is written straight to disk - so one bad
+    /// clock reading costs all the visitor history there is, past recovery.
+    #[test]
+    fn a_clock_that_jumped_forward_does_not_empty_the_store() {
+        let today_index = parse_day_index("2026-08-31").unwrap();
+        let now = (today_index as u64) * SECONDS_PER_DAY;
+        let mut disk = VisitorsDisk::default();
+        disk.visitors.insert(
+            "203.0.113.5".to_owned(),
+            record_with_days(&[("2026-08-31", 2)], now),
+        );
+        disk.visitors.insert(
+            "198.51.100.9".to_owned(),
+            record_with_days(&[("2026-08-30", 1)], now - SECONDS_PER_DAY),
+        );
+
+        // Nine years ahead: a restored snapshot, or one bad NTP peer.
+        let jumped = parse_day_index("2035-06-12").unwrap();
+        prune_visitors(&mut disk, jumped);
+
+        assert_eq!(disk.visitors.len(), 2, "nothing should have been dropped");
+        assert!(
+            disk.visitors["203.0.113.5"].days.contains_key("2026-08-31"),
+            "the day counts should survive too"
+        );
     }
 
     #[test]

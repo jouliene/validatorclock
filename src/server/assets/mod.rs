@@ -349,6 +349,38 @@ mod tests {
         );
     }
 
+    // A round with no reward data is serialized as null, and Number(null) is
+    // 0 - which passes every finite check downstream. The round the filter
+    // meant to drop was averaged into the published rate as a flat zero and
+    // charted as a real point at the axis floor.
+    #[test]
+    fn a_round_with_no_data_is_not_read_as_zero() {
+        let format = APP_JS_PARTS
+            .iter()
+            .find(|part| part.contains("function roundStatsNumber("))
+            .expect("the round stats format module should be bundled");
+        assert!(
+            format.contains("value === null || value === undefined || value === \"\""),
+            "roundStatsNumber must refuse the values that coerce to zero"
+        );
+
+        for part in APP_JS_PARTS.iter().filter(|part| {
+            part.contains("function averageRoundStatsProfitability(")
+                || part.contains("key: \"profitability\"")
+        }) {
+            for line in part.lines() {
+                let bare_coercion = line
+                    .match_indices("Number(round")
+                    .any(|(at, _)| !line[..at].ends_with("roundStats"));
+                assert!(
+                    !bare_coercion,
+                    "read the value through roundStatsNumber, not Number(): {}",
+                    line.trim()
+                );
+            }
+        }
+    }
+
     fn scripts_in(directory: &str) -> Vec<std::path::PathBuf> {
         let script_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(directory);
         std::fs::read_dir(&script_dir)

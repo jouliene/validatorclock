@@ -28,7 +28,12 @@ async function buildValidatorMap() {
 }
 
 function ensureMapLibre() {
-  if (window.maplibregl) {
+  // Readiness is not "maplibre is a global". Two scripts load here, and the
+  // protocol that reads the basemap is registered only after both. Checking
+  // the first one meant that when the second failed, every later attempt
+  // returned at once and left the protocol unregistered - the map built, and
+  // the basemap silently never loaded.
+  if (validatorMapLibraryReady) {
     return Promise.resolve();
   }
 
@@ -51,6 +56,7 @@ function ensureMapLibre() {
         // The basemap is a pmtiles archive this app serves, so MapLibre needs
         // the protocol that reads it over byte ranges.
         maplibregl.addProtocol("pmtiles", new pmtiles.Protocol().tile);
+        validatorMapLibraryReady = true;
         resolve();
       })
       .catch(reject);

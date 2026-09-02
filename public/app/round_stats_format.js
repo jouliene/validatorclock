@@ -26,12 +26,25 @@ function compactRoundStatsAmount(value) {
 }
 
 function roundStatsAmount(display, raw) {
-  const displayNumber = Number(String(display || "").replace(/,/g, ""));
+  // An amount that is simply not there used to come back as 0: Number("") is
+  // 0, so the display string never failed and the raw fallback was never
+  // reached. A round with no data was then charted as a real zero.
+  const text = typeof display === "string" ? display.replace(/,/g, "").trim() : "";
+  const displayNumber = text === "" ? Number.NaN : Number(text);
   if (Number.isFinite(displayNumber)) {
     return displayNumber;
   }
-  const rawNumber = Number(raw);
-  return Number.isFinite(rawNumber) ? rawNumber : NaN;
+  return roundStatsNumber(raw);
+}
+
+/// A value only counts as a number when there is one there. Number(null) and
+/// Number("") are both 0, and 0 passes every finite check downstream.
+function roundStatsNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return Number.NaN;
+  }
+  const number = Number(value);
+  return Number.isFinite(number) ? number : Number.NaN;
 }
 
 function formatRoundStatsPercent(value) {
@@ -46,14 +59,17 @@ function formatRoundStatsExactAmount(value) {
   if (!value && value !== 0) {
     return "-";
   }
-  const number = Number(String(value).replace(/,/g, ""));
-  if (!Number.isFinite(number)) {
+  // Grouped from the digits themselves. Parsing to a number first rewrote the
+  // low digits of anything past 2^53 and cut the fraction short - in the one
+  // place that promises the exact amount.
+  const text = String(value).replace(/,/g, "").trim();
+  const parts = /^(-?)(\d+)(\.\d+)?$/.exec(text);
+  if (!parts) {
     return String(value);
   }
-  return number.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 9,
-  });
+  const [, sign, whole, fraction] = parts;
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return `${sign}${grouped}${fraction || ""}`;
 }
 
 function formatRoundStatsExactPercent(value) {
@@ -65,5 +81,5 @@ function formatRoundStatsExactPercent(value) {
 }
 
 function roundStatsFinite(value) {
-  return Number.isFinite(Number(value));
+  return Number.isFinite(roundStatsNumber(value));
 }

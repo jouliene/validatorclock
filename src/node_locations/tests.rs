@@ -576,3 +576,50 @@ fn the_geo_cache_drops_addresses_nobody_names_any_more() {
         "an address that merely went quiet should be kept"
     );
 }
+
+/// The override file is written by hand, and a typed 552.37 reaches the public
+/// map and then throws inside MapLibre when a visitor opens the cluster
+/// holding it. Every other source is checked against the globe; this one was
+/// checked only for being a number.
+#[test]
+fn a_manual_override_off_the_globe_is_refused() {
+    let dir = std::env::temp_dir().join(format!(
+        "validatorclock_manual_globe_{}_{:?}",
+        std::process::id(),
+        std::thread::current().id()
+    ));
+    let chain_dir = dir.join("everscale");
+    std::fs::create_dir_all(&chain_dir).unwrap();
+
+    std::fs::write(
+        chain_dir.join("203.0.113.7.json"),
+        json!({
+            "ip": "203.0.113.7",
+            "geo": { "latitude": 552.37, "longitude": 4.89, "country": "Nowhere", "city": "Nowhere" }
+        })
+        .to_string(),
+    )
+    .unwrap();
+    std::fs::write(
+        chain_dir.join("203.0.113.8.json"),
+        json!({
+            "ip": "203.0.113.8",
+            "geo": { "latitude": 52.37, "longitude": 4.89, "country": "Netherlands", "city": "Amsterdam" }
+        })
+        .to_string(),
+    )
+    .unwrap();
+
+    let resolved = load_manual_resolved_locations(&dir, "everscale");
+
+    assert!(
+        !resolved.contains_key(&"203.0.113.7".parse::<IpAddr>().unwrap()),
+        "a latitude off the globe should be refused"
+    );
+    assert!(
+        resolved.contains_key(&"203.0.113.8".parse::<IpAddr>().unwrap()),
+        "a real override should still be read"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
