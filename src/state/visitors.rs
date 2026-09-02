@@ -158,6 +158,22 @@ impl AppState {
         event
     }
 
+    /// How many distinct addresses were seen in each window, counted from the
+    /// records themselves.
+    ///
+    /// The summary used to add up per-day counters instead, which counts an
+    /// address once for every day it came back: four addresses over two days
+    /// were reported as five visitors. A visitor is an address, in the table
+    /// and in the summary alike, so both now count the same thing.
+    pub(crate) async fn unique_visitors_for_windows(
+        &self,
+        today_index: i64,
+        windows: [i64; 3],
+    ) -> [u64; 3] {
+        let runtime = self.visitors.lock().await;
+        unique_visitors_in_windows(runtime.store.get(), today_index, windows)
+    }
+
     /// Addresses seen within the online window, for the traffic summary.
     pub(crate) async fn visitors_online(&self) -> u64 {
         let now = now_seconds();
@@ -263,6 +279,34 @@ impl AppState {
     }
 }
 
+/// One address is one visitor, however many days it came back on.
+fn unique_visitors_in_windows(
+    disk: &VisitorsDisk,
+    today_index: i64,
+    windows: [i64; 3],
+) -> [u64; 3] {
+    let mut counts = [0u64; 3];
+
+    for record in disk.visitors.values() {
+        let Some(latest) = record
+            .days
+            .keys()
+            .filter_map(|day| parse_day_index(day))
+            .max()
+        else {
+            continue;
+        };
+        for (count, days) in counts.iter_mut().zip(windows) {
+            let first_day = today_index.saturating_sub(days.saturating_sub(1));
+            if latest >= first_day {
+                *count = count.saturating_add(1);
+            }
+        }
+    }
+
+    counts
+}
+
 fn window_visits(record: &VisitorRecord, window_start: i64) -> u64 {
     record
         .days
@@ -316,6 +360,36 @@ mod tests {
                 .collect(),
             geo: None,
         }
+    }
+
+    /// The summary used to add up per-day counters, so an address that came
+    /// back on a second day was reported as two visitors: four addresses read
+    /// as five. The table counts addresses, and so must the summary.
+    #[test]
+    fn an_address_that_comes_back_is_still_one_visitor() {
+        let today = parse_day_index("2026-09-02").unwrap();
+        let mut disk = VisitorsDisk::default();
+        disk.visitors.insert(
+            "203.0.113.1".to_owned(),
+            record_with_days(&[("2026-09-01", 1), ("2026-09-02", 1)], 0),
+        );
+        disk.visitors.insert(
+            "203.0.113.2".to_owned(),
+            record_with_days(&[("2026-09-02", 1)], 0),
+        );
+        disk.visitors.insert(
+            "203.0.113.3".to_owned(),
+            record_with_days(&[("2026-08-20", 1)], 0),
+        );
+
+        let [today_count, week, month] = unique_visitors_in_windows(&disk, today, [1, 7, 30]);
+
+        assert_eq!(today_count, 2);
+        assert_eq!(
+            week, 2,
+            "the address that came back on two days is one visitor, not two"
+        );
+        assert_eq!(month, 3, "the older address is still inside 30 days");
     }
 
     #[test]

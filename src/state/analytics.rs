@@ -144,6 +144,11 @@ impl AppState {
         let today_index = day_index(now);
         let today_key = day_string(today_index);
         let online_now = self.visitors_online().await;
+        // Distinct addresses, not a sum of per-day counters: an address that
+        // comes back tomorrow is the same visitor.
+        let [unique_today, unique_7_days, unique_30_days] = self
+            .unique_visitors_for_windows(today_index, [1, 7, 30])
+            .await;
         let runtime = self.analytics.lock().await;
         let today = runtime
             .store
@@ -155,11 +160,11 @@ impl AppState {
         PublicAnalytics {
             today: PublicAnalyticsToday {
                 online_now,
-                unique_visitors: today.unique_visitors,
+                unique_visitors: unique_today,
                 visits: today.visits,
             },
-            last_7_days: analytics_window(runtime.store.get(), today_index, 7),
-            last_30_days: analytics_window(runtime.store.get(), today_index, 30),
+            last_7_days: analytics_window(runtime.store.get(), today_index, 7, unique_7_days),
+            last_30_days: analytics_window(runtime.store.get(), today_index, 30, unique_30_days),
             all_time: PublicAnalyticsAllTime {
                 visits: runtime.store.get().all_time.visits,
             },
@@ -190,16 +195,22 @@ fn is_bot_request(headers: &HeaderMap) -> bool {
         .unwrap_or(false)
 }
 
-fn analytics_window(disk: &AnalyticsDisk, today_index: i64, days: i64) -> PublicAnalyticsWindow {
+/// Visits add up across days - each one is an event. Visitors do not: the
+/// count of distinct addresses is passed in, counted from the visitor records.
+fn analytics_window(
+    disk: &AnalyticsDisk,
+    today_index: i64,
+    days: i64,
+    unique_visitors: u64,
+) -> PublicAnalyticsWindow {
     let first_day = today_index.saturating_sub(days.saturating_sub(1));
     let mut window = PublicAnalyticsWindow {
-        unique_visitors: 0,
+        unique_visitors,
         visits: 0,
     };
 
     for (day, stats) in &disk.days {
         if parse_day_index(day).is_some_and(|day_index| day_index >= first_day) {
-            window.unique_visitors = window.unique_visitors.saturating_add(stats.unique_visitors);
             window.visits = window.visits.saturating_add(stats.visits);
         }
     }
@@ -252,8 +263,12 @@ mod tests {
             );
         }
 
-        assert_eq!(analytics_window(&disk, today, 7).visits, 8);
-        assert_eq!(analytics_window(&disk, today, 30).visits, 15);
-        assert_eq!(analytics_window(&disk, today, 30).unique_visitors, 3);
+        assert_eq!(analytics_window(&disk, today, 7, 0).visits, 8);
+        assert_eq!(analytics_window(&disk, today, 30, 0).visits, 15);
+
+        // Visitors are not summed across days any more - three days of one
+        // visitor each can be the same address coming back. The count is
+        // handed in, taken from the visitor records.
+        assert_eq!(analytics_window(&disk, today, 30, 1).unique_visitors, 1);
     }
 }
