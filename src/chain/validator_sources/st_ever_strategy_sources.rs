@@ -92,6 +92,13 @@ async fn scan_st_ever_strategy_source_address(
 }
 
 fn parse_st_ever_strategy_controller_source(transaction: &Transaction) -> Result<Option<String>> {
+    // The body check here is four bytes of selector, so being handed a message
+    // is even weaker evidence than on the proxy path: the contract has to have
+    // acted on it.
+    if !super::proxy_sources::transaction_succeeded(transaction)? {
+        return Ok(None);
+    }
+
     let Some(message) = transaction.load_in_msg()? else {
         return Ok(None);
     };

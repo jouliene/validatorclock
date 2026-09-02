@@ -7,7 +7,7 @@ use std::sync::OnceLock;
 use tracing::debug;
 use tycho_types::abi::{AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
 use tycho_types::boc::BocRepr;
-use tycho_types::models::{MsgInfo, StdAddr, Transaction};
+use tycho_types::models::{ComputePhase, MsgInfo, StdAddr, Transaction, TxInfo};
 
 const PROXY_SOURCE_TX_SCAN_LIMIT: u8 = 100;
 const PROXY_SOURCE_TX_SCAN_MAX_PAGES: usize = 40;
@@ -101,6 +101,16 @@ async fn scan_proxy_source_address(
 }
 
 fn parse_proxy_process_new_stake_source(transaction: &Transaction) -> Result<Option<String>> {
+    // Any message sent to a live account produces a transaction, whether the
+    // contract accepted it or threw it out. Without this, anyone could send a
+    // few cents to a validator's proxy with a body that merely decodes, and
+    // the site would then present their address as the source of that
+    // validator's stake - and keep presenting it, because a resolved source is
+    // never looked at again.
+    if !transaction_succeeded(transaction)? {
+        return Ok(None);
+    }
+
     let Some(message) = transaction.load_in_msg()? else {
         return Ok(None);
     };
@@ -122,6 +132,22 @@ fn parse_proxy_process_new_stake_source(transaction: &Transaction) -> Result<Opt
     let _input = ProxyProcessNewStakeInput::from_abi(AbiValue::Tuple(values))?;
 
     Ok(Some(source.to_string()))
+}
+
+/// Whether the contract actually acted on the message, rather than merely
+/// being handed it.
+pub(super) fn transaction_succeeded(transaction: &Transaction) -> Result<bool> {
+    let TxInfo::Ordinary(info) = transaction.load_info()? else {
+        return Ok(false);
+    };
+    if info.aborted {
+        return Ok(false);
+    }
+
+    Ok(match info.compute_phase {
+        ComputePhase::Executed(executed) => executed.success,
+        ComputePhase::Skipped(_) => false,
+    })
 }
 
 fn proxy_process_new_stake_fn() -> &'static Function {

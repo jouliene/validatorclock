@@ -116,8 +116,10 @@ impl CachedGeoLocation {
         })
     }
 
+    /// On the globe, not merely a number. A cache file written by an older
+    /// build, or edited by hand, can hold anything.
     pub(super) fn has_coordinates(&self) -> bool {
-        self.lat.is_finite() && self.lon.is_finite()
+        (-90.0..=90.0).contains(&self.lat) && (-180.0..=180.0).contains(&self.lon)
     }
 
     pub(super) fn is_fresh(&self, now: u64, ttl: Duration) -> bool {

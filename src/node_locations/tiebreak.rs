@@ -261,7 +261,13 @@ impl CachedGeoLocation {
         let Some(tiebreak) = self.tiebreak.clone() else {
             return false;
         };
-        let (Some(lat), Some(lon)) = (tiebreak.lat, tiebreak.lon) else {
+        // The same check ip-api answers get. A latitude off the globe reaches
+        // the public map and then throws inside MapLibre when a visitor opens
+        // the cluster holding it, so the map stops responding for everyone.
+        let (Some(lat), Some(lon)) = (
+            tiebreak.lat.filter(|lat| (-90.0..=90.0).contains(lat)),
+            tiebreak.lon.filter(|lon| (-180.0..=180.0).contains(lon)),
+        ) else {
             return false;
         };
 

@@ -14,6 +14,11 @@ mod tests;
 
 use candidates::collect_local_file_candidates;
 use fields::normalized_code;
+
+/// How long an address nobody names any more is kept. Comfortably longer than
+/// the lookup TTL, so an address that merely went quiet for a while is not
+/// paid for again.
+const GEO_CACHE_RETENTION: Duration = Duration::from_secs(30 * 24 * 60 * 60);
 use geo_cache::{GeoCache, load_geo_cache, lookup_ip_api_locations, save_geo_cache};
 use ipinfo::{refresh_ipinfo_conflicts, refresh_ipinfo_verification};
 use manual_review::{load_manual_resolved_locations, write_manual_review_files};
@@ -79,6 +84,8 @@ async fn refresh_all_chains(state: Arc<AppState>) {
         }
     };
     let mut cache_changed = false;
+    let mut any_chain_failed = false;
+    let mut seen_ips = BTreeSet::new();
 
     for chain in &state.config.chains {
         let chain_config = state.config.effective_node_location_chain(&chain.id);
@@ -87,13 +94,16 @@ async fn refresh_all_chains(state: Arc<AppState>) {
         }
 
         match refresh_chain_locations(
-            http,
-            &state.config.node_locations,
-            &chain.id,
-            &chain_config,
+            &ChainRefresh {
+                http,
+                node_config: &state.config.node_locations,
+                chain_id: &chain.id,
+                chain_config: &chain_config,
+                now,
+                ttl,
+            },
             &mut geo_cache,
-            now,
-            ttl,
+            &mut seen_ips,
         )
         .await
         {
@@ -101,6 +111,7 @@ async fn refresh_all_chains(state: Arc<AppState>) {
                 cache_changed |= changed;
             }
             Err(error) => {
+                any_chain_failed = true;
                 warn!(
                     chain_id = %chain.id,
                     error = ?error,
@@ -108,6 +119,12 @@ async fn refresh_all_chains(state: Arc<AppState>) {
                 );
             }
         }
+    }
+
+    // Only when every chain reported in: a chain that failed contributed no
+    // addresses, and dropping its entries would mean paying for them again.
+    if !any_chain_failed {
+        cache_changed |= prune_geo_cache(&mut geo_cache, &seen_ips, now);
     }
 
     if cache_changed
@@ -121,15 +138,30 @@ async fn refresh_all_chains(state: Arc<AppState>) {
     }
 }
 
-async fn refresh_chain_locations(
-    http: &reqwest::Client,
-    node_config: &NodeLocationsConfig,
-    chain_id: &str,
-    chain_config: &NodeLocationChainConfig,
-    geo_cache: &mut GeoCache,
+/// Everything one chain's refresh reads, kept together so the call does not
+/// grow a queue of positional arguments.
+struct ChainRefresh<'a> {
+    http: &'a reqwest::Client,
+    node_config: &'a NodeLocationsConfig,
+    chain_id: &'a str,
+    chain_config: &'a NodeLocationChainConfig,
     now: u64,
     ttl: Duration,
+}
+
+async fn refresh_chain_locations(
+    refresh: &ChainRefresh<'_>,
+    geo_cache: &mut GeoCache,
+    seen_ips: &mut BTreeSet<std::net::IpAddr>,
 ) -> Result<bool> {
+    let ChainRefresh {
+        http,
+        node_config,
+        chain_id,
+        chain_config,
+        now,
+        ttl,
+    } = *refresh;
     let candidates = collect_local_file_candidates(chain_config)
         .with_context(|| format!("failed to collect node IP seeds for {chain_id}"))?;
     let manual_resolved =
@@ -140,6 +172,7 @@ async fn refresh_chain_locations(
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect::<Vec<_>>();
+    seen_ips.extend(ips.iter().copied());
     let lookup_ips = ips
         .iter()
         .copied()
@@ -150,7 +183,16 @@ async fn refresh_chain_locations(
     let fetched =
         lookup_ip_api_locations(&node_config.ip_api_batch_endpoint, &lookup_ips, now).await;
     let mut cache_changed = false;
+    let requested = lookup_ips.iter().copied().collect::<BTreeSet<_>>();
     for (ip, mut location) in fetched {
+        // The answer says which address each row is for, and the answer is a
+        // stranger's. A row for an address nobody asked about is dropped
+        // rather than cached: otherwise one reply can seed the map with
+        // locations for addresses that were never looked up.
+        if !requested.contains(&ip) {
+            warn!(ip = %ip, "geo answer names an address that was not asked about");
+            continue;
+        }
         if let Some(existing) = geo_cache.location(ip) {
             location.ipinfo = existing.ipinfo.clone();
             location.ipinfo_checked_at = existing.ipinfo_checked_at;
@@ -245,6 +287,34 @@ async fn refresh_chain_locations(
     );
 
     Ok(cache_changed)
+}
+
+/// Entries for addresses no chain names any more, and that nothing has
+/// refreshed in a long time, are dropped. Nothing removed them before, so the
+/// file only ever grew - and every cycle read and rewrote the whole of it.
+fn prune_geo_cache(
+    geo_cache: &mut GeoCache,
+    seen_ips: &BTreeSet<std::net::IpAddr>,
+    now: u64,
+) -> bool {
+    let floor = now.saturating_sub(GEO_CACHE_RETENTION.as_secs());
+    let before = geo_cache.locations.len();
+
+    geo_cache.locations.retain(|ip, location| {
+        ip.parse::<std::net::IpAddr>()
+            .is_ok_and(|ip| seen_ips.contains(&ip))
+            || location.updated_at >= floor
+    });
+
+    let dropped = before - geo_cache.locations.len();
+    if dropped > 0 {
+        info!(
+            dropped,
+            kept = geo_cache.locations.len(),
+            "pruned the geo cache"
+        );
+    }
+    dropped > 0
 }
 
 /// ip-api answers only over cleartext on the keyless tier - https returns 403 -

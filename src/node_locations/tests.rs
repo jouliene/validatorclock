@@ -4,6 +4,8 @@ use super::geo_cache::*;
 use super::ipinfo::*;
 use super::manual_review::*;
 use super::map_nodes::*;
+use super::prune_geo_cache;
+use super::tiebreak::TiebreakLocation;
 use serde_json::json;
 use std::collections::BTreeMap;
 use std::net::IpAddr;
@@ -501,5 +503,76 @@ fn coordinates_outside_the_globe_are_not_a_location() {
             1
         )
         .is_some()
+    );
+}
+
+/// A latitude off the globe reaches the public map and then throws inside
+/// MapLibre when a visitor opens the cluster holding it, so the map stops
+/// responding for everyone until the entry ages out.
+#[test]
+fn a_tiebreak_answer_off_the_globe_is_not_adopted() {
+    let mut location = cached_location("Test City", "United States", "US");
+    location.tiebreak = Some(TiebreakLocation {
+        country: Some("Netherlands".to_owned()),
+        country_code: Some("NL".to_owned()),
+        city: Some("Amsterdam".to_owned()),
+        isp: None,
+        lat: Some(914.5),
+        lon: Some(4.89),
+        updated_at: 1,
+    });
+
+    assert!(
+        !location.adopt_tiebreak(),
+        "a latitude off the globe must not be adopted"
+    );
+    assert_eq!(location.lat, 1.25, "the original location should stand");
+
+    let mut good = cached_location("Test City", "United States", "US");
+    good.tiebreak = Some(TiebreakLocation {
+        country: Some("Netherlands".to_owned()),
+        country_code: Some("NL".to_owned()),
+        city: Some("Amsterdam".to_owned()),
+        isp: None,
+        lat: Some(52.37),
+        lon: Some(4.89),
+        updated_at: 1,
+    });
+    assert!(
+        good.adopt_tiebreak(),
+        "a real location should still be taken"
+    );
+}
+
+/// The cache only ever grew: nothing removed an entry, and every cycle read
+/// and rewrote the whole file.
+#[test]
+fn the_geo_cache_drops_addresses_nobody_names_any_more() {
+    let now = 1_700_000_000u64;
+    let old = now - 60 * 24 * 60 * 60;
+    let mut cache = GeoCache::default();
+    for (ip, updated_at) in [
+        ("203.0.113.1", now), // still a candidate
+        ("203.0.113.2", old), // gone, and stale
+        ("203.0.113.3", now), // gone, but refreshed recently
+    ] {
+        let mut location = cached_location("Test City", "United States", "US");
+        location.updated_at = updated_at;
+        cache.locations.insert(ip.to_owned(), location);
+    }
+    let seen = ["203.0.113.1".parse::<IpAddr>().unwrap()]
+        .into_iter()
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert!(prune_geo_cache(&mut cache, &seen, now));
+
+    assert!(cache.locations.contains_key("203.0.113.1"));
+    assert!(
+        !cache.locations.contains_key("203.0.113.2"),
+        "an address nobody names and nothing refreshed should go"
+    );
+    assert!(
+        cache.locations.contains_key("203.0.113.3"),
+        "an address that merely went quiet should be kept"
     );
 }
