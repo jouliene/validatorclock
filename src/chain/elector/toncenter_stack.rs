@@ -123,10 +123,27 @@ fn past_election_data_fields(tuple: &[Value]) -> Result<(u32, &Value, &Value, &V
     );
 }
 
+/// A validator set is hundreds of entries - the live TON sets hold under 400.
+/// A dictionary claiming vastly more is not a validator set, and it can arrive
+/// in a few kilobytes: a BOC may reference one cell from many parents, so a
+/// short chain of shared cells encodes astronomically many distinct keys. This
+/// loop has no await, so no timeout can cut it short, and the release profile
+/// aborts rather than unwinds - it has to stop itself.
+const MAX_FROZEN_VALIDATORS: usize = 10_000;
+
 fn validator_round_data_from_frozen_dict_cell(
     frozen_dict: &Cell,
     total_stake: u128,
     bonuses: u128,
+) -> Result<ValidatorRoundData> {
+    frozen_dict_with_limit(frozen_dict, total_stake, bonuses, MAX_FROZEN_VALIDATORS)
+}
+
+fn frozen_dict_with_limit(
+    frozen_dict: &Cell,
+    total_stake: u128,
+    bonuses: u128,
+    limit: usize,
 ) -> Result<ValidatorRoundData> {
     struct FrozenValidator {
         public_key: [u8; 32],
@@ -138,6 +155,9 @@ fn validator_round_data_from_frozen_dict_cell(
     let root = dictionary_root_from_stack_cell(frozen_dict)?;
     let mut validators = Vec::new();
     for entry in dict::RawIter::new(&root, 256) {
+        if validators.len() >= limit {
+            bail!("frozen validator dict has more than {limit} entries; refusing to read further");
+        }
         let (key, mut value) = entry.context("invalid frozen validator dict entry")?;
         let public_key = key
             .as_data_slice()
@@ -210,7 +230,43 @@ fn dictionary_root_from_stack_cell(cell: &Cell) -> Result<Option<Cell>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use minik2::HashBytes;
     use serde_json::json;
+    use tycho_types::cell::CellBuilder;
+    use tycho_types::dict::Dict;
+
+    /// A frozen entry, stored in the value's own bits as the reader expects:
+    /// wallet, weight, then the stake as a VarUInt16.
+    fn frozen_dict(entries: usize) -> Cell {
+        let mut dict = Dict::<HashBytes, (HashBytes, u64, Tokens)>::new();
+        for index in 0..entries {
+            dict.set(
+                HashBytes([index as u8; 32]),
+                (HashBytes([index as u8; 32]), 1, Tokens::new(1_000)),
+            )
+            .unwrap();
+        }
+        CellBuilder::build_from(dict).unwrap()
+    }
+
+    /// A BOC may reference one cell from many parents, so a few kilobytes can
+    /// encode astronomically many distinct keys. This loop has no await, so no
+    /// timeout can cut it short - it has to stop itself.
+    #[test]
+    fn a_frozen_dict_larger_than_the_limit_is_refused() {
+        let dict = frozen_dict(3);
+
+        assert!(
+            frozen_dict_with_limit(&dict, 3_000, 0, 8).is_ok(),
+            "an ordinary set should still be read"
+        );
+        let refused = frozen_dict_with_limit(&dict, 3_000, 0, 2);
+        assert!(refused.is_err(), "a dict past the limit should be refused");
+        assert!(
+            format!("{:?}", refused.unwrap_err()).contains("more than 2 entries"),
+            "the error should say why"
+        );
+    }
 
     #[test]
     fn locates_nested_past_election_fields() {

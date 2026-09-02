@@ -115,6 +115,13 @@ impl<T: Serialize + Send + 'static> Snapshot<T> {
             return;
         }
 
+        // The place in the order is claimed before the write starts, not after
+        // it reports back. Dropping this future - which a request timeout does -
+        // does not cancel the blocking task: the data still lands, but nothing
+        // would have recorded that it did, and an older snapshot queued behind
+        // would pass the check above and write its stale content over it.
+        *written = sequence;
+
         let write_path = path.clone();
         let persisted = tokio::task::spawn_blocking(move || -> anyhow::Result<()> {
             let content = serde_json::to_vec_pretty(&value)?;
@@ -123,7 +130,7 @@ impl<T: Serialize + Send + 'static> Snapshot<T> {
         .await;
 
         match persisted {
-            Ok(Ok(())) => *written = sequence,
+            Ok(Ok(())) => {}
             Ok(Err(error)) => warn!(
                 path = %path.display(),
                 error = ?error,
@@ -264,6 +271,62 @@ mod tests {
             "the newer snapshot should still be the one on disk"
         );
         let _ = fs::remove_file(&path);
+    }
+
+    /// Dropping the write future - which the request timeout does - does not
+    /// cancel the blocking task: the data still lands. If the place in the
+    /// order were only claimed on the way out, an older snapshot queued behind
+    /// would then write its stale content over it. A write that fails stands
+    /// in for that here: either way nothing reports success, and either way
+    /// the older snapshot must stay out.
+    #[tokio::test]
+    async fn a_write_that_never_reports_back_still_holds_its_place() {
+        let dir = std::env::temp_dir().join(format!(
+            "validatorclock_json_store_place_{}_{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("store.json");
+
+        let mut store = JsonStore::<Counters>::load(path.clone(), "test");
+        store.get_mut().visits = 7;
+        store.take_snapshot(100, 0).unwrap().write().await;
+        assert_eq!(
+            JsonStore::<Counters>::load(path.clone(), "test")
+                .get()
+                .visits,
+            7
+        );
+
+        store.get_mut().visits = 1;
+        let older = store.take_snapshot(101, 0).unwrap();
+        store.get_mut().visits = 2;
+        let newer = store.take_snapshot(102, 0).unwrap();
+
+        // The newer write cannot create its temp file, so it never reports
+        // success - and it must still claim its sequence.
+        set_writable(&dir, false);
+        newer.write().await;
+        set_writable(&dir, true);
+
+        older.write().await;
+
+        assert_eq!(
+            JsonStore::<Counters>::load(path.clone(), "test")
+                .get()
+                .visits,
+            7,
+            "the older snapshot should have stayed out of the way"
+        );
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    fn set_writable(dir: &Path, writable: bool) {
+        use std::os::unix::fs::PermissionsExt;
+        let mode = if writable { 0o755 } else { 0o555 };
+        fs::set_permissions(dir, fs::Permissions::from_mode(mode)).unwrap();
     }
 
     fn kept_files(path: &Path) -> Vec<PathBuf> {
