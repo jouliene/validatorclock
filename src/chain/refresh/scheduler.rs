@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::task::JoinSet;
 use tokio::time::{Duration, MissedTickBehavior, interval};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 const BACKGROUND_REFRESH_CONCURRENCY: usize = 2;
 
@@ -96,6 +96,16 @@ async fn refresh_configured_chains(state: Arc<AppState>) {
 }
 
 async fn refresh_chain_and_log(state: &AppState, chain_id: &str, log_kind: RefreshLogKind) {
+    // One refresh of a chain at a time. The timestamp guard above records when
+    // a refresh started, so once the retry window passed a second could begin
+    // beside one still running - and the background tick never consulted it.
+    // Both then finished into the cache, and the slower one won whether or not
+    // it had the newer data.
+    let Some(_claim) = state.claim_refresh(chain_id) else {
+        debug!(chain_id, "a refresh of this chain is already running");
+        return;
+    };
+
     let refresh_kind = log_kind.label();
     let started_at = Instant::now();
     match get_chain_snapshot(state, chain_id, true).await {

@@ -234,3 +234,69 @@ fn remove_kept_files(path: &Path) {
         let _ = fs::remove_file(kept);
     }
 }
+
+/// SIGTERM does not unwind, so the holder is killed without releasing the lock
+/// on every deploy. Waiting the staleness window out meant answering requests
+/// with a timeout for five minutes after each restart.
+#[test]
+fn a_lock_left_by_a_process_that_is_gone_is_taken_over_at_once() {
+    let path = temp_history_path("abandoned_lock");
+    let chain_path = round_history_chain_path(&path, "everscale");
+    let lock_path = round_history_lock_path(&chain_path);
+    if let Some(parent) = lock_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    // A pid nothing is running under: the holder is gone.
+    fs::write(&lock_path, "4294967295").unwrap();
+    assert!(lock_path.exists());
+
+    let mut history = RoundHistoryStore::default();
+    record_rounds(&mut history, "everscale", &[40]);
+    let started = std::time::Instant::now();
+    let saved = save_round_history_merged(
+        &path,
+        "everscale",
+        &history,
+        &RoundHistoryRetention::default(),
+    );
+
+    assert!(saved.is_ok(), "an abandoned lock should not hold up a save");
+    assert!(
+        started.elapsed() < std::time::Duration::from_secs(5),
+        "it should not have waited the staleness window out"
+    );
+
+    let _ = fs::remove_file(&lock_path);
+    let _ = fs::remove_file(&chain_path);
+}
+
+#[test]
+fn a_lock_is_judged_by_who_holds_it() {
+    let dir =
+        std::env::temp_dir().join(format!("validatorclock_lock_judge_{}", std::process::id()));
+    fs::create_dir_all(&dir).unwrap();
+
+    let gone = dir.join("gone.lock");
+    fs::write(&gone, "4294967295").unwrap();
+    assert!(
+        crate::history::storage::lock_is_abandoned(&gone),
+        "a lock whose holder is gone is free to take"
+    );
+
+    let ours = dir.join("ours.lock");
+    fs::write(&ours, std::process::id().to_string()).unwrap();
+    assert!(
+        !crate::history::storage::lock_is_abandoned(&ours),
+        "a lock this process holds is not its own to steal"
+    );
+
+    // Written by a build that recorded no pid: only age can decide.
+    let anonymous = dir.join("anonymous.lock");
+    fs::write(&anonymous, "").unwrap();
+    assert!(
+        !crate::history::storage::lock_is_abandoned(&anonymous),
+        "a fresh lock is honoured even when nobody signed it"
+    );
+
+    let _ = fs::remove_dir_all(&dir);
+}

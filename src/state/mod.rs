@@ -37,6 +37,9 @@ pub(crate) struct AppState {
     acme_challenges: RwLock<HashMap<String, String>>,
     round_stats_hold: RwLock<round_stats_cache::RoundStatsHold>,
     round_stats_locks: Mutex<HashMap<String, Arc<Mutex<()>>>>,
+    /// Chains with a refresh in flight. A std mutex so the claim can be
+    /// released from Drop, which cannot await.
+    refreshing: Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
 }
 
 impl AppState {
@@ -78,6 +81,7 @@ impl AppState {
             acme_challenges: RwLock::new(HashMap::new()),
             round_stats_hold: RwLock::new(round_stats_cache::RoundStatsHold::default()),
             round_stats_locks: Mutex::new(HashMap::new()),
+            refreshing: Arc::new(std::sync::Mutex::new(std::collections::HashSet::new())),
         }
     }
 

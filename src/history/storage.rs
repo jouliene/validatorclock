@@ -3,7 +3,7 @@ use crate::fsutil::write_file_atomic;
 use anyhow::{Context, Result, bail};
 use std::fs;
 use std::fs::OpenOptions;
-use std::io::ErrorKind;
+use std::io::{ErrorKind, Write};
 use std::path::{Path, PathBuf};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -163,16 +163,21 @@ impl RoundHistoryFileLock {
                 .create_new(true)
                 .open(&lock_path)
             {
-                Ok(file) => {
-                    let _ = file.set_len(0);
+                Ok(mut file) => {
+                    // Whose lock this is. The holder is killed without running
+                    // Drop on every deploy - SIGTERM does not unwind - and
+                    // without this the next process could only wait out the
+                    // staleness window, answering requests with a timeout the
+                    // whole time.
+                    let _ = write!(file, "{}", std::process::id());
                     return Ok(Self { path: lock_path });
                 }
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => {
-                    if lock_file_is_stale(&lock_path, Duration::from_secs(300)) {
+                    if lock_is_abandoned(&lock_path) {
                         let _ = fs::remove_file(&lock_path);
                         continue;
                     }
-                    if started_at.elapsed() > Duration::from_secs(120) {
+                    if started_at.elapsed() > LOCK_WAIT_BUDGET {
                         bail!("timed out waiting for {}", lock_path.display());
                     }
                     thread::sleep(Duration::from_millis(100));
@@ -201,6 +206,39 @@ pub(super) fn round_history_lock_path(history_path: &Path) -> PathBuf {
         .unwrap_or_else(|| ".validatorclock_history.lock".to_owned());
     lock_path.set_file_name(file_name);
     lock_path
+}
+
+/// How long a save waits for the lock. The request that asked for it has
+/// already given up long before this; waiting further only holds a blocking
+/// thread, and the next cycle saves anyway.
+const LOCK_WAIT_BUDGET: Duration = Duration::from_secs(15);
+
+/// How long a lock whose holder cannot be identified is honoured.
+const LOCK_STALE_AFTER: Duration = Duration::from_secs(300);
+
+/// A lock nobody holds any more: either the process that wrote it is gone, or
+/// it is old enough that no live holder would still be working on it.
+pub(super) fn lock_is_abandoned(path: &Path) -> bool {
+    match lock_holder_pid(path) {
+        Some(pid) if pid == std::process::id() => false,
+        Some(pid) => !process_is_alive(pid),
+        None => lock_file_is_stale(path, LOCK_STALE_AFTER),
+    }
+}
+
+fn lock_holder_pid(path: &Path) -> Option<u32> {
+    fs::read_to_string(path).ok()?.trim().parse().ok()
+}
+
+#[cfg(target_os = "linux")]
+fn process_is_alive(pid: u32) -> bool {
+    Path::new(&format!("/proc/{pid}")).exists()
+}
+
+#[cfg(not(target_os = "linux"))]
+fn process_is_alive(_pid: u32) -> bool {
+    // Without a way to ask, fall back to waiting the lock out.
+    true
 }
 
 fn lock_file_is_stale(path: &Path, stale_after: Duration) -> bool {

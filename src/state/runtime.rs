@@ -96,3 +96,82 @@ impl AppState {
         true
     }
 }
+
+/// The right to refresh one chain, held for as long as the refresh runs.
+///
+/// The guard that existed before was a timestamp: it recorded when a refresh
+/// *started*, so once the retry window passed a second refresh could begin
+/// beside one still running - and the background loop did not consult it at
+/// all. Two refreshes of a chain then raced each other into the cache, and
+/// whichever finished last won regardless of which had the newer data.
+pub(crate) struct RefreshClaim {
+    chains: std::sync::Arc<std::sync::Mutex<std::collections::HashSet<String>>>,
+    chain_id: String,
+}
+
+impl Drop for RefreshClaim {
+    fn drop(&mut self) {
+        if let Ok(mut chains) = self.chains.lock() {
+            chains.remove(&self.chain_id);
+        }
+    }
+}
+
+impl AppState {
+    /// Claims a chain for refreshing, or reports that someone already holds
+    /// it. The claim is released when the guard drops, including when the task
+    /// holding it is cancelled.
+    pub(crate) fn claim_refresh(&self, chain_id: &str) -> Option<RefreshClaim> {
+        let mut chains = self.refreshing.lock().ok()?;
+        if !chains.insert(chain_id.to_owned()) {
+            return None;
+        }
+        Some(RefreshClaim {
+            chains: std::sync::Arc::clone(&self.refreshing),
+            chain_id: chain_id.to_owned(),
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::{AppConfig, ChainConfig};
+    use crate::state::AppState;
+    use std::sync::Arc;
+
+    fn test_state() -> AppState {
+        AppState::new(Arc::new(AppConfig::for_test(vec![ChainConfig {
+            id: "test".to_owned(),
+            name: "Test".to_owned(),
+            rpc: "https://example.com".to_owned(),
+            rpc_fallbacks: Vec::new(),
+            color: "#38bdf8".to_owned(),
+            token_symbol: "TEST".to_owned(),
+            rpc_label: None,
+        }])))
+    }
+
+    /// The guard before this was a timestamp recording when a refresh started,
+    /// so once the retry window passed a second could begin beside one still
+    /// running - and the background tick never consulted it at all.
+    #[test]
+    fn one_refresh_of_a_chain_at_a_time() {
+        let state = test_state();
+
+        let held = state.claim_refresh("test").expect("the first claim wins");
+        assert!(
+            state.claim_refresh("test").is_none(),
+            "a second refresh of the same chain must not start"
+        );
+        assert!(
+            state.claim_refresh("other").is_some(),
+            "another chain is not held up by it"
+        );
+
+        drop(held);
+        assert!(
+            state.claim_refresh("test").is_some(),
+            "the claim is released when its holder goes, cancelled or not"
+        );
+    }
+}
