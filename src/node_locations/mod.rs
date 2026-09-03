@@ -330,3 +330,13 @@ pub(crate) fn warn_if_geo_lookups_are_cleartext(config: &NodeLocationsConfig) {
         );
     }
 }
+
+/// The map's own reader, for a test elsewhere that checks the resolver writes
+/// a file this can still make sense of.
+#[cfg(test)]
+pub(crate) fn candidates_from_value_for_test(value: &serde_json::Value) -> Vec<(String, String)> {
+    candidates::collect_candidates_from_value(value, None)
+        .into_iter()
+        .map(|candidate| (candidate.peer, candidate.ip.to_string()))
+        .collect()
+}

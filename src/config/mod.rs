@@ -4,11 +4,13 @@ use std::path::{Path, PathBuf};
 
 mod acme;
 mod app;
+mod node_resolver;
 mod security;
 mod tls;
 
 pub(crate) use acme::AcmeConfig;
 pub(crate) use app::{AppConfig, ChainConfig, NodeLocationChainConfig, NodeLocationsConfig};
+pub(crate) use node_resolver::{NodeResolverChainConfig, NodeResolverConfig};
 pub(crate) use security::SecurityConfig;
 #[cfg(test)]
 pub(crate) use security::StatsAuthConfig;
