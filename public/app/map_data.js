@@ -290,10 +290,13 @@ function validatorMapNodeIsRemembered(node, newestSeenAt) {
 }
 
 function validatorMapLastSeenLabel(node, newestSeenAt) {
-  const seenAt = Number(node?.last_seen_at) || 0;
   if (!validatorMapNodeIsRemembered(node, newestSeenAt)) {
     return null;
   }
-  const minutes = Math.round((newestSeenAt - seenAt) / 60);
+  // Whether it is remembered is decided against the rest of the file; how long
+  // ago is decided against the clock, because that is what "ago" means to a
+  // reader.
+  const seenAt = Number(node?.last_seen_at) || 0;
+  const minutes = Math.max(1, Math.round((Date.now() / 1000 - seenAt) / 60));
   return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
 }
