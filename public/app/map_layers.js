@@ -164,11 +164,10 @@ function validatorLocationCountLayer() {
     id: "location-count",
     type: "symbol",
     source: "nodes",
-    filter: [
-      "all",
-      ["!", ["has", "point_count"]],
-      [">", ["get", "node_count"], 1]
-    ],
+    // Every location carries its count, one included. A cluster always shows
+    // its number, so a lone node showing none read as a different kind of
+    // thing rather than as a location with one node in it.
+    filter: ["!", ["has", "point_count"]],
     layout: {
       "text-field": ["to-string", ["get", "node_count"]],
       "text-size": 10,
