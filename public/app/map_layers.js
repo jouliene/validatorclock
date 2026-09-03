@@ -156,11 +156,18 @@ function validatorNodePointLayer() {
       // reached any of them on its latest pass and is offering the last known
       // address. Solid where at least one answered, because the point is then
       // as current as any other.
+      // `to-number` with a fallback rather than a bare `get`: comparing two
+      // untyped values is refused by the expression parser, and a point drawn
+      // before the count exists - a cached map file from the last version -
+      // would take the whole layer down with it.
       "circle-opacity": [
         "case",
         ["all",
-          [">", ["get", "remembered_count"], 0],
-          [">=", ["get", "remembered_count"], ["get", "node_count"]]
+          [">", ["to-number", ["get", "remembered_count"], 0], 0],
+          [">=",
+            ["to-number", ["get", "remembered_count"], 0],
+            ["to-number", ["get", "node_count"], 0]
+          ]
         ],
         0.45,
         1
