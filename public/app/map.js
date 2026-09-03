@@ -1,8 +1,16 @@
 const BUNDLED_TYCHO_MAP_CHAIN_ID = "tycho-testnet";
 const MAP_CHAIN_IDS = new Set([BUNDLED_TYCHO_MAP_CHAIN_ID, "ton", "everscale"]);
-const MAPLIBRE_JS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js";
-const PMTILES_JS_URL = "https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js";
-const MAPLIBRE_CSS_URL = "https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css";
+// Served from here rather than from a CDN. A reader whose network cannot reach
+// the CDN had nothing to go on: a script tag whose connection is black-holed
+// fires neither `load` nor `error`, so the map sat on "Loading map" for as long
+// as the page was open. The version is in the path because these are served
+// immutable for a year.
+const MAPLIBRE_JS_URL = "/vendor/maplibre-gl-5.9.0.js";
+const PMTILES_JS_URL = "/vendor/pmtiles-4.3.0.js";
+const MAPLIBRE_CSS_URL = "/vendor/maplibre-gl-5.9.0.css";
+// Nothing answering at all still has to end somewhere, or the promise waits for
+// as long as the page is open and every later attempt waits behind it.
+const MAP_SCRIPT_TIMEOUT_MS = 20000;
 const VALIDATOR_MAP_DEFAULT_BOUNDS = [
   [-130, -42],
   [120, 68]

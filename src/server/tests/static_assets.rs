@@ -356,3 +356,92 @@ fn assert_no_native_title_assignments(body: &str) {
         );
     }
 }
+
+#[tokio::test]
+async fn vendored_map_libraries_are_served() {
+    // The map names these URLs; the router has to answer them. A version bump
+    // that changes one and not the other is a 404, and a 404 here means the map
+    // never loads at all.
+    let state = test_state(Vec::new());
+    let referenced = referenced_vendor_urls();
+
+    assert_eq!(
+        referenced.len(),
+        3,
+        "expected the map to name three vendored files, found {referenced:?}"
+    );
+
+    for url in referenced {
+        let response = app_response(Arc::clone(&state), &url).await;
+        assert_eq!(
+            response.status(),
+            StatusCode::OK,
+            "the map asks for {url}, which the router does not serve"
+        );
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CACHE_CONTROL)
+                .and_then(|value| value.to_str().ok()),
+            Some("public, max-age=31536000, immutable"),
+            "{url} carries the upstream version in its name, so it can be cached for good"
+        );
+    }
+}
+
+#[tokio::test]
+async fn the_page_loads_nothing_from_another_origin() {
+    // Everything the page pulls in comes from this server. A subresource on
+    // some other origin is the one failure the browser cannot report: a script
+    // tag whose connection is black-holed fires neither `load` nor `error`, so
+    // whatever waited on it waits for as long as the page is open. Links a
+    // reader clicks are not subresources and are none of this test's business.
+    let state = test_state(Vec::new());
+
+    let response = app_response(Arc::clone(&state), "/").await;
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let page = String::from_utf8_lossy(&body).to_string();
+    for tag in page.split('<').filter(|tag| {
+        tag.starts_with("script") || tag.starts_with("link") || tag.starts_with("img")
+    }) {
+        let loaded_from = tag
+            .split_once("src=\"")
+            .or_else(|| tag.split_once("href=\""));
+        if let Some((_, url)) = loaded_from {
+            let url = url.split('"').next().unwrap_or_default();
+            assert!(
+                !url.contains("//"),
+                "the page loads {url} from another origin"
+            );
+        }
+    }
+
+    let response = app_response(Arc::clone(&state), "/app.js").await;
+    let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+    let bundle = String::from_utf8_lossy(&body).to_string();
+    for line in bundle
+        .lines()
+        .filter(|line| !line.trim_start().starts_with("//"))
+    {
+        let Some((name, rest)) = line.split_once("_URL = \"") else {
+            continue;
+        };
+        let url = rest.split('"').next().unwrap_or_default();
+        assert!(
+            url.starts_with('/'),
+            "{} points at another origin: {url}",
+            name.trim()
+        );
+    }
+}
+
+/// The vendored files the map asks for, read out of the map's own source.
+fn referenced_vendor_urls() -> Vec<String> {
+    crate::server::assets::map_js_source()
+        .lines()
+        .filter(|line| !line.trim_start().starts_with("//"))
+        .filter_map(|line| line.split_once("\"/vendor/"))
+        .filter_map(|(_, rest)| rest.split_once('"'))
+        .map(|(path, _)| format!("/vendor/{path}"))
+        .collect()
+}

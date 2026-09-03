@@ -16,6 +16,13 @@ pub(super) const STYLES_RESPONSIVE_CSS: &str =
     include_str!("../../../public/styles/responsive.css");
 pub(super) const STYLES_VISITOR_STATS_CSS: &str =
     include_str!("../../../public/styles/visitor_stats.css");
+/// The map libraries, served from here rather than from a CDN. A reader whose
+/// network cannot reach the CDN got no error to act on - a script tag whose
+/// connection is black-holed fires neither `load` nor `error` - so the map sat
+/// on "Loading map" for as long as the page stayed open.
+pub(super) const MAPLIBRE_JS: &str = include_str!("../../../public/vendor/maplibre-gl-5.9.0.js");
+pub(super) const MAPLIBRE_CSS: &str = include_str!("../../../public/vendor/maplibre-gl-5.9.0.css");
+pub(super) const PMTILES_JS: &str = include_str!("../../../public/vendor/pmtiles-4.3.0.js");
 pub(in crate::server) const BASEMAP_STYLE_JSON: &str =
     include_str!("../../../public/basemap/style.json");
 pub(super) const STATS_HTML: &str = include_str!("../../../public/stats.html");
