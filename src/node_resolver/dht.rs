@@ -243,7 +243,7 @@ impl AdnlDhtResolver {
         let mut responsive_bootstrap = 0usize;
         let mut bootstrap_errors = Vec::new();
 
-        if let Some(address) = self.find_address(&key_id, &mut context).await? {
+        if let Some(address) = self.find_address(&key_id, &mut context).await {
             return Ok(address);
         }
 
@@ -259,7 +259,7 @@ impl AdnlDhtResolver {
                 Err(error) => bootstrap_errors.push(format!("bootstrap #{}: {error}", index + 1)),
             }
 
-            if let Some(address) = self.find_address(&key_id, &mut context).await? {
+            if let Some(address) = self.find_address(&key_id, &mut context).await {
                 return Ok(address);
             }
         }
@@ -284,7 +284,7 @@ impl AdnlDhtResolver {
 
         for node_key in known_nodes {
             let _ = self.dht.find_dht_nodes_in_network(&node_key, None).await;
-            if let Some(address) = self.find_address(&key_id, &mut context).await? {
+            if let Some(address) = self.find_address(&key_id, &mut context).await {
                 return Ok(address);
             }
         }
@@ -302,24 +302,34 @@ impl AdnlDhtResolver {
         )
     }
 
+    /// One attempt through the library's own search.
+    ///
+    /// A failure here is not the end of the search, and must not be returned
+    /// as one. The library treats an address it cannot read as an error - and
+    /// since TON added `adnl.address.quic` it cannot read a great many of
+    /// them - so propagating that error would abandon the validator before
+    /// the address had been asked for in a way that can read it.
     async fn find_address(
         &self,
         key_id: &Arc<KeyId>,
         context: &mut Option<AddressSearchContext>,
-    ) -> Result<Option<ResolvedAddress>> {
-        if let Some((ip, _key)) = DhtNode::find_address_in_network_with_context(
+    ) -> Option<ResolvedAddress> {
+        match DhtNode::find_address_in_network_with_context(
             &self.dht,
             key_id,
             context,
             DhtSearchPolicy::FullSearch(SEARCH_WIDTH),
             None,
         )
-        .await?
+        .await
         {
-            return endpoint_from_display(&ip.to_string()).map(Some);
+            Ok(Some((ip, _key))) => endpoint_from_display(&ip.to_string()).ok(),
+            Ok(None) => None,
+            Err(error) => {
+                debug!(error = ?error, "the library could not read this address");
+                None
+            }
         }
-
-        Ok(None)
     }
 }
 

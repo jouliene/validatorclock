@@ -11,7 +11,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 [[package]]
 name = "adnl"
 version = "0.11.32"
-source = "git+https://github.com/everx-labs/ever-adnl.git?tag=0.11.32#90925d95595cd91f65917f61174103dcfc4cec6c"
+source = "git+https://github.com/jouliene/ever-adnl.git?branch=quic-address#e2fb9cbe84398306151a3bf0d20d623e88aa616b"
 dependencies = [
  "aes-ctr",
  "anyhow",
@@ -2356,7 +2356,7 @@ dependencies = [
 [[package]]
 name = "raptor-q"
 version = "1.7.0"
-source = "git+https://github.com/everx-labs/ever-adnl.git?tag=0.11.32#90925d95595cd91f65917f61174103dcfc4cec6c"
+source = "git+https://github.com/jouliene/ever-adnl.git?branch=quic-address#e2fb9cbe84398306151a3bf0d20d623e88aa616b"
 
 [[package]]
 name = "rcgen"
@@ -3253,7 +3253,7 @@ dependencies = [
 [[package]]
 name = "ton_api"
 version = "0.4.29"
-source = "git+https://github.com/everx-labs/ever-tl.git?tag=0.4.29#56c1ca4845f3ec30d89d38b39613175867f492a0"
+source = "git+https://github.com/jouliene/ever-tl.git?branch=quic-address#c21308b067e0bcc6843d965add3130192cf88715"
 dependencies = [
  "anyhow",
  "byteorder",
@@ -3273,7 +3273,7 @@ dependencies = [
 [[package]]
 name = "ton_tl_codegen"
 version = "0.1.0"
-source = "git+https://github.com/everx-labs/ever-tl.git?tag=0.4.29#56c1ca4845f3ec30d89d38b39613175867f492a0"
+source = "git+https://github.com/jouliene/ever-tl.git?branch=quic-address#c21308b067e0bcc6843d965add3130192cf88715"
 dependencies = [
  "crc 1.8.1",
  "pom",
@@ -3537,7 +3537,7 @@ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "validatorclock"
-version = "1.1.55"
+version = "1.1.56"
 dependencies = [
  "adnl",
  "anyhow",

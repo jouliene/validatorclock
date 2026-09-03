@@ -1,6 +1,6 @@
 [package]
 name = "validatorclock"
-version = "1.1.55"
+version = "1.1.56"
 edition = "2024"
 
 [dependencies]
@@ -13,9 +13,13 @@ hmac = "0.12"
 hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 instant-acme = { version = "0.8", default-features = false, features = ["hyper-rustls", "rcgen", "ring"] }
-adnl = { version = "0.11", features = ["node"], git = "https://github.com/everx-labs/ever-adnl.git", tag = "0.11.32" }
+# Forked because EverX no longer maintains these and TON has moved on: the
+# schema has no name for `adnl.address.quic`, and the reader took only the
+# first address in a list and only if it was UDP. Both cost validators their
+# place on the map. See the `quic-address` branch of each.
+adnl = { version = "0.11", features = ["node"], git = "https://github.com/jouliene/ever-adnl.git", branch = "quic-address" }
 ever_block = { git = "https://github.com/everx-labs/ever-block.git", tag = "1.11.20", features = ["export_key"] }
-ton_api = { git = "https://github.com/everx-labs/ever-tl.git", package = "ton_api", tag = "0.4.29" }
+ton_api = { git = "https://github.com/jouliene/ever-tl.git", package = "ton_api", branch = "quic-address" }
 minik2 = { git = "https://github.com/jouliene/minik2", rev = "3cf2fc733805343c918525ec080b189e2cccfe42" }
 reqwest = { version = "0.13", features = ["json"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
