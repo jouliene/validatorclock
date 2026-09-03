@@ -14,6 +14,7 @@ use adnl::node::{AdnlNode, AdnlNodeConfig};
 use adnl::{AddressSearchContext, DhtNode, DhtSearchPolicy};
 use anyhow::{Context, Result, anyhow, bail};
 use ever_block::{Ed25519KeyOption, KeyId, KeyOption, UInt256, base64_decode};
+use futures::{StreamExt, stream};
 use serde::Deserialize;
 use std::collections::BTreeSet;
 use std::convert::TryInto;
@@ -35,6 +36,16 @@ const SEARCH_WIDTH: u8 = 5;
 /// A ceiling on the nodes pulled out of the DHT for the widened search, so a
 /// large network cannot turn one lookup into an unbounded walk.
 const MAX_KNOWN_NODES: usize = 10_000;
+/// How many bootstrap peers are greeted at once during warmup.
+const WARMUP_CONCURRENCY: usize = 32;
+/// How long one bootstrap peer has to answer the greeting.
+///
+/// A community bootstrap list is mostly history: of eighty entries in one, only
+/// eighteen still answered. Greeted one at a time on a generous timeout, the
+/// dead ones cost five minutes before any validator was looked up - longer than
+/// the interval between passes. They are now greeted together and briefly,
+/// because a peer that has not answered in a few seconds is not going to.
+const WARMUP_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Where a validator answers, as the DHT reported it.
 #[derive(Clone, Debug, serde::Serialize, Deserialize)]
@@ -180,24 +191,32 @@ impl AdnlDhtResolver {
     /// Reach the bootstrap peers before a round of lookups, so the first
     /// validator asked about is not the one paying for a cold DHT.
     pub(super) async fn warmup_network(&self) -> NetworkWarmupStats {
-        let mut stats = NetworkWarmupStats {
+        let responsive = stream::iter(self.preset_nodes.iter())
+            .map(|node_key| async move {
+                matches!(
+                    timeout(
+                        WARMUP_TIMEOUT,
+                        self.dht.find_dht_nodes_in_network(node_key, None)
+                    )
+                    .await,
+                    Ok(Ok(true))
+                )
+            })
+            .buffer_unordered(WARMUP_CONCURRENCY)
+            .filter(|answered| std::future::ready(*answered))
+            .count()
+            .await;
+
+        NetworkWarmupStats {
             checked: self.preset_nodes.len(),
-            ..NetworkWarmupStats::default()
-        };
-
-        for node_key in &self.preset_nodes {
-            match self.dht.find_dht_nodes_in_network(node_key, None).await {
-                Ok(true) => stats.responsive += 1,
-                Ok(false) | Err(_) => stats.errors += 1,
-            }
+            responsive,
+            errors: self.preset_nodes.len() - responsive,
+            known_nodes: self
+                .dht
+                .get_known_nodes_of_network(MAX_KNOWN_NODES, None)
+                .map(|nodes| nodes.len())
+                .unwrap_or_default(),
         }
-
-        stats.known_nodes = self
-            .dht
-            .get_known_nodes_of_network(MAX_KNOWN_NODES, None)
-            .map(|nodes| nodes.len())
-            .unwrap_or_default();
-        stats
     }
 
     pub(super) async fn resolve(&self, adnl_addr: &str) -> Resolution {
