@@ -32,6 +32,12 @@ pub(crate) struct NodeResolverChainConfig {
     pub(crate) enabled: bool,
     /// The chain's global config, for the DHT bootstrap peers.
     pub(crate) global_config_path: Option<PathBuf>,
+    /// The address this chain's DHT answers on, when it needs one of its own.
+    ///
+    /// A socket belongs to one chain: two chains sharing an address means the
+    /// second one never starts. Left unset, the chain uses the shared address,
+    /// which is right when only one chain is being resolved.
+    pub(crate) local_adnl_addr: Option<String>,
     /// Where the resolved set is written. This is the file the node location
     /// map reads, so the result survives a restart and the page has addresses
     /// to draw before the DHT has said a word.
@@ -80,7 +86,34 @@ impl NodeResolverConfig {
                 bail!("node_resolver chain `{chain_id}` needs an output_path");
             }
         }
+
+        // Two chains on one socket is a failure that only shows up as one of
+        // them silently never starting, so it is refused here instead.
+        let mut addresses = std::collections::HashMap::new();
+        for (chain_id, chain) in &self.chains {
+            if !chain.enabled {
+                continue;
+            }
+            let address = chain
+                .local_adnl_addr
+                .as_deref()
+                .unwrap_or(&self.local_adnl_addr);
+            if let Some(other) = addresses.insert(address.to_owned(), chain_id) {
+                bail!(
+                    "node_resolver chains `{other}` and `{chain_id}` both want {address}; \
+                     give each chain its own local_adnl_addr"
+                );
+            }
+        }
         Ok(())
+    }
+
+    /// The address a chain's DHT should answer on.
+    pub(crate) fn local_adnl_addr_for<'a>(&'a self, chain: &'a NodeResolverChainConfig) -> &'a str {
+        chain
+            .local_adnl_addr
+            .as_deref()
+            .unwrap_or(&self.local_adnl_addr)
     }
 
     /// The chains this resolver is actually meant to run for.
@@ -108,7 +141,40 @@ mod tests {
             enabled: true,
             global_config_path: Some(PathBuf::from("/tmp/global.json")),
             output_path: Some(PathBuf::from("/tmp/out.json")),
+            local_adnl_addr: None,
         }
+    }
+
+    #[test]
+    fn two_chains_cannot_share_one_socket() {
+        let shared = NodeResolverConfig {
+            enabled: true,
+            chains: HashMap::from([
+                ("everscale".to_owned(), enabled_chain()),
+                ("ton".to_owned(), enabled_chain()),
+            ]),
+            ..NodeResolverConfig::default()
+        };
+        assert!(
+            shared.validate().is_err(),
+            "the second chain would never start, and silently"
+        );
+
+        let separate = NodeResolverConfig {
+            enabled: true,
+            chains: HashMap::from([
+                ("everscale".to_owned(), enabled_chain()),
+                (
+                    "ton".to_owned(),
+                    NodeResolverChainConfig {
+                        local_adnl_addr: Some("0.0.0.0:4291".to_owned()),
+                        ..enabled_chain()
+                    },
+                ),
+            ]),
+            ..NodeResolverConfig::default()
+        };
+        assert!(separate.validate().is_ok());
     }
 
     #[test]

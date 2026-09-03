@@ -91,6 +91,7 @@ fn nothing_runs_for_a_chain_that_was_not_asked_for() {
                 enabled: false,
                 global_config_path: Some(PathBuf::from("/tmp/global.json")),
                 output_path: Some(PathBuf::from("/tmp/out.json")),
+                local_adnl_addr: None,
             },
         )]),
         ..NodeResolverConfig::default()

@@ -141,7 +141,7 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
     // them away every cycle would make each round start from a cold network.
     let resolver = AdnlDhtResolver::new(
         global_config_path,
-        &config.local_adnl_addr,
+        config.local_adnl_addr_for(chain),
         Duration::from_secs(config.lookup_timeout_seconds),
     )
     .await
