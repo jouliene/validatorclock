@@ -17,25 +17,30 @@ use frozen::fetch_frozen_validator_round_data;
 use minik2::{Config, Transport, ValidatorSet};
 use snapshot::previous_validator_set;
 use std::env;
-use tracing::debug;
+use tracing::{debug, info, warn};
 
 const STALE_SNAPSHOT_GRACE_SECONDS: u64 = 300;
 pub(crate) async fn fetch_chain_snapshot(chain: &ChainConfig) -> Result<ClockSnapshot> {
-    match fetch_chain_snapshot_from_endpoint(chain, &chain.rpc, None).await {
+    match fetch_chain_snapshot_from_endpoint(chain, &chain.rpc).await {
         Ok(mut snapshot) => {
             if let Some(stale_reason) = snapshot_stale_reason(chain, &snapshot) {
                 let primary_reason = format!("appears stale: {stale_reason}");
                 match fetch_fallback_snapshot(chain, &primary_reason, true).await {
                     Ok(snapshot) => return Ok(snapshot),
-                    Err(error) => set_snapshot_warning(
-                        &mut snapshot,
-                        format!(
-                            "primary RPC `{}` appears stale: {}; {}",
-                            super::util::endpoint_label(&chain.rpc),
-                            stale_reason,
-                            error
-                        ),
-                    ),
+                    Err(error) => {
+                        // Which endpoint is behind is the operator's business.
+                        // The reader is told what it means for what they are
+                        // looking at - the numbers are behind - and nothing
+                        // about the machinery that serves them.
+                        warn!(
+                            chain_id = %chain.id,
+                            endpoint = %super::util::endpoint_label(&chain.rpc),
+                            reason = %stale_reason,
+                            error = %error,
+                            "primary RPC is stale and no fallback answered"
+                        );
+                        set_snapshot_warning(&mut snapshot, stale_data_warning(&stale_reason));
+                    }
                 }
             }
 
@@ -82,15 +87,19 @@ async fn fetch_fallback_snapshot(
 
     let mut fallback_errors = Vec::new();
     for fallback in &chain.rpc_fallbacks {
-        let warning = format!(
-            "using fallback RPC `{}`; primary RPC `{}` {}",
-            super::util::endpoint_label(fallback),
-            super::util::endpoint_label(&chain.rpc),
-            primary_reason
-        );
-
-        match fetch_chain_snapshot_from_endpoint(chain, fallback, Some(warning)).await {
+        match fetch_chain_snapshot_from_endpoint(chain, fallback).await {
             Ok(mut snapshot) => {
+                // Which endpoint answered is worth a log line and nothing more:
+                // a reader looking at a validator clock has no use for it, and
+                // an internal address is not theirs to see.
+                info!(
+                    chain_id = %chain.id,
+                    endpoint = %super::util::endpoint_label(fallback),
+                    primary = %super::util::endpoint_label(&chain.rpc),
+                    reason = %primary_reason,
+                    "answering from a fallback RPC"
+                );
+
                 if let Some(stale_reason) = snapshot_stale_reason(chain, &snapshot) {
                     if require_fresh {
                         fallback_errors.push(format!(
@@ -101,14 +110,13 @@ async fn fetch_fallback_snapshot(
                         continue;
                     }
 
-                    set_snapshot_warning(
-                        &mut snapshot,
-                        format!(
-                            "fallback RPC `{}` returned stale snapshot: {}",
-                            super::util::endpoint_label(fallback),
-                            stale_reason
-                        ),
+                    warn!(
+                        chain_id = %chain.id,
+                        endpoint = %super::util::endpoint_label(fallback),
+                        reason = %stale_reason,
+                        "fallback RPC answered with a stale snapshot"
                     );
+                    set_snapshot_warning(&mut snapshot, stale_data_warning(&stale_reason));
                 }
                 return Ok(snapshot);
             }
@@ -131,16 +139,15 @@ async fn fetch_fallback_snapshot(
 async fn fetch_chain_snapshot_from_endpoint(
     chain: &ChainConfig,
     rpc: &str,
-    warning: Option<String>,
 ) -> Result<ClockSnapshot> {
     if toncenter::is_toncenter_endpoint(rpc) {
-        return toncenter::fetch_chain_snapshot(chain, rpc, warning).await;
+        return toncenter::fetch_chain_snapshot(chain, rpc).await;
     }
     if is_graphql_endpoint(rpc) {
-        return graphql::fetch_chain_snapshot(chain, rpc, warning).await;
+        return graphql::fetch_chain_snapshot(chain, rpc).await;
     }
 
-    fetch_chain_snapshot_from_jrpc(chain, rpc, warning).await
+    fetch_chain_snapshot_from_jrpc(chain, rpc).await
 }
 
 async fn fetch_chain_round_stats_from_endpoint(
@@ -158,11 +165,7 @@ async fn fetch_chain_round_stats_from_endpoint(
     fetch_chain_round_stats_from_jrpc(chain, rpc, history_points).await
 }
 
-async fn fetch_chain_snapshot_from_jrpc(
-    chain: &ChainConfig,
-    rpc: &str,
-    warning: Option<String>,
-) -> Result<ClockSnapshot> {
+async fn fetch_chain_snapshot_from_jrpc(chain: &ChainConfig, rpc: &str) -> Result<ClockSnapshot> {
     let transport =
         Transport::jrpc(rpc).with_context(|| format!("invalid RPC endpoint for `{}`", chain.id))?;
     let config = Config::fetch(&transport)
@@ -221,7 +224,7 @@ async fn fetch_chain_snapshot_from_jrpc(
             )
         }),
         election,
-        warning,
+        warning: None,
     })
 }
 
@@ -303,6 +306,12 @@ fn snapshot_stale_reason(chain: &ChainConfig, snapshot: &ClockSnapshot) -> Optio
     None
 }
 
+/// What a stale snapshot means to someone reading the clock, with nothing in
+/// it about which endpoint served it or that a fallback was involved.
+fn stale_data_warning(stale_reason: &str) -> String {
+    format!("chain data is behind: {stale_reason}")
+}
+
 fn set_snapshot_warning(snapshot: &mut ClockSnapshot, warning: String) {
     if let Some(existing) = &mut snapshot.warning {
         if !existing.is_empty() {
@@ -341,6 +350,34 @@ mod tests {
 
         assert_eq!(effective_current.utime_since, 200);
         assert!(effective_next.is_none());
+    }
+
+    #[test]
+    fn a_readers_warning_says_nothing_about_the_endpoints() {
+        // Whatever a reader is told, it is about what they are looking at, not
+        // about which RPC served it or whether a fallback was involved. One of
+        // those endpoints is an address on the server itself, and none of them
+        // are the reader's business.
+        let warning = stale_data_warning("current validator set expired at 1788400000");
+
+        for leak in [
+            "RPC",
+            "rpc",
+            "fallback",
+            "primary",
+            "endpoint",
+            "http",
+            "127.0.0.1",
+        ] {
+            assert!(
+                !warning.contains(leak),
+                "a reader's warning should not mention `{leak}`: {warning}"
+            );
+        }
+        assert!(
+            warning.contains("current validator set expired"),
+            "it should still say what is wrong with the data: {warning}"
+        );
     }
 
     #[test]

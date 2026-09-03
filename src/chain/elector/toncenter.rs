@@ -31,7 +31,6 @@ pub(super) fn is_toncenter_endpoint(endpoint: &str) -> bool {
 pub(super) async fn fetch_chain_snapshot(
     chain: &ChainConfig,
     endpoint: &str,
-    warning: Option<String>,
 ) -> Result<ClockSnapshot> {
     if chain.id != "ton" {
         bail!("TON Center endpoint supports only the `ton` chain");
@@ -110,7 +109,7 @@ pub(super) async fn fetch_chain_snapshot(
             )
         }),
         election,
-        warning,
+        warning: None,
     })
 }
 
