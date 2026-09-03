@@ -43,7 +43,7 @@ fn the_written_set_is_one_the_location_map_can_read() {
                         version: "udp4".to_owned(),
                     }],
                     error: None,
-                    confirmed_at: None,
+                    confirmed_at: Some(1_788_400_005),
                 },
             },
             ResolvedValidator {
@@ -71,6 +71,11 @@ fn the_written_set_is_one_the_location_map_can_read() {
     );
     assert_eq!(candidates[0].0, "a".repeat(64));
     assert_eq!(candidates[0].1, "104.238.222.200");
+    assert_eq!(
+        candidates[0].2,
+        Some(1_788_400_005),
+        "the map has to be able to tell when the address was confirmed, or it          dates every node by when it wrote the file"
+    );
 }
 
 #[test]
