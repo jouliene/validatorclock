@@ -1,7 +1,12 @@
 use anyhow::{Result, bail};
 use serde::Deserialize;
 
-const DEFAULT_MAX_CONNECTIONS: usize = 128;
+/// Connections are now kept alive across a page's polls, so each reader holds
+/// theirs for as long as they have the page open rather than for one request.
+/// A hundred and twenty-eight of those is a couple of dozen readers, and the
+/// hundred and twenty-ninth is turned away. The cost of a spare slot is a
+/// buffer; the cost of running out is a reader who cannot open the site.
+const DEFAULT_MAX_CONNECTIONS: usize = 512;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
