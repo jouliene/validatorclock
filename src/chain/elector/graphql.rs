@@ -32,7 +32,6 @@ accounts(filter:{id:{in:$ids}},limit:2){id acc_type data}\
 pub(super) async fn fetch_chain_snapshot(
     chain: &ChainConfig,
     endpoint: &str,
-    warning: Option<String>,
 ) -> Result<ClockSnapshot> {
     let state = ChainState::fetch(endpoint).await?;
     let timings = state.election_timings()?;
@@ -75,7 +74,7 @@ pub(super) async fn fetch_chain_snapshot(
             )
         }),
         election,
-        warning,
+        warning: None,
     })
 }
 
@@ -364,7 +363,7 @@ mod tests {
             rpc_label: None,
         };
 
-        let snapshot = fetch_chain_snapshot(&chain, &endpoint, None).await?;
+        let snapshot = fetch_chain_snapshot(&chain, &endpoint).await?;
 
         assert!(snapshot.seqno > 0);
         assert!(snapshot.global_id != 0);

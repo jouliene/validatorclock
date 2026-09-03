@@ -38,11 +38,13 @@ async fn broxus_failure_uses_toncenter_fallback_and_enrichment() -> Result<()> {
 
     let snapshot = get_chain_snapshot_cached_first(Arc::clone(&state), "ton", true).await?;
 
-    assert!(
-        snapshot
-            .warning
-            .as_deref()
-            .is_some_and(|warning| warning.contains("using fallback RPC"))
+    // The fallback served this - `selected_endpoint` below is the proof. What
+    // reaches the reader is a working clock and no word about the machinery:
+    // which endpoint answered is the operator's business, and one of them may
+    // be an address on the server itself.
+    assert_eq!(
+        snapshot.warning, None,
+        "the reader should not be told that a fallback RPC answered"
     );
     assert!(
         snapshot
@@ -469,11 +471,13 @@ async fn jrpc_failure_uses_graphql_fallback() -> Result<()> {
 
     let snapshot = get_chain_snapshot_cached_first(Arc::clone(&state), "everscale", true).await?;
 
-    assert!(
-        snapshot
-            .warning
-            .as_deref()
-            .is_some_and(|warning| warning.contains("using fallback RPC"))
+    // The fallback served this - `selected_endpoint` below is the proof. What
+    // reaches the reader is a working clock and no word about the machinery:
+    // which endpoint answered is the operator's business, and one of them may
+    // be an address on the server itself.
+    assert_eq!(
+        snapshot.warning, None,
+        "the reader should not be told that a fallback RPC answered"
     );
     assert_eq!(
         snapshot.selected_endpoint.as_deref(),
