@@ -263,10 +263,12 @@ function enrichValidatorMapNodes(nodes, snapshot = state.snapshot) {
 // and the page should not present it as one.
 //
 // The threshold is relative rather than absolute: every node the resolver did
-// reach carries roughly the same timestamp, so a node two refreshes behind the
-// freshest in the file sat out the last pass. Reading the file's own age would
-// only tell us when it was written.
-const VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS = 600;
+// reach in a pass carries that pass's timestamp exactly, so anything behind the
+// freshest in the file sat the pass out. The margin is there only so a node is
+// not called remembered for being a few seconds out of step; it is well inside
+// one refresh, which is five minutes. Reading the file's own age instead would
+// only ever tell us when it was written.
+const VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS = 120;
 
 function validatorMapNewestSeenAt(nodes) {
   let newest = 0;
