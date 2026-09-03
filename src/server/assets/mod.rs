@@ -9,11 +9,19 @@ mod version;
 
 pub(in crate::server) use embedded::BASEMAP_STYLE_JSON;
 use embedded::{
-    APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, PORTRAIT_IMAGES, SMOKING_MAN_PNG,
-    STATS_HTML, STATS_JS_PARTS, STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, MAPLIBRE_CSS, MAPLIBRE_JS,
+    PMTILES_JS, PORTRAIT_IMAGES, SMOKING_MAN_PNG, STATS_HTML, STATS_JS_PARTS, STYLES_CSS_PARTS,
+    TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(super) use version::asset_version;
+
+/// The map's own source, so a test can check that every vendored file it asks
+/// for is one the router serves.
+#[cfg(test)]
+pub(in crate::server) fn map_js_source() -> &'static str {
+    embedded::APP_MAP_JS
+}
 
 const ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("public, max-age=31536000, immutable");
@@ -64,6 +72,27 @@ pub(super) async fn app_js() -> impl IntoResponse {
     (
         asset_response_headers("application/javascript; charset=utf-8"),
         APP_JS_BUNDLE.as_str(),
+    )
+}
+
+pub(super) async fn maplibre_js() -> impl IntoResponse {
+    (
+        asset_response_headers("application/javascript; charset=utf-8"),
+        MAPLIBRE_JS,
+    )
+}
+
+pub(super) async fn maplibre_css() -> impl IntoResponse {
+    (
+        asset_response_headers("text/css; charset=utf-8"),
+        MAPLIBRE_CSS,
+    )
+}
+
+pub(super) async fn pmtiles_js() -> impl IntoResponse {
+    (
+        asset_response_headers("application/javascript; charset=utf-8"),
+        PMTILES_JS,
     )
 }
 

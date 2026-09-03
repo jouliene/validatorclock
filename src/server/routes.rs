@@ -4,8 +4,8 @@ use super::api::{
     public_analytics, public_visitors, status,
 };
 use super::assets::{
-    app_js, everscale_logo, index, jokes_json, portrait_image, smoking_man_png, stats_js,
-    stats_page, styles, ton_logo, tycho_logo,
+    app_js, everscale_logo, index, jokes_json, maplibre_css, maplibre_js, pmtiles_js,
+    portrait_image, smoking_man_png, stats_js, stats_page, styles, ton_logo, tycho_logo,
 };
 use super::basemap::basemap_asset;
 use super::conditional::add_entity_tags;
@@ -49,6 +49,11 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
         .route("/basemap/{*path}", get(basemap_asset))
+        // Named for the upstream version: these are served immutable for a
+        // year, so a new version has to arrive at a new URL.
+        .route("/vendor/maplibre-gl-5.9.0.js", get(maplibre_js))
+        .route("/vendor/maplibre-gl-5.9.0.css", get(maplibre_css))
+        .route("/vendor/pmtiles-4.3.0.js", get(pmtiles_js))
         .route("/jokes.json", get(jokes_json))
         .route("/brands/everscale.svg", get(everscale_logo))
         .route("/brands/tycho.svg", get(tycho_logo))

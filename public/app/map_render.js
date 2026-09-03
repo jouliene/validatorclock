@@ -77,7 +77,19 @@ function loadMapScript(id, url) {
   return new Promise((resolve, reject) => {
     const existing = document.getElementById(id);
     if (existing) {
-      resolve();
+      // A tag that is still in flight is not a library that has loaded.
+      // Resolving on sight reported it as ready, and the caller went on to use
+      // a global that did not exist yet.
+      if (existing.dataset.loaded === "true") {
+        resolve();
+      } else {
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener(
+          "error",
+          () => reject(new Error(`${url} failed to load`)),
+          { once: true }
+        );
+      }
       return;
     }
 
@@ -85,8 +97,23 @@ function loadMapScript(id, url) {
     script.id = id;
     script.src = url;
     script.async = true;
-    script.onload = () => resolve();
+
+    // A request that is answered by nothing at all - no response, no refusal -
+    // fires neither event. Without a deadline the promise never settles, and
+    // because it is the one every caller shares, the map stays on "Loading
+    // map" for the rest of the session.
+    const deadline = window.setTimeout(() => {
+      script.remove();
+      reject(new Error(`${url} timed out`));
+    }, MAP_SCRIPT_TIMEOUT_MS);
+
+    script.onload = () => {
+      window.clearTimeout(deadline);
+      script.dataset.loaded = "true";
+      resolve();
+    };
     script.onerror = () => {
+      window.clearTimeout(deadline);
       // A tag that failed is taken back out: left in place, the next attempt
       // would find it by id and report the library as already loaded.
       script.remove();
