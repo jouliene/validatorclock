@@ -152,7 +152,19 @@ function validatorNodePointLayer() {
         5, ["min", ["+", 6.2, ["*", ["get", "node_count"], 0.34]], 13],
         9, ["min", ["+", 7, ["*", ["get", "node_count"], 0.4]], 15]
       ],
-      "circle-opacity": 1,
+      // Faint when every node here is only remembered - the resolver has not
+      // reached any of them on its latest pass and is offering the last known
+      // address. Solid where at least one answered, because the point is then
+      // as current as any other.
+      "circle-opacity": [
+        "case",
+        ["all",
+          [">", ["get", "remembered_count"], 0],
+          [">=", ["get", "remembered_count"], ["get", "node_count"]]
+        ],
+        0.45,
+        1
+      ],
       "circle-stroke-width": 1.6,
       "circle-stroke-color": VALIDATOR_MAP_NODE_RIM
     }

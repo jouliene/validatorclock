@@ -340,3 +340,36 @@ fn real_changes_are_still_recorded_inside_one_bucket() {
     );
     assert!(chain.rounds[&10].validators.contains_key("bob"));
 }
+
+#[test]
+fn a_sighting_is_dated_by_the_map_not_by_the_reading() {
+    // The map offers an address for an hour after the node stopped answering.
+    // Dating the record by when this snapshot was taken restarted the clock on
+    // every refresh, so a validator nobody could reach kept looking freshly
+    // seen for as long as the map went on offering it.
+    let mut chain = ChainRoundHistory::default();
+    let mut round = set(10, RoundColor::Blue, vec!["alice"]);
+    round.validators[0].map_node = Some(map_node_seen_at("203.0.113.9", 3_000));
+
+    chain.record_set(&round, 3_000 + 40 * 60);
+
+    assert_eq!(
+        chain.rounds[&10].validators["alice"].map_seen_at,
+        Some(3_000),
+        "the sighting is when the address was confirmed, not when it was read"
+    );
+}
+
+#[test]
+fn a_map_that_does_not_date_its_nodes_falls_back_to_the_reading() {
+    let mut chain = ChainRoundHistory::default();
+    let mut round = set(10, RoundColor::Blue, vec!["alice"]);
+    round.validators[0].map_node = Some(map_node("203.0.113.9", "OVH", "Paris", "France"));
+
+    chain.record_set(&round, 3_000);
+
+    assert_eq!(
+        chain.rounds[&10].validators["alice"].map_seen_at,
+        Some(3_000)
+    );
+}

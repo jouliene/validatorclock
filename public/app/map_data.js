@@ -256,3 +256,42 @@ function enrichValidatorMapNodes(nodes, snapshot = state.snapshot) {
     };
   });
 }
+
+// A node the resolver could not reach on its latest pass, and is offering from
+// memory. It keeps the address for an hour after the node last answered, so a
+// point on the map is not by itself a claim that anyone reached it just now -
+// and the page should not present it as one.
+//
+// The threshold is relative rather than absolute: every node the resolver did
+// reach carries roughly the same timestamp, so a node two refreshes behind the
+// freshest in the file sat out the last pass. Reading the file's own age would
+// only tell us when it was written.
+const VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS = 600;
+
+function validatorMapNewestSeenAt(nodes) {
+  let newest = 0;
+  for (const node of nodes || []) {
+    const seenAt = Number(node?.last_seen_at) || 0;
+    if (seenAt > newest) {
+      newest = seenAt;
+    }
+  }
+  return newest;
+}
+
+function validatorMapNodeIsRemembered(node, newestSeenAt) {
+  const seenAt = Number(node?.last_seen_at) || 0;
+  if (!seenAt || !newestSeenAt) {
+    return false;
+  }
+  return newestSeenAt - seenAt >= VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS;
+}
+
+function validatorMapLastSeenLabel(node, newestSeenAt) {
+  const seenAt = Number(node?.last_seen_at) || 0;
+  if (!validatorMapNodeIsRemembered(node, newestSeenAt)) {
+    return null;
+  }
+  const minutes = Math.round((newestSeenAt - seenAt) / 60);
+  return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+}

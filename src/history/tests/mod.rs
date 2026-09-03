@@ -86,6 +86,14 @@ fn map_node(ip: &str, isp: &str, city: &str, country: &str) -> ValidatorMapNodeD
         isp: Some(isp.to_owned()),
         city: Some(city.to_owned()),
         country: Some(country.to_owned()),
+        last_seen_at: None,
+    }
+}
+
+fn map_node_seen_at(ip: &str, last_seen_at: u64) -> ValidatorMapNodeDto {
+    ValidatorMapNodeDto {
+        last_seen_at: Some(last_seen_at),
+        ..map_node(ip, "OVH", "Paris", "France")
     }
 }
 

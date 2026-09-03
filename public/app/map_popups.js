@@ -58,6 +58,11 @@ function nodeTableElement(nodes) {
     return null;
   }
 
+  // Measured against the whole file, not against the nodes in this popup: a
+  // location where every node is remembered would otherwise judge itself
+  // fresh, which is exactly the case worth marking.
+  const newestSeenAt = validatorMapNewestSeenAt(validatorMapNodes);
+
   return el("div", "popup-node-list", [
     el("table", "popup-node-table", [
       el(
@@ -77,16 +82,30 @@ function nodeTableElement(nodes) {
       el(
         "tbody",
         {},
-        safeNodes.map((node) =>
-          el("tr", {}, [
-            el("td", { className: "popup-ip", text: node.ip }),
-            el("td", { className: "popup-isp", text: node.isp }),
-            el("td", "popup-row-cell", [nodeValidatorRowButton(node)]),
-            el("td", "popup-peer-cell", [nodeValidatorDetails(node)]),
-          ]),
-        ),
+        safeNodes.map((node) => nodeTableRow(node, newestSeenAt)),
       ),
     ]),
+  ]);
+}
+
+function nodeTableRow(node, newestSeenAt) {
+  const lastSeen = validatorMapLastSeenLabel(node, newestSeenAt);
+  const address = lastSeen
+    ? [
+        el("span", { className: "popup-ip-value", text: node.ip }),
+        el("span", {
+          className: "popup-ip-remembered",
+          text: `last seen ${lastSeen}`,
+          attrs: { title: "The resolver could not reach this node on its latest pass" },
+        }),
+      ]
+    : [el("span", { className: "popup-ip-value", text: node.ip })];
+
+  return el("tr", { className: lastSeen ? "is-remembered" : "" }, [
+    el("td", "popup-ip", address),
+    el("td", { className: "popup-isp", text: node.isp }),
+    el("td", "popup-row-cell", [nodeValidatorRowButton(node)]),
+    el("td", "popup-peer-cell", [nodeValidatorDetails(node)]),
   ]);
 }
 

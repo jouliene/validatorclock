@@ -126,6 +126,7 @@ mod tests {
             isp: Some("Example ISP".to_owned()),
             city: Some("Example City".to_owned()),
             country: Some("Example Country".to_owned()),
+            last_seen_at: None,
         }
     }
 

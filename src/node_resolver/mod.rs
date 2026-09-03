@@ -220,7 +220,7 @@ async fn collect_once(
             let resolution = match validator.adnl_addr.as_deref() {
                 None => Resolution::missing_adnl(),
                 Some(adnl_addr) if !is_hex_32(adnl_addr) => Resolution::invalid_adnl(adnl_addr),
-                Some(adnl_addr) => resolver.resolve(adnl_addr).await,
+                Some(adnl_addr) => resolver.resolve(adnl_addr, now).await,
             };
             ResolvedValidator {
                 validator_public_key: validator.public_key.clone(),

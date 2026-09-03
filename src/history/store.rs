@@ -124,9 +124,16 @@ impl ChainRoundHistory {
                             })
                             .flatten()
                     });
-                    let map_seen_at = current_map_node
-                        .is_some()
-                        .then(|| map_seen_bucket(observed_at));
+                    // When the address was last confirmed, not when this
+                    // snapshot was taken. The map offers an address for an
+                    // hour after the node stopped answering, so stamping the
+                    // reading time here restarted the clock every five minutes
+                    // and a validator nobody could reach was never called
+                    // unfindable. Falls back to the reading for a map file that
+                    // does not date its nodes.
+                    let map_seen_at = current_map_node.as_ref().map(|map_node| {
+                        map_seen_bucket(map_node.last_seen_at.unwrap_or(observed_at))
+                    });
                     (
                         public_key,
                         StoredValidator {

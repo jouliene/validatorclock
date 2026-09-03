@@ -65,14 +65,17 @@ fn parses_array_seed_records() {
             CandidateNode {
                 peer: "peer-a".to_owned(),
                 ip: "203.0.113.10".parse().unwrap(),
+                confirmed_at: None,
             },
             CandidateNode {
                 peer: "peer-b".to_owned(),
                 ip: "198.51.100.9".parse().unwrap(),
+                confirmed_at: None,
             },
             CandidateNode {
                 peer: "peer-b".to_owned(),
                 ip: "2001:db8::1".parse().unwrap(),
+                confirmed_at: None,
             },
         ]
     );
@@ -94,10 +97,12 @@ fn parses_peer_keyed_seed_records() {
             CandidateNode {
                 peer: "peer-a".to_owned(),
                 ip: "203.0.113.10".parse().unwrap(),
+                confirmed_at: None,
             },
             CandidateNode {
                 peer: "peer-b".to_owned(),
                 ip: "198.51.100.9".parse().unwrap(),
+                confirmed_at: None,
             },
         ]
     );
@@ -127,6 +132,7 @@ fn parses_resolver_full_validator_records() {
         vec![CandidateNode {
             peer: "peer-a".to_owned(),
             ip: "203.0.113.10".parse().unwrap(),
+            confirmed_at: None,
         }]
     );
 }
@@ -136,6 +142,7 @@ fn builds_backward_compatible_map_nodes() {
     let candidates = vec![CandidateNode {
         peer: "peer-a".to_owned(),
         ip: "203.0.113.10".parse().unwrap(),
+        confirmed_at: None,
     }];
     let mut cache = GeoCache::default();
     cache.locations.insert(
@@ -161,6 +168,7 @@ fn manual_resolved_ip_overrides_cached_location() {
     let candidates = vec![CandidateNode {
         peer: "peer-a".to_owned(),
         ip,
+        confirmed_at: None,
     }];
     let mut cache = GeoCache::default();
     cache.locations.insert(
@@ -202,6 +210,7 @@ fn ipinfo_country_conflict_holds_node_for_manual_review() {
     let candidates = vec![CandidateNode {
         peer: "peer-a".to_owned(),
         ip,
+        confirmed_at: None,
     }];
     let mut cache = GeoCache::default();
     let mut location = cached_location("Test City", "United States", "US");
@@ -303,6 +312,7 @@ fn ipinfo_conflict_does_not_retain_previous_map_node_for_same_peer() {
     let candidates = vec![CandidateNode {
         peer: "peer-a".to_owned(),
         ip,
+        confirmed_at: None,
     }];
     let mut cache = GeoCache::default();
     let mut location = cached_location("Test City", "United States", "US");
@@ -341,6 +351,7 @@ fn netherlands_country_aliases_do_not_create_manual_review() {
     let candidates = vec![CandidateNode {
         peer: "peer-a".to_owned(),
         ip,
+        confirmed_at: None,
     }];
     let mut cache = GeoCache::default();
     let mut location = cached_location("Amsterdam", "Netherland", "");
@@ -622,4 +633,127 @@ fn a_manual_override_off_the_globe_is_refused() {
     );
 
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_remembered_address_keeps_the_time_the_dht_confirmed_it() {
+    // The resolver offers an address for an hour after the node stopped
+    // answering, and says when it last did. Stamping the reading time instead
+    // published a node nobody had reached for fifty minutes as seen just now,
+    // and every window measured from that moment onwards started again.
+    let candidates = collect_candidates_from_value(
+        &json!([{
+            "validator_public_key": "peer-a",
+            "resolution": {
+                "status": "remembered",
+                "addresses": [{"ip": "203.0.113.10", "port": 3030}],
+                "confirmed_at": 1_700_000_000u64
+            }
+        }]),
+        None,
+    );
+
+    assert_eq!(
+        candidates,
+        vec![CandidateNode {
+            peer: "peer-a".to_owned(),
+            ip: "203.0.113.10".parse().unwrap(),
+            confirmed_at: Some(1_700_000_000),
+        }]
+    );
+
+    let mut cache = GeoCache::default();
+    cache.locations.insert(
+        "203.0.113.10".to_owned(),
+        cached_location("Example City", "Exampleland", "EX"),
+    );
+
+    let nodes = build_map_nodes_from_candidates_with_retention(
+        &candidates,
+        &cache,
+        &BTreeMap::new(),
+        &PreviousMapNodes::default(),
+        1_700_003_000,
+    )
+    .nodes;
+
+    assert_eq!(nodes.len(), 1);
+    assert_eq!(
+        nodes[0].last_seen_at, 1_700_000_000,
+        "the map should publish when the address was confirmed, not when the file was written"
+    );
+}
+
+#[test]
+fn a_source_that_does_not_date_its_records_falls_back_to_the_reading() {
+    // The Tycho collector writes plain addresses with no timestamp. There the
+    // reading is the only thing that can be said about freshness, and treating
+    // it as the sighting is right rather than a guess.
+    let candidates =
+        collect_candidates_from_value(&json!([{"peer": "peer-a", "ip": "203.0.113.10"}]), None);
+    assert_eq!(candidates[0].confirmed_at, None);
+
+    let mut cache = GeoCache::default();
+    cache.locations.insert(
+        "203.0.113.10".to_owned(),
+        cached_location("Example City", "Exampleland", "EX"),
+    );
+
+    let nodes = build_map_nodes_from_candidates_with_retention(
+        &candidates,
+        &cache,
+        &BTreeMap::new(),
+        &PreviousMapNodes::default(),
+        1_700_003_000,
+    )
+    .nodes;
+
+    assert_eq!(nodes[0].last_seen_at, 1_700_003_000);
+}
+
+#[test]
+fn a_remembered_address_expires_an_hour_after_the_dht_confirmed_it() {
+    // Not an hour after it was last written into the map file. Those differ by
+    // however long the resolver went on offering it, which is what made the
+    // two windows run one after the other instead of together.
+    let candidates = collect_candidates_from_value(
+        &json!([{
+            "peer": "peer-a",
+            "resolution": {
+                "addresses": [{"ip": "203.0.113.10"}],
+                "confirmed_at": 1_700_000_000u64
+            }
+        }]),
+        None,
+    );
+    let mut cache = GeoCache::default();
+    cache.locations.insert(
+        "203.0.113.10".to_owned(),
+        cached_location("Example City", "Exampleland", "EX"),
+    );
+    let previous_nodes = PreviousMapNodes {
+        nodes: build_map_nodes_from_candidates_with_retention(
+            &candidates,
+            &cache,
+            &BTreeMap::new(),
+            &PreviousMapNodes::default(),
+            1_700_003_000,
+        )
+        .nodes,
+        updated_at: None,
+    };
+
+    let built = build_map_nodes_from_candidates_with_retention(
+        &[],
+        &GeoCache::default(),
+        &BTreeMap::new(),
+        &previous_nodes,
+        1_700_003_601,
+    );
+
+    assert_eq!(
+        built.retained_node_count, 0,
+        "an address confirmed an hour and a second ago should be gone, however \
+         recently the file that carried it was written"
+    );
 }

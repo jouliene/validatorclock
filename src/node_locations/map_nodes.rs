@@ -163,7 +163,7 @@ impl MapNode {
             geo_source: location.source.clone(),
             geo_confidence: location.confidence.clone(),
             geo_updated_at: location.updated_at,
-            last_seen_at: now,
+            last_seen_at: candidate.last_seen_at(now),
         }
     }
 
@@ -186,7 +186,7 @@ impl MapNode {
             geo_source: "manual".to_owned(),
             geo_confidence: "manual".to_owned(),
             geo_updated_at: manual.updated_at.unwrap_or_default(),
-            last_seen_at: now,
+            last_seen_at: candidate.last_seen_at(now),
         }
     }
 
