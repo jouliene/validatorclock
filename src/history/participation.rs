@@ -68,14 +68,19 @@ impl RoundHistoryStore {
                     )
                 });
                 validator.map_node = None;
+            } else if validator.map_node.is_none() {
+                // Where this validator was last seen, kept apart from where it
+                // is now. History used to fill `map_node` itself, which made a
+                // remembered position indistinguishable from a current one:
+                // with the TON map deleted and the collector rebuilding from
+                // nothing, the page still read "mapped: 393", every one of
+                // them from memory. `map_node` is the map; this is the memory.
+                validator.last_known_map_node = self
+                    .stored_validator(chain_id, set.round_id, &validator.public_key)
+                    .filter(|stored| stored.fake_node != Some(true))
+                    .and_then(|stored| stored.map_node.clone());
             } else {
                 validator.last_known_map_node = None;
-                if validator.map_node.is_none() {
-                    validator.map_node = self
-                        .stored_validator(chain_id, set.round_id, &validator.public_key)
-                        .filter(|stored| stored.fake_node != Some(true))
-                        .and_then(|stored| stored.map_node.clone());
-                }
             }
             validator.history = self.same_color_participation(
                 chain_id,

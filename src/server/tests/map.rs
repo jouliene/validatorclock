@@ -351,13 +351,19 @@ async fn app_router_keeps_recently_mapped_everscale_validator_out_of_fake_grace(
     );
     assert_eq!(
         second["current_set"]["validators"][1]["map_node"],
+        Value::Null,
+        "the current map does not place it, and saying otherwise is how a page \
+         reports 393 mapped validators with no map at all"
+    );
+    assert_eq!(
+        second["current_set"]["validators"][1]["last_known_map_node"],
         json!({
             "ip": "203.0.113.31",
             "isp": "Grace ISP",
             "city": "Grace City",
             "country": "EVERland"
         }),
-        "grace validator should replay its last known map_node without being marked fake"
+        "where it was last seen is remembered, in the field kept for that"
     );
 
     let _ = fs::remove_file(map_path);

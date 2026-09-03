@@ -287,7 +287,7 @@ fn fake_validator_status_is_replayed_to_annotated_sets() {
 }
 
 #[test]
-fn map_node_is_replayed_to_annotated_sets() {
+fn a_remembered_position_is_replayed_as_last_known_not_as_current() {
     let mut store = RoundHistoryStore::default();
     store
         .chains
@@ -315,8 +315,16 @@ fn map_node_is_replayed_to_annotated_sets() {
 
     store.annotate_snapshot("test", &mut snapshot);
 
+    // Where it was, not where it is. History filling `map_node` made a
+    // remembered position read as a current one: with the map deleted and the
+    // collector rebuilding, the page still said every validator was mapped.
+    let validator = &snapshot.previous_set.unwrap().validators[0];
     assert_eq!(
-        snapshot.previous_set.unwrap().validators[0].map_node,
+        validator.map_node, None,
+        "the map says nothing about it now"
+    );
+    assert_eq!(
+        validator.last_known_map_node,
         Some(map_node(
             "203.0.113.10",
             "Test ISP",
