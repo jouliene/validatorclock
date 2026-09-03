@@ -14,6 +14,7 @@ mod history;
 mod http;
 mod logging;
 mod node_locations;
+mod node_resolver;
 mod server;
 mod state;
 mod timeutil;
@@ -54,6 +55,7 @@ async fn main() -> Result<()> {
     chain::spawn_background_refresh(Arc::clone(&state));
     node_locations::warn_if_geo_lookups_are_cleartext(&config.node_locations);
     node_locations::spawn_background_refresh(Arc::clone(&state));
+    node_resolver::spawn_background_refresh(Arc::clone(&state));
     visitor_geo::spawn_background_refresh(Arc::clone(&state));
 
     if config.tls.enabled {

@@ -32,6 +32,8 @@ pub(crate) struct AppConfig {
     #[serde(default)]
     pub(crate) node_locations: NodeLocationsConfig,
     #[serde(default)]
+    pub(crate) node_resolver: super::NodeResolverConfig,
+    #[serde(default)]
     pub(crate) security: SecurityConfig,
     #[serde(default)]
     pub(crate) tls: TlsConfig,
@@ -55,6 +57,7 @@ impl AppConfig {
             tycho_map_nodes_path: None,
             map_nodes_paths: HashMap::new(),
             node_locations: NodeLocationsConfig::default(),
+            node_resolver: super::NodeResolverConfig::default(),
             security: SecurityConfig::default(),
             tls: TlsConfig::default(),
             chains,
@@ -155,6 +158,7 @@ impl AppConfig {
         self.validate_chain_ids()?;
         self.validate_history_paths()?;
 
+        self.node_resolver.validate()?;
         self.security.validate()?;
         self.tls.validate()?;
         Ok(())

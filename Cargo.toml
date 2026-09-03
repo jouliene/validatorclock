@@ -1,9 +1,10 @@
 [package]
 name = "validatorclock"
-version = "1.1.52"
+version = "1.1.53"
 edition = "2024"
 
 [dependencies]
+futures = "0.3"
 anyhow = "1"
 axum = "0.8"
 base64 = "0.22"
@@ -12,6 +13,9 @@ hmac = "0.12"
 hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }
 instant-acme = { version = "0.8", default-features = false, features = ["hyper-rustls", "rcgen", "ring"] }
+adnl = { version = "0.11", features = ["node"], git = "https://github.com/everx-labs/ever-adnl.git", tag = "0.11.32" }
+ever_block = { git = "https://github.com/everx-labs/ever-block.git", tag = "1.11.20", features = ["export_key"] }
+ton_api = { git = "https://github.com/everx-labs/ever-tl.git", package = "ton_api", tag = "0.4.29" }
 minik2 = { git = "https://github.com/jouliene/minik2", rev = "3cf2fc733805343c918525ec080b189e2cccfe42" }
 reqwest = { version = "0.13", features = ["json"] }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
@@ -33,6 +37,10 @@ x509-parser = "0.18"
 lto = "fat"
 opt-level = 3
 codegen-units = 1
-panic = "abort"
+# The DHT stack the node resolver runs on is third-party code parsing what
+# strangers send it, and it lives in this process. Unwinding lets a panic
+# there end its own thread, which the resolver restarts, instead of taking
+# the site down with it.
+panic = "unwind"
 strip = true
 debug = false
