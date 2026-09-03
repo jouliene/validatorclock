@@ -456,3 +456,57 @@ fn fake_validator_uses_previous_round_map_node_as_last_known_location() {
         ))
     );
 }
+
+#[test]
+fn the_fake_node_grace_runs_from_the_sighting_not_from_the_refresh() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    let mut round = set(10, RoundColor::Blue, vec!["alice"]);
+    round.validators[0].map_node = Some(map_node_seen_at("203.0.113.9", 3_000));
+    chain.record_set(&round, 3_000);
+
+    let current = set(10, RoundColor::Blue, vec!["alice"]);
+    assert_eq!(
+        store
+            .recent_mapped_validator_peers("test", &current, 3_000 + 3_599)
+            .len(),
+        1,
+        "an address confirmed within the hour still holds off the fake mark"
+    );
+    assert!(
+        store
+            .recent_mapped_validator_peers("test", &current, 3_000 + 3_601)
+            .is_empty(),
+        "an hour after the last sighting the grace is over, however often the \
+         round has been refreshed since"
+    );
+}
+
+#[test]
+fn a_remembered_position_alone_buys_no_grace() {
+    // A validator marked fake keeps its last known position in the round
+    // record, with nothing to say when it was seen. That used to fall back on
+    // when the round was last observed - refreshed every cycle - so the one
+    // validator the grace should never cover was the one it covered forever.
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    let mut round = set(10, RoundColor::Blue, vec!["alice"]);
+    round.validators[0].map_node = Some(map_node("203.0.113.9", "OVH", "Paris", "France"));
+    chain.record_set(&round, 3_000);
+    chain
+        .rounds
+        .get_mut(&10)
+        .unwrap()
+        .validators
+        .get_mut("alice")
+        .unwrap()
+        .map_seen_at = None;
+
+    let current = set(10, RoundColor::Blue, vec!["alice"]);
+    assert!(
+        store
+            .recent_mapped_validator_peers("test", &current, 3_060)
+            .is_empty(),
+        "a position with no sighting behind it is not a sighting"
+    );
+}

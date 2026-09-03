@@ -29,12 +29,15 @@ impl RoundHistoryStore {
             .filter(|(public_key, validator)| {
                 current_validators.contains(public_key, validator.wallet.as_deref())
                     && validator.map_node.is_some()
-                    && validator
-                        .map_seen_at
-                        .or(Some(round.observed_at))
-                        .is_some_and(|seen_at| {
-                            observed_at.saturating_sub(seen_at) < FAKE_VALIDATOR_MAP_GRACE_SECONDS
-                        })
+                    // A record that cannot say when the address was confirmed
+                    // buys no grace. It used to fall back on when the round was
+                    // last observed, which is refreshed every cycle - so a
+                    // validator carrying only a remembered position was rescued
+                    // from the fake mark for as long as it stayed missing,
+                    // which is the opposite of what the grace is for.
+                    && validator.map_seen_at.is_some_and(|seen_at| {
+                        observed_at.saturating_sub(seen_at) < FAKE_VALIDATOR_MAP_GRACE_SECONDS
+                    })
             })
             .map(|(public_key, _)| public_key.to_ascii_lowercase())
             .collect()

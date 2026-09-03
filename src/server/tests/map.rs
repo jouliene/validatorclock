@@ -235,6 +235,7 @@ async fn app_router_clears_stale_map_node_for_fake_validator() {
                 isp: Some("Old ISP".to_owned()),
                 city: Some("Old City".to_owned()),
                 country: Some("Oldland".to_owned()),
+                last_seen_at: None,
             });
         },
     )

@@ -64,20 +64,24 @@ pub(super) struct Resolution {
     pub(super) addresses: Vec<ResolvedAddress>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) error: Option<String>,
-    /// When the DHT last confirmed this address. Present on a remembered
-    /// answer so a reader can tell how old it is, and absent on a fresh one,
-    /// where the answer is the pass itself.
+    /// When the DHT last confirmed this address.
+    ///
+    /// Carried on a fresh answer as well as a remembered one. Everything
+    /// downstream - the location map, the history, how long a validator is
+    /// given before it is called unfindable - measures age from here, and a
+    /// reader that has to fall back on when the file was written cannot tell a
+    /// node confirmed a moment ago from one last reached fifty minutes back.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(super) confirmed_at: Option<u64>,
 }
 
 impl Resolution {
-    fn resolved(address: ResolvedAddress) -> Self {
+    fn resolved(address: ResolvedAddress, confirmed_at: u64) -> Self {
         Self {
             status: "resolved".to_owned(),
             addresses: vec![address],
             error: None,
-            confirmed_at: None,
+            confirmed_at: Some(confirmed_at),
         }
     }
 
@@ -246,9 +250,9 @@ impl AdnlDhtResolver {
         }
     }
 
-    pub(super) async fn resolve(&self, adnl_addr: &str) -> Resolution {
+    pub(super) async fn resolve(&self, adnl_addr: &str, now: u64) -> Resolution {
         match timeout(self.lookup_timeout, self.resolve_inner(adnl_addr)).await {
-            Ok(Ok(address)) => Resolution::resolved(address),
+            Ok(Ok(address)) => Resolution::resolved(address, now),
             Ok(Err(error)) => Resolution::failed(error.to_string()),
             Err(_) => Resolution::failed(format!(
                 "lookup timed out after {}s",

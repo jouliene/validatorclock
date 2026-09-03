@@ -1,20 +1,32 @@
 function validatorMapFeatures() {
   const rawNodes = validatorMapNodes || [];
+  const newestSeenAt = validatorMapNewestSeenAt(rawNodes);
   const locationGroups = groupNodesByLocation(rawNodes);
-  return locationGroups.map((group) => ({
-    type: "Feature",
-    geometry: {
-      type: "Point",
-      coordinates: [group.lon, group.lat]
-    },
-    properties: {
-      city: group.city,
-      country: group.country,
-      isp: group.isp,
-      node_count: group.nodes.length,
-      nodes_json: JSON.stringify(group.nodes)
-    }
-  }));
+  return locationGroups.map((group) => {
+    const remembered = group.nodes.filter((node) =>
+      validatorMapNodeIsRemembered(node, newestSeenAt),
+    ).length;
+
+    return {
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [group.lon, group.lat]
+      },
+      properties: {
+        city: group.city,
+        country: group.country,
+        isp: group.isp,
+        node_count: group.nodes.length,
+        // How many of them are being offered from memory rather than reached
+        // on the latest pass. A point where that is all of them is drawn
+        // faintly: nobody has answered there for a while, and a dot as solid
+        // as its neighbours would say otherwise.
+        remembered_count: remembered,
+        nodes_json: JSON.stringify(group.nodes)
+      }
+    };
+  });
 }
 
 function groupNodesByLocation(nodes) {

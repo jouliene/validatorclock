@@ -172,6 +172,14 @@ pub(crate) struct ValidatorMapNodeDto {
     pub(crate) city: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) country: Option<String>,
+    /// When this address was last actually confirmed.
+    ///
+    /// Not the same as when the map file was written: the resolver offers an
+    /// address for an hour after the last time the node answered, so a point on
+    /// the map can be a memory. Without this the page, and the history behind
+    /// it, read every point as freshly seen.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(crate) last_seen_at: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

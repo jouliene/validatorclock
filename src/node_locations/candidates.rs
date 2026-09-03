@@ -64,13 +64,30 @@ pub(super) fn record_candidates(record: &Value, fallback_peer: Option<&str>) -> 
     let Some(peer) = local_record_peer(record).or_else(|| fallback_peer.map(str::to_owned)) else {
         return Vec::new();
     };
+    let confirmed_at = local_record_confirmed_at(record);
     local_record_ips(record)
         .into_iter()
         .map(|ip| CandidateNode {
             peer: peer.clone(),
             ip,
+            confirmed_at,
         })
         .collect()
+}
+
+/// When the resolver last actually reached this node, if it says.
+///
+/// The resolver keeps an address for an hour after the last time it answered,
+/// so a record here may be a memory rather than a sighting. It says which, and
+/// says when: without carrying that through, everything downstream reads the
+/// file's own freshness as the node's, and a node nobody has reached for fifty
+/// minutes is published as seen just now.
+pub(super) fn local_record_confirmed_at(record: &Value) -> Option<u64> {
+    fn from_object(value: &Value) -> Option<u64> {
+        value.get("confirmed_at").and_then(Value::as_u64)
+    }
+
+    from_object(record).or_else(|| record.get("resolution").and_then(from_object))
 }
 
 pub(super) fn local_record_peer(record: &Value) -> Option<String> {
@@ -175,6 +192,10 @@ pub(super) fn unique_candidates(candidates: Vec<CandidateNode>) -> Vec<Candidate
 pub(super) struct CandidateNode {
     pub(super) peer: String,
     pub(super) ip: IpAddr,
+    /// When this address was last confirmed, when the source says. `None` for
+    /// a source that does not date its records - then the reading itself is
+    /// the only timestamp there is.
+    pub(super) confirmed_at: Option<u64>,
 }
 
 impl CandidateNode {
@@ -184,5 +205,14 @@ impl CandidateNode {
 
     pub(super) fn peer_key(&self) -> String {
         self.peer.to_ascii_lowercase()
+    }
+
+    /// When this address was last known to be good.
+    ///
+    /// The reading time is the fallback, not the answer: it is right only for a
+    /// source that has just confirmed the address, which is exactly the case a
+    /// source that dates its records tells us about.
+    pub(super) fn last_seen_at(&self, now: u64) -> u64 {
+        self.confirmed_at.unwrap_or(now)
     }
 }

@@ -38,6 +38,10 @@ pub(crate) fn map_nodes_by_peer(value: &Value) -> Result<HashMap<String, Validat
                         isp: string_field(node, "isp"),
                         city: string_field(node, "city"),
                         country: string_field(node, "country"),
+                        last_seen_at: node
+                            .get("last_seen_at")
+                            .and_then(serde_json::Value::as_u64)
+                            .filter(|seen_at| *seen_at > 0),
                     },
                 )
             })

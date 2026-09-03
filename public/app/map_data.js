@@ -256,3 +256,47 @@ function enrichValidatorMapNodes(nodes, snapshot = state.snapshot) {
     };
   });
 }
+
+// A node the resolver could not reach on its latest pass, and is offering from
+// memory. It keeps the address for an hour after the node last answered, so a
+// point on the map is not by itself a claim that anyone reached it just now -
+// and the page should not present it as one.
+//
+// The threshold is relative rather than absolute: every node the resolver did
+// reach in a pass carries that pass's timestamp exactly, so anything behind the
+// freshest in the file sat the pass out. The margin is there only so a node is
+// not called remembered for being a few seconds out of step; it is well inside
+// one refresh, which is five minutes. Reading the file's own age instead would
+// only ever tell us when it was written.
+const VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS = 120;
+
+function validatorMapNewestSeenAt(nodes) {
+  let newest = 0;
+  for (const node of nodes || []) {
+    const seenAt = Number(node?.last_seen_at) || 0;
+    if (seenAt > newest) {
+      newest = seenAt;
+    }
+  }
+  return newest;
+}
+
+function validatorMapNodeIsRemembered(node, newestSeenAt) {
+  const seenAt = Number(node?.last_seen_at) || 0;
+  if (!seenAt || !newestSeenAt) {
+    return false;
+  }
+  return newestSeenAt - seenAt >= VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS;
+}
+
+function validatorMapLastSeenLabel(node, newestSeenAt) {
+  if (!validatorMapNodeIsRemembered(node, newestSeenAt)) {
+    return null;
+  }
+  // Whether it is remembered is decided against the rest of the file; how long
+  // ago is decided against the clock, because that is what "ago" means to a
+  // reader.
+  const seenAt = Number(node?.last_seen_at) || 0;
+  const minutes = Math.max(1, Math.round((Date.now() / 1000 - seenAt) / 60));
+  return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+}
