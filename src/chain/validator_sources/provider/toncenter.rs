@@ -13,7 +13,9 @@ use tycho_types::cell::Cell;
 #[derive(Clone)]
 pub(in crate::chain::validator_sources) struct TonCenterValidatorSourceProvider {
     client: TonCenterJsonRpcClient,
-    account_states_endpoint: String,
+    /// TON Center's v3 account-states endpoint, when this endpoint has one.
+    /// Another host may speak the v2 dialect without offering v3 at all.
+    account_states_endpoint: Option<String>,
     account_states: Arc<Mutex<HashMap<String, TonCenterAccountState>>>,
 }
 
@@ -107,10 +109,18 @@ impl TonCenterValidatorSourceProvider {
         &self,
         account_addresses: &[String],
     ) -> Result<Vec<TonCenterAccountState>, RpcCallError> {
-        let mut url = Url::parse(&self.account_states_endpoint).map_err(|error| {
+        let Some(endpoint) = self.account_states_endpoint.as_deref() else {
+            // Permanent, not transient: no number of retries gives this
+            // endpoint a v3 API. The caller keeps the snapshot and goes
+            // without the extra validator detail.
+            return Err(RpcCallError::Other(anyhow!(
+                "endpoint has no TON Center v3 API for account states"
+            )));
+        };
+        let mut url = Url::parse(endpoint).map_err(|error| {
             RpcCallError::Other(anyhow!(
                 "invalid TON Center account states endpoint `{}`: {error}",
-                crate::chain::util::endpoint_label(&self.account_states_endpoint)
+                crate::chain::util::endpoint_label(endpoint)
             ))
         })?;
         {
@@ -209,10 +219,16 @@ fn ensure_active_toncenter_account(
     Ok(())
 }
 
-fn account_states_endpoint(endpoint: &str) -> String {
-    endpoint
-        .trim_end_matches('/')
-        .replace("/api/v2/jsonRPC", "/api/v3/accountStates")
+/// The v3 account-states endpoint that goes with a v2 JSON-RPC one.
+///
+/// Only TON Center itself serves both. Orbs TON Access answers the v2 dialect
+/// at `.../toncenter-api-v2/jsonRPC` and has no v3 at all, so there is nothing
+/// to derive - and guessing would send every enrichment request into a 404.
+fn account_states_endpoint(endpoint: &str) -> Option<String> {
+    let trimmed = endpoint.trim_end_matches('/');
+    trimmed
+        .contains("/api/v2/jsonRPC")
+        .then(|| trimmed.replace("/api/v2/jsonRPC", "/api/v3/accountStates"))
 }
 
 fn address_key(address: &str) -> String {
@@ -244,12 +260,20 @@ mod tests {
     #[test]
     fn derives_v3_account_states_endpoint() {
         assert_eq!(
-            account_states_endpoint("https://toncenter.com/api/v2/jsonRPC"),
-            "https://toncenter.com/api/v3/accountStates"
+            account_states_endpoint("https://toncenter.com/api/v2/jsonRPC").as_deref(),
+            Some("https://toncenter.com/api/v3/accountStates")
         );
         assert_eq!(
-            account_states_endpoint("https://toncenter.com/api/v2/jsonRPC/"),
-            "https://toncenter.com/api/v3/accountStates"
+            account_states_endpoint("https://toncenter.com/api/v2/jsonRPC/").as_deref(),
+            Some("https://toncenter.com/api/v3/accountStates")
+        );
+        // Orbs TON Access speaks the v2 dialect and has no v3 behind it, so
+        // there is no endpoint to derive and none is invented.
+        assert_eq!(
+            account_states_endpoint(
+                "https://ton.access.orbs.network/4411/1/mainnet/toncenter-api-v2/jsonRPC"
+            ),
+            None
         );
     }
 

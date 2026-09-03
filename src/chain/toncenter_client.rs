@@ -25,7 +25,9 @@ impl TonCenterJsonRpcClient {
         Ok(Self {
             client: crate::http::shared_client().clone(),
             endpoint: endpoint.to_owned(),
-            api_key: env::var("VALIDATORCLOCK_TONCENTER_API_KEY").ok(),
+            api_key: is_toncenter_own_host(endpoint)
+                .then(|| env::var("VALIDATORCLOCK_TONCENTER_API_KEY").ok())
+                .flatten(),
         })
     }
 
@@ -121,14 +123,37 @@ impl TonCenterJsonRpcClient {
     }
 }
 
+/// An endpoint that speaks TON Center's v2 JSON-RPC dialect.
+///
+/// The dialect is not TON Center's alone. Orbs TON Access serves the same
+/// methods at the same `/jsonRPC` path, and so does a self-hosted
+/// `ton-http-api`; TON Center's own host has been rate limiting an
+/// unauthenticated caller after two requests, so being able to name another
+/// one is the difference between having a fallback and not having one.
+///
+/// What the path cannot say is who is on the other end. That question is
+/// answered separately, by `is_toncenter_own_host`, and only for deciding
+/// where the API key may go.
 pub(super) fn is_toncenter_json_rpc_endpoint(endpoint: &str) -> bool {
     let Ok(url) = Url::parse(endpoint.trim()) else {
         return false;
     };
-    if url.path().trim_end_matches('/') != "/api/v2/jsonRPC" {
-        return false;
-    }
 
+    url.path_segments()
+        .and_then(|mut segments| segments.rfind(|segment| !segment.is_empty()))
+        .is_some_and(|segment| segment.eq_ignore_ascii_case("jsonRPC"))
+}
+
+/// TON Center's own hosts - the only ones the API key is sent to.
+///
+/// The key travels in a request header, so it goes wherever the endpoint
+/// points. Now that an endpoint speaking this dialect may belong to someone
+/// else, handing them the key along with the request would be giving away a
+/// credential to a party that never asked for one.
+fn is_toncenter_own_host(endpoint: &str) -> bool {
+    let Ok(url) = Url::parse(endpoint.trim()) else {
+        return false;
+    };
     let Some(host) = url.host_str() else {
         return false;
     };
@@ -152,10 +177,37 @@ mod tests {
         assert!(is_toncenter_json_rpc_endpoint(
             "https://testnet.toncenter.com/api/v2/jsonRPC"
         ));
+        // Someone else serving the same dialect. Recognising it is the whole
+        // point: TON Center alone leaves the chain without a fallback.
+        assert!(is_toncenter_json_rpc_endpoint(
+            "https://ton.access.orbs.network/4411/1/mainnet/toncenter-api-v2/jsonRPC"
+        ));
+
+        // The other two dialects must not be mistaken for this one.
         assert!(!is_toncenter_json_rpc_endpoint(
             "https://jrpc-ton.broxus.com"
         ));
         assert!(!is_toncenter_json_rpc_endpoint(
+            "https://mainnet.evercloud.dev/graphql"
+        ));
+    }
+
+    #[test]
+    fn the_api_key_goes_only_to_toncenter_itself() {
+        assert!(is_toncenter_own_host(
+            "https://toncenter.com/api/v2/jsonRPC"
+        ));
+        assert!(is_toncenter_own_host(
+            "https://testnet.toncenter.com/api/v2/jsonRPC"
+        ));
+
+        // Speaks the same dialect, but the key is not theirs to hold.
+        assert!(!is_toncenter_own_host(
+            "https://ton.access.orbs.network/4411/1/mainnet/toncenter-api-v2/jsonRPC"
+        ));
+        // And a host that merely says `toncenter.com` inside its path is not
+        // TON Center either.
+        assert!(!is_toncenter_own_host(
             "https://example.com/toncenter.com/api/v2/jsonRPC"
         ));
     }
