@@ -19,6 +19,8 @@ fn the_written_set_is_one_the_location_map_can_read() {
         validators_main: 2,
         validators_with_adnl: 2,
         resolved_total: 1,
+        remembered_total: 0,
+        placed_total: 1,
         resolver: ResolverMetadata {
             local_adnl_addr: "0.0.0.0:4191".to_owned(),
             bootstrap_nodes: 3,
@@ -41,6 +43,7 @@ fn the_written_set_is_one_the_location_map_can_read() {
                         version: "udp4".to_owned(),
                     }],
                     error: None,
+                    confirmed_at: None,
                 },
             },
             ResolvedValidator {

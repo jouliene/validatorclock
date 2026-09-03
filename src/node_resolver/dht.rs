@@ -64,6 +64,11 @@ pub(super) struct Resolution {
     pub(super) addresses: Vec<ResolvedAddress>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) error: Option<String>,
+    /// When the DHT last confirmed this address. Present on a remembered
+    /// answer so a reader can tell how old it is, and absent on a fresh one,
+    /// where the answer is the pass itself.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub(super) confirmed_at: Option<u64>,
 }
 
 impl Resolution {
@@ -72,6 +77,19 @@ impl Resolution {
             status: "resolved".to_owned(),
             addresses: vec![address],
             error: None,
+            confirmed_at: None,
+        }
+    }
+
+    /// An address the DHT confirmed on an earlier pass and could not reach on
+    /// this one. Named apart from `resolved` on purpose: it is older than the
+    /// pass that reports it, and says so.
+    pub(super) fn remembered(address: ResolvedAddress, confirmed_at: u64) -> Self {
+        Self {
+            status: "remembered".to_owned(),
+            addresses: vec![address],
+            error: None,
+            confirmed_at: Some(confirmed_at),
         }
     }
 
@@ -80,6 +98,7 @@ impl Resolution {
             status: "failed".to_owned(),
             addresses: Vec::new(),
             error: Some(error.into()),
+            confirmed_at: None,
         }
     }
 
@@ -88,6 +107,7 @@ impl Resolution {
             status: "missing_adnl".to_owned(),
             addresses: Vec::new(),
             error: Some("validator has no adnl_addr in active set".to_owned()),
+            confirmed_at: None,
         }
     }
 
@@ -96,12 +116,19 @@ impl Resolution {
             status: "invalid_adnl".to_owned(),
             addresses: Vec::new(),
             error: Some(format!("adnl_addr must be 32 bytes hex, got {adnl_addr}")),
+            confirmed_at: None,
         }
     }
 
     #[cfg(test)]
     pub(super) fn failed_for_test(error: &str) -> Self {
         Self::failed(error)
+    }
+
+    /// Whether this validator has an address to put on the map, however it
+    /// was arrived at.
+    pub(super) fn has_address(&self) -> bool {
+        !self.addresses.is_empty()
     }
 
     pub(super) fn is_resolved(&self) -> bool {

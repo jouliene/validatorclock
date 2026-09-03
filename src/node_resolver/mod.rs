@@ -13,6 +13,7 @@
 //! not go blank for each one.
 
 mod dht;
+mod memory;
 
 use crate::chain::ClockSnapshot;
 use crate::config::{NodeResolverChainConfig, NodeResolverConfig};
@@ -21,6 +22,7 @@ use crate::state::AppState;
 use anyhow::{Context, Result, anyhow};
 use dht::{AdnlDhtResolver, Resolution, is_hex_32};
 use futures::{StreamExt, stream};
+use memory::ResolvedAddressMemory;
 use serde::Serialize;
 use std::sync::Arc;
 use std::time::Duration;
@@ -147,17 +149,27 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
     .await
     .context("failed to start the DHT resolver")?;
 
+    // What the last run learned, so a restart does not begin by forgetting.
+    let output_path = chain
+        .output_path
+        .as_deref()
+        .ok_or_else(|| anyhow!("output_path is required"))?;
+    let mut memory = ResolvedAddressMemory::from_previous_output(output_path);
+
     info!(
         chain_id,
         local_adnl_addr = %resolver.local_adnl_addr(),
         bootstrap_nodes = resolver.bootstrap_nodes(),
         refresh_seconds = config.refresh_seconds,
+        remembered = memory.len(),
         "node resolver started"
     );
 
     loop {
         let snapshot = wait_for_snapshot(state, chain_id).await;
-        if let Err(error) = collect_once(chain_id, chain, config, &resolver, snapshot).await {
+        if let Err(error) =
+            collect_once(chain_id, chain, config, &resolver, snapshot, &mut memory).await
+        {
             warn!(chain_id, error = ?error, "node resolver pass failed");
         }
         sleep(Duration::from_secs(config.refresh_seconds)).await;
@@ -189,6 +201,7 @@ async fn collect_once(
     // the site was down and fetched over the network what was already in
     // memory a function call away.
     snapshot: ClockSnapshot,
+    memory: &mut ResolvedAddressMemory,
 ) -> Result<()> {
     let warmup = resolver.warmup_network().await;
     debug!(
@@ -200,6 +213,7 @@ async fn collect_once(
         "DHT warmed up"
     );
 
+    let now = crate::timeutil::now_sec();
     let validators = &snapshot.current_set.validators;
     let resolved = stream::iter(validators.iter())
         .map(|validator| async move {
@@ -227,9 +241,45 @@ async fn collect_once(
         .collect::<Vec<_>>()
         .await;
 
+    // A lookup that timed out has not told us the address is gone, only that
+    // this pass could not reach it - and the passes disagree: of ten that
+    // failed one pass, five answered the next. An address the DHT confirmed
+    // within the hour is offered again rather than dropped, marked as
+    // remembered and carrying the time it was last confirmed.
+    let mut resolved = resolved;
+    for validator in &mut resolved {
+        match (&validator.adnl_addr, validator.resolution.is_resolved()) {
+            (Some(adnl_addr), true) => {
+                if let Some(address) = validator.resolution.addresses.first() {
+                    memory.remember(adnl_addr, address, now);
+                }
+            }
+            (Some(adnl_addr), false) => {
+                if let Some(recalled) = memory.recall(adnl_addr, now) {
+                    validator.resolution = recalled;
+                }
+            }
+            (None, _) => {}
+        }
+    }
+    memory.retain_only(
+        &validators
+            .iter()
+            .filter_map(|validator| validator.adnl_addr.clone())
+            .collect::<Vec<_>>(),
+    );
+
     let resolved_total = resolved
         .iter()
         .filter(|validator| validator.resolution.is_resolved())
+        .count();
+    let remembered_total = resolved
+        .iter()
+        .filter(|validator| validator.resolution.status == "remembered")
+        .count();
+    let placed_total = resolved
+        .iter()
+        .filter(|validator| validator.resolution.has_address())
         .count();
     let with_adnl = resolved
         .iter()
@@ -250,6 +300,8 @@ async fn collect_once(
         validators_main: usize::from(snapshot.current_set.main),
         validators_with_adnl: with_adnl,
         resolved_total,
+        remembered_total,
+        placed_total,
         resolver: ResolverMetadata {
             local_adnl_addr: resolver.local_adnl_addr().to_owned(),
             bootstrap_nodes: resolver.bootstrap_nodes(),
@@ -267,6 +319,8 @@ async fn collect_once(
         validators_total = output.validators_total,
         validators_with_adnl = with_adnl,
         resolved_total,
+        remembered_total,
+        placed_total,
         round_id = output.round_id,
         output_path = %output_path.display(),
         "resolved validator addresses"
@@ -286,7 +340,12 @@ struct ResolvedSet {
     validators_total: usize,
     validators_main: usize,
     validators_with_adnl: usize,
+    /// Confirmed by the DHT during this pass.
     resolved_total: usize,
+    /// Not reached this pass, but confirmed within the hour and offered again.
+    remembered_total: usize,
+    /// How many validators have an address to put on the map at all.
+    placed_total: usize,
     resolver: ResolverMetadata,
     validators: Vec<ResolvedValidator>,
 }
