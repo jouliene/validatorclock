@@ -91,7 +91,6 @@ pub(super) const APP_ROUND_STATS_DATA_JS: &str =
 pub(super) const APP_ROUND_STATS_PANEL_JS: &str =
     include_str!("../../../public/app/round_stats_panel.js");
 pub(super) const APP_ROUNDS_JS: &str = include_str!("../../../public/app/rounds.js");
-pub(super) const APP_TYCHO_NODES_JS: &str = include_str!("../../../public/app/tycho_nodes.js");
 pub(super) const APP_MAP_JS: &str = include_str!("../../../public/app/map.js");
 pub(super) const APP_MAP_DATA_JS: &str = include_str!("../../../public/app/map_data.js");
 pub(super) const APP_MAP_FEATURES_JS: &str = include_str!("../../../public/app/map_features.js");
@@ -211,7 +210,6 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_ROUND_STATS_DATA_JS,
     APP_ROUND_STATS_PANEL_JS,
     APP_ROUNDS_JS,
-    APP_TYCHO_NODES_JS,
     APP_MAP_JS,
     APP_MAP_DATA_JS,
     APP_MAP_FEATURES_JS,

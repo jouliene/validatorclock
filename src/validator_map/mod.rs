@@ -1,5 +1,5 @@
 use crate::config::AppConfig;
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde_json::Value;
 use std::io::ErrorKind;
 
@@ -8,15 +8,10 @@ mod matching;
 mod parsing;
 
 use file_cache::load_map_nodes_file;
-use parsing::ensure_map_nodes_array;
 
 pub(crate) use matching::{filter_map_nodes_to_validators, map_nodes_by_peer};
 
 pub(crate) const BUNDLED_TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
-pub(crate) const BUNDLED_TON_MAP_CHAIN_ID: &str = "ton";
-
-const APP_TYCHO_NODES_JS: &str = include_str!("../../public/app/tycho_nodes.js");
-const APP_TON_NODES_JSON: &str = include_str!("../../public/app/ton_nodes.json");
 
 #[derive(Clone)]
 pub(crate) struct MapNodesPayload {
@@ -38,8 +33,11 @@ pub(crate) fn load_map_nodes_with_metadata(
         return Ok(Some(payload));
     }
 
-    if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID {
-        return load_tycho_map_nodes_with_metadata(config).map(Some);
+    if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID
+        && let Some(path) = &config.tycho_map_nodes_path
+        && let Some(payload) = load_map_nodes_file_if_exists(path)?
+    {
+        return Ok(Some(payload));
     }
 
     if let Some(path) = config.node_location_output_path(chain_id)
@@ -48,37 +46,15 @@ pub(crate) fn load_map_nodes_with_metadata(
         return Ok(Some(payload));
     }
 
-    if chain_id == BUNDLED_TON_MAP_CHAIN_ID {
-        let value = fallback_ton_nodes_json().context("failed to parse bundled TON map nodes")?;
-        let nodes = ensure_map_nodes_array(value)?;
-        return Ok(Some(MapNodesPayload {
-            nodes,
-            updated_at: None,
-        }));
-    }
-
+    // Nothing, and nothing is the answer.
+    //
+    // There used to be a snapshot of each map compiled into the binary, served
+    // whenever the real one was missing. It did not read as a fallback from
+    // outside: with the collector stopped and its file deleted on purpose, the
+    // page went on showing 393 TON nodes from a picture taken four months
+    // earlier, and neither the map nor /api/status said a word about it. A map
+    // that cannot be drawn should look like a map that cannot be drawn.
     Ok(None)
-}
-
-fn load_tycho_map_nodes_with_metadata(config: &AppConfig) -> Result<MapNodesPayload> {
-    if let Some(path) = &config.tycho_map_nodes_path
-        && let Some(payload) = load_map_nodes_file_if_exists(path)?
-    {
-        return Ok(payload);
-    }
-
-    if let Some(path) = config.node_location_output_path(BUNDLED_TYCHO_MAP_CHAIN_ID)
-        && let Some(payload) = load_map_nodes_file_if_exists(&path)?
-    {
-        return Ok(payload);
-    }
-
-    let value = fallback_tycho_nodes_json().context("failed to parse bundled Tycho map nodes")?;
-    let nodes = ensure_map_nodes_array(value)?;
-    Ok(MapNodesPayload {
-        nodes,
-        updated_at: None,
-    })
 }
 
 fn load_map_nodes_file_if_exists(path: &std::path::Path) -> Result<Option<MapNodesPayload>> {
@@ -95,18 +71,4 @@ fn is_not_found_error(error: &anyhow::Error) -> bool {
             .downcast_ref::<std::io::Error>()
             .is_some_and(|error| error.kind() == ErrorKind::NotFound)
     })
-}
-
-pub(crate) fn fallback_tycho_nodes_json() -> Result<Value, serde_json::Error> {
-    let body = APP_TYCHO_NODES_JS
-        .trim()
-        .strip_prefix("window.TYCHO_NODES =")
-        .and_then(|body| body.trim().strip_suffix(';'))
-        .unwrap_or("[]");
-
-    serde_json::from_str(body.trim())
-}
-
-pub(crate) fn fallback_ton_nodes_json() -> Result<Value, serde_json::Error> {
-    serde_json::from_str(APP_TON_NODES_JSON.trim())
 }

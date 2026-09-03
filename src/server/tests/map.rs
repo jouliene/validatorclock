@@ -1,62 +1,52 @@
 use super::*;
-use axum::http::{StatusCode, header};
+use axum::http::StatusCode;
 use serde_json::json;
 use std::fs;
 
 #[tokio::test]
-async fn app_router_serves_bundled_tycho_map_when_no_file_is_configured() {
-    let mut config = test_config(Vec::new());
-    config.chains.push(test_chain_config(
-        "tycho-testnet",
-        "Tycho",
-        "#58c9f6",
-        "TYCHO",
-    ));
-    let state = state_from_config(config);
-    cache_tycho_snapshot(
-        &state,
-        &["1778eb66b9386bcc37031cad14d73e4554413b23d16b4b680726375a622f3a5b"],
-    )
-    .await;
+async fn a_chain_with_no_map_file_is_shown_as_having_no_map() {
+    // There used to be a snapshot of each map compiled into the binary and
+    // served whenever the real one was missing. It hid exactly the failure it
+    // was supposed to cushion: with the collector stopped and the file deleted
+    // on purpose, the page went on drawing 393 TON nodes from a picture four
+    // months old, and nothing anywhere said so.
+    for (chain_id, name, colour, symbol, peer) in [
+        (
+            "tycho-testnet",
+            "Tycho",
+            "#58c9f6",
+            "TYCHO",
+            "1778eb66b9386bcc37031cad14d73e4554413b23d16b4b680726375a622f3a5b",
+        ),
+        (
+            "ton",
+            "TON",
+            "#4DB8FF",
+            "TON",
+            "63345c7d7dbcc14f8bce8811cf3fba41981ec0d80d4bfc6c5e089fb82f867a5e",
+        ),
+    ] {
+        let mut config = test_config(Vec::new());
+        config
+            .chains
+            .push(test_chain_config(chain_id, name, colour, symbol));
+        let state = state_from_config(config);
+        if chain_id == "tycho-testnet" {
+            cache_tycho_snapshot(&state, &[peer]).await;
+        } else {
+            cache_snapshot(&state, chain_id, &[peer]).await;
+        }
 
-    let response = app_response(state, "/api/chains/tycho-testnet/map").await;
+        let response = app_response(state, &format!("/api/chains/{chain_id}/map")).await;
 
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
-    let body = response_json(response).await;
-    assert_eq!(body.as_array().unwrap().len(), 1);
-    assert_eq!(
-        body[0]["peer"],
-        "1778eb66b9386bcc37031cad14d73e4554413b23d16b4b680726375a622f3a5b"
-    );
-    assert!(body[0]["ip"].is_string());
-}
-
-#[tokio::test]
-async fn app_router_serves_bundled_ton_map_when_no_file_is_configured() {
-    let mut config = test_config(Vec::new());
-    config
-        .chains
-        .push(test_chain_config("ton", "TON", "#4DB8FF", "TON"));
-    let state = state_from_config(config);
-    cache_snapshot(
-        &state,
-        "ton",
-        &["63345c7d7dbcc14f8bce8811cf3fba41981ec0d80d4bfc6c5e089fb82f867a5e"],
-    )
-    .await;
-
-    let response = app_response(state, "/api/chains/ton/map").await;
-
-    assert_eq!(response.status(), StatusCode::OK);
-    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/json");
-    let body = response_json(response).await;
-    assert_eq!(body.as_array().unwrap().len(), 1);
-    assert_eq!(
-        body[0]["peer"],
-        "63345c7d7dbcc14f8bce8811cf3fba41981ec0d80d4bfc6c5e089fb82f867a5e"
-    );
-    assert!(body[0]["ip"].is_string());
+        assert_eq!(
+            response.status(),
+            StatusCode::NOT_FOUND,
+            "{chain_id} has no map file, so it has no map"
+        );
+        let body = response_json(response).await;
+        assert_eq!(body["code"], "map_not_available");
+    }
 }
 
 #[tokio::test]

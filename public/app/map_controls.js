@@ -219,8 +219,6 @@ function updateValidatorMapSummary() {
   let nodes = [];
   if (validatorMapNodes && validatorMapNodesChainId === state.selectedChainId) {
     nodes = validatorMapNodes;
-  } else if (state.selectedChainId === BUNDLED_TYCHO_MAP_CHAIN_ID && Array.isArray(window.TYCHO_NODES)) {
-    nodes = window.TYCHO_NODES;
   }
   const totalNodes = Array.isArray(state.snapshot?.current_set?.validators)
     ? state.snapshot.current_set.validators.length

@@ -44,13 +44,11 @@ async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
     const response = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/map`);
     nodes = Array.isArray(response) ? response : [];
   } catch (error) {
-    if (chainId === BUNDLED_TYCHO_MAP_CHAIN_ID) {
-      console.warn("Using bundled Tycho map nodes", error);
-      nodes = Array.isArray(window.TYCHO_NODES) ? window.TYCHO_NODES : [];
-    } else {
-      console.warn(`Unable to load ${chainId} map nodes`, error);
-      nodes = [];
-    }
+    // No stand-in. A map that could not be loaded shows as empty, because a
+    // page quietly drawing an old picture of the network is worse than a page
+    // that admits it has none.
+    console.warn(`Unable to load ${chainId} map nodes`, error);
+    nodes = [];
   }
 
   nodes = enrichValidatorMapNodes(
