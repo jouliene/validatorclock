@@ -16,12 +16,11 @@ use anyhow::{Context, Result, anyhow, bail};
 use ever_block::{Ed25519KeyOption, KeyId, KeyOption, UInt256, base64_decode};
 use futures::{StreamExt, stream};
 use serde::Deserialize;
-use std::collections::BTreeSet;
 use std::convert::TryInto;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::time::timeout;
+use tokio::time::{sleep, timeout};
 use ton_api::IntoBoxed;
 use ton_api::ton::adnl::address::address::Udp;
 use ton_api::ton::adnl::addresslist::AddressList as AdnlAddressList;
@@ -33,9 +32,23 @@ use tracing::debug;
 const DHT_KEY_TAG: usize = 1;
 /// How wide a single DHT lookup searches before giving up.
 const SEARCH_WIDTH: u8 = 5;
-/// A ceiling on the nodes pulled out of the DHT for the widened search, so a
-/// large network cannot turn one lookup into an unbounded walk.
+/// A ceiling on the nodes counted when reporting how much of the network the
+/// DHT has learned of, so a large network cannot turn a log line into an
+/// unbounded walk.
 const MAX_KNOWN_NODES: usize = 10_000;
+/// How many times one validator is asked about before a pass gives up on it.
+///
+/// A search that fails does not run out of time - it runs out of peers, and
+/// says so in a fraction of a second. What makes it fail is the company it
+/// keeps: a whole validator set going out at once means enough queries go
+/// unanswered that the walk towards the node holding the value ends early.
+/// Measured against TON's active set of 393, a pass loses four to eight
+/// addresses and almost never the same ones twice, while those same addresses
+/// asked for on their own answer at once. So a miss is worth asking again.
+const LOOKUP_ATTEMPTS: usize = 3;
+/// How long to wait before asking again, so the next try is not made in the
+/// same crowd that lost the last one.
+const ATTEMPT_PAUSE: Duration = Duration::from_secs(2);
 /// How many bootstrap peers are greeted at once during warmup.
 const WARMUP_CONCURRENCY: usize = 32;
 /// How long one bootstrap peer has to answer the greeting.
@@ -138,6 +151,12 @@ impl Resolution {
     pub(super) fn is_resolved(&self) -> bool {
         self.status == "resolved" && !self.addresses.is_empty()
     }
+
+    /// A lookup that went out and came back with nothing - as opposed to a
+    /// validator that never had an address worth looking up.
+    pub(super) fn is_failed(&self) -> bool {
+        self.status == "failed"
+    }
 }
 
 /// A validator address is 32 bytes of hex and nothing else; anything that is
@@ -148,9 +167,10 @@ pub(super) fn is_hex_32(value: &str) -> bool {
 }
 
 pub(super) struct AdnlDhtResolver {
-    /// Held for as long as the resolver lives: dropping it closes the socket
-    /// the DHT answers on.
-    _adnl: Arc<AdnlNode>,
+    /// Held for as long as the resolver lives. Dropping the handle does not
+    /// close the socket - the node's own loops hold one too - so a resolver
+    /// that is meant to end has to be told to, see `shutdown`.
+    adnl: Arc<AdnlNode>,
     dht: Arc<DhtNode>,
     preset_nodes: Vec<Arc<KeyId>>,
     local_adnl_addr: String,
@@ -203,12 +223,22 @@ impl AdnlDhtResolver {
         }
 
         Ok(Self {
-            _adnl: adnl,
+            adnl,
             dht,
             preset_nodes,
             local_adnl_addr: local_adnl_addr.to_owned(),
             lookup_timeout,
         })
+    }
+
+    /// Close the socket and stop the loops behind it.
+    ///
+    /// The resolver that runs the sweeps lives as long as the process and
+    /// never needs this. The one built for a single round of second asks does:
+    /// dropping it would leave its loops running and its socket open, and a
+    /// pass every five minutes would go on opening more of them for ever.
+    pub(super) async fn shutdown(self) {
+        self.adnl.stop().await;
     }
 
     pub(super) fn bootstrap_nodes(&self) -> usize {
@@ -270,76 +300,29 @@ impl AdnlDhtResolver {
                 .map_err(|_| anyhow!("adnl key must be 32 bytes"))?,
         );
 
-        let mut context = None;
-        let mut responsive_bootstrap = 0usize;
-        let mut bootstrap_errors = Vec::new();
-
-        if let Some(address) = self.find_address(&key_id, &mut context).await {
-            return Ok(address);
-        }
-
-        // The DHT did not know. Reach each bootstrap peer in turn and ask
-        // again after each one: a peer that answers brings its own neighbours
-        // with it, and the address is often behind one of them.
-        for (index, node_key) in self.preset_nodes.iter().enumerate() {
-            match self.dht.find_dht_nodes_in_network(node_key, None).await {
-                Ok(true) => responsive_bootstrap += 1,
-                Ok(false) => {
-                    bootstrap_errors.push(format!("bootstrap #{} did not respond", index + 1))
-                }
-                Err(error) => bootstrap_errors.push(format!("bootstrap #{}: {error}", index + 1)),
+        for attempt in 1..=LOOKUP_ATTEMPTS {
+            if attempt > 1 {
+                sleep(ATTEMPT_PAUSE).await;
             }
-
+            // A search context of its own for each try. The context carries
+            // the iterator of peers still worth asking, and a search that
+            // found nothing is a search that emptied it: handing the same one
+            // back means asking no one at all.
+            let mut context = None;
             if let Some(address) = self.find_address(&key_id, &mut context).await {
                 return Ok(address);
             }
         }
 
-        // Last resort: sweep everyone the DHT has heard of.
-        let mut known_nodes = Vec::new();
-        let mut known_node_ids = BTreeSet::new();
-        for node in self
-            .dht
-            .get_known_nodes_of_network(MAX_KNOWN_NODES, None)
-            .context("failed to read known DHT nodes")?
-        {
-            if let Some(key) = self
-                .dht
-                .add_peer_to_network(&node, None)
-                .context("failed to add known DHT node")?
-                && known_node_ids.insert(key.to_string())
-            {
-                known_nodes.push(key);
-            }
-        }
-
-        for node_key in known_nodes {
-            let _ = self.dht.find_dht_nodes_in_network(&node_key, None).await;
-            if let Some(address) = self.find_address(&key_id, &mut context).await {
-                return Ok(address);
-            }
-        }
-
-        let details = if bootstrap_errors.is_empty() {
-            String::new()
-        } else {
-            format!("; {}", bootstrap_errors.join("; "))
-        };
-        bail!(
-            "address not found after checking {} bootstrap DHT peers ({} responsive){}",
-            self.preset_nodes.len(),
-            responsive_bootstrap,
-            details
-        )
+        bail!("the DHT had no address for this validator in {LOOKUP_ATTEMPTS} tries")
     }
 
     /// One attempt through the library's own search.
     ///
     /// A failure here is not the end of the search, and must not be returned
-    /// as one. The library treats an address it cannot read as an error - and
-    /// since TON added `adnl.address.quic` it cannot read a great many of
-    /// them - so propagating that error would abandon the validator before
-    /// the address had been asked for in a way that can read it.
+    /// as one. The library reports an address it cannot read as an error, and
+    /// an answer we cannot read is "not here", not "stop looking" - propagating
+    /// it would abandon the validator over one peer's malformed reply.
     async fn find_address(
         &self,
         key_id: &Arc<KeyId>,

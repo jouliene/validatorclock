@@ -107,3 +107,86 @@ fn nothing_runs_for_a_chain_that_was_not_asked_for() {
 
     assert!(config.active_chains().is_empty());
 }
+
+/// The second ask is for addresses the DHT was asked about and said nothing
+/// to. A validator with no address, or a malformed one, was never asked and
+/// asking now would spend a lookup to be told the same thing again.
+#[test]
+fn only_the_lookups_that_came_back_empty_are_asked_again() {
+    fn validator(adnl_addr: Option<&str>, resolution: Resolution) -> ResolvedValidator {
+        ResolvedValidator {
+            validator_public_key: "a".repeat(64),
+            adnl_addr: adnl_addr.map(str::to_owned),
+            wallet: None,
+            source_address: None,
+            source_contract_type_hash: None,
+            contract_type: None,
+            stake: None,
+            weight: None,
+            resolution,
+        }
+    }
+
+    let found = Resolution {
+        status: "resolved".to_owned(),
+        addresses: vec![dht::ResolvedAddress {
+            ip: "104.238.222.200".to_owned(),
+            port: 40100,
+            version: "udp4".to_owned(),
+        }],
+        error: None,
+        confirmed_at: Some(1_788_400_000),
+    };
+
+    let resolved = vec![
+        validator(
+            Some(&"b".repeat(64)),
+            Resolution::failed_for_test("no answer"),
+        ),
+        validator(Some(&"c".repeat(64)), found),
+        validator(None, Resolution::missing_adnl()),
+        validator(Some("xyz"), Resolution::invalid_adnl("xyz")),
+        validator(
+            Some(&"d".repeat(64)),
+            Resolution::failed_for_test("no answer"),
+        ),
+    ];
+
+    let misses = misses_worth_asking_again(&resolved);
+    assert_eq!(
+        misses,
+        vec![(0, "b".repeat(64)), (4, "d".repeat(64))],
+        "the two empty lookups, by position and address: {misses:?}"
+    );
+}
+
+/// A miss and a validator that had nothing to look up read the same on the
+/// map - no address - and must not read the same to the resolver, which asks
+/// the first kind again and not the second.
+#[test]
+fn a_lookup_that_found_nothing_is_told_apart_from_one_never_made() {
+    assert!(Resolution::failed_for_test("no answer").is_failed());
+    assert!(!Resolution::missing_adnl().is_failed());
+    assert!(!Resolution::invalid_adnl("xyz").is_failed());
+}
+
+/// The sweep's socket is taken for as long as the resolver lives, so the
+/// client built for a second ask binds elsewhere - on the same interface, on a
+/// port that is free and, unlike port zero, has a number to announce.
+#[test]
+fn the_second_ask_binds_a_named_port_on_the_same_interface() {
+    assert_eq!(host_of("0.0.0.0:4291"), "0.0.0.0");
+    assert_eq!(host_of("127.0.0.1:4191"), "127.0.0.1");
+    assert_eq!(
+        host_of("0.0.0.0"),
+        "0.0.0.0",
+        "an address written without a port is all interface"
+    );
+
+    let port = free_port("127.0.0.1").expect("the system has a port to spare");
+    assert_ne!(port, 0, "port zero is what this exists to avoid");
+    assert!(
+        std::net::UdpSocket::bind(("127.0.0.1", port)).is_ok(),
+        "the port it offers is one that can actually be opened"
+    );
+}

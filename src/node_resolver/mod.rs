@@ -25,7 +25,7 @@ use futures::{StreamExt, stream};
 use memory::ResolvedAddressMemory;
 use serde::Serialize;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
 
@@ -38,6 +38,27 @@ const RETRY_AFTER: Duration = Duration::from_secs(60);
 /// arrives seconds after this thread does - so this waits in short steps
 /// rather than standing down for a whole refresh interval.
 const SNAPSHOT_POLL: Duration = Duration::from_secs(5);
+/// How many times the addresses a pass could not reach are asked about again
+/// once the pass is over.
+///
+/// A sweep of a whole validator set loses a handful of addresses that answer
+/// perfectly well when asked for on their own. Asking again is worth doing;
+/// asking again *through the same DHT client* is not, and the difference
+/// between the two is the whole of this. See `recover_misses`.
+const RECOVERY_ROUNDS: usize = 2;
+/// How long to let the network settle before asking again.
+const RECOVERY_PAUSE: Duration = Duration::from_secs(20);
+/// How many of those second asks go out at once. Few, on purpose: a fresh
+/// client's short candidate list is the thing being protected here.
+const RECOVERY_WORKERS: usize = 2;
+/// How many times to ask the system for a port before giving the round up. A
+/// port free a moment ago can be taken by the time the socket opens.
+const BIND_TRIES: usize = 3;
+/// How long one round of second asks may run. A round normally asks about
+/// four to eight addresses and is done in well under this; the budget is here
+/// so that a pass which has lost a great many of them still ends in time for
+/// the next one.
+const RECOVERY_ROUND_BUDGET: Duration = Duration::from_secs(90);
 const SCHEMA_VERSION: u32 = 1;
 
 /// Start one collector per configured chain.
@@ -241,12 +262,14 @@ async fn collect_once(
         .collect::<Vec<_>>()
         .await;
 
-    // A lookup that timed out has not told us the address is gone, only that
+    let mut resolved = resolved;
+    let recovered_total = recover_misses(chain_id, chain, config, &mut resolved).await;
+
+    // A lookup that failed has not told us the address is gone, only that
     // this pass could not reach it - and the passes disagree: of ten that
     // failed one pass, five answered the next. An address the DHT confirmed
     // within the hour is offered again rather than dropped, marked as
     // remembered and carrying the time it was last confirmed.
-    let mut resolved = resolved;
     for validator in &mut resolved {
         match (&validator.adnl_addr, validator.resolution.is_resolved()) {
             (Some(adnl_addr), true) => {
@@ -319,6 +342,7 @@ async fn collect_once(
         validators_total = output.validators_total,
         validators_with_adnl = with_adnl,
         resolved_total,
+        recovered_total,
         remembered_total,
         placed_total,
         round_id = output.round_id,
@@ -326,6 +350,165 @@ async fn collect_once(
         "resolved validator addresses"
     );
     Ok(())
+}
+
+/// Ask again about the validators this pass lost - through a DHT client that
+/// has not just been through a sweep.
+///
+/// A client that has looked up four hundred addresses is not the client that
+/// started. The library keeps at most a few candidate peers per key and scores
+/// down every peer that fails to answer, so by the end of a sweep the peers
+/// nearest some keys are all in its bad books. A search like that does not
+/// time out - it reports "not found" in half a second, having asked no one.
+///
+/// Measured on one set of six misses, asked again at the same moment: through
+/// the client that lost them, none came back; through a client built there and
+/// then, three did - one of them an address that a whole afternoon of passes,
+/// and the resolver this project replaces, had never once found.
+///
+/// So each round gets a socket and a routing table of its own and throws them
+/// away afterwards. It costs a greeting to the bootstrap peers and a handful
+/// of lookups.
+async fn recover_misses(
+    chain_id: &str,
+    chain: &NodeResolverChainConfig,
+    config: &NodeResolverConfig,
+    resolved: &mut [ResolvedValidator],
+) -> usize {
+    let mut recovered_total = 0;
+    for round in 1..=RECOVERY_ROUNDS {
+        let misses = misses_worth_asking_again(resolved);
+        if misses.is_empty() {
+            break;
+        }
+
+        sleep(RECOVERY_PAUSE).await;
+        let resolver = match unused_resolver(chain, config).await {
+            Ok(resolver) => resolver,
+            Err(error) => {
+                debug!(chain_id, error = ?error, "no second resolver for the second ask");
+                break;
+            }
+        };
+        resolver.warmup_network().await;
+
+        let asked = misses.len();
+        let deadline = Instant::now() + RECOVERY_ROUND_BUDGET;
+        let mut answers = stream::iter(misses)
+            .map(|(index, adnl_addr)| {
+                let resolver = &resolver;
+                // Dated when this lookup was made, not when the round began:
+                // a round can take a minute and a half, and the map measures
+                // how old a point is from exactly this.
+                async move {
+                    let now = crate::timeutil::now_sec();
+                    (index, resolver.resolve(&adnl_addr, now).await)
+                }
+            })
+            .buffer_unordered(RECOVERY_WORKERS);
+
+        // Taken one at a time rather than collected, so that a round which
+        // runs long can be stopped while keeping what it has already found.
+        // The usual round asks about a handful; a bad enough moment on the
+        // network could hand it a hundred, and the pass still has to end.
+        let mut recovered = 0;
+        let mut answered = 0;
+        while let Some((index, resolution)) = answers.next().await {
+            answered += 1;
+            if resolution.is_resolved() {
+                recovered += 1;
+                resolved[index].resolution = resolution;
+            }
+            if Instant::now() >= deadline {
+                break;
+            }
+        }
+        drop(answers);
+        recovered_total += recovered;
+        debug!(
+            chain_id,
+            round, asked, answered, recovered, "asked again about the addresses this pass lost"
+        );
+        resolver.shutdown().await;
+    }
+    recovered_total
+}
+
+/// A DHT client of its own for one round of second asks.
+///
+/// The chain's configured port belongs to the resolver that runs the sweeps
+/// and cannot be shared - two sockets on one address means the second one
+/// never opens - so this one takes a free port, and takes it by name.
+async fn unused_resolver(
+    chain: &NodeResolverChainConfig,
+    config: &NodeResolverConfig,
+) -> Result<AdnlDhtResolver> {
+    let global_config_path = chain
+        .global_config_path
+        .as_deref()
+        .ok_or_else(|| anyhow!("global_config_path is required"))?;
+    let host = host_of(config.local_adnl_addr_for(chain));
+    let lookup_timeout = Duration::from_secs(config.lookup_timeout_seconds);
+
+    let mut last_error = None;
+    for _ in 0..BIND_TRIES {
+        let port = free_port(host)?;
+        match AdnlDhtResolver::new(
+            global_config_path,
+            &format!("{host}:{port}"),
+            lookup_timeout,
+        )
+        .await
+        {
+            Ok(resolver) => return Ok(resolver),
+            // Between asking the system for a free port and opening the DHT
+            // node on it, someone else can have taken it. Ask for another.
+            Err(error) => last_error = Some(error),
+        }
+    }
+    Err(last_error.unwrap_or_else(|| anyhow!("no free port for a second resolver")))
+}
+
+/// A port to open the second ask's socket on.
+///
+/// Not port zero, which is how one usually says "any free port" and is the
+/// wrong way to say it here: the ADNL node announces to every peer it greets
+/// the address to find it at, and a node announcing port zero is one a good
+/// share of the network will not deal with. Measured over full sweeps from
+/// the same machine, minutes apart: 386 of 393 resolved from a named port,
+/// 330 from port zero - and fewer bootstrap peers answered the greeting, too.
+/// So the port is borrowed from the system first and then announced honestly.
+fn free_port(host: &str) -> Result<u16> {
+    let socket = std::net::UdpSocket::bind((host, 0))
+        .with_context(|| format!("failed to find a free port on {host}"))?;
+    Ok(socket.local_addr()?.port())
+}
+
+/// The interface part of a configured `host:port`.
+fn host_of(configured: &str) -> &str {
+    match configured.rsplit_once(':') {
+        Some((host, _)) => host,
+        None => configured,
+    }
+}
+
+/// Which validators are worth a second ask, and their addresses.
+///
+/// Only the ones whose lookup went out and came back empty. A validator the
+/// chain gave no ADNL address for, or gave a malformed one, has nothing to ask
+/// about - asking again would spend a lookup to be told the same thing.
+fn misses_worth_asking_again(resolved: &[ResolvedValidator]) -> Vec<(usize, String)> {
+    resolved
+        .iter()
+        .enumerate()
+        .filter(|(_, validator)| validator.resolution.is_failed())
+        .filter_map(|(index, validator)| {
+            validator
+                .adnl_addr
+                .clone()
+                .map(|adnl_addr| (index, adnl_addr))
+        })
+        .collect()
 }
 
 /// What one pass produced. The shape is the one the node location map already
