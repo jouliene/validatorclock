@@ -18,7 +18,8 @@ pub(crate) struct NodeResolverConfig {
     /// The local address the DHT answers on. It is a UDP socket, and only one
     /// process can hold it - while the external resolver still runs, this has
     /// to be a different port than the one it uses.
-    pub(crate) local_adnl_addr: String,
+    #[serde(alias = "local_adnl_addr")]
+    pub(crate) local_addr: String,
     /// How long one validator's lookup may take before it is called a miss.
     pub(crate) lookup_timeout_seconds: u64,
     /// How many validators are looked up at once.
@@ -26,18 +27,35 @@ pub(crate) struct NodeResolverConfig {
     pub(crate) chains: HashMap<String, NodeResolverChainConfig>,
 }
 
+/// Which network a chain publishes its addresses in.
+///
+/// Everscale and TON both use an ADNL DHT. Tycho has no ADNL at all: its
+/// peers are QUIC endpoints and their addresses live in a DHT of its own.
+#[derive(Debug, Clone, Copy, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub(crate) enum ResolverProtocol {
+    #[default]
+    Adnl,
+    Tycho,
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub(crate) struct NodeResolverChainConfig {
     pub(crate) enabled: bool,
+    /// The network this chain's addresses are looked up on. Defaults to ADNL,
+    /// which is what a config written before Tycho was resolved here means.
+    pub(crate) protocol: ResolverProtocol,
     /// The chain's global config, for the DHT bootstrap peers.
     pub(crate) global_config_path: Option<PathBuf>,
     /// The address this chain's DHT answers on, when it needs one of its own.
     ///
     /// A socket belongs to one chain: two chains sharing an address means the
     /// second one never starts. Left unset, the chain uses the shared address,
-    /// which is right when only one chain is being resolved.
-    pub(crate) local_adnl_addr: Option<String>,
+    /// which is right when only one chain is being resolved. For Tycho this
+    /// is a QUIC socket rather than an ADNL one; it is a UDP port either way.
+    #[serde(alias = "local_adnl_addr")]
+    pub(crate) local_addr: Option<String>,
     /// Where the resolved set is written. This is the file the node location
     /// map reads, so the result survives a restart and the page has addresses
     /// to draw before the DHT has said a word.
@@ -50,7 +68,7 @@ impl Default for NodeResolverConfig {
             enabled: false,
             refresh_seconds: 300,
             startup_delay_seconds: 30,
-            local_adnl_addr: "0.0.0.0:4191".to_owned(),
+            local_addr: "0.0.0.0:4191".to_owned(),
             lookup_timeout_seconds: 30,
             workers: 16,
             chains: HashMap::new(),
@@ -72,8 +90,8 @@ impl NodeResolverConfig {
         if self.workers == 0 {
             bail!("node_resolver.workers must be greater than zero");
         }
-        if self.local_adnl_addr.trim().is_empty() {
-            bail!("node_resolver.local_adnl_addr cannot be empty");
+        if self.local_addr.trim().is_empty() {
+            bail!("node_resolver.local_addr cannot be empty");
         }
         for (chain_id, chain) in &self.chains {
             if !chain.enabled {
@@ -94,14 +112,11 @@ impl NodeResolverConfig {
             if !chain.enabled {
                 continue;
             }
-            let address = chain
-                .local_adnl_addr
-                .as_deref()
-                .unwrap_or(&self.local_adnl_addr);
+            let address = chain.local_addr.as_deref().unwrap_or(&self.local_addr);
             if let Some(other) = addresses.insert(address.to_owned(), chain_id) {
                 bail!(
                     "node_resolver chains `{other}` and `{chain_id}` both want {address}; \
-                     give each chain its own local_adnl_addr"
+                     give each chain its own local_addr"
                 );
             }
         }
@@ -109,11 +124,8 @@ impl NodeResolverConfig {
     }
 
     /// The address a chain's DHT should answer on.
-    pub(crate) fn local_adnl_addr_for<'a>(&'a self, chain: &'a NodeResolverChainConfig) -> &'a str {
-        chain
-            .local_adnl_addr
-            .as_deref()
-            .unwrap_or(&self.local_adnl_addr)
+    pub(crate) fn local_addr_for<'a>(&'a self, chain: &'a NodeResolverChainConfig) -> &'a str {
+        chain.local_addr.as_deref().unwrap_or(&self.local_addr)
     }
 
     /// The chains this resolver is actually meant to run for.
@@ -139,9 +151,10 @@ mod tests {
     fn enabled_chain() -> NodeResolverChainConfig {
         NodeResolverChainConfig {
             enabled: true,
+            protocol: ResolverProtocol::default(),
             global_config_path: Some(PathBuf::from("/tmp/global.json")),
             output_path: Some(PathBuf::from("/tmp/out.json")),
-            local_adnl_addr: None,
+            local_addr: None,
         }
     }
 
@@ -167,7 +180,7 @@ mod tests {
                 (
                     "ton".to_owned(),
                     NodeResolverChainConfig {
-                        local_adnl_addr: Some("0.0.0.0:4291".to_owned()),
+                        local_addr: Some("0.0.0.0:4291".to_owned()),
                         ..enabled_chain()
                     },
                 ),
@@ -175,6 +188,44 @@ mod tests {
             ..NodeResolverConfig::default()
         };
         assert!(separate.validate().is_ok());
+    }
+
+    /// The chain says which network it is, and a config written before Tycho
+    /// was resolved here says nothing - which has to keep meaning ADNL.
+    #[test]
+    fn a_chain_names_the_network_its_addresses_live_in() {
+        let tycho: NodeResolverChainConfig = serde_json::from_str(
+            r#"{"enabled": true, "protocol": "tycho",
+                "global_config_path": "/tmp/tycho.json", "output_path": "/tmp/out.json"}"#,
+        )
+        .unwrap();
+        assert_eq!(tycho.protocol, ResolverProtocol::Tycho);
+
+        let unsaid: NodeResolverChainConfig = serde_json::from_str(r#"{"enabled": true}"#).unwrap();
+        assert_eq!(unsaid.protocol, ResolverProtocol::Adnl);
+
+        assert!(
+            serde_json::from_str::<NodeResolverChainConfig>(r#"{"protocol": "carrier pigeon"}"#)
+                .is_err(),
+            "a network no one here speaks is a mistake worth refusing to start over"
+        );
+    }
+
+    /// The address field was named for ADNL back when ADNL was all there was.
+    /// Deployments are written down and left alone, so the old name still has
+    /// to work.
+    #[test]
+    fn the_old_name_for_the_socket_is_still_understood() {
+        let config: NodeResolverConfig = serde_json::from_str(
+            r#"{"local_adnl_addr": "0.0.0.0:4191",
+                "chains": {"ton": {"enabled": true, "local_adnl_addr": "0.0.0.0:4291"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(config.local_addr, "0.0.0.0:4191");
+        assert_eq!(
+            config.chains["ton"].local_addr.as_deref(),
+            Some("0.0.0.0:4291")
+        );
     }
 
     #[test]

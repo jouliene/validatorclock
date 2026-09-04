@@ -14,9 +14,10 @@
 
 mod dht;
 mod memory;
+mod tycho;
 
 use crate::chain::ClockSnapshot;
-use crate::config::{NodeResolverChainConfig, NodeResolverConfig};
+use crate::config::{NodeResolverChainConfig, NodeResolverConfig, ResolverProtocol};
 use crate::fsutil::write_file_atomic;
 use crate::state::AppState;
 use anyhow::{Context, Result, anyhow};
@@ -28,6 +29,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
 use tracing::{debug, error, info, warn};
+use tycho::TychoDhtResolver;
 
 /// How long to wait before building the DHT node again after it failed. The
 /// usual reasons - the address already taken, a bootstrap file not yet in
@@ -154,21 +156,12 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
     let Some(chain) = config.chains.get(chain_id).filter(|chain| chain.enabled) else {
         return Ok(());
     };
-    let global_config_path = chain
-        .global_config_path
-        .as_deref()
-        .ok_or_else(|| anyhow!("global_config_path is required"))?;
-
     // Built once and kept: the socket, the bootstrap peers and everything the
     // DHT has learned are worth far more than they cost to hold, and throwing
     // them away every cycle would make each round start from a cold network.
-    let resolver = AdnlDhtResolver::new(
-        global_config_path,
-        config.local_adnl_addr_for(chain),
-        Duration::from_secs(config.lookup_timeout_seconds),
-    )
-    .await
-    .context("failed to start the DHT resolver")?;
+    let resolver = ChainResolver::open(chain, config, config.local_addr_for(chain))
+        .await
+        .context("failed to start the DHT resolver")?;
 
     // What the last run learned, so a restart does not begin by forgetting.
     let output_path = chain
@@ -179,7 +172,7 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
 
     info!(
         chain_id,
-        local_adnl_addr = %resolver.local_adnl_addr(),
+        local_addr = %resolver.local_addr(),
         bootstrap_nodes = resolver.bootstrap_nodes(),
         refresh_seconds = config.refresh_seconds,
         remembered = memory.len(),
@@ -216,7 +209,7 @@ async fn collect_once(
     chain_id: &str,
     chain: &NodeResolverChainConfig,
     config: &NodeResolverConfig,
-    resolver: &AdnlDhtResolver,
+    resolver: &ChainResolver,
     // The validator set this process already holds. The program this replaces
     // asked the site's own HTTP API for it, which meant it could not run while
     // the site was down and fetched over the network what was already in
@@ -224,15 +217,7 @@ async fn collect_once(
     snapshot: ClockSnapshot,
     memory: &mut ResolvedAddressMemory,
 ) -> Result<()> {
-    let warmup = resolver.warmup_network().await;
-    debug!(
-        chain_id,
-        checked = warmup.checked,
-        responsive = warmup.responsive,
-        errors = warmup.errors,
-        known_nodes = warmup.known_nodes,
-        "DHT warmed up"
-    );
+    resolver.warmup(chain_id).await;
 
     let now = crate::timeutil::now_sec();
     let validators = &snapshot.current_set.validators;
@@ -326,7 +311,7 @@ async fn collect_once(
         remembered_total,
         placed_total,
         resolver: ResolverMetadata {
-            local_adnl_addr: resolver.local_adnl_addr().to_owned(),
+            local_addr: resolver.local_addr().to_owned(),
             bootstrap_nodes: resolver.bootstrap_nodes(),
         },
         validators: resolved,
@@ -350,6 +335,98 @@ async fn collect_once(
         "resolved validator addresses"
     );
     Ok(())
+}
+
+/// Where a chain's addresses are looked up.
+///
+/// Everscale and TON publish theirs in an ADNL DHT. Tycho has no ADNL at all -
+/// its peers are QUIC endpoints and their addresses live in a DHT of its own -
+/// and the difference ends at the lookup. A pass, the second ask after it and
+/// the memory behind both are the same work whichever network answered, so
+/// only this one thing is told apart.
+enum ChainResolver {
+    Adnl(AdnlDhtResolver),
+    Tycho(TychoDhtResolver),
+}
+
+impl ChainResolver {
+    async fn open(
+        chain: &NodeResolverChainConfig,
+        config: &NodeResolverConfig,
+        local_addr: &str,
+    ) -> Result<Self> {
+        let global_config_path = chain
+            .global_config_path
+            .as_deref()
+            .ok_or_else(|| anyhow!("global_config_path is required"))?;
+        let lookup_timeout = Duration::from_secs(config.lookup_timeout_seconds);
+
+        Ok(match chain.protocol {
+            ResolverProtocol::Adnl => Self::Adnl(
+                AdnlDhtResolver::new(global_config_path, local_addr, lookup_timeout).await?,
+            ),
+            ResolverProtocol::Tycho => Self::Tycho(
+                TychoDhtResolver::new(global_config_path, local_addr, lookup_timeout).await?,
+            ),
+        })
+    }
+
+    fn local_addr(&self) -> &str {
+        match self {
+            Self::Adnl(resolver) => resolver.local_addr(),
+            Self::Tycho(resolver) => resolver.local_addr(),
+        }
+    }
+
+    fn bootstrap_nodes(&self) -> usize {
+        match self {
+            Self::Adnl(resolver) => resolver.bootstrap_nodes(),
+            Self::Tycho(resolver) => resolver.bootstrap_nodes(),
+        }
+    }
+
+    /// Reach the network before the pass, and say what came of it. The two
+    /// stacks warm up differently enough that each reports its own way.
+    async fn warmup(&self, chain_id: &str) {
+        match self {
+            Self::Adnl(resolver) => {
+                let warmup = resolver.warmup_network().await;
+                debug!(
+                    chain_id,
+                    checked = warmup.checked,
+                    responsive = warmup.responsive,
+                    errors = warmup.errors,
+                    known_nodes = warmup.known_nodes,
+                    "DHT warmed up"
+                );
+            }
+            Self::Tycho(resolver) => {
+                resolver.warmup_network().await;
+                debug!(
+                    chain_id,
+                    bootstrap_nodes = resolver.bootstrap_nodes(),
+                    "Tycho DHT warmed up"
+                );
+            }
+        }
+    }
+
+    async fn resolve(&self, adnl_addr: &str, now: u64) -> Resolution {
+        match self {
+            Self::Adnl(resolver) => resolver.resolve(adnl_addr, now).await,
+            Self::Tycho(resolver) => resolver.resolve(adnl_addr, now).await,
+        }
+    }
+
+    /// Close the sockets a throwaway resolver opened. The ADNL node has to be
+    /// told; the Tycho one ends when it is dropped, because the tasks behind
+    /// it hold nothing but a weak reference to it.
+    async fn shutdown(self) {
+        match self {
+            Self::Adnl(resolver) => resolver.shutdown().await,
+            Self::Tycho(_) => {}
+        }
+    }
 }
 
 /// Ask again about the validators this pass lost - through a DHT client that
@@ -390,7 +467,7 @@ async fn recover_misses(
                 break;
             }
         };
-        resolver.warmup_network().await;
+        resolver.warmup(chain_id).await;
 
         let asked = misses.len();
         let deadline = Instant::now() + RECOVERY_ROUND_BUDGET;
@@ -442,27 +519,16 @@ async fn recover_misses(
 async fn unused_resolver(
     chain: &NodeResolverChainConfig,
     config: &NodeResolverConfig,
-) -> Result<AdnlDhtResolver> {
-    let global_config_path = chain
-        .global_config_path
-        .as_deref()
-        .ok_or_else(|| anyhow!("global_config_path is required"))?;
-    let host = host_of(config.local_adnl_addr_for(chain));
-    let lookup_timeout = Duration::from_secs(config.lookup_timeout_seconds);
+) -> Result<ChainResolver> {
+    let host = host_of(config.local_addr_for(chain));
 
     let mut last_error = None;
     for _ in 0..BIND_TRIES {
         let port = free_port(host)?;
-        match AdnlDhtResolver::new(
-            global_config_path,
-            &format!("{host}:{port}"),
-            lookup_timeout,
-        )
-        .await
-        {
+        match ChainResolver::open(chain, config, &format!("{host}:{port}")).await {
             Ok(resolver) => return Ok(resolver),
-            // Between asking the system for a free port and opening the DHT
-            // node on it, someone else can have taken it. Ask for another.
+            // Between asking the system for a free port and opening the socket
+            // on it, someone else can have taken it. Ask for another.
             Err(error) => last_error = Some(error),
         }
     }
@@ -535,7 +601,7 @@ struct ResolvedSet {
 
 #[derive(Debug, Serialize)]
 struct ResolverMetadata {
-    local_adnl_addr: String,
+    local_addr: String,
     bootstrap_nodes: usize,
 }
 
