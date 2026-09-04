@@ -22,7 +22,7 @@ fn the_written_set_is_one_the_location_map_can_read() {
         remembered_total: 0,
         placed_total: 1,
         resolver: ResolverMetadata {
-            local_adnl_addr: "0.0.0.0:4191".to_owned(),
+            local_addr: "0.0.0.0:4191".to_owned(),
             bootstrap_nodes: 3,
         },
         validators: vec![
@@ -99,7 +99,8 @@ fn nothing_runs_for_a_chain_that_was_not_asked_for() {
                 enabled: false,
                 global_config_path: Some(PathBuf::from("/tmp/global.json")),
                 output_path: Some(PathBuf::from("/tmp/out.json")),
-                local_adnl_addr: None,
+                local_addr: None,
+                protocol: crate::config::ResolverProtocol::Adnl,
             },
         )]),
         ..NodeResolverConfig::default()

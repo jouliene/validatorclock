@@ -10,7 +10,7 @@ mod tls;
 
 pub(crate) use acme::AcmeConfig;
 pub(crate) use app::{AppConfig, ChainConfig, NodeLocationChainConfig, NodeLocationsConfig};
-pub(crate) use node_resolver::{NodeResolverChainConfig, NodeResolverConfig};
+pub(crate) use node_resolver::{NodeResolverChainConfig, NodeResolverConfig, ResolverProtocol};
 pub(crate) use security::SecurityConfig;
 #[cfg(test)]
 pub(crate) use security::StatsAuthConfig;

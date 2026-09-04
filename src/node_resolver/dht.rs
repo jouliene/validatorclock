@@ -89,7 +89,7 @@ pub(super) struct Resolution {
 }
 
 impl Resolution {
-    fn resolved(address: ResolvedAddress, confirmed_at: u64) -> Self {
+    pub(super) fn resolved(address: ResolvedAddress, confirmed_at: u64) -> Self {
         Self {
             status: "resolved".to_owned(),
             addresses: vec![address],
@@ -110,7 +110,7 @@ impl Resolution {
         }
     }
 
-    fn failed(error: impl Into<String>) -> Self {
+    pub(super) fn failed(error: impl Into<String>) -> Self {
         Self {
             status: "failed".to_owned(),
             addresses: Vec::new(),
@@ -173,7 +173,7 @@ pub(super) struct AdnlDhtResolver {
     adnl: Arc<AdnlNode>,
     dht: Arc<DhtNode>,
     preset_nodes: Vec<Arc<KeyId>>,
-    local_adnl_addr: String,
+    local_addr: String,
     lookup_timeout: Duration,
 }
 
@@ -188,17 +188,15 @@ pub(super) struct NetworkWarmupStats {
 impl AdnlDhtResolver {
     pub(super) async fn new(
         global_config_path: &Path,
-        local_adnl_addr: &str,
+        local_addr: &str,
         lookup_timeout: Duration,
     ) -> Result<Self> {
         let config = read_global_config(global_config_path)?;
         let dht_nodes = config.dht_node_configs()?;
 
-        let (_, adnl_config) = AdnlNodeConfig::with_ip_address_and_private_key_tags(
-            local_adnl_addr,
-            vec![DHT_KEY_TAG],
-        )
-        .context("failed to create local ADNL config")?;
+        let (_, adnl_config) =
+            AdnlNodeConfig::with_ip_address_and_private_key_tags(local_addr, vec![DHT_KEY_TAG])
+                .context("failed to create local ADNL config")?;
         let adnl = AdnlNode::with_config(adnl_config)
             .await
             .context("failed to create local ADNL node")?;
@@ -226,7 +224,7 @@ impl AdnlDhtResolver {
             adnl,
             dht,
             preset_nodes,
-            local_adnl_addr: local_adnl_addr.to_owned(),
+            local_addr: local_addr.to_owned(),
             lookup_timeout,
         })
     }
@@ -245,8 +243,8 @@ impl AdnlDhtResolver {
         self.preset_nodes.len()
     }
 
-    pub(super) fn local_adnl_addr(&self) -> &str {
-        &self.local_adnl_addr
+    pub(super) fn local_addr(&self) -> &str {
+        &self.local_addr
     }
 
     /// Reach the bootstrap peers before a round of lookups, so the first
