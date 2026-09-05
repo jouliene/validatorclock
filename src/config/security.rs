@@ -77,17 +77,7 @@ impl StatsAuthConfig {
     }
 
     pub(crate) fn effective_password(&self) -> Option<String> {
-        self.password
-            .as_deref()
-            .map(str::trim)
-            .filter(|password| !password.is_empty())
-            .map(str::to_owned)
-            .or_else(|| {
-                std::env::var(&self.password_env)
-                    .ok()
-                    .map(|password| password.trim().to_owned())
-                    .filter(|password| !password.is_empty())
-            })
+        super::from_config_or_env::secret(self.password.as_deref(), &self.password_env)
     }
 }
 

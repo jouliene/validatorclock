@@ -404,17 +404,7 @@ impl NodeLocationsConfig {
     }
 
     pub(crate) fn effective_ipinfo_token(&self) -> Option<String> {
-        self.ipinfo_token
-            .as_deref()
-            .map(str::trim)
-            .filter(|token| !token.is_empty())
-            .map(str::to_owned)
-            .or_else(|| {
-                std::env::var(&self.ipinfo_token_env)
-                    .ok()
-                    .map(|token| token.trim().to_owned())
-                    .filter(|token| !token.is_empty())
-            })
+        super::from_config_or_env::secret(self.ipinfo_token.as_deref(), &self.ipinfo_token_env)
     }
 }
 

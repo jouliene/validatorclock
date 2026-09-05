@@ -5,9 +5,7 @@ use std::path::Path;
 
 use super::AppState;
 use super::json_store::JsonStore;
-use crate::timeutil::{
-    SECONDS_PER_DAY, day_index, day_string, now_sec as now_seconds, parse_day_index,
-};
+use crate::timeutil::{SECONDS_PER_DAY, day_index, day_string, now_sec, parse_day_index};
 
 const SESSION_TIMEOUT_SECONDS: u64 = 1_800;
 const ONLINE_WINDOW_SECONDS: u64 = 120;
@@ -107,7 +105,7 @@ pub(crate) struct VisitorEvent {
 
 impl AppState {
     pub(crate) async fn record_visitor(&self, ip: IpAddr) -> VisitorEvent {
-        let now = now_seconds();
+        let now = now_sec();
         let today_index = day_index(now);
         let today = day_string(today_index);
 
@@ -176,7 +174,7 @@ impl AppState {
 
     /// Addresses seen within the online window, for the traffic summary.
     pub(crate) async fn visitors_online(&self) -> u64 {
-        let now = now_seconds();
+        let now = now_sec();
         let runtime = self.visitors.lock().await;
         runtime
             .store
@@ -188,7 +186,7 @@ impl AppState {
     }
 
     pub(crate) async fn public_visitors(&self) -> PublicVisitors {
-        let now = now_seconds();
+        let now = now_sec();
         let today_index = day_index(now);
         let today = day_string(today_index);
         let window_start = today_index.saturating_sub(29);
@@ -240,7 +238,7 @@ impl AppState {
     }
 
     pub(crate) async fn visitor_ips_missing_geo(&self, limit: usize) -> Vec<IpAddr> {
-        let now = now_seconds();
+        let now = now_sec();
         let runtime = self.visitors.lock().await;
         runtime
             .store
@@ -270,7 +268,7 @@ impl AppState {
                     record.geo = Some(geo);
                 }
             }
-            runtime.store.take_snapshot(now_seconds(), 0)
+            runtime.store.take_snapshot(now_sec(), 0)
         };
 
         if let Some(snapshot) = snapshot {

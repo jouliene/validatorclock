@@ -6,7 +6,7 @@ use std::path::Path;
 
 use super::AppState;
 use super::json_store::JsonStore;
-use crate::timeutil::{day_index, day_string, now_sec as now_seconds, parse_day_index};
+use crate::timeutil::{day_index, day_string, now_sec, parse_day_index};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum AnalyticsEventKind {
@@ -140,7 +140,7 @@ impl AppState {
     }
 
     pub(crate) async fn public_analytics(&self) -> PublicAnalytics {
-        let now = now_seconds();
+        let now = now_sec();
         let today_index = day_index(now);
         let today_key = day_string(today_index);
         let online_now = self.visitors_online().await;
@@ -251,7 +251,7 @@ mod tests {
     #[test]
     fn windows_add_up_the_days_they_cover() {
         let mut disk = AnalyticsDisk::default();
-        let today = day_index(now_seconds());
+        let today = day_index(now_sec());
         for (offset, visits) in [(0, 3), (2, 5), (10, 7), (40, 100)] {
             disk.days.insert(
                 day_string(today - offset),
