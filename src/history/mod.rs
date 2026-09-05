@@ -1,4 +1,5 @@
-use crate::chain::RoundColor;
+use crate::chain::{RoundColor, ValidatorSetDto};
+use std::collections::BTreeSet;
 
 mod participation;
 mod retention;
@@ -18,6 +19,16 @@ pub(crate) use types::{
     RoundHistoryStore, ValidatorParticipationDto,
 };
 use window::RoundWindow;
+
+/// The peers a set calls fake, in the form the store compares them in: folded
+/// to lower case, with the empty ones dropped.
+fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {
+    set.fake_validator_peers
+        .iter()
+        .map(|peer| peer.to_ascii_lowercase())
+        .filter(|peer| !peer.is_empty())
+        .collect()
+}
 
 fn opposite_round_color(round_color: RoundColor) -> RoundColor {
     match round_color {

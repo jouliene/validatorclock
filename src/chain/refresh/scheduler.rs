@@ -30,11 +30,12 @@ pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
 }
 
 pub(super) async fn spawn_stale_snapshot_refresh(state: Arc<AppState>, chain_id: String, now: u64) {
+    // No sooner than one refresh interval, and no later than the point a
+    // refresh already running would have been given up on.
     let retry_after_seconds = state
         .config
         .refresh_seconds
-        .max(10)
-        .min(state.config.refresh_timeout_seconds.max(10));
+        .min(state.config.refresh_timeout_seconds);
     if !state
         .mark_refresh_attempt_if_due(&chain_id, now, retry_after_seconds)
         .await
@@ -48,7 +49,7 @@ pub(super) async fn spawn_stale_snapshot_refresh(state: Arc<AppState>, chain_id:
 }
 
 async fn background_refresh_loop(state: Arc<AppState>) {
-    let refresh_seconds = state.config.refresh_seconds.max(10);
+    let refresh_seconds = state.config.refresh_seconds;
     info!(refresh_seconds, "background chain refresh started");
     let mut ticker = interval(Duration::from_secs(refresh_seconds));
     ticker.set_missed_tick_behavior(MissedTickBehavior::Delay);

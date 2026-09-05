@@ -1,8 +1,6 @@
 use super::{RoundHistoryStore, StoredRound};
 use crate::chain::RoundStatsPointDto;
-use crate::decimal::parse_decimal;
-
-const SECONDS_PER_YEAR: f64 = 365.0 * 24.0 * 60.0 * 60.0;
+use crate::decimal::{annual_reward_percent, parse_decimal};
 
 impl RoundHistoryStore {
     pub(crate) fn round_stats_points(&self, chain_id: &str) -> Vec<RoundStatsPointDto> {
@@ -42,13 +40,10 @@ impl StoredRound {
     }
 
     fn profitability_percent(&self) -> Option<f64> {
-        let duration = self.utime_until.checked_sub(self.utime_since)?.max(1) as f64;
+        let round_seconds = self.utime_until.checked_sub(self.utime_since)?.max(1);
         let stake = self.total_stake.as_deref().and_then(parse_decimal)?;
         let reward = self.total_reward.as_deref().and_then(parse_decimal)?;
-        if stake <= 0.0 || reward < 0.0 {
-            return None;
-        }
 
-        Some(reward / stake * (SECONDS_PER_YEAR / (duration * 2.0)) * 100.0)
+        annual_reward_percent(stake, reward, f64::from(round_seconds))
     }
 }

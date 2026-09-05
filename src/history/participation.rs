@@ -1,6 +1,6 @@
 use super::{
     ParticipationStatus, RecentAbsentValidatorDto, RoundHistoryStore, RoundWindow,
-    ValidatorParticipationDto, opposite_round_color,
+    ValidatorParticipationDto, fake_validator_peer_set, opposite_round_color,
 };
 use crate::chain::{ClockSnapshot, RoundColor, ValidatorDto, ValidatorSetDto};
 use std::collections::{BTreeMap, BTreeSet, HashSet};
@@ -287,14 +287,6 @@ impl RoundHistoryStore {
             .filter_map(|(_, round)| round.validator_for_identity(public_key, wallet))
             .find_map(|validator| validator.map_node.clone())
     }
-}
-
-fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {
-    set.fake_validator_peers
-        .iter()
-        .map(|peer| peer.to_ascii_lowercase())
-        .filter(|peer| !peer.is_empty())
-        .collect()
 }
 
 pub(super) struct ValidatorIdentitySet {

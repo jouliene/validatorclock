@@ -116,6 +116,35 @@ fn node_locations_require_separate_input_and_output_paths() {
     assert!(error.contains("input_path must differ from output_path"));
 }
 
+/// The floor used to be applied wherever the interval was read - four places,
+/// each on its own - so `/api/status` could report an interval the config never
+/// asked for. It is raised once, where the config is loaded, and a zero is
+/// still a mistake rather than a small number.
+#[test]
+fn an_interval_below_the_floor_is_raised_once_and_a_zero_is_still_refused() {
+    let mut config = test_config();
+    config.refresh_seconds = 3;
+    config.normalize();
+    assert_eq!(config.refresh_seconds, MIN_REFRESH_SECONDS);
+    assert!(config.validate().is_ok());
+
+    let mut config = test_config();
+    config.refresh_seconds = 600;
+    config.normalize();
+    assert_eq!(
+        config.refresh_seconds, 600,
+        "a workable interval is left alone"
+    );
+
+    let mut config = test_config();
+    config.refresh_seconds = 0;
+    config.normalize();
+    assert!(
+        config.validate().is_err(),
+        "a zero interval is a broken config, not one to fix quietly"
+    );
+}
+
 #[test]
 fn rejects_empty_and_missing_required_config_fields() {
     let mut config = test_config();

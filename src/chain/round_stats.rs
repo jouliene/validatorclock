@@ -1,11 +1,10 @@
 use super::dto::{RoundStatsColorDto, RoundStatsPointDto, ValidatorRoundData};
 use super::util::round_color;
 use super::{ChainMeta, ChainRoundStatsDto, ClockSnapshot, RoundColor};
-use crate::decimal::parse_decimal;
+use crate::decimal::{annual_reward_percent, min_max_decimals, parse_decimal};
 use std::collections::{BTreeMap, HashMap};
 
 const ROUND_STATS_LIMIT_PER_COLOR: usize = 5;
-const SECONDS_PER_YEAR: f64 = 365.0 * 24.0 * 60.0 * 60.0;
 
 pub(crate) fn chain_round_stats_from_history(
     snapshot: &ClockSnapshot,
@@ -105,29 +104,12 @@ fn round_stats_point(
 }
 
 fn min_max_stakes(round_data: &ValidatorRoundData) -> (Option<String>, Option<String>) {
-    let mut stakes = round_data.validators.values().filter_map(|validator| {
-        parse_decimal(&validator.stake).map(|value| (value, &validator.stake))
-    });
-
-    let Some(first) = stakes.next() else {
-        return (None, None);
-    };
-
-    let (min, max) = stakes.fold((first, first), |(min, max), stake| {
-        let min = if stake.0.total_cmp(&min.0).is_lt() {
-            stake
-        } else {
-            min
-        };
-        let max = if stake.0.total_cmp(&max.0).is_gt() {
-            stake
-        } else {
-            max
-        };
-        (min, max)
-    });
-
-    (Some(min.1.clone()), Some(max.1.clone()))
+    min_max_decimals(
+        round_data
+            .validators
+            .values()
+            .map(|validator| &validator.stake),
+    )
 }
 
 fn profitability_percent(
@@ -135,7 +117,12 @@ fn profitability_percent(
     validators_elected_for: u32,
     round_data: &ValidatorRoundData,
 ) -> Option<f64> {
-    let duration = validators_elected_for.max(1) as f64;
+    // A round with no start is a round that never happened, whatever it says
+    // it was paid.
+    if utime_since == 0 {
+        return None;
+    }
+
     let stake = round_data
         .total_stake_raw
         .as_deref()
@@ -147,11 +134,7 @@ fn profitability_percent(
         .and_then(parse_decimal)
         .or_else(|| round_data.total_reward.as_deref().and_then(parse_decimal))?;
 
-    if stake <= 0.0 || reward < 0.0 || utime_since == 0 {
-        return None;
-    }
-
-    Some(reward / stake * (SECONDS_PER_YEAR / (duration * 2.0)) * 100.0)
+    annual_reward_percent(stake, reward, f64::from(validators_elected_for.max(1)))
 }
 
 #[cfg(test)]
@@ -168,7 +151,7 @@ mod tests {
         let point = round_stats_point(ROUND_SECONDS, ROUND_SECONDS, &round_data).unwrap();
 
         let expected =
-            60_000.0 / 10_000_000.0 * (SECONDS_PER_YEAR / (f64::from(ROUND_SECONDS) * 2.0)) * 100.0;
+            annual_reward_percent(10_000_000.0, 60_000.0, f64::from(ROUND_SECONDS)).unwrap();
         assert!(
             (point.profitability_percent.unwrap() - expected).abs() < 0.000_001,
             "unexpected profitability: {:?}",
