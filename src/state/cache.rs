@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use tracing::{info, warn};
 
 const SNAPSHOT_CACHE_VERSION: u32 = 1;
@@ -124,50 +125,104 @@ fn save_chain_cache(base_path: &Path, chain_id: &str, entry: &CacheEntry) -> Res
     write_file_atomic(&path, &data, 0o600)
 }
 
+/// A chain's answer to its readers, worked out once.
+#[derive(Clone)]
+pub(super) struct ReadySnapshot {
+    /// When the data behind it was fetched - not when it was annotated - so
+    /// freshness still means what it meant.
+    fetched_at: u64,
+    snapshot: Arc<ClockSnapshot>,
+}
+
 impl AppState {
     pub(crate) async fn cached_snapshot_if_fresh(
         &self,
         chain_id: &str,
         now: u64,
         refresh_seconds: u64,
-    ) -> Option<ClockSnapshot> {
-        let mut snapshot = {
-            let cache = self.cache.read().await;
-            let entry = cache.get(chain_id)?;
-            (now.saturating_sub(entry.fetched_at()) < refresh_seconds)
-                .then(|| entry.snapshot().clone())?
-        };
-        self.annotate_map_fake_validators(&mut snapshot, now).await;
-        if snapshot.current_set.fake_validator_status_known {
-            self.record_round_history(&mut snapshot, now).await;
-        }
-        self.annotate_snapshot(chain_id, &mut snapshot).await;
-        apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
-        Some(snapshot)
+    ) -> Option<Arc<ClockSnapshot>> {
+        let ready = self.ready_snapshot(chain_id).await?;
+        (now.saturating_sub(ready.fetched_at) < refresh_seconds).then_some(ready.snapshot)
     }
 
-    pub(crate) async fn cached_snapshot(&self, chain_id: &str) -> Option<ClockSnapshot> {
-        let mut snapshot = {
+    pub(crate) async fn cached_snapshot(&self, chain_id: &str) -> Option<Arc<ClockSnapshot>> {
+        Some(self.ready_snapshot(chain_id).await?.snapshot)
+    }
+
+    /// Read the snapshot a chain is cached with, without copying it.
+    pub(crate) async fn with_cached_snapshot<R>(
+        &self,
+        chain_id: &str,
+        read: impl FnOnce(&ClockSnapshot) -> R,
+    ) -> Option<R> {
+        let cache = self.cache.read().await;
+        cache.get(chain_id).map(|entry| read(entry.snapshot()))
+    }
+
+    async fn ready_snapshot(&self, chain_id: &str) -> Option<ReadySnapshot> {
+        if let Some(ready) = self.ready_snapshots.read().await.get(chain_id).cloned() {
+            return Some(ready);
+        }
+
+        // Nothing has been served for this chain yet - the cache came off disk
+        // and no refresh has landed since. The reader who asks first pays for
+        // it, once.
+        self.rebuild_ready_snapshot(chain_id).await
+    }
+
+    /// Work out again what a chain's readers are served, because something
+    /// behind it has changed: a refresh landed, or the node location map was
+    /// republished.
+    ///
+    /// This is the work a request used to do for itself - copy the whole
+    /// validator set, ask the history and the map about every validator in it,
+    /// and write the round back to disk if anything had moved. That put a
+    /// write lock and a filesystem write on the path of every reader, to
+    /// produce an answer identical for all of them; two readers arriving
+    /// together annotated the same set twice and queued behind each other to
+    /// do it.
+    pub(crate) async fn refresh_ready_snapshot(
+        &self,
+        chain_id: &str,
+    ) -> Option<Arc<ClockSnapshot>> {
+        Some(self.rebuild_ready_snapshot(chain_id).await?.snapshot)
+    }
+
+    async fn rebuild_ready_snapshot(&self, chain_id: &str) -> Option<ReadySnapshot> {
+        let (fetched_at, mut snapshot) = {
             let cache = self.cache.read().await;
-            cache.get(chain_id).map(|entry| entry.snapshot().clone())?
+            let entry = cache.get(chain_id)?;
+            (entry.fetched_at(), entry.snapshot().clone())
         };
+
+        // Built outside the lock it is stored under: annotating takes the
+        // history and the map, and holding the readers' lock while waiting on
+        // those is how two locks become a deadlock.
         let observed_at = now_sec().unwrap_or_else(|| snapshot.fetched_at());
         self.annotate_map_fake_validators(&mut snapshot, observed_at)
             .await;
-        if snapshot.current_set.fake_validator_status_known {
-            self.record_round_history(&mut snapshot, observed_at).await;
-        }
         self.annotate_snapshot(chain_id, &mut snapshot).await;
         apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
-        Some(snapshot)
+
+        let ready = ReadySnapshot {
+            fetched_at,
+            snapshot: Arc::new(snapshot),
+        };
+        self.ready_snapshots
+            .write()
+            .await
+            .insert(chain_id.to_owned(), ready.clone());
+        Some(ready)
     }
 
+    /// Keep what a refresh produced, and work out from it what readers are
+    /// served.
     pub(crate) async fn store_cached_snapshot(
         &self,
         chain_id: &str,
         fetched_at: u64,
         snapshot: ClockSnapshot,
-    ) {
+    ) -> Option<Arc<ClockSnapshot>> {
         let entry = {
             let mut cache = self.cache.write().await;
             let entry = CacheEntry::new(fetched_at, snapshot);
@@ -175,6 +230,7 @@ impl AppState {
             entry
         };
         self.save_chain_cache(chain_id, entry).await;
+        self.refresh_ready_snapshot(chain_id).await
     }
 
     /// Only the refreshed chain is written; the other chains keep their files.

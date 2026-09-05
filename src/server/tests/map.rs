@@ -202,13 +202,19 @@ async fn app_router_marks_configured_ton_validators_without_map_ip_as_fake() {
     let _ = fs::remove_file(map_path);
 }
 
+/// A validator the map placed two hours ago and has not placed since: called
+/// fake, shown without a current position, and remembered where it was.
+///
+/// Where it was is the history's to say, not the snapshot's. The snapshot
+/// carries what the chain said, and the chain says nothing about addresses.
 #[tokio::test]
-async fn app_router_clears_stale_map_node_for_fake_validator() {
+async fn a_validator_the_map_has_stopped_placing_is_fake_and_remembered() {
     let map_path = temp_map_path("everscale_fake_stale_location");
     fs::write(
         &map_path,
         r#"[
-            {"peer":"mapped-ever-validator","ip":"203.0.113.30","city":"EVER City","country":"EVERland","isp":"EVER ISP","lat":9.25,"lon":10.5}
+            {"peer":"mapped-ever-validator","ip":"203.0.113.30","city":"EVER City","country":"EVERland","isp":"EVER ISP","lat":9.25,"lon":10.5},
+            {"peer":"missing-ever-validator","ip":"198.51.100.99","city":"Old City","country":"Oldland","isp":"Old ISP","lat":1.25,"lon":2.5}
         ]"#,
     )
     .unwrap();
@@ -225,21 +231,25 @@ async fn app_router_clears_stale_map_node_for_fake_validator() {
         "EVER",
     ));
     let state = state_from_config(config);
-    cache_snapshot_with(
+    let two_hours_ago = now_sec_for_test() - 2 * 60 * 60;
+    cache_snapshot_seen_at(
         &state,
         "everscale",
         &["mapped-ever-validator", "missing-ever-validator"],
-        |snapshot| {
-            snapshot.current_set.validators[1].map_node = Some(crate::chain::ValidatorMapNodeDto {
-                ip: Some("198.51.100.99".to_owned()),
-                isp: Some("Old ISP".to_owned()),
-                city: Some("Old City".to_owned()),
-                country: Some("Oldland".to_owned()),
-                last_seen_at: None,
-            });
-        },
+        two_hours_ago,
     )
     .await;
+
+    // The map has been republished without it, and the hour a validator is
+    // given after its last sighting has long run out.
+    fs::write(
+        &map_path,
+        r#"[
+            {"peer":"mapped-ever-validator","ip":"203.0.113.30","city":"EVER City","country":"EVERland","isp":"EVER ISP","lat":9.25,"lon":10.5}
+        ]"#,
+    )
+    .unwrap();
+    let _ = state.refresh_ready_snapshot("everscale").await;
 
     let response = app_response(state, "/api/chains/everscale/clock").await;
 
@@ -340,6 +350,10 @@ async fn app_router_keeps_recently_mapped_everscale_validator_out_of_fake_grace(
         ]"#,
     )
     .unwrap();
+
+    // The map was republished. In the running site the node location pass
+    // works the answer out again at that point; nothing else would notice.
+    let _ = state.refresh_ready_snapshot("everscale").await;
 
     let second = response_json(app_response(state, "/api/chains/everscale/clock").await).await;
     assert_eq!(

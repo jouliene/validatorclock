@@ -25,6 +25,10 @@ pub(crate) struct AppState {
     pub(crate) config: Arc<AppConfig>,
     started_at: SystemTime,
     cache: RwLock<HashMap<String, CacheEntry>>,
+    /// What each chain's readers are actually served: the cached snapshot with
+    /// the map, the round history and the validator types already worked into
+    /// it. Built when one of those changed, not when someone asks.
+    ready_snapshots: RwLock<HashMap<String, cache::ReadySnapshot>>,
     cache_path: PathBuf,
     cache_save_lock: Mutex<()>,
     analytics: Mutex<analytics::AnalyticsRuntime>,
@@ -69,6 +73,7 @@ impl AppState {
             config: Arc::clone(&config),
             started_at: SystemTime::now(),
             cache: RwLock::new(cache),
+            ready_snapshots: RwLock::new(HashMap::new()),
             cache_path: config.cache_path.clone(),
             cache_save_lock: Mutex::new(()),
             analytics: Mutex::new(analytics),

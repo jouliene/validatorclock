@@ -109,6 +109,10 @@ async fn refresh_all_chains(state: Arc<AppState>) {
         {
             Ok(changed) => {
                 cache_changed |= changed;
+                // The map just published is part of the answer readers get, so
+                // that answer is worked out again now rather than waiting for
+                // the next chain refresh to notice.
+                let _ = state.refresh_ready_snapshot(&chain.id).await;
             }
             Err(error) => {
                 any_chain_failed = true;

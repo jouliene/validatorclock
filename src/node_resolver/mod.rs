@@ -191,7 +191,7 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
 }
 
 /// Wait until the chain has a validator set to work from.
-async fn wait_for_snapshot(state: &AppState, chain_id: &str) -> ClockSnapshot {
+async fn wait_for_snapshot(state: &AppState, chain_id: &str) -> Arc<ClockSnapshot> {
     let mut waited = Duration::ZERO;
     loop {
         if let Some(snapshot) = state.cached_snapshot(chain_id).await {
@@ -214,7 +214,7 @@ async fn collect_once(
     // asked the site's own HTTP API for it, which meant it could not run while
     // the site was down and fetched over the network what was already in
     // memory a function call away.
-    snapshot: ClockSnapshot,
+    snapshot: Arc<ClockSnapshot>,
     memory: &mut ResolvedAddressMemory,
 ) -> Result<()> {
     resolver.warmup(chain_id).await;
