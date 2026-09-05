@@ -16,9 +16,9 @@
 `vm.runInThisContext` в порядке `APP_JS_PARTS`; из браузера нужны ровно две заглушки (`window.localStorage`,
 `document.currentScript/getElementById`). Пробный тест уже проходит и уже фиксирует три дефекта ниже.
 
-- [ ] `tests/frontend/harness.mjs` — `load(...files)` + заглушки (≈15 строк).
-- [ ] `scripts/check-js.sh` — добавить `node --test tests/frontend/` после `node --check`.
-- [ ] Первые тесты пишутся вместе с исправлениями этапа 1, а не отдельно.
+- [x] `tests/frontend/harness.mjs` — `load(...files)` + `stubBrowser()` (28 строк).
+- [x] `scripts/check-js.sh` — `node --test tests/frontend/*.test.mjs` после `node --check`.
+- [x] Тесты написаны вместе с исправлениями этапа 1: 13 тестов в 5 файлах.
 
 Оценка: 1 ч. Риск: нулевой, новый код не попадает в бандл.
 
@@ -28,32 +28,32 @@
 
 Каждый — с тестом на чистой функции, который падает до исправления.
 
-- [ ] **Выдуманный адрес** (проверено). `validator_identity.js:4` + `format_addresses.js:30`: без кошелька
+- [x] **Выдуманный адрес** (проверено). `validator_identity.js:4` + `format_addresses.js:30`: без кошелька
       в таблицу «недавно отсутствующих» идёт `public_key`, а `formatMasterchainAddress` превращает любой
       64-hex в `-1:<hex>`, на TON — в правдоподобный `EQ…`. Несуществующий адрес показан, подписан
       «EVER address» и копируется кнопкой.
       *Как делать:* при откате к публичному ключу не прогонять его через адресное форматирование —
       показывать `shortenHash`, копировать сырой hex, подпись «Public key».
       *Тест:* `formatDisplayAddress` не должна принимать 64-hex за адрес; ячейка отдаёт hex как значение копии.
-- [ ] **Ноль показывается как «–»** (проверено). `format_numbers.js:6`: `sumTokenValues` возвращает `""`
+- [x] **Ноль показывается как «–»** (проверено). `format_numbers.js:6`: `sumTokenValues` возвращает `""`
       при нулевой сумме. *Как делать:* возвращать `"0"`, оставив `""` только для пустого списка.
       *Тест:* сумма `[0]` → `"0"`, сумма `[]` → `""`.
-- [ ] **Фаза «After elections» недостижима** (проверено на живых данных). `clock_model.js:12`: `electionShift`
+- [x] **Фаза «After elections» недостижима** (проверено на живых данных). `clock_model.js:12`: `electionShift`
       сдвигает окно на раунд, как только `now > rawElectionsEnd`. Сейчас у TON `next_set` уже известен, и
       панель пишет «Elections start in 10.77 ч», хотя раунд сменится через 1.67 ч.
       *Как делать:* сдвигать окно по границе раунда, а не по концу выборов; когда `next_set` известен —
       это и есть «After elections», отсчёт вести до смены раунда.
       *Тест:* три фазы при `next_set = null` и при заполненном, включая границы.
-- [ ] **Выборы открыты, кандидатов нет → «waiting / No validators announced»** (проверено). `rounds.js:77`.
+- [x] **Выборы открыты, кандидатов нет → «waiting / No validators announced»** (проверено). `rounds.js:77`.
       *Как делать:* отдельная ветка «elections open, no candidates yet» до падения в «ожидание».
-- [ ] **Тултип и глоссарий остаются висеть** (проверено). `validator_tooltips.js:136`,
+- [x] **Тултип и глоссарий остаются висеть** (проверено). `validator_tooltips.js:136`,
       `validator_type_glossary.js:126`: `rounds.js` делает `replaceChildren()` на каждом опросе,
       `mouseleave` не приходит. *Как делать:* звать `hideValidatorTooltip()` и `closeValidatorTypeGlossary()`
       в начале `renderRoundPanels` (как уже делает `node_stats_tables.js:18`).
-- [ ] **Любая ошибка статистики = «Statistics are unavailable»** (проверено). `round_stats_charts.js:46`:
+- [x] **Любая ошибка статистики = «Statistics are unavailable»** (проверено). `round_stats_charts.js:46`:
       ветка `includes("timeout")` недостижима. *Как делать:* смотреть `error.name === "TimeoutError"` и
       подстроку `"timed out"`.
-- [ ] **Один тип контракта — три бейджа** (проверено). `validator_type_model.js:9`: DePoolProxy с узнанным
+- [x] **Один тип контракта — три бейджа** (проверено). `validator_type_model.js:9`: DePoolProxy с узнанным
       хешем → DEPOOL, с неузнанным → UNKNOWN, без хеша → PROXY; для PROXY/StPROXY нет статьи в глоссарии.
       *Как делать:* бейдж по собственному типу контракта, состояние хеша источника — в тултипе;
       добавить недостающие статьи. *Тест:* один `contract_type` → один бейдж при любом хеше.
@@ -186,4 +186,13 @@
 
 ## Журнал
 
-- 2026-09-05 — ревизия закончена, план составлен. Работа не начата.
+- 2026-09-05 — ревизия закончена, план составлен.
+- 2026-09-05 — **этапы 0 и 1 сделаны**, коммит `9dd83a2` на ветке `frontend/tests-and-visible-bugs`.
+  Обвязка: `tests/frontend/harness.mjs` + строка в `scripts/check-js.sh`; 13 тестов, все зелёные.
+  Каждое исправление проверено «укусом» — тест падает, если вернуть старое поведение.
+  Модель выборов сверена с `minik2::ElectionTimeline` (тем же, что читает сервер) и прогнана на
+  живых снимках трёх сетей: TON «After elections» (раунд сменится через 1.48 ч) — раньше писал
+  «Elections start in 10.58 h»; Everscale «Before elections»; Tycho «Elections open». Побочно:
+  прошлый раунд в панелях больше не зависит от фазы выборов, `renderRecentRoundPanels` потерял
+  ненужный параметр `model`.
+  Не мержено — ветка ждёт решения.
