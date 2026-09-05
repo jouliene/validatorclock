@@ -2,8 +2,9 @@ use super::{
     ParticipationStatus, RecentAbsentValidatorDto, RoundHistoryStore, RoundWindow,
     ValidatorParticipationDto, fake_validator_peer_set, opposite_round_color,
 };
+use super::{StoredRound, StoredValidator};
 use crate::chain::{ClockSnapshot, RoundColor, ValidatorDto, ValidatorSetDto};
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 const FAKE_VALIDATOR_MAP_GRACE_SECONDS: u64 = 60 * 60;
 
@@ -58,6 +59,9 @@ impl RoundHistoryStore {
         let current_validators = ValidatorIdentitySet::from_validators(&set.validators);
         self.annotate_fake_validator_peers(chain_id, set);
         let fake_validator_peers = fake_validator_peer_set(set);
+        // Built once for the whole set: every validator in it, and every one
+        // recently absent from it, is looked for in the same five rounds.
+        let window = self.same_color_window(chain_id, set.round_id, set.round_color);
 
         for validator in &mut set.validators {
             let is_fake = fake_validator_peers.contains(&validator.public_key.to_ascii_lowercase());
@@ -85,21 +89,16 @@ impl RoundHistoryStore {
             } else {
                 validator.last_known_map_node = None;
             }
-            validator.history = self.same_color_participation(
+            validator.history = self.participation_in(
                 chain_id,
-                set.round_id,
-                set.round_color,
+                &window,
                 &validator.public_key,
                 validator.wallet.as_deref(),
             );
         }
 
-        set.recent_absent_validators = self.recent_absent_validators(
-            chain_id,
-            set.round_id,
-            set.round_color,
-            &current_validators,
-        );
+        set.recent_absent_validators =
+            self.recent_absent_validators_in(chain_id, &window, &current_validators);
     }
 
     fn annotate_fake_validator_peers(&self, chain_id: &str, set: &mut ValidatorSetDto) {
@@ -127,17 +126,48 @@ impl RoundHistoryStore {
 
         let election_round_id = snapshot.current_set.round_id.saturating_add(1);
         let election_round_color = opposite_round_color(snapshot.current_set.round_color);
+        let window = self.same_color_window(chain_id, election_round_id, election_round_color);
         for candidate in &mut snapshot.election.candidates {
-            candidate.history = self.same_color_participation(
+            candidate.history = self.participation_in(
                 chain_id,
-                election_round_id,
-                election_round_color,
+                &window,
                 &candidate.public_key,
                 Some(candidate.wallet.as_str()),
             );
         }
     }
 
+    /// The rounds one validator set looks back over, each indexed by wallet.
+    fn same_color_window(
+        &self,
+        chain_id: &str,
+        round_id: u32,
+        round_color: RoundColor,
+    ) -> SameColorWindow<'_> {
+        let chain = self.chains.get(chain_id);
+        SameColorWindow {
+            rounds: RoundWindow::ending_at(round_id)
+                .rounds()
+                .map(|round_id| {
+                    let stored = chain
+                        .and_then(|chain| chain.rounds.get(&round_id))
+                        .filter(|stored| stored.round_color == round_color);
+                    WindowRound {
+                        round_id,
+                        by_wallet: stored
+                            .map(StoredRound::validators_by_wallet)
+                            .unwrap_or_default(),
+                        stored,
+                    }
+                })
+                .collect(),
+        }
+    }
+
+    /// One validator's history, for a test that has one round set in mind.
+    /// The annotation itself builds the window once and asks it about every
+    /// validator in the set.
+    #[cfg(test)]
     pub(super) fn same_color_participation(
         &self,
         chain_id: &str,
@@ -146,35 +176,50 @@ impl RoundHistoryStore {
         public_key: &str,
         wallet: Option<&str>,
     ) -> Vec<ValidatorParticipationDto> {
-        let chain = self.chains.get(chain_id);
-        RoundWindow::ending_at(round_id)
-            .rounds()
+        let window = self.same_color_window(chain_id, round_id, round_color);
+        self.participation_in(chain_id, &window, public_key, wallet)
+    }
+
+    fn participation_in(
+        &self,
+        chain_id: &str,
+        window: &SameColorWindow<'_>,
+        public_key: &str,
+        wallet: Option<&str>,
+    ) -> Vec<ValidatorParticipationDto> {
+        window
+            .rounds
+            .iter()
             .map(|round| {
-                let (status, fake_node, map_node) = chain
-                    .and_then(|chain| chain.rounds.get(&round))
-                    .filter(|stored| stored.round_color == round_color)
-                    .map(|stored| {
-                        if let Some(validator) = stored.validator_for_identity(public_key, wallet) {
-                            let fake_node = validator.fake_node.unwrap_or(false);
-                            let map_node = validator.map_node.clone().or_else(|| {
-                                fake_node
-                                    .then(|| {
-                                        self.latest_map_node_for_identity(
-                                            chain_id, round, public_key, wallet,
-                                        )
-                                    })
-                                    .flatten()
-                            });
-                            (ParticipationStatus::Participated, fake_node, map_node)
-                        } else if stored.complete {
+                let (status, fake_node, map_node) = match round.validator(public_key, wallet) {
+                    Some(validator) => {
+                        let fake_node = validator.fake_node.unwrap_or(false);
+                        let map_node = validator.map_node.clone().or_else(|| {
+                            fake_node
+                                .then(|| {
+                                    self.latest_map_node_for_identity(
+                                        chain_id,
+                                        round.round_id,
+                                        public_key,
+                                        wallet,
+                                    )
+                                })
+                                .flatten()
+                        });
+                        (ParticipationStatus::Participated, fake_node, map_node)
+                    }
+                    // A round nobody recorded, or one of the other colour,
+                    // says nothing about this validator; a complete round that
+                    // does not name it says it was not there.
+                    None => match round.stored {
+                        Some(stored) if stored.complete => {
                             (ParticipationStatus::Missed, false, None)
-                        } else {
-                            (ParticipationStatus::Unknown, false, None)
                         }
-                    })
-                    .unwrap_or((ParticipationStatus::Unknown, false, None));
+                        _ => (ParticipationStatus::Unknown, false, None),
+                    },
+                };
                 ValidatorParticipationDto {
-                    round,
+                    round: round.round_id,
                     status,
                     fake_node,
                     map_node,
@@ -183,6 +228,9 @@ impl RoundHistoryStore {
             .collect()
     }
 
+    /// As above: the annotation shares one window between the set and the
+    /// validators recently absent from it.
+    #[cfg(test)]
     pub(super) fn recent_absent_validators(
         &self,
         chain_id: &str,
@@ -190,19 +238,22 @@ impl RoundHistoryStore {
         round_color: RoundColor,
         current_validators: &ValidatorIdentitySet,
     ) -> Vec<RecentAbsentValidatorDto> {
-        let Some(chain) = self.chains.get(chain_id) else {
-            return Vec::new();
-        };
+        let window = self.same_color_window(chain_id, round_id, round_color);
+        self.recent_absent_validators_in(chain_id, &window, current_validators)
+    }
 
+    fn recent_absent_validators_in(
+        &self,
+        chain_id: &str,
+        window: &SameColorWindow<'_>,
+        current_validators: &ValidatorIdentitySet,
+    ) -> Vec<RecentAbsentValidatorDto> {
         let mut recent = BTreeMap::<String, RecentAbsentValidatorDto>::new();
-        for round in RoundWindow::ending_at(round_id).rounds() {
-            let Some(stored) = chain
-                .rounds
-                .get(&round)
-                .filter(|stored| stored.round_color == round_color && stored.complete)
-            else {
+        for window_round in &window.rounds {
+            let Some(stored) = window_round.stored.filter(|stored| stored.complete) else {
                 continue;
             };
+            let round = window_round.round_id;
 
             for (public_key, validator) in &stored.validators {
                 if current_validators.contains(public_key, validator.wallet.as_deref()) {
@@ -242,10 +293,9 @@ impl RoundHistoryStore {
         let mut recent: Vec<_> = recent
             .into_values()
             .map(|mut validator| {
-                validator.history = self.same_color_participation(
+                validator.history = self.participation_in(
                     chain_id,
-                    round_id,
-                    round_color,
+                    window,
                     &validator.public_key,
                     validator.wallet.as_deref(),
                 );
@@ -286,6 +336,36 @@ impl RoundHistoryStore {
             .rev()
             .filter_map(|(_, round)| round.validator_for_identity(public_key, wallet))
             .find_map(|validator| validator.map_node.clone())
+    }
+}
+
+/// The same-colour rounds behind one validator set, each indexed by wallet.
+///
+/// A validator is looked for by public key first. A key that is not in a round
+/// may still belong to the operator who was there under a different one, and
+/// only the wallet says so - but finding it that way meant scanning the round's
+/// whole membership, once per validator per round. TON elects a wholly new set
+/// of keys every round, so the scan was the rule and not the exception, and
+/// annotating one set cost the square of its size: four hundred validators
+/// against five rounds of four hundred, on every request for the page.
+struct SameColorWindow<'a> {
+    rounds: Vec<WindowRound<'a>>,
+}
+
+struct WindowRound<'a> {
+    round_id: u32,
+    /// The round as recorded, when one of this colour was.
+    stored: Option<&'a StoredRound>,
+    by_wallet: HashMap<&'a str, &'a StoredValidator>,
+}
+
+impl<'a> WindowRound<'a> {
+    fn validator(&self, public_key: &str, wallet: Option<&str>) -> Option<&'a StoredValidator> {
+        let stored = self.stored?;
+        stored
+            .validators
+            .get(public_key)
+            .or_else(|| wallet.and_then(|wallet| self.by_wallet.get(wallet).copied()))
     }
 }
 

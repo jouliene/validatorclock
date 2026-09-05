@@ -172,6 +172,54 @@ fn participation_matches_rotated_public_keys_by_wallet() {
     ));
 }
 
+/// One operator may run several keys against one wallet. The wallet then
+/// names more than one validator in a round, and the index has to hand back
+/// the one the scan it replaced would have found: the first in key order.
+#[test]
+fn a_wallet_two_validators_share_resolves_to_the_first_of_them() {
+    let mut store = RoundHistoryStore::default();
+    let chain = store.chains.entry("test".to_owned()).or_default();
+    let mut earlier = ValidatorSetDto {
+        validators: vec![
+            validator_with_wallet("bbb-key", Some("-1:pool")),
+            validator_with_wallet("aaa-key", Some("-1:pool")),
+        ],
+        ..set(8, RoundColor::Blue, Vec::new())
+    };
+    earlier.validators[0].map_node = Some(ValidatorMapNodeDto {
+        ip: Some("192.0.2.2".to_owned()),
+        ..ValidatorMapNodeDto::default()
+    });
+    earlier.validators[1].map_node = Some(ValidatorMapNodeDto {
+        ip: Some("192.0.2.1".to_owned()),
+        ..ValidatorMapNodeDto::default()
+    });
+    chain.record_set(&earlier, 100);
+    chain.record_set(
+        &ValidatorSetDto {
+            validators: vec![validator_with_wallet("newest-key", Some("-1:pool"))],
+            ..set(10, RoundColor::Blue, Vec::new())
+        },
+        200,
+    );
+
+    let history =
+        store.same_color_participation("test", 10, RoundColor::Blue, "newest-key", Some("-1:pool"));
+
+    assert!(matches!(
+        history[3].status,
+        ParticipationStatus::Participated
+    ));
+    assert_eq!(
+        history[3]
+            .map_node
+            .as_ref()
+            .and_then(|node| node.ip.as_deref()),
+        Some("192.0.2.1"),
+        "`aaa-key` sorts first, so it is the one the wallet resolves to"
+    );
+}
+
 #[test]
 fn participation_marks_fake_node_rounds() {
     let mut store = RoundHistoryStore::default();
