@@ -1,7 +1,8 @@
 use super::*;
-use axum::http::StatusCode;
+use axum::http::{StatusCode, header};
 use serde_json::json;
 use std::fs;
+use std::sync::Arc;
 
 #[tokio::test]
 async fn a_chain_with_no_map_file_is_shown_as_having_no_map() {
@@ -585,4 +586,89 @@ async fn app_router_rejects_map_for_chain_without_map_file() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
     let body = response_json(response).await;
     assert_eq!(body["code"], "map_not_available");
+}
+
+/// The map is written out with the snapshot, so it is served the way the clock
+/// is: one tag over bytes that already exist, and nothing sent to a reader that
+/// already has them.
+#[tokio::test]
+async fn the_map_is_served_from_the_copy_written_out_with_the_snapshot() {
+    let map_path = temp_map_path("ton_rendered");
+    fs::write(
+        &map_path,
+        r#"[{"peer":"active-ton-validator","ip":"203.0.113.20","city":"TON City","country":"TONland","isp":"TON ISP","lat":5.25,"lon":6.5}]"#,
+    )
+    .unwrap();
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("ton".to_owned(), map_path.clone());
+    config
+        .chains
+        .push(test_chain_config("ton", "TON", "#4DB8FF", "TON"));
+    let state = state_from_config(config);
+    cache_snapshot(&state, "ton", &["active-ton-validator"]).await;
+
+    let response = app_response(Arc::clone(&state), "/api/chains/ton/map").await;
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_header_starts_with(response.headers(), header::ETAG, "W/\"");
+    let entity_tag = response
+        .headers()
+        .get(header::ETAG)
+        .and_then(|value| value.to_str().ok())
+        .expect("a served map carries its tag")
+        .to_owned();
+
+    let unchanged = conditional_response(state, "/api/chains/ton/map", &entity_tag).await;
+
+    assert_eq!(unchanged.status(), StatusCode::NOT_MODIFIED);
+
+    let _ = fs::remove_file(map_path);
+}
+
+/// One read of the map file a refresh, not one a reader. A file replaced in
+/// between is served from the next time the page is worked out - which every
+/// refresh does, so a minute at the outside.
+#[tokio::test]
+async fn a_map_replaced_on_disk_is_served_once_the_page_is_worked_out_again() {
+    let map_path = temp_map_path("ton_replaced");
+    fs::write(
+        &map_path,
+        r#"[{"peer":"active-ton-validator","ip":"203.0.113.20","city":"TON City","country":"TONland","isp":"TON ISP","lat":5.25,"lon":6.5}]"#,
+    )
+    .unwrap();
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("ton".to_owned(), map_path.clone());
+    config
+        .chains
+        .push(test_chain_config("ton", "TON", "#4DB8FF", "TON"));
+    let state = state_from_config(config);
+    cache_snapshot(&state, "ton", &["active-ton-validator"]).await;
+
+    let first = response_json(app_response(Arc::clone(&state), "/api/chains/ton/map").await).await;
+    assert_eq!(first[0]["ip"], "203.0.113.20");
+
+    fs::write(
+        &map_path,
+        r#"[{"peer":"active-ton-validator","ip":"198.51.100.77","city":"Moved City","country":"TONland","isp":"Another TON ISP","lat":9.25,"lon":10.5}]"#,
+    )
+    .unwrap();
+
+    let before_rebuild =
+        response_json(app_response(Arc::clone(&state), "/api/chains/ton/map").await).await;
+    assert_eq!(
+        before_rebuild[0]["ip"], "203.0.113.20",
+        "readers are served the copy written out with the snapshot, not the file"
+    );
+
+    state.refresh_ready_snapshot("ton").await;
+
+    let after_rebuild = response_json(app_response(state, "/api/chains/ton/map").await).await;
+    assert_eq!(after_rebuild[0]["ip"], "198.51.100.77");
+    assert_eq!(after_rebuild[0]["city"], "Moved City");
+
+    let _ = fs::remove_file(map_path);
 }

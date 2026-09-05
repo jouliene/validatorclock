@@ -1,3 +1,4 @@
+use crate::chain::ValidatorDto;
 use crate::config::AppConfig;
 use anyhow::Result;
 use serde_json::Value;
@@ -17,6 +18,19 @@ pub(crate) const BUNDLED_TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
 pub(crate) struct MapNodesPayload {
     pub(crate) nodes: Value,
     pub(crate) updated_at: Option<u64>,
+}
+
+/// The map as a chain's readers see it: the nodes on file, kept to the
+/// validators the chain has now.
+pub(crate) fn active_map_nodes(
+    config: &AppConfig,
+    chain_id: &str,
+    validators: &[ValidatorDto],
+) -> Result<Option<Value>> {
+    let Some(nodes) = load_map_nodes(config, chain_id)? else {
+        return Ok(None);
+    };
+    filter_map_nodes_to_validators(nodes, validators).map(Some)
 }
 
 pub(crate) fn load_map_nodes(config: &AppConfig, chain_id: &str) -> Result<Option<Value>> {

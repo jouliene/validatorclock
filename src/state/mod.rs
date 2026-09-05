@@ -10,7 +10,7 @@ mod runtime;
 mod validator_types;
 pub(crate) mod visitors;
 
-pub(crate) use self::rendered::RenderedClock;
+pub(crate) use self::rendered::RenderedJson;
 use self::runtime::ChainRuntimeStatus;
 use crate::chain::CacheEntry;
 use crate::config::AppConfig;
