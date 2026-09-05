@@ -2,10 +2,7 @@ use super::super::dto::ValidatorRoundData;
 use super::super::graphql_client::GraphqlClient;
 use super::super::round_stats::build_round_stats_response;
 use super::super::util::now_sec;
-use super::super::{
-    ChainRoundStatsDto, ClockSnapshot, ElectionDto, ElectionTimingsDto, RoundStatsPointDto,
-    ValidatorSetDto,
-};
+use super::super::{ChainRoundStatsDto, ClockSnapshot, ElectionDto, RoundStatsPointDto};
 use super::effective_validator_sets;
 use super::election::election_from_elector_data;
 use super::frozen::validator_round_data_from_elector_data;
@@ -44,38 +41,20 @@ pub(super) async fn fetch_chain_snapshot(
     let election = state.election();
     let validator_round_data = state.validator_round_data();
 
-    Ok(ClockSnapshot {
-        chain: super::snapshot::chain_meta_with_rpc(chain, endpoint),
-        selected_endpoint: Some(endpoint.to_owned()),
-        fetched_at: observed_at,
-        global_id: state.global_id,
-        seqno: state.seqno,
-        params15: ElectionTimingsDto {
-            validators_elected_for: timings.validators_elected_for,
-            elections_start_before: timings.elections_start_before,
-            elections_end_before: timings.elections_end_before,
-            stake_held_for: timings.stake_held_for,
+    Ok(super::snapshot::assemble_snapshot(
+        super::snapshot::SnapshotParts {
+            chain,
+            endpoint,
+            observed_at,
+            global_id: state.global_id,
+            seqno: state.seqno,
+            timings,
+            current_set,
+            next_set,
+            election,
+            validator_round_data,
         },
-        current_set: ValidatorSetDto::from_set(
-            &current_set,
-            timings.validators_elected_for,
-            validator_round_data.get(&current_set.utime_since),
-        ),
-        previous_set: super::snapshot::previous_validator_set(
-            &current_set,
-            timings.validators_elected_for,
-            &validator_round_data,
-        ),
-        next_set: next_set.as_ref().map(|set| {
-            ValidatorSetDto::from_set(
-                set,
-                timings.validators_elected_for,
-                validator_round_data.get(&set.utime_since),
-            )
-        }),
-        election,
-        warning: None,
-    })
+    ))
 }
 
 pub(super) async fn fetch_chain_round_stats(

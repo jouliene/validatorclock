@@ -331,11 +331,7 @@ impl RoundHistoryStore {
     ) -> Option<crate::chain::ValidatorMapNodeDto> {
         self.chains
             .get(chain_id)?
-            .rounds
-            .range(..=round_id)
-            .rev()
-            .filter_map(|(_, round)| round.validator_for_identity(public_key, wallet))
-            .find_map(|validator| validator.map_node.clone())
+            .latest_map_node_for_identity(round_id, public_key, wallet)
     }
 }
 

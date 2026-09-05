@@ -4,12 +4,9 @@ use super::provider::ValidatorSourceProvider;
 use super::wallet_tasks::fetch_wallet_tasks;
 use anyhow::Result;
 use tracing::debug;
-use tycho_types::boc::BocRepr;
 use tycho_types::cell::CellSlice;
 use tycho_types::models::{MsgInfo, Transaction};
 
-const ST_EVER_STRATEGY_SOURCE_TX_SCAN_LIMIT: u8 = 100;
-const ST_EVER_STRATEGY_SOURCE_TX_SCAN_MAX_PAGES: usize = 40;
 const ST_EVER_STRATEGY_CONTROLLER_FUNCTION_IDS: &[u32] = &[0xb74e_7374, 0x6335_b11a, 0xf0fd_2250];
 
 pub(super) async fn fetch_st_ever_strategy_sources(
@@ -59,36 +56,12 @@ async fn scan_st_ever_strategy_source_address(
     provider: &ValidatorSourceProvider,
     strategy_wallet: &str,
 ) -> Result<Option<String>> {
-    let mut continuation_lt = None::<String>;
-
-    for _ in 0..ST_EVER_STRATEGY_SOURCE_TX_SCAN_MAX_PAGES {
-        let tx_bocs = provider
-            .transaction_bocs(
-                strategy_wallet,
-                continuation_lt.as_deref(),
-                ST_EVER_STRATEGY_SOURCE_TX_SCAN_LIMIT,
-            )
-            .await?;
-        if tx_bocs.is_empty() {
-            break;
-        }
-
-        let mut next_continuation = None;
-        for tx_boc in tx_bocs {
-            let transaction: Transaction = BocRepr::decode_base64(tx_boc)?;
-            next_continuation = Some(transaction.prev_trans_lt.to_string());
-            if let Some(source) = parse_st_ever_strategy_controller_source(&transaction)? {
-                return Ok(Some(source));
-            }
-        }
-
-        if next_continuation.as_deref() == Some("0") || next_continuation == continuation_lt {
-            break;
-        }
-        continuation_lt = next_continuation;
-    }
-
-    Ok(None)
+    super::transaction_scan::scan_back_for_source(
+        provider,
+        strategy_wallet,
+        parse_st_ever_strategy_controller_source,
+    )
+    .await
 }
 
 fn parse_st_ever_strategy_controller_source(transaction: &Transaction) -> Result<Option<String>> {
@@ -127,6 +100,7 @@ fn is_st_ever_strategy_controller_call(mut body: CellSlice<'_>) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tycho_types::boc::BocRepr;
     use tycho_types::cell::CellBuilder;
 
     #[test]

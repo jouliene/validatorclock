@@ -1,16 +1,18 @@
-//! A chain's answer, written out once for everyone who asks for it.
+//! A chain's answers, written out once for everyone who asks for them.
 //!
 //! The clock is the largest thing this server sends - a megabyte for TON -
 //! and it changes once a refresh, not once a request. Writing it out per
 //! request meant three passes over that megabyte every time: serde to produce
 //! it, the hash behind its entity tag, and the deflate on the way out. All
-//! three now happen where the snapshot is built.
+//! three now happen where the snapshot is built, and the node map - which is
+//! built from that same snapshot and a file that changes with it - goes the
+//! same way.
 
-use crate::chain::ClockSnapshot;
 use crate::etag::weak_entity_tag;
 use bytes::Bytes;
 use flate2::Compression;
 use flate2::write::GzEncoder;
+use serde::Serialize;
 use std::io::Write;
 use tracing::warn;
 
@@ -18,7 +20,7 @@ use tracing::warn;
 /// the compression layer would have applied it from anyway.
 const MIN_COMPRESSED_BYTES: usize = 32;
 
-pub(crate) struct RenderedClock {
+pub(crate) struct RenderedJson {
     /// The JSON exactly as `serde_json` writes it.
     pub(crate) body: Bytes,
     /// The same bytes deflated, for the clients that say they take it.
@@ -28,12 +30,12 @@ pub(crate) struct RenderedClock {
     pub(crate) entity_tag: String,
 }
 
-impl RenderedClock {
-    pub(super) fn of(snapshot: &ClockSnapshot) -> Option<Self> {
-        let body = match serde_json::to_vec(snapshot) {
+impl RenderedJson {
+    pub(super) fn of<T: Serialize>(value: &T) -> Option<Self> {
+        let body = match serde_json::to_vec(value) {
             Ok(body) => Bytes::from(body),
             Err(error) => {
-                warn!(error = ?error, "failed to write out a chain snapshot");
+                warn!(error = ?error, "failed to write out a page of a chain");
                 return None;
             }
         };
@@ -63,7 +65,7 @@ fn gzip(body: &[u8]) -> Option<Bytes> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chain::test_clock_snapshot;
+    use crate::chain::{ClockSnapshot, test_clock_snapshot};
     use std::io::Read;
 
     fn snapshot() -> ClockSnapshot {
@@ -73,7 +75,7 @@ mod tests {
     #[test]
     fn the_body_is_what_serde_would_have_written_and_the_tag_covers_it() {
         let snapshot = snapshot();
-        let rendered = RenderedClock::of(&snapshot).expect("a snapshot writes out");
+        let rendered = RenderedJson::of(&snapshot).expect("a snapshot writes out");
 
         assert_eq!(
             rendered.body.as_ref(),
@@ -86,7 +88,7 @@ mod tests {
     #[test]
     fn the_compressed_copy_says_the_same_thing() {
         let snapshot = snapshot();
-        let rendered = RenderedClock::of(&snapshot).expect("a snapshot writes out");
+        let rendered = RenderedJson::of(&snapshot).expect("a snapshot writes out");
         let gzip = rendered.gzip.expect("a snapshot is worth compressing");
         assert!(
             gzip.len() < rendered.body.len(),

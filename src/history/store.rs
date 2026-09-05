@@ -162,7 +162,8 @@ impl ChainRoundHistory {
         self.rounds.len() != before
     }
 
-    fn latest_map_node_for_identity(
+    /// Where this validator was last seen, looking back from a round.
+    pub(in crate::history) fn latest_map_node_for_identity(
         &self,
         round_id: u32,
         public_key: &str,

@@ -16,11 +16,28 @@ use scheduler::spawn_stale_snapshot_refresh;
 const VALIDATOR_TYPE_UPDATE_MIN_TIMEOUT_SECS: u64 = 5;
 const VALIDATOR_TYPE_UPDATE_MAX_TIMEOUT_SECS: u64 = 30;
 const STALE_REFRESH_WARNING: &str = "refresh is running in background";
+/// How much of a request's time to leave for everything else once the refresh
+/// it is waiting for is done: writing the page out, sending it.
+const FOREGROUND_REFRESH_MARGIN: Duration = Duration::from_secs(2);
+
+/// How long a refresh someone is waiting for may take.
+///
+/// The configured timeout is ninety seconds and a request is dropped after
+/// ten, so a refresh started in front of a reader used to be cancelled at the
+/// door every time - its work thrown away, and the next request starting it
+/// over. A refresh a reader waits for is given what the request can actually
+/// spare; the background refresh, which nobody is waiting on, keeps the whole
+/// configured timeout.
+fn foreground_refresh_timeout(configured_seconds: u64) -> Duration {
+    Duration::from_secs(configured_seconds)
+        .min(crate::server::connection::REQUEST_TIMEOUT - FOREGROUND_REFRESH_MARGIN)
+}
 
 async fn get_chain_snapshot(
     state: &AppState,
     chain_id: &str,
     force_refresh: bool,
+    timeout: Duration,
 ) -> Result<Arc<ClockSnapshot>> {
     let now = now_sec()?;
     let fresh_seconds = fresh_cache_seconds(state.config.refresh_seconds);
@@ -39,7 +56,7 @@ async fn get_chain_snapshot(
         .ok_or_else(|| anyhow!("unknown chain id `{chain_id}`"))?;
     state.record_refresh_attempt(chain_id, now).await;
 
-    match refresh_chain_with_timeout(state, chain).await {
+    match refresh_chain_with_timeout(state, chain, timeout).await {
         Ok(snapshot) => finalize_refreshed_snapshot(state, chain_id, now, snapshot)
             .await
             .ok_or_else(|| anyhow!("chain `{chain_id}` left the config while it refreshed")),
@@ -50,14 +67,14 @@ async fn get_chain_snapshot(
 async fn refresh_chain_with_timeout(
     state: &AppState,
     chain: &ChainConfig,
+    budget: Duration,
 ) -> Result<ClockSnapshot> {
-    let timeout_seconds = state.config.refresh_timeout_seconds;
     timeout(
-        Duration::from_secs(timeout_seconds),
+        budget,
         fetch_chain_snapshot_with_validator_types(state, chain),
     )
     .await
-    .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {timeout_seconds}s")))
+    .unwrap_or_else(|_| Err(anyhow!("refresh timed out after {}s", budget.as_secs())))
 }
 
 async fn finalize_refreshed_snapshot(
@@ -250,7 +267,19 @@ pub(crate) async fn get_chain_snapshot_cached_first(
         }
     }
 
-    get_chain_snapshot(&state, chain_id, force_refresh).await
+    // Nothing has been cached for this chain yet, so there is nothing to
+    // answer with but a refresh - and one a reader is waiting for gets the
+    // time a request can spare, not the time a background refresh takes.
+    let _claim = state
+        .claim_refresh(chain_id)
+        .ok_or_else(|| anyhow!("chain `{chain_id}` is being refreshed already"))?;
+    get_chain_snapshot(
+        &state,
+        chain_id,
+        force_refresh,
+        foreground_refresh_timeout(state.config.refresh_timeout_seconds),
+    )
+    .await
 }
 
 fn stale_cache_refresh_warning(fetched_at: u64) -> String {

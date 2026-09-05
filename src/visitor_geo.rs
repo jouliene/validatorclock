@@ -1,7 +1,7 @@
 use crate::geoip;
 use crate::state::AppState;
 use crate::state::visitors::VisitorGeo;
-use crate::timeutil::now_sec as now_seconds;
+use crate::timeutil::now_sec;
 use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::sync::Arc;
@@ -38,7 +38,7 @@ async fn refresh_pending_visitor_geo(state: &AppState) {
         return;
     }
 
-    let now = now_seconds();
+    let now = now_sec();
     let (private, public): (Vec<IpAddr>, Vec<IpAddr>) =
         pending.into_iter().partition(|ip| !is_public_ip(*ip));
 

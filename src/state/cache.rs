@@ -1,8 +1,9 @@
 use super::AppState;
-use super::rendered::RenderedClock;
+use super::rendered::RenderedJson;
 use crate::chain::{CacheEntry, ClockSnapshot, apply_cached_validator_types_to_snapshot};
 use crate::config::ChainConfig;
 use crate::fsutil::{chain_file_path, write_file_atomic};
+use crate::validator_map::active_map_nodes;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -136,7 +137,11 @@ pub(super) struct ReadySnapshot {
     /// The same thing as bytes on the wire, for the readers who want it whole.
     /// `None` only if it could not be written out, and then they are served
     /// from the snapshot as before.
-    rendered: Option<Arc<RenderedClock>>,
+    rendered: Option<Arc<RenderedJson>>,
+    /// The node map that goes with this snapshot, written out the same way.
+    /// `None` when this chain has no map to show, or when reading it failed -
+    /// both of which the reader's own path still answers for itself.
+    rendered_map: Option<Arc<RenderedJson>>,
 }
 
 impl AppState {
@@ -161,12 +166,44 @@ impl AppState {
         &self,
         chain_id: &str,
         snapshot: &Arc<ClockSnapshot>,
-    ) -> Option<Arc<RenderedClock>> {
+    ) -> Option<Arc<RenderedJson>> {
         let ready_snapshots = self.ready_snapshots.read().await;
         let ready = ready_snapshots.get(chain_id)?;
         Arc::ptr_eq(&ready.snapshot, snapshot)
             .then(|| ready.rendered.clone())
             .flatten()
+    }
+
+    /// The node map that was written out with a chain's snapshot.
+    ///
+    /// No snapshot is asked for here, unlike the clock: the map is made from
+    /// the validator set and the map file, and a copy carrying a warning about
+    /// a failed refresh has the same validator set as the one it was copied
+    /// from. The map written out with that one answers for it too.
+    pub(crate) async fn rendered_map(&self, chain_id: &str) -> Option<Arc<RenderedJson>> {
+        self.ready_snapshots
+            .read()
+            .await
+            .get(chain_id)?
+            .rendered_map
+            .clone()
+    }
+
+    /// Reading the map file here costs one read a refresh, where the readers
+    /// used to make one each. A file replaced between refreshes is picked up
+    /// by the next one, a minute at the outside.
+    fn rendered_map_of(
+        &self,
+        chain_id: &str,
+        snapshot: &ClockSnapshot,
+    ) -> Option<Arc<RenderedJson>> {
+        match active_map_nodes(&self.config, chain_id, &snapshot.current_set.validators) {
+            Ok(nodes) => RenderedJson::of(&nodes?).map(Arc::new),
+            Err(error) => {
+                warn!(chain_id, error = ?error, "failed to read the node map for a chain");
+                None
+            }
+        }
     }
 
     /// Read the snapshot a chain is cached with, without copying it.
@@ -245,11 +282,13 @@ impl AppState {
         // Written out here rather than per reader: the snapshot behind it is
         // finished and shared, and every reader would otherwise produce these
         // same bytes again.
-        let rendered = RenderedClock::of(&snapshot).map(Arc::new);
+        let rendered = RenderedJson::of(&snapshot).map(Arc::new);
+        let rendered_map = self.rendered_map_of(chain_id, &snapshot);
         let ready = ReadySnapshot {
             fetched_at,
             snapshot: Arc::new(snapshot),
             rendered,
+            rendered_map,
         };
         self.ready_snapshots
             .write()

@@ -633,3 +633,56 @@ async fn mock_graphql(
 
     Json(json!({ "data": data }))
 }
+
+/// The relation that made a request-time refresh pointless: it was given
+/// ninety seconds inside a request that lasts ten.
+#[test]
+fn a_refresh_a_reader_waits_for_fits_inside_the_request_it_waits_in() {
+    let configured_longer_than_a_request = foreground_refresh_timeout(90);
+
+    assert!(
+        configured_longer_than_a_request < crate::server::connection::REQUEST_TIMEOUT,
+        "a refresh that outlasts the request is cancelled at the door with its work thrown away"
+    );
+    assert_eq!(
+        configured_longer_than_a_request,
+        crate::server::connection::REQUEST_TIMEOUT - FOREGROUND_REFRESH_MARGIN,
+        "and what is left over is for writing the answer out"
+    );
+    assert_eq!(
+        foreground_refresh_timeout(3),
+        Duration::from_secs(3),
+        "a configured timeout shorter than the request is the one that counts"
+    );
+}
+
+/// A cold start used to have every reader start a refresh of its own, each one
+/// cancelled at ten seconds, none of them recorded.
+#[tokio::test]
+async fn a_reader_arriving_while_the_chain_refreshes_does_not_start_another() {
+    let state = Arc::new(AppState::new(Arc::new(AppConfig::for_test(vec![
+        ChainConfig {
+            id: "test".to_owned(),
+            name: "Test".to_owned(),
+            rpc: "http://127.0.0.1:9/nothing-answers-here".to_owned(),
+            rpc_fallbacks: Vec::new(),
+            color: "#000000".to_owned(),
+            token_symbol: "TEST".to_owned(),
+            rpc_label: None,
+        },
+    ]))));
+    let refreshing = state
+        .claim_refresh("test")
+        .expect("the first refresh claims the chain");
+
+    let error = get_chain_snapshot_cached_first(Arc::clone(&state), "test", false)
+        .await
+        .expect_err("nothing is cached and the chain is already being refreshed");
+
+    assert!(
+        error.to_string().contains("being refreshed already"),
+        "the reader is told why, not left to time out: {error}"
+    );
+
+    drop(refreshing);
+}

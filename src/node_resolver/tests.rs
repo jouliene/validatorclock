@@ -328,3 +328,321 @@ fn the_second_ask_binds_a_named_port_on_the_same_interface() {
         "the port it offers is one that can actually be opened"
     );
 }
+
+/// A pass, run against a script instead of a DHT.
+///
+/// Every answer the network would give is written down in advance, per
+/// address and in the order it will be given, so a pass can be put through
+/// the arc that matters: an address the sweep lost, answered by the round of
+/// second asks that follows it.
+#[derive(Default)]
+struct Script {
+    answers: std::sync::Mutex<HashMap<String, Vec<Resolution>>>,
+    asks: std::sync::Mutex<Vec<(String, String)>>,
+    rounds_opened: std::sync::atomic::AtomicUsize,
+}
+
+impl Script {
+    fn says(&self, adnl_addr: &str, answers: Vec<Resolution>) {
+        self.answers
+            .lock()
+            .unwrap()
+            .insert(adnl_addr.to_owned(), answers);
+    }
+
+    /// The answers in order; the last one keeps being given.
+    fn answer(&self, adnl_addr: &str) -> Resolution {
+        let mut answers = self.answers.lock().unwrap();
+        let Some(scripted) = answers.get_mut(adnl_addr) else {
+            return Resolution::failed_for_test("nothing scripted for this address");
+        };
+        if scripted.len() > 1 {
+            scripted.remove(0)
+        } else {
+            scripted
+                .first()
+                .cloned()
+                .unwrap_or_else(|| Resolution::failed_for_test("no answer"))
+        }
+    }
+
+    fn asked_by(&self, asker: &str) -> Vec<String> {
+        self.asks
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(who, _)| who == asker)
+            .map(|(_, adnl_addr)| adnl_addr.clone())
+            .collect()
+    }
+}
+
+struct Asker {
+    script: Arc<Script>,
+    name: String,
+}
+
+impl Lookups for Asker {
+    async fn warmup(&self, _chain_id: &str) {}
+
+    async fn resolve(&self, adnl_addr: &str, _now: u64) -> Resolution {
+        self.script
+            .asks
+            .lock()
+            .unwrap()
+            .push((self.name.clone(), adnl_addr.to_owned()));
+        self.script.answer(adnl_addr)
+    }
+
+    async fn shutdown(self) {}
+
+    fn local_addr(&self) -> &str {
+        "127.0.0.1:0"
+    }
+
+    fn bootstrap_nodes(&self) -> usize {
+        1
+    }
+}
+
+fn resolver_config() -> NodeResolverConfig {
+    NodeResolverConfig {
+        enabled: true,
+        refresh_seconds: 300,
+        startup_delay_seconds: 0,
+        local_addr: "127.0.0.1:0".to_owned(),
+        lookup_timeout_seconds: 1,
+        workers: 4,
+        chains: HashMap::new(),
+    }
+}
+
+fn chain_config(output_path: PathBuf) -> NodeResolverChainConfig {
+    NodeResolverChainConfig {
+        enabled: true,
+        protocol: crate::config::ResolverProtocol::Adnl,
+        global_config_path: None,
+        local_addr: None,
+        output_path: Some(output_path),
+    }
+}
+
+fn snapshot_of(adnl_addrs: &[Option<&str>]) -> Arc<crate::chain::ClockSnapshot> {
+    let mut snapshot = crate::chain::test_clock_snapshot("ton");
+    let template = snapshot.current_set.validators[0].clone();
+    snapshot.current_set.validators = adnl_addrs
+        .iter()
+        .enumerate()
+        .map(|(index, adnl_addr)| {
+            let mut validator = template.clone();
+            validator.public_key = format!("{index:064}");
+            validator.adnl_addr = adnl_addr.map(str::to_owned);
+            validator
+        })
+        .collect();
+    Arc::new(snapshot)
+}
+
+fn written_set(path: &std::path::Path) -> serde_json::Value {
+    serde_json::from_slice(&std::fs::read(path).expect("the pass writes its set")).unwrap()
+}
+
+fn temp_output_path(name: &str) -> PathBuf {
+    std::env::temp_dir().join(format!(
+        "validatorclock-resolver-{name}-{}.json",
+        std::process::id()
+    ))
+}
+
+async fn run_pass(
+    script: &Arc<Script>,
+    chain: &NodeResolverChainConfig,
+    snapshot: Arc<crate::chain::ClockSnapshot>,
+    memory: &mut ResolvedAddressMemory,
+) {
+    let sweeper = Asker {
+        script: Arc::clone(script),
+        name: "pass".to_owned(),
+    };
+    collect_once(
+        "ton",
+        chain,
+        &resolver_config(),
+        &sweeper,
+        || {
+            let script = Arc::clone(script);
+            async move {
+                let round = script
+                    .rounds_opened
+                    .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+                    + 1;
+                Ok(Asker {
+                    script,
+                    name: format!("round-{round}"),
+                })
+            }
+        },
+        snapshot,
+        memory,
+    )
+    .await
+    .expect("the pass writes its set");
+}
+
+/// The whole point of asking again through a client that has not just been
+/// through a sweep: what it finds is found, not remembered from before.
+#[tokio::test(start_paused = true)]
+async fn a_miss_picked_up_by_a_second_ask_is_resolved_not_remembered() {
+    let reached = "aa".repeat(32);
+    let lost_then_found = "bb".repeat(32);
+    let never_reached = "cc".repeat(32);
+    let script = Arc::new(Script::default());
+    script.says(&reached, vec![found_at("203.0.113.1", 2_000)]);
+    script.says(
+        &lost_then_found,
+        vec![
+            Resolution::failed_for_test("no answer"),
+            found_at("203.0.113.2", 2_001),
+        ],
+    );
+    script.says(
+        &never_reached,
+        vec![Resolution::failed_for_test("no answer")],
+    );
+
+    let output_path = temp_output_path("second-ask");
+    let chain = chain_config(output_path.clone());
+    let mut memory = ResolvedAddressMemory::default();
+    memory.remember(
+        &never_reached,
+        &address("198.51.100.9"),
+        crate::timeutil::now_sec(),
+    );
+
+    run_pass(
+        &script,
+        &chain,
+        snapshot_of(&[
+            Some(&reached),
+            Some(&lost_then_found),
+            Some(&never_reached),
+            None,
+        ]),
+        &mut memory,
+    )
+    .await;
+
+    let written = written_set(&output_path);
+    let validators = written["validators"].as_array().unwrap();
+    assert_eq!(validators[0]["resolution"]["status"], "resolved");
+    assert_eq!(
+        validators[1]["resolution"]["status"], "resolved",
+        "an address the second ask reached was found now, not recalled from before"
+    );
+    assert_eq!(
+        validators[1]["resolution"]["addresses"][0]["ip"],
+        "203.0.113.2"
+    );
+    assert_eq!(
+        validators[2]["resolution"]["status"], "remembered",
+        "one that answered nobody is offered the address it last had"
+    );
+    assert_eq!(validators[3]["resolution"]["status"], "missing_adnl");
+
+    assert_eq!(written["resolved_total"], 2);
+    assert_eq!(written["remembered_total"], 1);
+    assert_eq!(written["placed_total"], 3);
+    assert_eq!(written["validators_with_adnl"], 3);
+    assert_eq!(written["validators_total"], 4);
+
+    assert_eq!(
+        script.asked_by("round-1"),
+        vec![lost_then_found.clone(), never_reached.clone()],
+        "only the two the sweep lost are asked again, and by a client of its own"
+    );
+
+    let _ = std::fs::remove_file(output_path);
+}
+
+/// The second asks are a handful of rounds, not a loop: an address nobody
+/// answers for is asked about a fixed number of times and then left alone
+/// until the next pass.
+#[tokio::test(start_paused = true)]
+async fn an_address_nobody_answers_for_is_asked_again_a_fixed_number_of_times() {
+    let never_reached = "dd".repeat(32);
+    let script = Arc::new(Script::default());
+    script.says(
+        &never_reached,
+        vec![Resolution::failed_for_test("no answer")],
+    );
+
+    let output_path = temp_output_path("rounds");
+    let chain = chain_config(output_path.clone());
+    let mut memory = ResolvedAddressMemory::default();
+
+    run_pass(
+        &script,
+        &chain,
+        snapshot_of(&[Some(&never_reached)]),
+        &mut memory,
+    )
+    .await;
+
+    assert_eq!(
+        script
+            .rounds_opened
+            .load(std::sync::atomic::Ordering::SeqCst),
+        RECOVERY_ROUNDS,
+        "each round of second asks opens a client of its own"
+    );
+    assert_eq!(script.asked_by("pass").len(), 1);
+    for round in 1..=RECOVERY_ROUNDS {
+        assert_eq!(
+            script.asked_by(&format!("round-{round}")),
+            vec![never_reached.clone()]
+        );
+    }
+    assert_eq!(written_set(&output_path)["placed_total"], 0);
+
+    let _ = std::fs::remove_file(output_path);
+}
+
+/// The memory is for the validators the chain has now. One that left the set
+/// is not kept against the day it comes back - the file would grow forever,
+/// and an address years old is not an answer.
+#[tokio::test(start_paused = true)]
+async fn a_validator_that_left_the_set_is_forgotten() {
+    let still_here = "ee".repeat(32);
+    let gone = "ff".repeat(32);
+    let script = Arc::new(Script::default());
+    script.says(&still_here, vec![found_at("203.0.113.5", 3_000)]);
+
+    let output_path = temp_output_path("forgotten");
+    let chain = chain_config(output_path.clone());
+    let now = crate::timeutil::now_sec();
+    let mut memory = ResolvedAddressMemory::default();
+    memory.remember(&gone, &address("198.51.100.10"), now);
+
+    run_pass(
+        &script,
+        &chain,
+        snapshot_of(&[Some(&still_here)]),
+        &mut memory,
+    )
+    .await;
+
+    assert!(
+        memory.recall(&gone, now).is_none(),
+        "a validator the chain no longer lists is not remembered"
+    );
+    assert_eq!(
+        memory
+            .recall(&still_here, now)
+            .expect("what this pass reached is what the next one is offered")
+            .addresses[0]
+            .ip,
+        "203.0.113.5"
+    );
+
+    let _ = std::fs::remove_file(output_path);
+}

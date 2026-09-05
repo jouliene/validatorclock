@@ -5,6 +5,7 @@ mod provider;
 mod proxy_sources;
 mod single_nominator_sources;
 mod st_ever_strategy_sources;
+mod transaction_scan;
 mod validator_controller_sources;
 mod wallet_index;
 mod wallet_tasks;

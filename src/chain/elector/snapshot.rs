@@ -1,9 +1,72 @@
 use super::super::dto::ValidatorRoundData;
 use super::super::util::{endpoint_label, hex_lower, round_color};
-use super::super::{ChainMeta, ValidatorDto, ValidatorSetDto};
+use super::super::{
+    ChainMeta, ClockSnapshot, ElectionDto, ElectionTimingsDto, ValidatorDto, ValidatorSetDto,
+};
 use crate::config::ChainConfig;
 use minik2::{FpTokens, ValidatorSet};
 use std::collections::HashMap;
+use tycho_types::models::config::ElectionTimings;
+
+/// What one source answered with, before it is a snapshot.
+///
+/// Three endpoints can serve a chain - a jrpc node, TON Center, a GraphQL
+/// gateway - and each fetches these pieces its own way. They are put together
+/// in one place so the page cannot come out shaped differently depending on
+/// which of them answered.
+pub(super) struct SnapshotParts<'a> {
+    pub(super) chain: &'a ChainConfig,
+    pub(super) endpoint: &'a str,
+    pub(super) observed_at: u64,
+    pub(super) global_id: i32,
+    pub(super) seqno: u32,
+    pub(super) timings: ElectionTimings,
+    pub(super) current_set: ValidatorSet,
+    pub(super) next_set: Option<ValidatorSet>,
+    pub(super) election: ElectionDto,
+    pub(super) validator_round_data: HashMap<u32, ValidatorRoundData>,
+}
+
+pub(super) fn assemble_snapshot(parts: SnapshotParts<'_>) -> ClockSnapshot {
+    let SnapshotParts {
+        chain,
+        endpoint,
+        observed_at,
+        global_id,
+        seqno,
+        timings,
+        current_set,
+        next_set,
+        election,
+        validator_round_data,
+    } = parts;
+    let elected_for = timings.validators_elected_for;
+
+    ClockSnapshot {
+        chain: chain_meta_with_rpc(chain, endpoint),
+        selected_endpoint: Some(endpoint.to_owned()),
+        fetched_at: observed_at,
+        global_id,
+        seqno,
+        params15: ElectionTimingsDto {
+            validators_elected_for: elected_for,
+            elections_start_before: timings.elections_start_before,
+            elections_end_before: timings.elections_end_before,
+            stake_held_for: timings.stake_held_for,
+        },
+        current_set: ValidatorSetDto::from_set(
+            &current_set,
+            elected_for,
+            validator_round_data.get(&current_set.utime_since),
+        ),
+        previous_set: previous_validator_set(&current_set, elected_for, &validator_round_data),
+        next_set: next_set.as_ref().map(|set| {
+            ValidatorSetDto::from_set(set, elected_for, validator_round_data.get(&set.utime_since))
+        }),
+        election,
+        warning: None,
+    }
+}
 
 impl From<&ChainConfig> for ChainMeta {
     fn from(chain: &ChainConfig) -> Self {
@@ -174,6 +237,113 @@ mod tests {
     use super::*;
     use crate::chain::RoundColor;
     use crate::chain::dto::ValidatorElectionHistory;
+    use minik2::HashBytes;
+    use std::num::NonZeroU16;
+    use tycho_types::models::config::ValidatorDescription;
+
+    fn validator_set(utime_since: u32, elected_for: u32, key: u8) -> ValidatorSet {
+        ValidatorSet {
+            utime_since,
+            utime_until: utime_since + elected_for,
+            main: NonZeroU16::new(1).unwrap(),
+            total_weight: 100,
+            list: vec![ValidatorDescription {
+                public_key: HashBytes([key; 32]),
+                weight: 100,
+                adnl_addr: Some(HashBytes([key; 32])),
+                mc_seqno_since: 0,
+                prev_total_weight: 0,
+            }],
+        }
+    }
+
+    fn round_data(stake: &str) -> ValidatorRoundData {
+        let mut validators = HashMap::new();
+        validators.insert(
+            "aa".to_owned(),
+            ValidatorElectionHistory {
+                wallet: "-1:aa".to_owned(),
+                stake: stake.to_owned(),
+                reward: Some("1".to_owned()),
+                weight: Some("100".to_owned()),
+            },
+        );
+        ValidatorRoundData {
+            validators,
+            total_stake: Some(stake.to_owned()),
+            total_reward: Some("1".to_owned()),
+            total_weight_raw: Some("100".to_owned()),
+            ..ValidatorRoundData::default()
+        }
+    }
+
+    /// Three endpoints can answer for a chain, and each used to put the
+    /// snapshot together itself. What the page is made of is stated here now,
+    /// once, so it cannot come out different depending on who answered.
+    #[test]
+    fn a_snapshot_is_the_sets_the_source_answered_with_and_the_round_before_them() {
+        let chain = ChainConfig {
+            id: "test".to_owned(),
+            name: "Test".to_owned(),
+            rpc: "https://configured.example".to_owned(),
+            rpc_fallbacks: Vec::new(),
+            color: "#000000".to_owned(),
+            token_symbol: "TEST".to_owned(),
+            rpc_label: None,
+        };
+        let elected_for = 100;
+        let mut validator_round_data = HashMap::new();
+        validator_round_data.insert(100, round_data("10"));
+
+        let snapshot = assemble_snapshot(SnapshotParts {
+            chain: &chain,
+            endpoint: "https://answered.example",
+            observed_at: 1_788_000_000,
+            global_id: -239,
+            seqno: 42,
+            timings: ElectionTimings {
+                validators_elected_for: elected_for,
+                elections_start_before: 60,
+                elections_end_before: 20,
+                stake_held_for: 30,
+            },
+            current_set: validator_set(200, elected_for, 0xaa),
+            next_set: Some(validator_set(300, elected_for, 0xbb)),
+            election: ElectionDto::default(),
+            validator_round_data,
+        });
+
+        assert_eq!(snapshot.chain.id, "test");
+        assert_eq!(
+            snapshot.chain.rpc_label, "answered.example",
+            "the page names the endpoint that answered, not the one configured first"
+        );
+        assert_eq!(
+            snapshot.selected_endpoint.as_deref(),
+            Some("https://answered.example")
+        );
+        assert_eq!(snapshot.fetched_at, 1_788_000_000);
+        assert_eq!(snapshot.global_id, -239);
+        assert_eq!(snapshot.seqno, 42);
+        assert_eq!(snapshot.params15.validators_elected_for, elected_for);
+        assert_eq!(snapshot.params15.stake_held_for, 30);
+        assert_eq!(snapshot.current_set.utime_since, 200);
+        assert_eq!(
+            snapshot.next_set.expect("the next set is kept").utime_since,
+            300
+        );
+        assert_eq!(
+            snapshot
+                .previous_set
+                .expect("the round before the current one is known from its frozen stakes")
+                .utime_since,
+            100
+        );
+        assert!(
+            snapshot.warning.is_none(),
+            "a snapshot that was fetched has nothing to warn about"
+        );
+    }
 
     #[test]
     fn frozen_round_data_builds_previous_validator_set() {

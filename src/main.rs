@@ -12,6 +12,7 @@ mod etag;
 mod fsutil;
 mod geoip;
 mod history;
+mod hostname;
 mod http;
 mod logging;
 mod node_locations;

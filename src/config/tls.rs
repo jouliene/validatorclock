@@ -1,5 +1,4 @@
 use super::AcmeConfig;
-use crate::server;
 use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 use std::path::PathBuf;
@@ -50,11 +49,11 @@ impl TlsConfig {
 
         self.acme.validate()?;
         if self.acme.enabled {
-            let public_host = server::public_url_host(&self.public_url)
+            let public_host = crate::hostname::public_url_host(&self.public_url)
                 .context("tls.public_url must include a host")?;
             let mut public_host_has_certificate = false;
             for identifier in self.acme.identifier_values() {
-                let acme_host = server::normalize_host(identifier)
+                let acme_host = crate::hostname::normalize_host(identifier)
                     .with_context(|| format!("tls.acme identifier `{identifier}` is invalid"))?;
                 if public_host == acme_host {
                     public_host_has_certificate = true;

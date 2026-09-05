@@ -1,3 +1,4 @@
+use crate::chain::ValidatorDto;
 use crate::config::AppConfig;
 use anyhow::Result;
 use serde_json::Value;
@@ -11,12 +12,23 @@ use file_cache::load_map_nodes_file;
 
 pub(crate) use matching::{filter_map_nodes_to_validators, map_nodes_by_peer};
 
-pub(crate) const BUNDLED_TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
-
 #[derive(Clone)]
 pub(crate) struct MapNodesPayload {
     pub(crate) nodes: Value,
     pub(crate) updated_at: Option<u64>,
+}
+
+/// The map as a chain's readers see it: the nodes on file, kept to the
+/// validators the chain has now.
+pub(crate) fn active_map_nodes(
+    config: &AppConfig,
+    chain_id: &str,
+    validators: &[ValidatorDto],
+) -> Result<Option<Value>> {
+    let Some(nodes) = load_map_nodes(config, chain_id)? else {
+        return Ok(None);
+    };
+    filter_map_nodes_to_validators(nodes, validators).map(Some)
 }
 
 pub(crate) fn load_map_nodes(config: &AppConfig, chain_id: &str) -> Result<Option<Value>> {
@@ -28,13 +40,6 @@ pub(crate) fn load_map_nodes_with_metadata(
     chain_id: &str,
 ) -> Result<Option<MapNodesPayload>> {
     if let Some(path) = config.map_nodes_paths.get(chain_id)
-        && let Some(payload) = load_map_nodes_file_if_exists(path)?
-    {
-        return Ok(Some(payload));
-    }
-
-    if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID
-        && let Some(path) = &config.tycho_map_nodes_path
         && let Some(payload) = load_map_nodes_file_if_exists(path)?
     {
         return Ok(Some(payload));

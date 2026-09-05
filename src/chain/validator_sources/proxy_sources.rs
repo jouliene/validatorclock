@@ -6,11 +6,7 @@ use anyhow::Result;
 use std::sync::OnceLock;
 use tracing::debug;
 use tycho_types::abi::{AbiValue, AbiVersion, FromAbi, Function, WithAbiType};
-use tycho_types::boc::BocRepr;
 use tycho_types::models::{ComputePhase, MsgInfo, StdAddr, Transaction, TxInfo};
-
-const PROXY_SOURCE_TX_SCAN_LIMIT: u8 = 100;
-const PROXY_SOURCE_TX_SCAN_MAX_PAGES: usize = 40;
 
 #[derive(Debug, Clone, FromAbi, WithAbiType)]
 #[allow(dead_code)]
@@ -68,36 +64,12 @@ async fn scan_proxy_source_address(
     provider: &ValidatorSourceProvider,
     proxy_wallet: &str,
 ) -> Result<Option<String>> {
-    let mut continuation_lt = None::<String>;
-
-    for _ in 0..PROXY_SOURCE_TX_SCAN_MAX_PAGES {
-        let tx_bocs = provider
-            .transaction_bocs(
-                proxy_wallet,
-                continuation_lt.as_deref(),
-                PROXY_SOURCE_TX_SCAN_LIMIT,
-            )
-            .await?;
-        if tx_bocs.is_empty() {
-            break;
-        }
-
-        let mut next_continuation = None;
-        for tx_boc in tx_bocs {
-            let transaction: Transaction = BocRepr::decode_base64(tx_boc)?;
-            next_continuation = Some(transaction.prev_trans_lt.to_string());
-            if let Some(source) = parse_proxy_process_new_stake_source(&transaction)? {
-                return Ok(Some(source));
-            }
-        }
-
-        if next_continuation.as_deref() == Some("0") || next_continuation == continuation_lt {
-            break;
-        }
-        continuation_lt = next_continuation;
-    }
-
-    Ok(None)
+    super::transaction_scan::scan_back_for_source(
+        provider,
+        proxy_wallet,
+        parse_proxy_process_new_stake_source,
+    )
+    .await
 }
 
 fn parse_proxy_process_new_stake_source(transaction: &Transaction) -> Result<Option<String>> {

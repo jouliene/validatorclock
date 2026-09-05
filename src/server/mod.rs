@@ -12,15 +12,13 @@ mod api;
 mod assets;
 mod basemap;
 mod conditional;
-mod connection;
+pub(crate) mod connection;
 mod responses;
 mod routes;
 mod security;
 
 #[cfg(test)]
 mod tests;
-
-pub(crate) use security::{normalize_host, public_url_host};
 
 pub(crate) async fn run_plain_http_server(state: Arc<AppState>) -> Result<()> {
     let listener = TcpListener::bind(&state.config.listen)
