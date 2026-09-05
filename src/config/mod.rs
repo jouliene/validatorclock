@@ -9,6 +9,8 @@ mod security;
 mod tls;
 
 pub(crate) use acme::AcmeConfig;
+#[cfg(test)]
+pub(crate) use app::MIN_REFRESH_SECONDS;
 pub(crate) use app::{AppConfig, ChainConfig, NodeLocationChainConfig, NodeLocationsConfig};
 pub(crate) use node_resolver::{NodeResolverChainConfig, NodeResolverConfig, ResolverProtocol};
 pub(crate) use security::SecurityConfig;
@@ -67,6 +69,7 @@ pub(crate) fn load_config(path: Option<&Path>) -> Result<LoadedConfig> {
     let mut config: AppConfig =
         serde_json::from_str(&content).context("failed to parse validator clock config")?;
     config.apply_endpoint_overrides();
+    config.normalize();
     Ok(LoadedConfig { config, source })
 }
 

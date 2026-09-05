@@ -2,6 +2,42 @@ use super::*;
 use crate::chain::RoundColor;
 use axum::http::{StatusCode, header};
 
+/// A request hands back the answer that was worked out when the data behind it
+/// arrived, and writes nothing down of its own.
+///
+/// Recording the round used to happen on the way out, when a reader asked for
+/// the page: a write lock over the whole history and a file write, on the path
+/// of every page load, to record what the next refresh would have recorded
+/// anyway - and two readers arriving together did it twice, one behind the
+/// other.
+#[tokio::test]
+async fn a_reader_does_not_record_the_round() {
+    let mut config = test_config(Vec::new());
+    config.history_path = Some(temp_state_path("history_readers_write_nothing"));
+    config
+        .chains
+        .push(test_chain_config("test", "Test", "#38bdf8", "TEST"));
+    let state = state_from_config(config);
+    let snapshot = test_clock_snapshot("test");
+    let _ = state
+        .store_cached_snapshot("test", now_sec_for_test(), snapshot.clone())
+        .await;
+
+    let response = app_response(state.clone(), "/api/chains/test/clock").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert!(
+        state.round_stats_points("test").await.is_empty(),
+        "a request recorded a round that no refresh had"
+    );
+
+    accept_snapshot_as_a_refresh_would(&state, "test", snapshot, now_sec_for_test()).await;
+
+    assert!(
+        !state.round_stats_points("test").await.is_empty(),
+        "a refresh landing is what records the round"
+    );
+}
+
 #[tokio::test]
 async fn app_router_serves_health_with_security_headers() {
     let response = app_response(test_state(Vec::new()), "/api/health").await;
@@ -110,7 +146,6 @@ async fn app_router_serves_cached_round_stats_when_preferred() {
         snapshot.next_set = None;
     })
     .await;
-    state.cached_snapshot("test").await.unwrap();
 
     let response = app_response(state, "/api/chains/test/round-stats?prefer_cache=1").await;
 

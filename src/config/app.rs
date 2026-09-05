@@ -7,6 +7,13 @@ use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use tracing::info;
 
+/// The shortest refresh interval this process will work to.
+///
+/// A chain refresh takes seconds of network round trips, and every reader
+/// polls at half the interval, so asking for less than this buys nothing and
+/// costs the endpoints.
+pub(crate) const MIN_REFRESH_SECONDS: u64 = 10;
+
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct AppConfig {
     #[serde(default = "default_listen")]
@@ -101,6 +108,25 @@ impl AppConfig {
                 );
                 chain.rpc = rpc;
             }
+        }
+    }
+
+    /// Raise what the process would otherwise raise behind the reader's back.
+    ///
+    /// An interval below the floor was never honoured: the background loop,
+    /// the runtime status and the freshness window each raised it on their
+    /// own, in four places, so `/api/status` reported an interval the config
+    /// never asked for and nothing said why. It is raised once, here, and said
+    /// out loud. Zero is not raised - that is a mistake, and `validate` still
+    /// refuses to start on it.
+    pub(crate) fn normalize(&mut self) {
+        if self.refresh_seconds > 0 && self.refresh_seconds < MIN_REFRESH_SECONDS {
+            info!(
+                configured = self.refresh_seconds,
+                using = MIN_REFRESH_SECONDS,
+                "refresh_seconds is below the minimum this process works to"
+            );
+            self.refresh_seconds = MIN_REFRESH_SECONDS;
         }
     }
 

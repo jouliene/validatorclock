@@ -1,7 +1,5 @@
 use super::util::{fresh_cache_seconds, now_sec};
-use super::validator_sources::{
-    apply_cached_validator_contract_type_hashes, update_validator_contract_type_hashes,
-};
+use super::validator_sources::update_validator_contract_type_hashes;
 use super::{ClockSnapshot, fetch_chain_snapshot};
 use crate::config::ChainConfig;
 use crate::state::AppState;
@@ -23,7 +21,7 @@ async fn get_chain_snapshot(
     state: &AppState,
     chain_id: &str,
     force_refresh: bool,
-) -> Result<ClockSnapshot> {
+) -> Result<Arc<ClockSnapshot>> {
     let now = now_sec()?;
     let fresh_seconds = fresh_cache_seconds(state.config.refresh_seconds);
 
@@ -42,9 +40,9 @@ async fn get_chain_snapshot(
     state.record_refresh_attempt(chain_id, now).await;
 
     match refresh_chain_with_timeout(state, chain).await {
-        Ok(snapshot) => {
-            Ok(finalize_refreshed_snapshot(state, chain, chain_id, now, snapshot).await)
-        }
+        Ok(snapshot) => finalize_refreshed_snapshot(state, chain_id, now, snapshot)
+            .await
+            .ok_or_else(|| anyhow!("chain `{chain_id}` left the config while it refreshed")),
         Err(error) => cached_snapshot_after_refresh_failure(state, chain_id, now, error).await,
     }
 }
@@ -64,36 +62,49 @@ async fn refresh_chain_with_timeout(
 
 async fn finalize_refreshed_snapshot(
     state: &AppState,
-    chain: &ChainConfig,
     chain_id: &str,
     cache_checked_at: u64,
     mut snapshot: ClockSnapshot,
-) -> ClockSnapshot {
+) -> Option<Arc<ClockSnapshot>> {
     let fetched_at = snapshot.fetched_at;
     let observed_at = now_sec().unwrap_or(snapshot.fetched_at);
+    // What the chain itself said, kept apart from what is worked into it.
+    // Where the map places a validator, what the history remembers of it and
+    // what kind of wallet it runs all change on their own clock, and a copy of
+    // their answers kept here would only go quietly out of date - a validator
+    // that dropped off the map kept its dot until the next refresh replaced
+    // the copy.
+    let as_fetched = snapshot.clone();
     state
         .annotate_map_fake_validators(&mut snapshot, observed_at)
         .await;
-    let cached_snapshot = state.cached_snapshot(chain_id).await;
-    if let Some(reason) = cached_snapshot
-        .as_ref()
-        .and_then(|cached| degraded_refresh_reason(&snapshot, cached))
-    {
+
+    // Read where it lies rather than copied out: this compares a handful of
+    // fields, and taking a copy of the cached validator set to do it cost as
+    // much as the refresh it was checking.
+    let degraded = state
+        .with_cached_snapshot(chain_id, |cached| {
+            degraded_refresh_reason(&snapshot, cached)
+        })
+        .await
+        .flatten();
+    if let Some(reason) = degraded {
         state
             .record_refresh_failure(chain_id, fetched_at, reason.clone())
             .await;
-        if let Some(mut cached) = cached_snapshot {
-            cached.warning = Some(degraded_refresh_cache_warning(cached.fetched_at, &reason));
-            return cached;
+        if let Some(mut cached) = state.cached_snapshot(chain_id).await {
+            let warning = degraded_refresh_cache_warning(cached.fetched_at, &reason);
+            Arc::make_mut(&mut cached).warning = Some(warning);
+            return Some(cached);
         }
     }
-    state.record_round_history(&mut snapshot, observed_at).await;
-    apply_cached_validator_contract_type_hashes(state, chain, &mut snapshot).await;
-    state
-        .store_cached_snapshot(chain_id, cache_checked_at, snapshot.clone())
+
+    state.record_round_history(&snapshot, observed_at).await;
+    let ready = state
+        .store_cached_snapshot(chain_id, cache_checked_at, as_fetched)
         .await;
     state.record_refresh_success(chain_id, fetched_at).await;
-    snapshot
+    ready
 }
 
 async fn cached_snapshot_after_refresh_failure(
@@ -101,13 +112,14 @@ async fn cached_snapshot_after_refresh_failure(
     chain_id: &str,
     failed_at: u64,
     error: anyhow::Error,
-) -> Result<ClockSnapshot> {
+) -> Result<Arc<ClockSnapshot>> {
     let error_message = error.to_string();
     state
         .record_refresh_failure(chain_id, failed_at, error_message)
         .await;
     if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
-        snapshot.warning = Some(refresh_failed_cache_warning(snapshot.fetched_at, &error));
+        let warning = refresh_failed_cache_warning(snapshot.fetched_at, &error);
+        Arc::make_mut(&mut snapshot).warning = Some(warning);
         return Ok(snapshot);
     }
     Err(error)
@@ -218,7 +230,7 @@ pub(crate) async fn get_chain_snapshot_cached_first(
     state: Arc<AppState>,
     chain_id: &str,
     force_refresh: bool,
-) -> Result<ClockSnapshot> {
+) -> Result<Arc<ClockSnapshot>> {
     let now = now_sec()?;
     let fresh_seconds = fresh_cache_seconds(state.config.refresh_seconds);
 
@@ -231,7 +243,8 @@ pub(crate) async fn get_chain_snapshot_cached_first(
         }
 
         if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
-            snapshot.warning = Some(stale_cache_refresh_warning(snapshot.fetched_at));
+            let warning = stale_cache_refresh_warning(snapshot.fetched_at);
+            Arc::make_mut(&mut snapshot).warning = Some(warning);
             spawn_stale_snapshot_refresh(Arc::clone(&state), chain_id.to_owned(), now).await;
             return Ok(snapshot);
         }

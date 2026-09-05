@@ -46,11 +46,7 @@ impl AppState {
         round_history_chain_path(&self.round_history_path, chain_id)
     }
 
-    pub(crate) async fn record_round_history(
-        &self,
-        snapshot: &mut ClockSnapshot,
-        observed_at: u64,
-    ) {
+    pub(crate) async fn record_round_history(&self, snapshot: &ClockSnapshot, observed_at: u64) {
         let chain_id = snapshot.chain_id().to_owned();
         let retention = RoundHistoryStore::retention_for_snapshot(&chain_id, snapshot);
         let history_path = self.round_history_path_for_chain(&chain_id);
@@ -58,7 +54,6 @@ impl AppState {
             let mut history = self.round_history.write().await;
             let rounds_before = history.round_count_for_chain(&chain_id);
             let changed = history.record_snapshot(&chain_id, snapshot, observed_at);
-            history.annotate_snapshot(&chain_id, snapshot);
             let rounds_after = history.round_count_for_chain(&chain_id);
             if changed || !history_path.exists() {
                 info!(

@@ -57,7 +57,6 @@ fn is_secret_path_segment(segment: &str) -> bool {
 // than one cycle just before the next one lands. Snapshots stay fresh across
 // that gap, and readers are only warned once a refresh is genuinely behind.
 pub(super) fn fresh_cache_seconds(refresh_seconds: u64) -> u64 {
-    let refresh_seconds = refresh_seconds.max(10);
     refresh_seconds.saturating_add((refresh_seconds / 2).clamp(5, 30))
 }
 
@@ -72,9 +71,16 @@ mod tests {
     #[test]
     fn cache_stays_fresh_across_one_refresh_cycle() {
         assert_eq!(fresh_cache_seconds(60), 90);
-        assert_eq!(fresh_cache_seconds(10), 15);
-        assert_eq!(fresh_cache_seconds(0), 15);
-        assert_eq!(fresh_cache_seconds(600), 630);
+        assert_eq!(
+            fresh_cache_seconds(crate::config::MIN_REFRESH_SECONDS),
+            15,
+            "the shortest interval the config allows still leaves room for a refresh to land"
+        );
+        assert_eq!(
+            fresh_cache_seconds(600),
+            630,
+            "and the longest is capped at half a minute of slack"
+        );
     }
 
     #[test]

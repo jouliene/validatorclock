@@ -21,7 +21,7 @@ pub(in crate::server) async fn chain_clock(
 
     let force_refresh = state.config.security.allow_force_refresh && query_forces_refresh(&query);
     match get_chain_snapshot_cached_first(Arc::clone(&state), &chain_id, force_refresh).await {
-        Ok(snapshot) => Json(snapshot).into_response(),
+        Ok(snapshot) => Json(snapshot.as_ref()).into_response(),
         Err(error) => {
             error!(chain_id, error = ?error, "snapshot request failed");
             json_error(

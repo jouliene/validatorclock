@@ -180,8 +180,29 @@ async fn cache_snapshot(state: &AppState, chain_id: &str, public_keys: &[&str]) 
     cache_snapshot_with(state, chain_id, public_keys, |_| {}).await;
 }
 
+async fn cache_snapshot_seen_at(
+    state: &AppState,
+    chain_id: &str,
+    public_keys: &[&str],
+    observed_at: u64,
+) {
+    cache_snapshot_at_with(state, chain_id, public_keys, observed_at, |_| {}).await;
+}
+
 async fn cache_snapshot_with<F>(state: &AppState, chain_id: &str, public_keys: &[&str], mutate: F)
 where
+    F: FnOnce(&mut ClockSnapshot),
+{
+    cache_snapshot_at_with(state, chain_id, public_keys, now_sec_for_test(), mutate).await;
+}
+
+async fn cache_snapshot_at_with<F>(
+    state: &AppState,
+    chain_id: &str,
+    public_keys: &[&str],
+    observed_at: u64,
+    mutate: F,
+) where
     F: FnOnce(&mut ClockSnapshot),
 {
     let mut snapshot = test_clock_snapshot(chain_id);
@@ -197,7 +218,29 @@ where
     snapshot.current_set.total = snapshot.current_set.validators.len();
     snapshot.current_set.main = snapshot.current_set.validators.len() as u16;
     mutate(&mut snapshot);
+    accept_snapshot_as_a_refresh_would(state, chain_id, snapshot, observed_at).await;
+}
+
+/// Put a snapshot into the state the way a landing refresh does: work out
+/// where its validators are, record the round, and keep the snapshot as the
+/// chain gave it.
+///
+/// Recording used to happen on the way out, when a reader asked for the page,
+/// so dropping a snapshot into the cache was enough to make a history appear.
+/// It happens where the data arrives now, and a test that wants a history has
+/// to arrive with one.
+async fn accept_snapshot_as_a_refresh_would(
+    state: &AppState,
+    chain_id: &str,
+    snapshot: ClockSnapshot,
+    observed_at: u64,
+) {
+    let mut annotated = snapshot.clone();
     state
-        .store_cached_snapshot(chain_id, now_sec_for_test(), snapshot)
+        .annotate_map_fake_validators(&mut annotated, observed_at)
+        .await;
+    state.record_round_history(&annotated, observed_at).await;
+    let _ = state
+        .store_cached_snapshot(chain_id, observed_at, snapshot)
         .await;
 }

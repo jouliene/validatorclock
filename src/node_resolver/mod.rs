@@ -191,7 +191,7 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
 }
 
 /// Wait until the chain has a validator set to work from.
-async fn wait_for_snapshot(state: &AppState, chain_id: &str) -> ClockSnapshot {
+async fn wait_for_snapshot(state: &AppState, chain_id: &str) -> Arc<ClockSnapshot> {
     let mut waited = Duration::ZERO;
     loop {
         if let Some(snapshot) = state.cached_snapshot(chain_id).await {
@@ -214,7 +214,7 @@ async fn collect_once(
     // asked the site's own HTTP API for it, which meant it could not run while
     // the site was down and fetched over the network what was already in
     // memory a function call away.
-    snapshot: ClockSnapshot,
+    snapshot: Arc<ClockSnapshot>,
     memory: &mut ResolvedAddressMemory,
 ) -> Result<()> {
     resolver.warmup(chain_id).await;
@@ -223,10 +223,9 @@ async fn collect_once(
     let validators = &snapshot.current_set.validators;
     let resolved = stream::iter(validators.iter())
         .map(|validator| async move {
-            let resolution = match validator.adnl_addr.as_deref() {
-                None => Resolution::missing_adnl(),
-                Some(adnl_addr) if !is_hex_32(adnl_addr) => Resolution::invalid_adnl(adnl_addr),
-                Some(adnl_addr) => resolver.resolve(adnl_addr, now).await,
+            let resolution = match address_to_look_up(validator) {
+                Ok(adnl_addr) => resolver.resolve(adnl_addr, now).await,
+                Err(resolution) => resolution,
             };
             ResolvedValidator {
                 validator_public_key: validator.public_key.clone(),
@@ -250,49 +249,14 @@ async fn collect_once(
     let mut resolved = resolved;
     let recovered_total = recover_misses(chain_id, chain, config, &mut resolved).await;
 
-    // A lookup that failed has not told us the address is gone, only that
-    // this pass could not reach it - and the passes disagree: of ten that
-    // failed one pass, five answered the next. An address the DHT confirmed
-    // within the hour is offered again rather than dropped, marked as
-    // remembered and carrying the time it was last confirmed.
-    for validator in &mut resolved {
-        match (&validator.adnl_addr, validator.resolution.is_resolved()) {
-            (Some(adnl_addr), true) => {
-                if let Some(address) = validator.resolution.addresses.first() {
-                    memory.remember(adnl_addr, address, now);
-                }
-            }
-            (Some(adnl_addr), false) => {
-                if let Some(recalled) = memory.recall(adnl_addr, now) {
-                    validator.resolution = recalled;
-                }
-            }
-            (None, _) => {}
-        }
-    }
+    apply_remembered_addresses(&mut resolved, memory, now);
     memory.retain_only(
         &validators
             .iter()
             .filter_map(|validator| validator.adnl_addr.clone())
             .collect::<Vec<_>>(),
     );
-
-    let resolved_total = resolved
-        .iter()
-        .filter(|validator| validator.resolution.is_resolved())
-        .count();
-    let remembered_total = resolved
-        .iter()
-        .filter(|validator| validator.resolution.status == "remembered")
-        .count();
-    let placed_total = resolved
-        .iter()
-        .filter(|validator| validator.resolution.has_address())
-        .count();
-    let with_adnl = resolved
-        .iter()
-        .filter(|validator| validator.adnl_addr.is_some())
-        .count();
+    let totals = PassTotals::of(&resolved);
 
     let output_path = chain
         .output_path
@@ -306,10 +270,10 @@ async fn collect_once(
         round_id: snapshot.current_set.round_id,
         validators_total: validators.len(),
         validators_main: usize::from(snapshot.current_set.main),
-        validators_with_adnl: with_adnl,
-        resolved_total,
-        remembered_total,
-        placed_total,
+        validators_with_adnl: totals.with_adnl,
+        resolved_total: totals.resolved,
+        remembered_total: totals.remembered,
+        placed_total: totals.placed,
         resolver: ResolverMetadata {
             local_addr: resolver.local_addr().to_owned(),
             bootstrap_nodes: resolver.bootstrap_nodes(),
@@ -325,11 +289,11 @@ async fn collect_once(
     info!(
         chain_id,
         validators_total = output.validators_total,
-        validators_with_adnl = with_adnl,
-        resolved_total,
+        validators_with_adnl = totals.with_adnl,
+        resolved_total = totals.resolved,
         recovered_total,
-        remembered_total,
-        placed_total,
+        remembered_total = totals.remembered,
+        placed_total = totals.placed,
         round_id = output.round_id,
         output_path = %output_path.display(),
         "resolved validator addresses"
@@ -555,6 +519,84 @@ fn host_of(configured: &str) -> &str {
     match configured.rsplit_once(':') {
         Some((host, _)) => host,
         None => configured,
+    }
+}
+
+/// The address to ask the DHT about, or what to write down instead.
+///
+/// A validator the chain named no address for, or named a malformed one, is
+/// not a lookup that failed: it is one that was never possible. The file says
+/// which, and the second ask knows not to spend a lookup on it.
+fn address_to_look_up(validator: &crate::chain::ValidatorDto) -> Result<&str, Resolution> {
+    match validator.adnl_addr.as_deref() {
+        None => Err(Resolution::missing_adnl()),
+        Some(adnl_addr) if !is_hex_32(adnl_addr) => Err(Resolution::invalid_adnl(adnl_addr)),
+        Some(adnl_addr) => Ok(adnl_addr),
+    }
+}
+
+/// Keep the addresses this pass confirmed, and offer back the ones it could
+/// not reach.
+///
+/// A lookup that failed has not said the address is gone, only that this pass
+/// could not reach it - and the passes disagree: of ten that failed one pass,
+/// five answered the next. An address confirmed within the hour is offered
+/// again rather than dropped, marked as remembered and carrying the time it
+/// was last confirmed.
+fn apply_remembered_addresses(
+    resolved: &mut [ResolvedValidator],
+    memory: &mut ResolvedAddressMemory,
+    now: u64,
+) {
+    for validator in resolved {
+        match (&validator.adnl_addr, validator.resolution.is_resolved()) {
+            (Some(adnl_addr), true) => {
+                if let Some(address) = validator.resolution.addresses.first() {
+                    memory.remember(adnl_addr, address, now);
+                }
+            }
+            (Some(adnl_addr), false) => {
+                if let Some(recalled) = memory.recall(adnl_addr, now) {
+                    validator.resolution = recalled;
+                }
+            }
+            (None, _) => {}
+        }
+    }
+}
+
+/// What one pass came to.
+struct PassTotals {
+    /// Confirmed by the DHT during this pass.
+    resolved: usize,
+    /// Not reached this pass, and offered from memory instead.
+    remembered: usize,
+    /// With an address to put on the map at all, however it was arrived at.
+    placed: usize,
+    /// Named an address by the chain, whether or not it answered.
+    with_adnl: usize,
+}
+
+impl PassTotals {
+    fn of(resolved: &[ResolvedValidator]) -> Self {
+        Self {
+            resolved: resolved
+                .iter()
+                .filter(|validator| validator.resolution.is_resolved())
+                .count(),
+            remembered: resolved
+                .iter()
+                .filter(|validator| validator.resolution.status == "remembered")
+                .count(),
+            placed: resolved
+                .iter()
+                .filter(|validator| validator.resolution.has_address())
+                .count(),
+            with_adnl: resolved
+                .iter()
+                .filter(|validator| validator.adnl_addr.is_some())
+                .count(),
+        }
     }
 }
 

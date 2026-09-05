@@ -1,7 +1,25 @@
 use super::super::StoredRound;
 use super::super::types::map_seen_bucket;
+use std::collections::HashMap;
 
 impl StoredRound {
+    /// Which validator held each wallet in this round.
+    ///
+    /// Where two keys name the same wallet - one operator running more than
+    /// one - the first in key order wins, which is the one a scan of the
+    /// membership would have found.
+    pub(in crate::history) fn validators_by_wallet(
+        &self,
+    ) -> HashMap<&str, &super::super::StoredValidator> {
+        let mut by_wallet = HashMap::new();
+        for validator in self.validators.values() {
+            if let Some(wallet) = validator.wallet.as_deref() {
+                by_wallet.entry(wallet).or_insert(validator);
+            }
+        }
+        by_wallet
+    }
+
     pub(in crate::history) fn validator_for_identity(
         &self,
         public_key: &str,

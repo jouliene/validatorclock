@@ -1,10 +1,10 @@
+use super::fake_validator_peer_set;
 use super::types::map_seen_bucket;
 use super::{
     ChainRoundHistory, RoundHistoryRetention, RoundHistoryStore, StoredRound, StoredValidator,
 };
 use crate::chain::{ClockSnapshot, ValidatorDto, ValidatorSetDto};
-use crate::decimal::parse_decimal;
-use std::collections::BTreeSet;
+use crate::decimal::min_max_decimals;
 
 mod round;
 
@@ -177,36 +177,9 @@ impl ChainRoundHistory {
 }
 
 fn min_max_validator_stakes(validators: &[ValidatorDto]) -> (Option<String>, Option<String>) {
-    let mut stakes = validators.iter().filter_map(|validator| {
-        let stake = validator.stake.as_ref()?;
-        parse_decimal(stake).map(|value| (value, stake))
-    });
-
-    let Some(first) = stakes.next() else {
-        return (None, None);
-    };
-
-    let (min, max) = stakes.fold((first, first), |(min, max), stake| {
-        let min = if stake.0.total_cmp(&min.0).is_lt() {
-            stake
-        } else {
-            min
-        };
-        let max = if stake.0.total_cmp(&max.0).is_gt() {
-            stake
-        } else {
-            max
-        };
-        (min, max)
-    });
-
-    (Some(min.1.clone()), Some(max.1.clone()))
-}
-
-fn fake_validator_peer_set(set: &ValidatorSetDto) -> BTreeSet<String> {
-    set.fake_validator_peers
-        .iter()
-        .map(|peer| peer.to_ascii_lowercase())
-        .filter(|peer| !peer.is_empty())
-        .collect()
+    min_max_decimals(
+        validators
+            .iter()
+            .filter_map(|validator| validator.stake.as_ref()),
+    )
 }
