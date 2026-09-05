@@ -8,6 +8,7 @@ futures = "0.3"
 anyhow = "1"
 axum = "0.8"
 base64 = "0.22"
+bytes = "1"
 hex = "0.4"
 hmac = "0.12"
 hyper = { version = "1", features = ["http1", "server"] }
@@ -18,6 +19,7 @@ instant-acme = { version = "0.8", default-features = false, features = ["hyper-r
 # first address in a list and only if it was UDP. Both cost validators their
 # place on the map. See the `quic-address` branch of each.
 adnl = { version = "0.11", features = ["node"], git = "https://github.com/jouliene/ever-adnl.git", branch = "quic-address" }
+flate2 = "1"
 ever_block = { git = "https://github.com/everx-labs/ever-block.git", tag = "1.11.20", features = ["export_key"] }
 ton_api = { git = "https://github.com/jouliene/ever-tl.git", package = "ton_api", branch = "quic-address" }
 minik2 = { git = "https://github.com/jouliene/minik2", rev = "3cf2fc733805343c918525ec080b189e2cccfe42" }

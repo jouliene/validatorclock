@@ -8,6 +8,7 @@ use tracing::{info, warn};
 mod chain;
 mod config;
 mod decimal;
+mod etag;
 mod fsutil;
 mod geoip;
 mod history;

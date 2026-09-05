@@ -4,11 +4,13 @@ mod cache;
 mod history;
 mod json_store;
 mod map_annotations;
+mod rendered;
 mod round_stats_cache;
 mod runtime;
 mod validator_types;
 pub(crate) mod visitors;
 
+pub(crate) use self::rendered::RenderedClock;
 use self::runtime::ChainRuntimeStatus;
 use crate::chain::CacheEntry;
 use crate::config::AppConfig;

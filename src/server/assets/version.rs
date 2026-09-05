@@ -1,4 +1,4 @@
-use crate::server::conditional::Fnv1a64;
+use crate::etag::Fnv1a64;
 use std::sync::LazyLock;
 
 use super::embedded::{

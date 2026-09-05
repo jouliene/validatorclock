@@ -1,3 +1,4 @@
+use crate::etag::{offered_tag_matches, weak_entity_tag};
 use axum::body::{Body, to_bytes};
 use axum::extract::Request;
 use axum::http::header::{self, HeaderValue};
@@ -38,7 +39,11 @@ pub(super) async fn add_entity_tags(request: Request, next: Next) -> Response {
         return Response::from_parts(parts, Body::from(body));
     };
 
-    if if_none_match.is_some_and(|offered| matches_entity_tag(&offered, &entity_tag)) {
+    if if_none_match.is_some_and(|offered| {
+        entity_tag
+            .to_str()
+            .is_ok_and(|tag| offered_tag_matches(&offered, tag))
+    }) {
         parts.status = StatusCode::NOT_MODIFIED;
         parts.headers.remove(header::CONTENT_LENGTH);
         parts.headers.remove(header::CONTENT_TYPE);
@@ -75,51 +80,6 @@ fn response_can_be_tagged(response: &Response) -> bool {
         .is_some_and(|value| value.contains("no-store"))
 }
 
-fn weak_entity_tag(body: &[u8]) -> String {
-    let mut hash = Fnv1a64::new();
-    hash.update(body);
-    format!("W/\"{:016x}-{:x}\"", hash.finish(), body.len())
-}
-
-fn matches_entity_tag(offered: &str, entity_tag: &HeaderValue) -> bool {
-    let Ok(entity_tag) = entity_tag.to_str() else {
-        return false;
-    };
-    offered.split(',').map(str::trim).any(|candidate| {
-        candidate == "*"
-            || candidate == entity_tag
-            || candidate.trim_start_matches("W/") == entity_tag.trim_start_matches("W/")
-    })
-}
-
-pub(super) struct Fnv1a64 {
-    value: u64,
-}
-
-impl Fnv1a64 {
-    const OFFSET: u64 = 0xcbf29ce484222325;
-    const PRIME: u64 = 0x100000001b3;
-
-    pub(super) fn new() -> Self {
-        Self {
-            value: Self::OFFSET,
-        }
-    }
-
-    pub(super) fn update(&mut self, bytes: &[u8]) {
-        for byte in bytes {
-            self.value ^= u64::from(*byte);
-            self.value = self.value.wrapping_mul(Self::PRIME);
-        }
-        self.value ^= 0xff;
-        self.value = self.value.wrapping_mul(Self::PRIME);
-    }
-
-    pub(super) fn finish(self) -> u64 {
-        self.value
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -140,33 +100,5 @@ mod tests {
             ))),
             "a streamed body states no exact size and must not be buffered"
         );
-    }
-
-    #[test]
-    fn entity_tags_are_weak_and_content_dependent() {
-        let first = weak_entity_tag(b"snapshot");
-        let second = weak_entity_tag(b"snapshot");
-        let third = weak_entity_tag(b"snapshoT");
-
-        assert!(first.starts_with("W/\""));
-        assert_eq!(first, second);
-        assert_ne!(first, third);
-    }
-
-    #[test]
-    fn if_none_match_accepts_lists_wildcards_and_strength_changes() {
-        let entity_tag = HeaderValue::from_str(&weak_entity_tag(b"snapshot")).unwrap();
-        let tag = entity_tag.to_str().unwrap().to_owned();
-        let strong = tag.trim_start_matches("W/").to_owned();
-
-        assert!(matches_entity_tag(&tag, &entity_tag));
-        assert!(matches_entity_tag(&strong, &entity_tag));
-        assert!(matches_entity_tag("*", &entity_tag));
-        assert!(matches_entity_tag(
-            &format!("W/\"other\", {tag}"),
-            &entity_tag
-        ));
-        assert!(!matches_entity_tag("W/\"other\"", &entity_tag));
-        assert!(!matches_entity_tag("", &entity_tag));
     }
 }
