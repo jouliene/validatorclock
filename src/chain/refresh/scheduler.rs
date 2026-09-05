@@ -109,7 +109,10 @@ async fn refresh_chain_and_log(state: &AppState, chain_id: &str, log_kind: Refre
 
     let refresh_kind = log_kind.label();
     let started_at = Instant::now();
-    match get_chain_snapshot(state, chain_id, true).await {
+    // Nobody is waiting on this one, so it may take the whole configured
+    // timeout.
+    let budget = Duration::from_secs(state.config.refresh_timeout_seconds);
+    match get_chain_snapshot(state, chain_id, true, budget).await {
         Ok(snapshot) if snapshot.warning.is_some() => {
             info!(
                 refresh_kind,

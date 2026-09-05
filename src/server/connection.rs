@@ -18,7 +18,12 @@ use tokio_rustls::TlsAcceptor;
 use tower::ServiceExt;
 use tracing::{debug, info, warn};
 
-const REQUEST_TIMEOUT_SECS: u64 = 10;
+/// How long one request may take before the connection gives up on it.
+///
+/// Anything a reader waits for has to fit inside this, or it is dropped at the
+/// door with its work unfinished - which is why a refresh in front of a reader
+/// is given less than a refresh running on its own.
+pub(crate) const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long a kept-alive connection may sit between requests before the server
 /// closes it.
 ///
@@ -190,12 +195,7 @@ where
         let app = app.clone();
         request.extensions_mut().insert(peer_addr);
         async move {
-            match timeout(
-                Duration::from_secs(REQUEST_TIMEOUT_SECS),
-                app.oneshot(request),
-            )
-            .await
-            {
+            match timeout(REQUEST_TIMEOUT, app.oneshot(request)).await {
                 Ok(response) => response,
                 Err(_) => {
                     warn!(label, "request timed out");

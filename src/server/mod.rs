@@ -12,7 +12,7 @@ mod api;
 mod assets;
 mod basemap;
 mod conditional;
-mod connection;
+pub(crate) mod connection;
 mod responses;
 mod routes;
 mod security;
