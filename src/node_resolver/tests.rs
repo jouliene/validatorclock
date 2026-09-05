@@ -112,22 +112,49 @@ fn nothing_runs_for_a_chain_that_was_not_asked_for() {
 /// The second ask is for addresses the DHT was asked about and said nothing
 /// to. A validator with no address, or a malformed one, was never asked and
 /// asking now would spend a lookup to be told the same thing again.
+fn resolved_validator(adnl_addr: Option<&str>, resolution: Resolution) -> ResolvedValidator {
+    ResolvedValidator {
+        validator_public_key: "a".repeat(64),
+        adnl_addr: adnl_addr.map(str::to_owned),
+        wallet: None,
+        source_address: None,
+        source_contract_type_hash: None,
+        contract_type: None,
+        stake: None,
+        weight: None,
+        resolution,
+    }
+}
+
+fn address(ip: &str) -> dht::ResolvedAddress {
+    dht::ResolvedAddress {
+        ip: ip.to_owned(),
+        port: 40100,
+        version: "udp4".to_owned(),
+    }
+}
+
+fn found_at(ip: &str, confirmed_at: u64) -> Resolution {
+    Resolution {
+        status: "resolved".to_owned(),
+        addresses: vec![address(ip)],
+        error: None,
+        confirmed_at: Some(confirmed_at),
+    }
+}
+
+/// A validator as the chain named it, with only the field the resolver reads.
+fn chain_validator(adnl_addr: Option<&str>) -> crate::chain::ValidatorDto {
+    let mut validator = crate::chain::test_clock_snapshot("ton")
+        .current_set
+        .validators[0]
+        .clone();
+    validator.adnl_addr = adnl_addr.map(str::to_owned);
+    validator
+}
+
 #[test]
 fn only_the_lookups_that_came_back_empty_are_asked_again() {
-    fn validator(adnl_addr: Option<&str>, resolution: Resolution) -> ResolvedValidator {
-        ResolvedValidator {
-            validator_public_key: "a".repeat(64),
-            adnl_addr: adnl_addr.map(str::to_owned),
-            wallet: None,
-            source_address: None,
-            source_contract_type_hash: None,
-            contract_type: None,
-            stake: None,
-            weight: None,
-            resolution,
-        }
-    }
-
     let found = Resolution {
         status: "resolved".to_owned(),
         addresses: vec![dht::ResolvedAddress {
@@ -140,14 +167,14 @@ fn only_the_lookups_that_came_back_empty_are_asked_again() {
     };
 
     let resolved = vec![
-        validator(
+        resolved_validator(
             Some(&"b".repeat(64)),
             Resolution::failed_for_test("no answer"),
         ),
-        validator(Some(&"c".repeat(64)), found),
-        validator(None, Resolution::missing_adnl()),
-        validator(Some("xyz"), Resolution::invalid_adnl("xyz")),
-        validator(
+        resolved_validator(Some(&"c".repeat(64)), found),
+        resolved_validator(None, Resolution::missing_adnl()),
+        resolved_validator(Some("xyz"), Resolution::invalid_adnl("xyz")),
+        resolved_validator(
             Some(&"d".repeat(64)),
             Resolution::failed_for_test("no answer"),
         ),
@@ -158,6 +185,116 @@ fn only_the_lookups_that_came_back_empty_are_asked_again() {
         misses,
         vec![(0, "b".repeat(64)), (4, "d".repeat(64))],
         "the two empty lookups, by position and address: {misses:?}"
+    );
+}
+
+/// What the chain named settles whether a lookup happens at all, and the file
+/// says which of the three it was.
+#[test]
+fn only_a_validator_the_chain_gave_an_address_for_is_looked_up() {
+    let named = "ab".repeat(32);
+    assert_eq!(
+        address_to_look_up(&chain_validator(Some(&named))).unwrap(),
+        named
+    );
+
+    let missing = address_to_look_up(&chain_validator(None)).unwrap_err();
+    assert_eq!(missing.status, "missing_adnl");
+    assert!(!missing.has_address());
+
+    let invalid = address_to_look_up(&chain_validator(Some("xyz"))).unwrap_err();
+    assert_eq!(invalid.status, "invalid_adnl");
+    assert!(
+        invalid
+            .error
+            .as_deref()
+            .is_some_and(|error| error.contains("xyz")),
+        "the offending value is named: {invalid:?}"
+    );
+    assert!(
+        !invalid.is_failed(),
+        "an address that could never be one is not a lookup that failed, and is not asked again"
+    );
+}
+
+/// The memory is filled by the passes that reach an address and read by the
+/// ones that do not.
+#[test]
+fn an_address_reached_this_pass_is_kept_and_one_that_was_not_is_offered_back() {
+    let mut memory = ResolvedAddressMemory::default();
+    memory.remember(&"bb".repeat(32), &address("198.51.100.7"), 1_000);
+
+    let mut resolved = vec![
+        resolved_validator(Some(&"aa".repeat(32)), found_at("203.0.113.1", 2_000)),
+        resolved_validator(
+            Some(&"bb".repeat(32)),
+            Resolution::failed_for_test("no answer"),
+        ),
+        resolved_validator(
+            Some(&"cc".repeat(32)),
+            Resolution::failed_for_test("no answer"),
+        ),
+        resolved_validator(None, Resolution::missing_adnl()),
+    ];
+
+    apply_remembered_addresses(&mut resolved, &mut memory, 2_000);
+
+    assert_eq!(resolved[0].resolution.status, "resolved");
+    assert_eq!(resolved[1].resolution.status, "remembered");
+    assert_eq!(resolved[1].resolution.addresses[0].ip, "198.51.100.7");
+    assert_eq!(
+        resolved[1].resolution.confirmed_at,
+        Some(1_000),
+        "a remembered address carries when it was last confirmed, not when it was offered again"
+    );
+    assert_eq!(
+        resolved[2].resolution.status, "failed",
+        "nothing has ever been known about this one, so there is nothing to offer"
+    );
+    assert_eq!(resolved[3].resolution.status, "missing_adnl");
+
+    assert_eq!(
+        memory
+            .recall(&"aa".repeat(32), 2_100)
+            .expect("the address this pass reached is what a later one is offered")
+            .addresses[0]
+            .ip,
+        "203.0.113.1"
+    );
+}
+
+/// The file says how many validators the map can place and how each of them
+/// came to be placed - freshly reached, or offered from memory.
+#[test]
+fn a_pass_counts_what_it_placed_and_how_it_came_to_place_it() {
+    let resolved = vec![
+        resolved_validator(Some(&"aa".repeat(32)), found_at("203.0.113.1", 2_000)),
+        resolved_validator(
+            Some(&"bb".repeat(32)),
+            Resolution::remembered(address("198.51.100.7"), 1_000),
+        ),
+        resolved_validator(
+            Some(&"cc".repeat(32)),
+            Resolution::failed_for_test("no answer"),
+        ),
+        resolved_validator(Some("xyz"), Resolution::invalid_adnl("xyz")),
+        resolved_validator(None, Resolution::missing_adnl()),
+    ];
+
+    let totals = PassTotals::of(&resolved);
+
+    assert_eq!(
+        totals.resolved, 1,
+        "only the one the DHT answered about in this pass"
+    );
+    assert_eq!(totals.remembered, 1);
+    assert_eq!(
+        totals.placed, 2,
+        "the map shows both, and the file says which is which"
+    );
+    assert_eq!(
+        totals.with_adnl, 4,
+        "the chain named an address for four of them, malformed or not"
     );
 }
 
