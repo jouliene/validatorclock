@@ -9,13 +9,12 @@ use super::dto::RoundStatsPointDto;
 use super::graphql_client::is_graphql_endpoint;
 use super::round_stats::build_round_stats_response;
 use super::util::{endpoint_label, now_sec};
-use super::{ChainRoundStatsDto, ClockSnapshot, ElectionTimingsDto, ValidatorSetDto};
+use super::{ChainRoundStatsDto, ClockSnapshot};
 use crate::config::ChainConfig;
 use anyhow::{Context, Result, anyhow};
 use election::fetch_election;
 use frozen::fetch_frozen_validator_round_data;
 use minik2::{Config, Transport, ValidatorSet};
-use snapshot::previous_validator_set;
 use std::env;
 use tracing::{debug, info, warn};
 
@@ -194,38 +193,18 @@ async fn fetch_chain_snapshot_from_jrpc(chain: &ChainConfig, rpc: &str) -> Resul
         }
     };
 
-    Ok(ClockSnapshot {
-        chain: snapshot::chain_meta_with_rpc(chain, rpc),
-        selected_endpoint: Some(rpc.to_owned()),
-        fetched_at: observed_at,
+    Ok(snapshot::assemble_snapshot(snapshot::SnapshotParts {
+        chain,
+        endpoint: rpc,
+        observed_at,
         global_id: config.global_id(),
         seqno: config.seqno(),
-        params15: ElectionTimingsDto {
-            validators_elected_for: timings.validators_elected_for,
-            elections_start_before: timings.elections_start_before,
-            elections_end_before: timings.elections_end_before,
-            stake_held_for: timings.stake_held_for,
-        },
-        current_set: ValidatorSetDto::from_set(
-            &current_set,
-            timings.validators_elected_for,
-            validator_round_data.get(&current_set.utime_since),
-        ),
-        previous_set: previous_validator_set(
-            &current_set,
-            timings.validators_elected_for,
-            &validator_round_data,
-        ),
-        next_set: next_set.as_ref().map(|set| {
-            ValidatorSetDto::from_set(
-                set,
-                timings.validators_elected_for,
-                validator_round_data.get(&set.utime_since),
-            )
-        }),
+        timings,
+        current_set,
+        next_set,
         election,
-        warning: None,
-    })
+        validator_round_data,
+    }))
 }
 
 async fn fetch_chain_round_stats_from_jrpc(
