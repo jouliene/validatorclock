@@ -25,6 +25,7 @@ use dht::{AdnlDhtResolver, Resolution, is_hex_32};
 use futures::{StreamExt, stream};
 use memory::ResolvedAddressMemory;
 use serde::Serialize;
+use std::future::Future;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::time::sleep;
@@ -181,8 +182,16 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
 
     loop {
         let snapshot = wait_for_snapshot(state, chain_id).await;
-        if let Err(error) =
-            collect_once(chain_id, chain, config, &resolver, snapshot, &mut memory).await
+        if let Err(error) = collect_once(
+            chain_id,
+            chain,
+            config,
+            &resolver,
+            || unused_resolver(chain, config),
+            snapshot,
+            &mut memory,
+        )
+        .await
         {
             warn!(chain_id, error = ?error, "node resolver pass failed");
         }
@@ -205,18 +214,26 @@ async fn wait_for_snapshot(state: &AppState, chain_id: &str) -> Arc<ClockSnapsho
     }
 }
 
-async fn collect_once(
+async fn collect_once<L, R, F, Fut>(
     chain_id: &str,
     chain: &NodeResolverChainConfig,
     config: &NodeResolverConfig,
-    resolver: &ChainResolver,
+    resolver: &L,
+    // A client of its own for each round of second asks; see `recover_misses`.
+    open_recovery_round: F,
     // The validator set this process already holds. The program this replaces
     // asked the site's own HTTP API for it, which meant it could not run while
     // the site was down and fetched over the network what was already in
     // memory a function call away.
     snapshot: Arc<ClockSnapshot>,
     memory: &mut ResolvedAddressMemory,
-) -> Result<()> {
+) -> Result<()>
+where
+    L: Lookups,
+    R: Lookups,
+    F: Fn() -> Fut,
+    Fut: Future<Output = Result<R>>,
+{
     resolver.warmup(chain_id).await;
 
     let now = crate::timeutil::now_sec();
@@ -247,7 +264,7 @@ async fn collect_once(
         .await;
 
     let mut resolved = resolved;
-    let recovered_total = recover_misses(chain_id, chain, config, &mut resolved).await;
+    let recovered_total = recover_misses(chain_id, &mut resolved, open_recovery_round).await;
 
     apply_remembered_addresses(&mut resolved, memory, now);
     memory.retain_only(
@@ -301,6 +318,23 @@ async fn collect_once(
     Ok(())
 }
 
+/// Where a pass gets its answers.
+///
+/// The pass asks a DHT; a test asks a script. What a pass does with the
+/// answers - what it looks up at all, what it asks again, what it remembers,
+/// what it writes down - is the same work either way, so that is where the
+/// seam is.
+trait Lookups {
+    /// Reach the network before asking it anything.
+    async fn warmup(&self, chain_id: &str);
+    async fn resolve(&self, adnl_addr: &str, now: u64) -> Resolution;
+    /// Let go of whatever was opened for it. A pass keeps its resolver; the
+    /// rounds of second asks each throw theirs away.
+    async fn shutdown(self);
+    fn local_addr(&self) -> &str;
+    fn bootstrap_nodes(&self) -> usize;
+}
+
 /// Where a chain's addresses are looked up.
 ///
 /// Everscale and TON publish theirs in an ADNL DHT. Tycho has no ADNL at all -
@@ -334,7 +368,9 @@ impl ChainResolver {
             ),
         })
     }
+}
 
+impl Lookups for ChainResolver {
     fn local_addr(&self) -> &str {
         match self {
             Self::Adnl(resolver) => resolver.local_addr(),
@@ -410,12 +446,16 @@ impl ChainResolver {
 /// So each round gets a socket and a routing table of its own and throws them
 /// away afterwards. It costs a greeting to the bootstrap peers and a handful
 /// of lookups.
-async fn recover_misses(
+async fn recover_misses<R, F, Fut>(
     chain_id: &str,
-    chain: &NodeResolverChainConfig,
-    config: &NodeResolverConfig,
     resolved: &mut [ResolvedValidator],
-) -> usize {
+    open_round: F,
+) -> usize
+where
+    R: Lookups,
+    F: Fn() -> Fut,
+    Fut: Future<Output = Result<R>>,
+{
     let mut recovered_total = 0;
     for round in 1..=RECOVERY_ROUNDS {
         let misses = misses_worth_asking_again(resolved);
@@ -424,7 +464,7 @@ async fn recover_misses(
         }
 
         sleep(RECOVERY_PAUSE).await;
-        let resolver = match unused_resolver(chain, config).await {
+        let resolver = match open_round().await {
             Ok(resolver) => resolver,
             Err(error) => {
                 debug!(chain_id, error = ?error, "no second resolver for the second ask");

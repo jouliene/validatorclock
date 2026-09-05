@@ -45,6 +45,12 @@ tycho-network = "0.3.12"
 tycho-types = { version = "0.3.4", features = ["abi"] }
 x509-parser = "0.18"
 
+[dev-dependencies]
+# Time that can be moved on rather than waited through: the resolver pauses
+# twenty seconds between rounds of second asks, and a test of those rounds
+# should not.
+tokio = { version = "1", features = ["test-util"] }
+
 [profile.release]
 lto = "fat"
 opt-level = 3
