@@ -1,4 +1,5 @@
 use super::AppState;
+use super::rendered::RenderedClock;
 use crate::chain::{CacheEntry, ClockSnapshot, apply_cached_validator_types_to_snapshot};
 use crate::config::ChainConfig;
 use crate::fsutil::{chain_file_path, write_file_atomic};
@@ -132,6 +133,10 @@ pub(super) struct ReadySnapshot {
     /// freshness still means what it meant.
     fetched_at: u64,
     snapshot: Arc<ClockSnapshot>,
+    /// The same thing as bytes on the wire, for the readers who want it whole.
+    /// `None` only if it could not be written out, and then they are served
+    /// from the snapshot as before.
+    rendered: Option<Arc<RenderedClock>>,
 }
 
 impl AppState {
@@ -147,6 +152,21 @@ impl AppState {
 
     pub(crate) async fn cached_snapshot(&self, chain_id: &str) -> Option<Arc<ClockSnapshot>> {
         Some(self.ready_snapshot(chain_id).await?.snapshot)
+    }
+
+    /// The bytes a chain's readers are served, if the snapshot in hand is the
+    /// one they were written from. A snapshot carrying a warning is not - it
+    /// was made for this one reader - and is written out for them alone.
+    pub(crate) async fn rendered_clock(
+        &self,
+        chain_id: &str,
+        snapshot: &Arc<ClockSnapshot>,
+    ) -> Option<Arc<RenderedClock>> {
+        let ready_snapshots = self.ready_snapshots.read().await;
+        let ready = ready_snapshots.get(chain_id)?;
+        Arc::ptr_eq(&ready.snapshot, snapshot)
+            .then(|| ready.rendered.clone())
+            .flatten()
     }
 
     /// Read the snapshot a chain is cached with, without copying it.
@@ -166,8 +186,13 @@ impl AppState {
 
         // Nothing has been served for this chain yet - the cache came off disk
         // and no refresh has landed since. The reader who asks first pays for
-        // it, once.
-        self.rebuild_ready_snapshot(chain_id).await
+        // it, once; the readers who arrive while it works wait here and find
+        // the answer already made.
+        let _rebuilding = self.ready_rebuild_lock.lock().await;
+        if let Some(ready) = self.ready_snapshots.read().await.get(chain_id).cloned() {
+            return Some(ready);
+        }
+        self.rebuild_ready_snapshot_holding_the_lock(chain_id).await
     }
 
     /// Work out again what a chain's readers are served, because something
@@ -189,6 +214,19 @@ impl AppState {
     }
 
     async fn rebuild_ready_snapshot(&self, chain_id: &str) -> Option<ReadySnapshot> {
+        // One rebuild at a time. A refresh landing while the node map is
+        // being republished would otherwise have both annotate their own copy
+        // at once, and whichever finished last would be the one left stored -
+        // possibly the one that started from the older snapshot, which would
+        // then be served until the next refresh a minute later.
+        let _rebuilding = self.ready_rebuild_lock.lock().await;
+        self.rebuild_ready_snapshot_holding_the_lock(chain_id).await
+    }
+
+    async fn rebuild_ready_snapshot_holding_the_lock(
+        &self,
+        chain_id: &str,
+    ) -> Option<ReadySnapshot> {
         let (fetched_at, mut snapshot) = {
             let cache = self.cache.read().await;
             let entry = cache.get(chain_id)?;
@@ -204,9 +242,14 @@ impl AppState {
         self.annotate_snapshot(chain_id, &mut snapshot).await;
         apply_cached_validator_types_to_snapshot(self, chain_id, &mut snapshot).await;
 
+        // Written out here rather than per reader: the snapshot behind it is
+        // finished and shared, and every reader would otherwise produce these
+        // same bytes again.
+        let rendered = RenderedClock::of(&snapshot).map(Arc::new);
         let ready = ReadySnapshot {
             fetched_at,
             snapshot: Arc::new(snapshot),
+            rendered,
         };
         self.ready_snapshots
             .write()

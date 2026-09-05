@@ -3947,13 +3947,15 @@ dependencies = [
 
 [[package]]
 name = "validatorclock"
-version = "2.0.1"
+version = "2.1.0"
 dependencies = [
  "adnl",
  "anyhow",
  "axum",
  "base64 0.22.1",
+ "bytes",
  "ever_block",
+ "flate2",
  "futures",
  "hex",
  "hmac 0.12.1",
