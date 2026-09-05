@@ -1,8 +1,9 @@
 use std::env;
 use tracing_subscriber::EnvFilter;
 
-/// The log targets belonging to the DHT stack the resolver speaks through.
-const NETWORK_STACK_TARGETS: [&str; 3] = ["adnl", "adnl_query", "dht"];
+/// The log targets belonging to the DHT stacks the resolver speaks through -
+/// the ADNL one for Everscale and TON, and Tycho's own.
+const NETWORK_STACK_TARGETS: [&str; 4] = ["adnl", "adnl_query", "dht", "tycho_network"];
 
 pub(crate) fn init() {
     let default_filter = if env::var_os("VALIDATORCLOCK_DEBUG_HISTORY").is_some() {
@@ -30,6 +31,11 @@ pub(crate) fn init() {
 /// and none of them was anything to act on, while the journal is where a
 /// warning that does matter has to be visible. So they are kept at error,
 /// where a real failure still comes through.
+///
+/// Tycho's stack is the same story in its own words: `failed to query nodes:
+/// timeout` for every bootstrap peer that did not answer a sweep, about ten
+/// lines a pass, five minutes apart. A pass that finds nothing says so
+/// itself, in one line, with the numbers.
 ///
 /// Unless the filter names one of them: a person who asks for `adnl=debug` is
 /// debugging it, and this does not argue with them.
@@ -62,7 +68,7 @@ mod tests {
         let filter = quieten_network_stack("warn,validatorclock=info");
         assert_eq!(
             filter,
-            "warn,validatorclock=info,adnl=error,adnl_query=error,dht=error"
+            "warn,validatorclock=info,adnl=error,adnl_query=error,dht=error,tycho_network=error"
         );
         assert!(
             EnvFilter::try_new(&filter).is_ok(),
@@ -74,7 +80,8 @@ mod tests {
     fn a_target_someone_asked_for_is_left_alone() {
         let filter = quieten_network_stack("warn,validatorclock=info,adnl=debug");
         assert_eq!(
-            filter, "warn,validatorclock=info,adnl=debug,adnl_query=error,dht=error",
+            filter,
+            "warn,validatorclock=info,adnl=debug,adnl_query=error,dht=error,tycho_network=error",
             "the one being debugged keeps the level it was given, the rest are still quiet"
         );
     }
@@ -90,6 +97,10 @@ mod tests {
         assert!(
             !names_target("adnl", "adnl"),
             "a bare word is a level, not a target directive"
+        );
+        assert!(
+            names_target("warn,tycho_network=debug", "tycho_network"),
+            "a directive names the crate, and covers the modules under it"
         );
     }
 }
