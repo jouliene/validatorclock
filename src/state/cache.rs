@@ -166,8 +166,13 @@ impl AppState {
 
         // Nothing has been served for this chain yet - the cache came off disk
         // and no refresh has landed since. The reader who asks first pays for
-        // it, once.
-        self.rebuild_ready_snapshot(chain_id).await
+        // it, once; the readers who arrive while it works wait here and find
+        // the answer already made.
+        let _rebuilding = self.ready_rebuild_lock.lock().await;
+        if let Some(ready) = self.ready_snapshots.read().await.get(chain_id).cloned() {
+            return Some(ready);
+        }
+        self.rebuild_ready_snapshot_holding_the_lock(chain_id).await
     }
 
     /// Work out again what a chain's readers are served, because something
@@ -189,6 +194,19 @@ impl AppState {
     }
 
     async fn rebuild_ready_snapshot(&self, chain_id: &str) -> Option<ReadySnapshot> {
+        // One rebuild at a time. A refresh landing while the node map is
+        // being republished would otherwise have both annotate their own copy
+        // at once, and whichever finished last would be the one left stored -
+        // possibly the one that started from the older snapshot, which would
+        // then be served until the next refresh a minute later.
+        let _rebuilding = self.ready_rebuild_lock.lock().await;
+        self.rebuild_ready_snapshot_holding_the_lock(chain_id).await
+    }
+
+    async fn rebuild_ready_snapshot_holding_the_lock(
+        &self,
+        chain_id: &str,
+    ) -> Option<ReadySnapshot> {
         let (fetched_at, mut snapshot) = {
             let cache = self.cache.read().await;
             let entry = cache.get(chain_id)?;

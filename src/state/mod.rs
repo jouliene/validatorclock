@@ -29,6 +29,7 @@ pub(crate) struct AppState {
     /// the map, the round history and the validator types already worked into
     /// it. Built when one of those changed, not when someone asks.
     ready_snapshots: RwLock<HashMap<String, cache::ReadySnapshot>>,
+    ready_rebuild_lock: Mutex<()>,
     cache_path: PathBuf,
     cache_save_lock: Mutex<()>,
     analytics: Mutex<analytics::AnalyticsRuntime>,
@@ -74,6 +75,7 @@ impl AppState {
             started_at: SystemTime::now(),
             cache: RwLock::new(cache),
             ready_snapshots: RwLock::new(HashMap::new()),
+            ready_rebuild_lock: Mutex::new(()),
             cache_path: config.cache_path.clone(),
             cache_save_lock: Mutex::new(()),
             analytics: Mutex::new(analytics),
