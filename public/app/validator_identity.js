@@ -1,19 +1,31 @@
 function validatorIdentityCell(validator, options = {}, fallbackToPublicKey = false) {
   const cell = document.createElement("div");
   cell.className = "validator-cell validator-id";
-  const identity = validatorIdentityValue(validator, fallbackToPublicKey);
-  const formatted = formatDisplayAddress(identity, options);
-  const address = copyableValue(formatted.text, formatted.value, "validator-address", "validator wallet address");
+  const identity = validatorIdentityDisplay(validator, options, fallbackToPublicKey);
+  const address = copyableValue(identity.text, identity.value, "validator-address", identity.label);
   setValidatorTooltip(address, validatorIdentityTooltipLines(validator));
   cell.append(address);
   return cell;
 }
 
-function validatorIdentityValue(validator, fallbackToPublicKey = false) {
+// What names a validator in the table, and what the copy button hands over.
+//
+// A validator with no wallet is named by its public key, and a public key is not an address.
+// Put through the address formatter, any 64-hex string comes out as `-1:<hex>`, and on TON it
+// is encoded once more into a plausible-looking EQ... - an address that exists nowhere, shown
+// to the reader, labelled "EVER address" by the tooltip and copied by the button. So the
+// fallback is shown, and copied, as the key it is.
+function validatorIdentityDisplay(validator, options = {}, fallbackToPublicKey = false) {
   if (validator?.wallet) {
-    return validatorWalletAddress(validator);
+    const formatted = formatDisplayAddress(validatorWalletAddress(validator), options);
+    return { text: formatted.text, value: formatted.value, label: "validator wallet address" };
   }
-  return fallbackToPublicKey ? (validator?.public_key || "-") : "-";
+
+  const publicKey = fallbackToPublicKey ? validator?.public_key || "" : "";
+  if (!publicKey) {
+    return { text: "-", value: "-", label: "validator wallet address" };
+  }
+  return { text: shortenHash(publicKey), value: publicKey, label: "validator public key" };
 }
 
 function validatorIdentityTooltipLines(validator) {

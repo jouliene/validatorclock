@@ -1,9 +1,9 @@
-function renderRecentRoundPanels(snapshot, model) {
+function renderRecentRoundPanels(snapshot) {
   const grid = $("recentRoundsGrid");
   grid.replaceChildren();
 
   for (const color of ["blue", "green"]) {
-    const round = displayedRoundForColor(color, snapshot, model);
+    const round = displayedRoundForColor(color, snapshot);
     const validators = round?.recent_absent_validators || [];
     grid.appendChild(recentRoundPanel(color, validators, snapshot));
   }
@@ -11,14 +11,14 @@ function renderRecentRoundPanels(snapshot, model) {
   grid.hidden = false;
 }
 
-function displayedRoundForColor(color, snapshot, model) {
+function displayedRoundForColor(color, snapshot) {
   if (snapshot.current_set.round_color === color) {
     return snapshot.current_set;
   }
   if (snapshot.next_set?.round_color === color) {
     return snapshot.next_set;
   }
-  if (model.beforeElections && snapshot.previous_set?.round_color === color) {
+  if (snapshot.previous_set?.round_color === color) {
     return snapshot.previous_set;
   }
   return null;

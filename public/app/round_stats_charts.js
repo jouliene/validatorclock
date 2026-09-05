@@ -44,8 +44,11 @@ function renderRoundStatsError(error) {
 }
 
 function roundStatsErrorMessage(error) {
+  // Neither side says "timeout": the server's message is "chain round statistics request
+  // timed out" and an aborted fetch rejects with a TimeoutError whose message is "signal
+  // timed out". Matching the word alone meant every failure read as unavailable.
   const message = String(error?.message || error || "");
-  if (message.includes("timeout")) {
+  if (error?.name === "TimeoutError" || message.includes("timed out")) {
     return "Statistics request timed out.";
   }
   return "Statistics are unavailable.";

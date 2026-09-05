@@ -17,17 +17,22 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
 }
 
 function renderRoundPanels(snapshot, model) {
+  // Both of these hang off an element in the tables below and are positioned against it.
+  // Replacing the rows detaches that element without a mouseleave, so whatever was open
+  // would be left floating over the rebuilt table until the next scroll or click.
+  hideValidatorTooltip();
+  closeValidatorTypeGlossary();
   renderRoundPanel("blue", snapshot, model);
   renderRoundPanel("green", snapshot, model);
   refreshRoundAprBadges();
-  renderRecentRoundPanels(snapshot, model);
+  renderRecentRoundPanels(snapshot);
   syncSelectedValidatorRows({ clearMissing: true });
 }
 
 function renderRoundPanel(color, snapshot, model) {
   const current = snapshot.current_set.round_color === color ? snapshot.current_set : null;
   const next = snapshot.next_set?.round_color === color ? snapshot.next_set : null;
-  const previous = model.beforeElections && snapshot.previous_set?.round_color === color ? snapshot.previous_set : null;
+  const previous = snapshot.previous_set?.round_color === color ? snapshot.previous_set : null;
   const candidates = model.inElections ? snapshot.election.candidates : [];
   const isActive = Boolean(current);
   const isNext = Boolean(next);
@@ -74,11 +79,18 @@ function renderRoundPanel(color, snapshot, model) {
     return;
   }
 
-  if (model.inElections && candidates.length > 0) {
+  if (model.inElections) {
     panel?.classList.add("is-secondary-round");
     renderRoundMeta(meta, electionRoundMeta(snapshot), snapshot);
     badge.textContent = "elections open";
     badge.classList.add("is-election");
+    // An election that is open but has drawn nobody yet is not a round anybody is waiting
+    // for: it is this round, before the first stake was placed.
+    if (candidates.length === 0) {
+      renderEmptyStats(stats);
+      list.appendChild(emptyState("Elections are open; no candidates have staked yet."));
+      return;
+    }
     renderCandidateStats(stats, candidates);
     renderValidators(list, candidates, validatorRenderOptions(snapshot, {
       rewards: false,
