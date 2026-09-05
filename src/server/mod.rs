@@ -20,8 +20,6 @@ mod security;
 #[cfg(test)]
 mod tests;
 
-pub(crate) use security::{normalize_host, public_url_host};
-
 pub(crate) async fn run_plain_http_server(state: Arc<AppState>) -> Result<()> {
     let listener = TcpListener::bind(&state.config.listen)
         .await

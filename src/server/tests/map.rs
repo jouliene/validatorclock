@@ -63,7 +63,9 @@ async fn app_router_serves_configured_tycho_map_file() {
     .unwrap();
 
     let mut config = test_config(Vec::new());
-    config.tycho_map_nodes_path = Some(map_path.clone());
+    config
+        .map_nodes_paths
+        .insert("tycho-testnet".to_owned(), map_path.clone());
     config.chains.push(test_chain_config(
         "tycho-testnet",
         "Tycho",

@@ -1,4 +1,5 @@
 use crate::config::AppConfig;
+use crate::hostname::normalize_host;
 use crate::server::responses::{json_error, not_found};
 use crate::state::AppState;
 use axum::extract::{Request, State};
@@ -9,7 +10,6 @@ use axum::response::{IntoResponse, Response};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use sha2::{Digest, Sha256};
-use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -179,43 +179,6 @@ fn add_common_headers(headers: &mut HeaderMap) {
 
 pub(super) fn redirect_location(public_url: &str, target: &str) -> String {
     format!("{}{}", public_url.trim_end_matches('/'), target)
-}
-
-pub(crate) fn public_url_host(public_url: &str) -> Option<String> {
-    let rest = public_url.strip_prefix("https://")?;
-    let host = rest.split('/').next().unwrap_or(rest);
-    normalize_host(host)
-}
-
-pub(crate) fn normalize_host(host: &str) -> Option<String> {
-    let host = host.trim();
-    if host.is_empty() {
-        return None;
-    }
-
-    if host.starts_with('[')
-        && let Some(end) = host.find(']')
-    {
-        let value = &host[1..end];
-        return Some(
-            value
-                .parse::<IpAddr>()
-                .map(|address| address.to_string())
-                .unwrap_or_else(|_| value.to_ascii_lowercase()),
-        );
-    }
-
-    if let Ok(address) = host.parse::<IpAddr>() {
-        return Some(address.to_string());
-    }
-
-    let host_without_port = host
-        .rsplit_once(':')
-        .filter(|(name, port)| !name.contains(':') && port.chars().all(|ch| ch.is_ascii_digit()))
-        .map(|(name, _)| name)
-        .unwrap_or(host);
-
-    Some(host_without_port.trim_end_matches('.').to_ascii_lowercase())
 }
 
 pub(super) fn request_host_allowed(headers: &HeaderMap, config: &AppConfig) -> bool {

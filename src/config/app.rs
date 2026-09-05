@@ -1,6 +1,5 @@
 use super::{SecurityConfig, TlsConfig};
 use crate::history::round_history_chain_path;
-use crate::server;
 use anyhow::{Result, bail};
 use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
@@ -33,8 +32,6 @@ pub(crate) struct AppConfig {
     #[serde(default)]
     pub(crate) history_path: Option<PathBuf>,
     #[serde(default)]
-    pub(crate) tycho_map_nodes_path: Option<PathBuf>,
-    #[serde(default)]
     pub(crate) map_nodes_paths: HashMap<String, PathBuf>,
     #[serde(default)]
     pub(crate) node_locations: NodeLocationsConfig,
@@ -61,7 +58,6 @@ impl AppConfig {
             visitors_path: None,
             basemap_dir: default_basemap_dir(),
             history_path: None,
-            tycho_map_nodes_path: None,
             map_nodes_paths: HashMap::new(),
             node_locations: NodeLocationsConfig::default(),
             node_resolver: super::NodeResolverConfig::default(),
@@ -161,13 +157,6 @@ impl AppConfig {
         {
             bail!("history_path cannot be empty when set");
         }
-        if self
-            .tycho_map_nodes_path
-            .as_ref()
-            .is_some_and(|path| path.as_os_str().is_empty())
-        {
-            bail!("tycho_map_nodes_path cannot be empty when set");
-        }
         for (chain_id, path) in &self.map_nodes_paths {
             if chain_id.trim().is_empty() {
                 bail!("map_nodes_paths cannot contain an empty chain id");
@@ -197,7 +186,7 @@ impl AppConfig {
     pub(crate) fn effective_allowed_hosts(&self) -> Vec<String> {
         let mut hosts = self.security.allowed_hosts.clone();
         if self.tls.enabled
-            && let Some(host) = server::public_url_host(&self.tls.public_url)
+            && let Some(host) = crate::hostname::public_url_host(&self.tls.public_url)
             && !hosts.iter().any(|item| item == &host)
         {
             hosts.push(host);

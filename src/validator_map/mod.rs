@@ -12,8 +12,6 @@ use file_cache::load_map_nodes_file;
 
 pub(crate) use matching::{filter_map_nodes_to_validators, map_nodes_by_peer};
 
-pub(crate) const BUNDLED_TYCHO_MAP_CHAIN_ID: &str = "tycho-testnet";
-
 #[derive(Clone)]
 pub(crate) struct MapNodesPayload {
     pub(crate) nodes: Value,
@@ -42,13 +40,6 @@ pub(crate) fn load_map_nodes_with_metadata(
     chain_id: &str,
 ) -> Result<Option<MapNodesPayload>> {
     if let Some(path) = config.map_nodes_paths.get(chain_id)
-        && let Some(payload) = load_map_nodes_file_if_exists(path)?
-    {
-        return Ok(Some(payload));
-    }
-
-    if chain_id == BUNDLED_TYCHO_MAP_CHAIN_ID
-        && let Some(path) = &config.tycho_map_nodes_path
         && let Some(payload) = load_map_nodes_file_if_exists(path)?
     {
         return Ok(Some(payload));

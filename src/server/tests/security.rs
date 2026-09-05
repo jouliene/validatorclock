@@ -1,30 +1,9 @@
 use super::*;
 use crate::server::routes::{app_router, challenge_redirect_router};
-use crate::server::security::{normalize_host, redirect_location, request_host_allowed};
+use crate::server::security::{redirect_location, request_host_allowed};
 use axum::body::{Body, to_bytes};
 use axum::http::{HeaderMap, HeaderValue, Request, StatusCode, header};
 use tower::ServiceExt;
-
-#[test]
-fn normalizes_host_header_values() {
-    assert_eq!(
-        normalize_host("203.0.113.10:443").as_deref(),
-        Some("203.0.113.10")
-    );
-    assert_eq!(
-        normalize_host("Example.COM.").as_deref(),
-        Some("example.com")
-    );
-    assert_eq!(
-        normalize_host("[2001:db8::1]:443").as_deref(),
-        Some("2001:db8::1")
-    );
-    assert_eq!(
-        normalize_host("2001:db8::1").as_deref(),
-        Some("2001:db8::1")
-    );
-    assert_eq!(normalize_host(" ").as_deref(), None);
-}
 
 #[test]
 fn builds_redirect_location_with_path_and_query() {

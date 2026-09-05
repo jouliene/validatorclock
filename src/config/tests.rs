@@ -164,10 +164,6 @@ fn rejects_empty_and_missing_required_config_fields() {
     assert!(config.validate().is_err());
 
     let mut config = test_config();
-    config.tycho_map_nodes_path = Some(PathBuf::new());
-    assert!(config.validate().is_err());
-
-    let mut config = test_config();
     config
         .map_nodes_paths
         .insert("ton".to_owned(), PathBuf::new());
