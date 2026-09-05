@@ -88,6 +88,12 @@ mod tests {
         let snapshot = snapshot();
         let rendered = RenderedClock::of(&snapshot).expect("a snapshot writes out");
         let gzip = rendered.gzip.expect("a snapshot is worth compressing");
+        assert!(
+            gzip.len() < rendered.body.len(),
+            "the deflated copy is the smaller one, and this one went from {} to {} bytes",
+            rendered.body.len(),
+            gzip.len()
+        );
 
         let mut decoded = Vec::new();
         flate2::read::GzDecoder::new(gzip.as_ref())
