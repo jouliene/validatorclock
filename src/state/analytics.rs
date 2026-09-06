@@ -272,7 +272,6 @@ mod tests {
         assert!(!is_bot_request(&HeaderMap::new()));
     }
 
-    #[test]
     /// The file is written on every event, so a map of days that is never shortened is a
     /// file that grows for as long as the site runs.
     #[test]
@@ -318,6 +317,7 @@ mod tests {
         assert_eq!(disk.days.len(), 1);
     }
 
+    #[test]
     fn windows_add_up_the_days_they_cover() {
         let mut disk = AnalyticsDisk::default();
         let today = day_index(now_sec());
