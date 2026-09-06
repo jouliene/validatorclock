@@ -445,3 +445,16 @@ fn referenced_vendor_urls() -> Vec<String> {
         .map(|(path, _)| format!("/vendor/{path}"))
         .collect()
 }
+
+/// A browser asks for this by name whether or not a page mentions it, so the site
+/// answers rather than putting a 404 in every visitor's console.
+#[tokio::test]
+async fn the_site_has_an_icon_under_both_names() {
+    let state = test_state(Vec::new());
+
+    for path in ["/favicon.ico", "/brands/favicon.svg"] {
+        let response = app_response(Arc::clone(&state), path).await;
+        assert_eq!(response.status(), StatusCode::OK, "{path}");
+        assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "image/svg+xml");
+    }
+}

@@ -1,0 +1,32 @@
+{
+ "listen": "127.0.0.1:18788",
+ "refresh_seconds": 3600,
+ "refresh_timeout_seconds": 5,
+ "cache_path": "tests/fixtures/browser-check/cache.json",
+ "basemap_dir": null,
+ "tls": {
+  "enabled": false
+ },
+ "node_locations": {
+  "enabled": false
+ },
+ "chains": [
+  {
+   "id": "everscale",
+   "name": "Everscale",
+   "rpc": "https://mainnet.evercloud.dev/graphql",
+   "rpc_fallbacks": [],
+   "color": "#6347F5",
+   "token_symbol": "EVER",
+   "rpc_label": "mainnet.evercloud.dev"
+  },
+  {
+   "id": "tycho-testnet",
+   "name": "Tycho Testnet",
+   "rpc": "https://rpc-testnet.tychoprotocol.com",
+   "color": "#2ECC71",
+   "token_symbol": "TYCHO",
+   "rpc_label": "rpc-testnet.tychoprotocol.com"
+  }
+ ]
+}
