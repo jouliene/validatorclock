@@ -46,7 +46,7 @@ function handleNodeStatsChainChange(previousChainId, nextChainId) {
     return;
   }
 
-  state.nodeStatsRenderKey = null;
+  forgetNodeStatsRender();
   state.nodeStatsLocationRankingExpanded = false;
   if (state.nodeStatsOpen) {
     loadSelectedNodeStats(false).catch((error) => {
@@ -138,7 +138,7 @@ function renderNodeStatsLoading() {
 
 function renderNodeStatsError(error) {
   updateNodeStatsTitle();
-  state.nodeStatsRenderKey = null;
+  forgetNodeStatsRender();
   const summary = $("nodeStatsSummary");
   const content = $("nodeStatsContent");
   if (summary) {
@@ -155,6 +155,14 @@ function renderNodeStatsError(error) {
   }
 }
 
+// Two keys guard the panel - what it is built from, and what it would say - so a caller
+// that wants it built again has to open both. Forgetting the second one left the panel
+// frozen on what it last said.
+function forgetNodeStatsRender() {
+  state.nodeStatsRenderKey = null;
+  state.nodeStatsInputKey = null;
+}
+
 function renderNodeStats() {
   updateNodeStatsTitle();
   const summary = $("nodeStatsSummary");
@@ -162,6 +170,21 @@ function renderNodeStats() {
   if (!summary || !content) {
     return;
   }
+
+  // Two gates, and this is the cheap one. renderNow calls this every second while the
+  // panel is open, and building the model means aggregating every validator and, for the
+  // distance table, a haversine per location per node. Nothing it reads can have changed
+  // unless one of these did.
+  const inputKey = [
+    state.selectedChainId,
+    state.snapshot?.fetched_at || "",
+    state.validatorMapNodesVersion,
+    state.nodeStatsLocationRankingExpanded ? "expanded" : "",
+  ].join("|");
+  if (state.nodeStatsInputKey === inputKey) {
+    return;
+  }
+  state.nodeStatsInputKey = inputKey;
 
   const validators = state.snapshot?.current_set?.validators || [];
   const nodes = currentChainMapNodes() || [];
@@ -291,10 +314,12 @@ function nodeStatsChainName() {
   return chain?.name || state.selectedChainId || "Network";
 }
 
+// And this is the second gate: what the panel would actually say. It used to carry
+// fetched_at, so every poll rebuilt the whole panel - and reset the scroll of its tables -
+// for numbers that were identical.
 function nodeStatsRenderKey(stats) {
   return [
     state.selectedChainId,
-    state.snapshot?.fetched_at || "",
     stats.roundId,
     stats.roundColor,
     stats.networkValidators,

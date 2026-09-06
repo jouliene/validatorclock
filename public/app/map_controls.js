@@ -110,11 +110,11 @@ function setNodeStatsOpen(open) {
   syncNodeStatsPanel();
   if (!state.nodeStatsOpen) {
     clearNodeStatsLoadingTimer();
-    state.nodeStatsRenderKey = null;
+    forgetNodeStatsRender();
     return;
   }
 
-  state.nodeStatsRenderKey = null;
+  forgetNodeStatsRender();
   loadSelectedNodeStats(false).catch((error) => {
     console.warn("Unable to load validator node statistics", error);
     renderNodeStatsError(error);
@@ -177,7 +177,9 @@ function resetValidatorMapForChainChange(previousChainId, nextChainId) {
   // clock and map arrive.
   validatorMapNodes = null;
   validatorMapNodesChainId = null;
+  validatorMapNodesDrawn = null;
   state.validatorMapNodesByPeer = null;
+  state.validatorMapNodesVersion += 1;
   refreshValidatorMapSource();
 }
 

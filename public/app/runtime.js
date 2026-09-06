@@ -23,7 +23,10 @@ function startTimers() {
     whenVisible(prefetchValidatorMapNodes);
   }, pollSeconds * 1000);
 
-  state.drawTimer = window.setInterval(renderNow, 1000);
+  // Nothing on this page moves for a reader who is not looking at it: the second hand
+  // is the only thing that changes between polls, and it was being redrawn - the whole
+  // dial, its filters and the metrics - once a second behind a hidden tab.
+  state.drawTimer = window.setInterval(() => whenVisible(renderNow), 1000);
 
   if (!state.visibilityBound) {
     state.visibilityBound = true;
@@ -58,7 +61,6 @@ function refreshPollSeconds() {
 function renderNow() {
   const now = Math.trunc(Date.now() / 1000);
   renderRuntimeStatus(now);
-  whenVisible(() => refreshStaleSnapshot(now));
 
   if (!state.snapshot) {
     return;

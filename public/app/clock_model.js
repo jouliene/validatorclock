@@ -39,10 +39,6 @@ function buildClockModel(snapshot, now) {
 
   return {
     angle,
-    baseSegments: [
-      { startAngle: Math.PI / 2, sweepAngle: Math.PI, color: "url(#blueRound)", highlight: "rgba(134, 233, 255, 0.42)" },
-      { startAngle: Math.PI * 1.5, sweepAngle: Math.PI, color: "url(#greenRound)", highlight: "rgba(135, 244, 169, 0.4)" },
-    ],
     electionArc: {
       startAngle: timeToAngle(electionsStart),
       sweepAngle: (electionsDuration / roundDuration) * Math.PI,

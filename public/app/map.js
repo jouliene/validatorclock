@@ -41,6 +41,16 @@ const validatorMapPopups = new Set();
 // ask whether they are still the selected chain's; three did, one did not, and the one
 // that did not drew the previous chain's dots under the new chain's title. They are read
 // through here now, so the question is asked once and cannot be forgotten.
+// What was last put on the map, so the same nodes are not put there again. Every
+// setData re-clusters, and the clusters are what a click lands on: pushing identical
+// data three times a minute is why a cluster could vanish between the press and the
+// release (map_events.js works around exactly that).
+let validatorMapNodesDrawn = null;
+
+function validatorMapNodesFingerprint(chainId, nodes) {
+  return `${chainId}|${nodes.map((node) => `${node.peer}@${node.ip}:${node.last_seen_at || ""}`).join(",")}`;
+}
+
 function currentChainMapNodes() {
   return validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : null;
 }

@@ -6,6 +6,7 @@ function renderRoundPanelsIfNeeded(snapshot, model) {
     snapshot.previous_set?.utime_since || "",
     snapshot.next_set?.utime_since || "",
     model.inElections ? "election" : "closed",
+    state.validatorMapNodesVersion,
     selectedAddressType(snapshot.chain.id),
     selectedSourceDisplayMode(snapshot.chain.id),
   ].join("|");

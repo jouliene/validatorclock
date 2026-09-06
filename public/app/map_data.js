@@ -88,9 +88,19 @@ function applyValidatorMapNodesForChain(chainId, nodes) {
     return;
   }
 
+  const list = Array.isArray(nodes) ? nodes : [];
+  const fingerprint = validatorMapNodesFingerprint(chainId, list);
+  if (fingerprint === validatorMapNodesDrawn) {
+    return;
+  }
+  validatorMapNodesDrawn = fingerprint;
+
   validatorMapNodesChainId = chainId;
-  validatorMapNodes = Array.isArray(nodes) ? nodes : [];
+  validatorMapNodes = list;
   state.validatorMapNodesByPeer = validatorMapNodeMapByPeer(validatorMapNodes);
+  // The tables show where each validator is and how many are mapped, so they are stale
+  // the moment this changes - and nothing else tells them.
+  state.validatorMapNodesVersion += 1;
   updateValidatorMapTitle();
   updateValidatorMapSummary();
   refreshValidatorMapSource();
