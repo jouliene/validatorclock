@@ -203,7 +203,7 @@ async fn run_chain(state: &AppState, chain_id: &str) -> Result<()> {
 async fn wait_for_snapshot(state: &AppState, chain_id: &str) -> Arc<ClockSnapshot> {
     let mut waited = Duration::ZERO;
     loop {
-        if let Some(snapshot) = state.cached_snapshot(chain_id).await {
+        if let Some(snapshot) = state.chain_snapshot_as_fetched(chain_id).await {
             return snapshot;
         }
         if waited.is_zero() {

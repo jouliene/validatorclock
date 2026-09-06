@@ -76,6 +76,10 @@ async fn app_router_serves_stale_cached_clock_without_waiting_for_rpc() {
             .unwrap()
             .contains("refresh is running in background")
     );
+    assert_eq!(
+        body["refreshing"], true,
+        "the page branches on this rather than on the wording above"
+    );
 }
 
 /// The bytes are written out when the snapshot is built, so what a reader gets
@@ -175,4 +179,35 @@ async fn a_reader_that_takes_a_compressed_answer_gets_the_same_clock() {
         .read_to_end(&mut decoded)
         .expect("what we send back deflates");
     assert_eq!(decoded, plain_body.as_ref());
+}
+
+/// The addresses the resolver looks validators up by are a fifth of what the TON clock
+/// weighs on the wire and are read by nothing on the page. They stay where the resolver
+/// reads them and leave by the door the readers come in at.
+#[tokio::test]
+async fn the_served_clock_carries_no_dht_addresses_but_the_cache_still_does() {
+    let state = test_state(Vec::new());
+    state
+        .store_cached_snapshot("test", now_sec_for_test(), test_clock_snapshot("test"))
+        .await;
+
+    let response = app_response(Arc::clone(&state), "/api/chains/test/clock").await;
+    let body = response_json(response).await;
+
+    assert_eq!(body["current_set"]["validators"][0]["public_key"], "validator-key");
+    assert_eq!(
+        body["current_set"]["validators"][0]["adnl_addr"],
+        Value::Null,
+        "no page reads it, so no page is sent it"
+    );
+
+    let as_fetched = state
+        .chain_snapshot_as_fetched("test")
+        .await
+        .expect("the chain is cached");
+    assert_eq!(
+        as_fetched.current_set.validators[0].adnl_addr.as_deref(),
+        Some("adnl"),
+        "the resolver finds nodes by this, and a restart reads it back off the disk cache"
+    );
 }

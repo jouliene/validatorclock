@@ -17,8 +17,10 @@ function renderMetrics(snapshot, model, now) {
 function infoUpdatedRefreshPending(snapshot, now) {
   const refreshSeconds = Math.max(10, state.refreshSeconds || 60);
   const ageSeconds = Math.max(0, now - snapshot.fetched_at);
-  const staleRefreshRunning = String(snapshot.warning || "").includes("refresh is running in background");
-  return staleRefreshRunning || (state.clockLoading && ageSeconds >= refreshSeconds);
+  // The snapshot says whether a refresh of it is running; this used to be worked out by
+  // looking for a phrase inside the warning text, which made the wording of a server log
+  // line part of the page.
+  return Boolean(snapshot.refreshing) || (state.clockLoading && ageSeconds >= refreshSeconds);
 }
 
 function roundAccentColor(color) {

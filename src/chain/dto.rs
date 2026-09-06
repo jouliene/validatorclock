@@ -59,6 +59,11 @@ pub(crate) struct ClockSnapshot {
     pub(crate) next_set: Option<ValidatorSetDto>,
     pub(crate) election: ElectionDto,
     pub(crate) warning: Option<String>,
+    /// Whether this is cached data with a refresh of it running right now. The page used
+    /// to work this out by looking for a phrase inside `warning`, which made the wording
+    /// of a log line part of the interface.
+    #[serde(default)]
+    pub(crate) refreshing: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -146,6 +151,11 @@ pub(crate) enum RoundColor {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ValidatorDto {
     pub(crate) public_key: String,
+    /// How the resolver finds this validator's node in the DHT. It is kept in the
+    /// snapshot the process works from and taken out of the one the readers are served:
+    /// no page reads it, and at sixty-four hex characters per validator it was a fifth
+    /// of what the TON clock weighs on the wire.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub(crate) adnl_addr: Option<String>,
     pub(crate) wallet: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -211,6 +221,14 @@ pub(crate) struct ElectionDto {
     pub(crate) candidates: Vec<ElectionCandidateDto>,
 }
 
+impl ElectionDto {
+    pub(crate) fn forget_candidate_adnl_addresses(&mut self) {
+        for candidate in &mut self.candidates {
+            candidate.adnl_addr.clear();
+        }
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ElectionCandidateDto {
     pub(crate) public_key: String,
@@ -222,6 +240,8 @@ pub(crate) struct ElectionCandidateDto {
     pub(crate) source: Option<ValidatorSourceDto>,
     pub(crate) contract_type: Option<String>,
     pub(crate) contract_type_hash: Option<String>,
+    /// As on `ValidatorDto`: kept for the resolver, left out of what is served.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub(super) adnl_addr: String,
     pub(crate) history: Vec<ValidatorParticipationDto>,
 }

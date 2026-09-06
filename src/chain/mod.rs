@@ -113,5 +113,6 @@ pub(crate) fn test_clock_snapshot(chain_id: &str) -> ClockSnapshot {
         next_set: None,
         election: ElectionDto::default(),
         warning: None,
+        refreshing: false,
     }
 }

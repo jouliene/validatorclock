@@ -114,10 +114,9 @@ async function prefetchChainSnapshot(chainId) {
 function updateStaleSnapshotRetry(chainId, snapshot) {
   window.clearTimeout(state.staleRetryTimer);
   state.staleRetryTimer = null;
-  const warning = snapshot.warning || "";
   const retryKey = `${chainId}:${snapshot.fetched_at}`;
-  if (!warning.includes("refresh is running in background") || state.staleRetryKey === retryKey) {
-    if (!warning) {
+  if (!snapshot.refreshing || state.staleRetryKey === retryKey) {
+    if (!snapshot.warning) {
       state.staleRetryKey = null;
     }
     return;
