@@ -1,5 +1,9 @@
+// How long a prefetched set of round statistics is worth reusing. It used to be the poll
+// interval exactly - refreshSeconds / 2 - so at every tick the age was equal to it and
+// never below it, and both the timer and the clock's own handler refetched every time.
+// The server produces new figures once per refreshSeconds, so that is the window.
 function roundStatsCacheMaxAgeSeconds() {
-  return Math.max(10, Math.floor(Math.max(10, state.refreshSeconds) / 2));
+  return Math.max(10, state.refreshSeconds || 60);
 }
 
 function roundStatsCacheIsFresh(chainId) {
@@ -13,6 +17,13 @@ function roundStatsCacheIsFresh(chainId) {
 }
 
 function storeRoundStatsSnapshot(chainId, stats) {
+  // Two requests for one chain can be in flight - the panel asks preferring the cache and
+  // then asks again for live figures - and they answer in whichever order they answer.
+  // The older of the two is not an update.
+  const known = state.roundStatsByChain.get(chainId);
+  if (known?.fetched_at && stats?.fetched_at && known.fetched_at > stats.fetched_at) {
+    return;
+  }
   state.roundStatsByChain.set(chainId, stats);
   state.roundStatsCachedAtByChain.set(chainId, Math.trunc(Date.now() / 1000));
   if (chainId === state.selectedChainId) {
@@ -125,7 +136,11 @@ async function loadSelectedRoundStats(force = false) {
     }
     console.warn(`Unable to refresh ${chainId} round statistics`, error);
   } finally {
-    clearRoundStatsLoadingTimer();
+    // Only the request still being waited for may cancel the timer: a superseded one
+    // clearing it here would cancel the "loading" paint its successor had just scheduled.
+    if (requestSeq === state.roundStatsRequestSeq) {
+      clearRoundStatsLoadingTimer();
+    }
   }
 }
 

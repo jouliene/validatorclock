@@ -76,6 +76,11 @@ function chainNetworkKind(chain) {
 
 async function selectChain(chainId) {
   const previousChainId = state.selectedChainId;
+  // Clicking the tab that is already active used to reset the render key, rebuild the
+  // tabs twice and fetch the whole clock again for a page that would come out identical.
+  if (chainId === previousChainId && state.snapshot) {
+    return;
+  }
   state.selectedChainId = chainId;
   state.roundRenderKey = null;
   if (previousChainId !== chainId) {

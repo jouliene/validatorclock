@@ -47,6 +47,7 @@ const state = {
   sourceDisplayModes: initialSourceDisplayModes(),
   refreshSeconds: 60,
   runtimeStatus: null,
+  runtimeStatusRequestSeq: 0,
   snapshot: null,
   snapshotsByChain: new Map(),
   clockFetchesByChain: new Map(),

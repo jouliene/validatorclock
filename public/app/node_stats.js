@@ -106,7 +106,11 @@ async function loadSelectedNodeStats(force = false) {
     }
     console.warn(`Unable to refresh ${chainId} node statistics`, error);
   } finally {
-    clearNodeStatsLoadingTimer();
+    // As in the round statistics loader: a superseded request must not cancel the
+    // "loading" paint scheduled by the one that superseded it.
+    if (requestSeq === state.nodeStatsRequestSeq) {
+      clearNodeStatsLoadingTimer();
+    }
   }
 }
 
