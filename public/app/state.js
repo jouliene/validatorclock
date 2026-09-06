@@ -75,6 +75,7 @@ const state = {
   validatorMapNodesByChain: new Map(),
   validatorMapNodeCacheKeysByChain: new Map(),
   validatorMapFetchesByChain: new Map(),
+  validatorMapFetchedAtByChain: new Map(),
   validatorMapPrefetchTimer: null,
   validatorMapNodesByPeer: null,
   // Bumped whenever the map nodes change, so that what is drawn from them - the tables,
