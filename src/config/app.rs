@@ -525,6 +525,14 @@ fn default_node_locations_geo_cache_ttl_seconds() -> u64 {
     604_800
 }
 
+/// Plain HTTP, deliberately, and this is the second time it has been asked about.
+///
+/// The addresses looked up here are visitors' as well as validators', and on this endpoint
+/// they travel in the clear - the startup warning says so. The alternative already in this
+/// process is ipinfo over HTTPS with a token, which the node locations use to check
+/// ip-api's answers; moving the lookups there would take the city with it, because ipinfo
+/// lite reports country, ASN and no city. The city is wanted on the statistics page, so
+/// this stays. Changing it is a decision about what the page shows, not a defect to fix.
 fn default_ip_api_batch_endpoint() -> String {
     "http://ip-api.com/batch?fields=status,message,query,country,countryCode,city,lat,lon,isp,as"
         .to_owned()
