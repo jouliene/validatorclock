@@ -172,6 +172,13 @@ function resetValidatorMapForChainChange(previousChainId, nextChainId) {
   if (validatorMap) {
     resetValidatorMapView(0);
   }
+  // What is drawn belongs to the chain being left. The title changes with the tab, so
+  // without this the previous chain's dots sit under the new chain's name until its
+  // clock and map arrive.
+  validatorMapNodes = null;
+  validatorMapNodesChainId = null;
+  state.validatorMapNodesByPeer = null;
+  refreshValidatorMapSource();
 }
 
 function updateValidatorMapTitle() {
@@ -216,10 +223,7 @@ function updateValidatorMapSummary() {
     return;
   }
 
-  let nodes = [];
-  if (validatorMapNodes && validatorMapNodesChainId === state.selectedChainId) {
-    nodes = validatorMapNodes;
-  }
+  const nodes = currentChainMapNodes() || [];
   const totalNodes = Array.isArray(state.snapshot?.current_set?.validators)
     ? state.snapshot.current_set.validators.length
     : nodes.length;
@@ -257,7 +261,10 @@ function formatValidatorMapError(error) {
     return "Map rendering is unavailable in this browser session. WebGL could not be initialized.";
   }
 
-  if (/assets failed to load/i.test(message)) {
+  // What loadMapScript throws is "<url> failed to load" or "<url> timed out"; the phrase
+  // this looked for appears in neither, so every script failure fell through to the
+  // generic line.
+  if (/failed to load|timed out/i.test(message)) {
     return "Map assets could not be loaded. Check the network connection and try again.";
   }
 

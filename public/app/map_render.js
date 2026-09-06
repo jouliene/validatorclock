@@ -22,9 +22,12 @@ async function buildValidatorMap() {
 
   showValidatorMapStatus("Loading map", "loading");
   await ensureMapLibre();
-  renderValidatorMap();
-  validatorMapLoaded = true;
-  showValidatorMapEmptyStatus();
+  // The map is not loaded because its two scripts are: the style, the tiles and the fonts
+  // are still to come. "Loading map" used to be cleared here, so a basemap that failed
+  // looked like a map with nothing on it; it is cleared by the style's own load event now.
+  // And the flag is set only if a map was actually built - it used to be set even when
+  // there was no canvas or no maplibre, which meant the session never tried again.
+  validatorMapLoaded = renderValidatorMap();
 }
 
 function ensureMapLibre() {
@@ -126,7 +129,7 @@ function loadMapScript(id, url) {
 function renderValidatorMap() {
   const container = $("validatorMapCanvas");
   if (!container || !window.maplibregl) {
-    return;
+    return false;
   }
 
   validatorMap = new maplibregl.Map({
@@ -160,7 +163,22 @@ function renderValidatorMap() {
     // while it arrives, so the nodes are read here rather than captured when
     // the map was created - otherwise the previous chain's nodes get drawn.
     addValidatorNodeLayers(validatorMapFeatures());
+    showValidatorMapEmptyStatus();
   });
+
+  // Without this a style, a tile archive or a font that will not load is a line in the
+  // console and an empty rectangle for the reader. Before the style has loaded there is
+  // nothing on screen, so a failure is the map failing; afterwards a missing tile or font
+  // is a blemish on a map that works, and is left to the console.
+  validatorMap.on("error", (event) => {
+    const error = event?.error || event;
+    console.warn("Validator map error", error);
+    if (!validatorMap?.isStyleLoaded?.()) {
+      showValidatorMapStatus("The map could not be drawn. Try again in a moment.", "error");
+    }
+  });
+
+  return true;
 }
 
 function refreshValidatorMapSource() {

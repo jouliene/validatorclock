@@ -11,13 +11,28 @@ function fetchDeadline(timeoutMs) {
 }
 
 async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS) {
-  const response = await fetch(url, {
-    headers: { Accept: "application/json" },
-    signal: fetchDeadline(timeoutMs)
-  });
-  const body = await response.json().catch(() => ({}));
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { Accept: "application/json" },
+      signal: fetchDeadline(timeoutMs)
+    });
+  } catch (error) {
+    // What the deadline throws is a DOMException whose message is "signal timed out",
+    // and that went into the error banner verbatim.
+    throw error?.name === "TimeoutError" ? new Error("The request took too long") : error;
+  }
+
+  // An error carries its message in the body when it has one, and need not have one.
+  const body = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new Error(body.error || `${response.status} ${response.statusText}`);
+    throw new Error(body?.error || `${response.status} ${response.statusText}`);
+  }
+  // A success that does not parse is a broken answer, not an empty one. It used to become
+  // `{}`, and the caller then read a field off it and threw a TypeError three files from
+  // the request that caused it - which on the chain list left the page with no retry.
+  if (body === null || typeof body !== "object") {
+    throw new Error("The server answered with something that is not JSON");
   }
   return body;
 }

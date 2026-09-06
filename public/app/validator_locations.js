@@ -50,7 +50,7 @@ function mapNodeTooltipLines(node, heading = "Location:") {
   // Say so when nobody has reached this node lately. The address is real - it
   // is the last one the resolver confirmed - but it is a memory, and a
   // location line that reads the same either way hides that.
-  const lastSeen = validatorMapLastSeenLabel(node, validatorMapNewestSeenAt(validatorMapNodes));
+  const lastSeen = validatorMapLastSeenLabel(node, validatorMapNewestSeenAt(currentChainMapNodes()));
   if (lastSeen) {
     lines.push(`Last seen: ${lastSeen}`);
   }

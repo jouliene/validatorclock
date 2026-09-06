@@ -96,7 +96,10 @@ async function loadSelectedNodeStats(force = false) {
       return;
     }
     clearNodeStatsLoadingTimer();
-    renderNodeStats();
+    // Through the same door as the cached path: with no snapshot for this chain there is
+    // nothing to count the nodes against, and the panel would say the chain has no mapped
+    // validators when all it has is no clock yet.
+    renderNodeStatsIfOpen();
   } catch (error) {
     if (!cached) {
       throw error;
@@ -161,7 +164,7 @@ function renderNodeStats() {
   }
 
   const validators = state.snapshot?.current_set?.validators || [];
-  const nodes = validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : [];
+  const nodes = currentChainMapNodes() || [];
   const stats = buildNodeStats(nodes, validators, state.validatorMapNodesByPeer);
   const resolutionNotice = mapNodeResolutionNotice(stats.mappedNodes);
   const renderKey = nodeStatsRenderKey(stats);

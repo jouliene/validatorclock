@@ -35,3 +35,12 @@ let validatorMapNodes = null;
 let validatorMapNodesChainId = null;
 let validatorMapPopupFocusWired = false;
 const validatorMapPopups = new Set();
+
+// The nodes on screen belong to a chain, and the page can be switched to another chain
+// between the fetch that produced them and the draw that uses them. Every reader has to
+// ask whether they are still the selected chain's; three did, one did not, and the one
+// that did not drew the previous chain's dots under the new chain's title. They are read
+// through here now, so the question is asked once and cannot be forgotten.
+function currentChainMapNodes() {
+  return validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : null;
+}
