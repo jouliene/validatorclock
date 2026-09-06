@@ -72,14 +72,6 @@ function formatRoundStatsExactAmount(value) {
   return `${sign}${grouped}${fraction || ""}`;
 }
 
-function formatRoundStatsExactPercent(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) {
-    return "-";
-  }
-  return `${number.toFixed(2)}%`;
-}
-
 function roundStatsFinite(value) {
   return Number.isFinite(roundStatsNumber(value));
 }

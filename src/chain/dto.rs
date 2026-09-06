@@ -6,7 +6,16 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct ChainsResponse {
     pub(super) refresh_seconds: u64,
-    pub(super) chains: Vec<ChainMeta>,
+    pub(super) chains: Vec<ChainListing>,
+}
+
+/// A chain as the page is offered it: what it is, plus whether it has a map to show. The
+/// page used to carry its own list of which chains those are.
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct ChainListing {
+    #[serde(flatten)]
+    pub(super) meta: ChainMeta,
+    pub(super) has_map: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

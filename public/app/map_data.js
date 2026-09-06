@@ -174,7 +174,10 @@ function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot,
 }
 
 function mapAvailableForChain(chainId) {
-  return MAP_CHAIN_IDS.has(chainId);
+  // The server knows which chains it has a map file for and says so in the chain list.
+  // This used to be a set of chain ids written into the page, which meant a chain given a
+  // map on the server stayed "not available" here until someone remembered to edit it.
+  return state.chains.some((chain) => chain.id === chainId && chain.has_map);
 }
 
 function currentMapChain() {

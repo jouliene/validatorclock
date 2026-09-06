@@ -1,4 +1,4 @@
-use super::dto::ChainRuntimeStatusDto;
+use super::dto::{ChainListing, ChainRuntimeStatusDto};
 use super::{ChainMeta, ChainsResponse, RuntimeStatusResponse};
 use crate::config::AppConfig;
 use crate::state::AppState;
@@ -7,7 +7,14 @@ use anyhow::Result;
 pub(crate) fn chains_response(config: &AppConfig) -> ChainsResponse {
     ChainsResponse {
         refresh_seconds: config.refresh_seconds,
-        chains: config.chains.iter().map(ChainMeta::from).collect(),
+        chains: config
+            .chains
+            .iter()
+            .map(|chain| ChainListing {
+                meta: ChainMeta::from(chain),
+                has_map: crate::validator_map::chain_has_map(config, &chain.id),
+            })
+            .collect(),
     }
 }
 

@@ -60,19 +60,6 @@ function formatDuration(totalSeconds) {
   return `${remainder}s`;
 }
 
-function formatDurationClock(totalSeconds) {
-  const seconds = Math.max(0, Math.trunc(totalSeconds));
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const remainder = seconds % 60;
-  const pad = (value) => String(value).padStart(2, "0");
-
-  if (days > 0) {
-    return `${days}d ${pad(hours)}h ${pad(minutes)}m ${pad(remainder)}s`;
-  }
-  return `${pad(hours)}h ${pad(minutes)}m ${pad(remainder)}s`;
-}
 
 function formatDurationPrecise(totalSeconds) {
   const seconds = Math.max(0, Math.trunc(totalSeconds));

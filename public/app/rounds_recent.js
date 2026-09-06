@@ -8,7 +8,6 @@ function renderRecentRoundPanels(snapshot) {
     grid.appendChild(recentRoundPanel(color, validators, snapshot));
   }
 
-  grid.hidden = false;
 }
 
 function displayedRoundForColor(color, snapshot) {

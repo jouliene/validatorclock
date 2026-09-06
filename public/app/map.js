@@ -1,5 +1,3 @@
-const BUNDLED_TYCHO_MAP_CHAIN_ID = "tycho-testnet";
-const MAP_CHAIN_IDS = new Set([BUNDLED_TYCHO_MAP_CHAIN_ID, "ton", "everscale"]);
 // Served from here rather than from a CDN. A reader whose network cannot reach
 // the CDN had nothing to go on: a script tag whose connection is black-holed
 // fires neither `load` nor `error`, so the map sat on "Loading map" for as long

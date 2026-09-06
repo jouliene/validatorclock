@@ -62,7 +62,7 @@ function renderRoundPanel(color, snapshot, model) {
       validatorSelectionScope: "active",
       validatorSelectionColor: color,
       fakeValidatorPeers: fakeValidatorPeerSet(current),
-      fakeSourceTooltip: fakeValidatorTooltip(true),
+      fakeSourceTooltip: fakeValidatorTooltip(),
     }));
     return;
   }
@@ -112,7 +112,7 @@ function renderRoundPanel(color, snapshot, model) {
       validatorSelectionScope: "previous",
       validatorSelectionColor: color,
       fakeValidatorPeers: fakeValidatorPeerSet(previous),
-      fakeSourceTooltip: fakeValidatorTooltip(false),
+      fakeSourceTooltip: fakeValidatorTooltip(),
     }));
     return;
   }

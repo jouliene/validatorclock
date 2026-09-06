@@ -85,9 +85,3 @@ function validatorLastKnownMapNode(validator) {
   return null;
 }
 
-function validatorMapAvailableForChain(chainId) {
-  if (typeof mapAvailableForChain === "function") {
-    return mapAvailableForChain(chainId);
-  }
-  return chainId === BUNDLED_TYCHO_MAP_CHAIN_ID;
-}
