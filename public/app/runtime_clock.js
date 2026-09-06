@@ -9,12 +9,12 @@ async function loadClock(force = false) {
   state.clockLoading = true;
   try {
     const snapshot = await fetchClockSnapshot(chainId, force);
-    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
       return;
     }
     await applySelectedClockSnapshot(chainId, snapshot, requestSeq);
   } finally {
-    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
       return;
     }
     state.clockLoading = false;
@@ -27,28 +27,18 @@ function clockSnapshotUrl(chainId, force = false) {
 }
 
 function fetchClockSnapshot(chainId, force = false) {
-  if (!force) {
-    const pending = state.clockFetchesByChain.get(chainId);
-    if (pending) {
-      return pending;
-    }
+  // A forced refresh is a request for new data, so it is not answered from one already in
+  // flight and does not become the answer to anyone else's.
+  if (force) {
+    return fetchJson(clockSnapshotUrl(chainId, true));
   }
-
-  const request = fetchJson(clockSnapshotUrl(chainId, force)).finally(() => {
-    if (state.clockFetchesByChain.get(chainId) === request) {
-      state.clockFetchesByChain.delete(chainId);
-    }
-  });
-
-  if (!force) {
-    state.clockFetchesByChain.set(chainId, request);
-  }
-
-  return request;
+  return dedupedRequest(state.clockFetchesByChain, chainId, () =>
+    fetchJson(clockSnapshotUrl(chainId)),
+  );
 }
 
 async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
-  if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+  if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
     return;
   }
 
@@ -66,7 +56,7 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
   } else {
     state.validatorMapNodesByPeer = null;
   }
-  if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+  if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
     return;
   }
   // The key below tracks everything the panels are built from, the map included, so a

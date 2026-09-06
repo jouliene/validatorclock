@@ -23,19 +23,9 @@ async function refreshValidatorMapNodesForSnapshot(chainId = state.selectedChain
   }
 
   const cacheKey = validatorMapSnapshotCacheKey(snapshot);
-  const fetchKey = `${chainId}:${cacheKey}`;
-  const pending = state.validatorMapFetchesByChain.get(fetchKey);
-  if (pending) {
-    return pending;
-  }
-
-  const request = fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey).finally(() => {
-    if (state.validatorMapFetchesByChain.get(fetchKey) === request) {
-      state.validatorMapFetchesByChain.delete(fetchKey);
-    }
-  });
-  state.validatorMapFetchesByChain.set(fetchKey, request);
-  return request;
+  return dedupedRequest(state.validatorMapFetchesByChain, `${chainId}:${cacheKey}`, () =>
+    fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey),
+  );
 }
 
 async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
@@ -134,27 +124,12 @@ function validatorMapSnapshotCacheKey(snapshot) {
   ].join("|");
 }
 
-async function prefetchValidatorMapNodes() {
-  const chainIds = state.chains
-    .map((chain) => chain.id)
-    .filter((chainId) => chainId && mapAvailableForChain(chainId))
-    .sort((left, right) => {
-      if (left === state.selectedChainId) {
-        return -1;
-      }
-      if (right === state.selectedChainId) {
-        return 1;
-      }
-      return 0;
-    });
-
-  chainIds.forEach((chainId, index) => {
-    window.setTimeout(() => {
-      prefetchValidatorMapNodesForChain(chainId).catch((error) => {
-        console.warn(`Unable to prefetch ${chainId} map nodes`, error);
-      });
-    }, index * 350);
-  });
+function prefetchValidatorMapNodes() {
+  prefetchChainsInTurn(
+    state.chains.map((chain) => chain.id).filter((chainId) => chainId && mapAvailableForChain(chainId)),
+    prefetchValidatorMapNodesForChain,
+    "map nodes",
+  );
 }
 
 async function prefetchValidatorMapNodesForChain(chainId, force = false) {

@@ -92,7 +92,7 @@ async function loadSelectedNodeStats(force = false) {
 
   try {
     await refreshValidatorMapNodesForSnapshot(chainId);
-    if (requestSeq !== state.nodeStatsRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.nodeStatsRequestSeq, chainId)) {
       return;
     }
     clearNodeStatsLoadingTimer();
@@ -117,10 +117,10 @@ async function loadSelectedNodeStats(force = false) {
 function scheduleNodeStatsLoading(requestSeq, chainId) {
   clearNodeStatsLoadingTimer();
   state.nodeStatsLoadingTimer = window.setTimeout(() => {
-    if (requestSeq === state.nodeStatsRequestSeq && chainId === state.selectedChainId) {
+    if (requestIsCurrent(requestSeq, state.nodeStatsRequestSeq, chainId)) {
       renderNodeStatsLoading();
     }
-  }, 180);
+  }, PANEL_LOADING_DELAY_MS);
 }
 
 function clearNodeStatsLoadingTimer() {

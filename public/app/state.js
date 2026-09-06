@@ -107,3 +107,58 @@ const chainLogos = {
 };
 
 const $ = (id) => document.getElementById(id);
+
+// Three things are cached per chain here - the clock, the round statistics and the map
+// nodes - and each of them needs the same three mechanisms. They are written once here;
+// what differs between them, which is how long an answer stays worth keeping, is written
+// where that answer is understood.
+
+// One request per key at a time. Callers asking for the same thing while it is in flight
+// wait on the same promise, and the entry is removed by the request that owns it, so a
+// newer one is never dropped by an older one settling.
+function dedupedRequest(requests, key, start) {
+  const pending = requests.get(key);
+  if (pending) {
+    return pending;
+  }
+  const request = start().finally(() => {
+    if (requests.get(key) === request) {
+      requests.delete(key);
+    }
+  });
+  requests.set(key, request);
+  return request;
+}
+
+// The chains the reader is not looking at, asked for one after another rather than all at
+// once: three chains starting together made the one on screen wait behind them. The
+// selected chain goes first because it is the one about to be needed.
+const PREFETCH_STAGGER_MS = 350;
+
+function prefetchChainsInTurn(chainIds, prefetchOne, what) {
+  const selectedFirst = chainIds.slice().sort((left, right) => {
+    if (left === state.selectedChainId) {
+      return -1;
+    }
+    return right === state.selectedChainId ? 1 : 0;
+  });
+
+  selectedFirst.forEach((chainId, index) => {
+    window.setTimeout(() => {
+      prefetchOne(chainId).catch((error) => {
+        console.warn(`Unable to prefetch ${chainId} ${what}`, error);
+      });
+    }, index * PREFETCH_STAGGER_MS);
+  });
+}
+
+// A request is still worth acting on only while nothing has superseded it and the reader
+// has not moved to another chain. Both halves matter, and the pair was written out eight
+// times across three files.
+function requestIsCurrent(requestSeq, currentSeq, chainId) {
+  return requestSeq === currentSeq && chainId === state.selectedChainId;
+}
+
+// Long enough that an answer already in hand never flashes "loading", short enough that a
+// slow one does not look stuck.
+const PANEL_LOADING_DELAY_MS = 180;

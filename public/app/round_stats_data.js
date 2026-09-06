@@ -32,26 +32,11 @@ function storeRoundStatsSnapshot(chainId, stats) {
 }
 
 function prefetchRoundStatsSnapshots() {
-  const chainIds = state.chains
-    .map((chain) => chain.id)
-    .filter(Boolean)
-    .sort((left, right) => {
-      if (left === state.selectedChainId) {
-        return -1;
-      }
-      if (right === state.selectedChainId) {
-        return 1;
-      }
-      return 0;
-    });
-
-  chainIds.forEach((chainId, index) => {
-    window.setTimeout(() => {
-      prefetchRoundStatsForChain(chainId).catch((error) => {
-        console.warn(`Unable to prefetch ${chainId} round statistics`, error);
-      });
-    }, index * 350);
-  });
+  prefetchChainsInTurn(
+    state.chains.map((chain) => chain.id).filter(Boolean),
+    prefetchRoundStatsForChain,
+    "round statistics",
+  );
 }
 
 async function prefetchRoundStatsForChain(chainId, force = false) {
@@ -87,18 +72,9 @@ function roundStatsSnapshotUrl(chainId, preferCache = false) {
 
 function fetchRoundStatsSnapshot(chainId, preferCache = false) {
   const fetchKey = `${chainId}:${preferCache ? "cache" : "live"}`;
-  const pending = state.roundStatsFetchesByChain.get(fetchKey);
-  if (pending) {
-    return pending;
-  }
-
-  const request = fetchJson(roundStatsSnapshotUrl(chainId, preferCache)).finally(() => {
-    if (state.roundStatsFetchesByChain.get(fetchKey) === request) {
-      state.roundStatsFetchesByChain.delete(fetchKey);
-    }
-  });
-  state.roundStatsFetchesByChain.set(fetchKey, request);
-  return request;
+  return dedupedRequest(state.roundStatsFetchesByChain, fetchKey, () =>
+    fetchJson(roundStatsSnapshotUrl(chainId, preferCache)),
+  );
 }
 
 async function loadSelectedRoundStats(force = false) {
@@ -119,7 +95,7 @@ async function loadSelectedRoundStats(force = false) {
 
   try {
     const stats = await fetchRoundStatsSnapshot(chainId, !force);
-    if (requestSeq !== state.roundStatsRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.roundStatsRequestSeq, chainId)) {
       return;
     }
     storeRoundStatsSnapshot(chainId, stats);
@@ -147,10 +123,10 @@ async function loadSelectedRoundStats(force = false) {
 function scheduleRoundStatsLoading(requestSeq, chainId) {
   clearRoundStatsLoadingTimer();
   state.roundStatsLoadingTimer = window.setTimeout(() => {
-    if (requestSeq === state.roundStatsRequestSeq && chainId === state.selectedChainId) {
+    if (requestIsCurrent(requestSeq, state.roundStatsRequestSeq, chainId)) {
       renderRoundStatsLoading();
     }
-  }, 180);
+  }, PANEL_LOADING_DELAY_MS);
 }
 
 function clearRoundStatsLoadingTimer() {
