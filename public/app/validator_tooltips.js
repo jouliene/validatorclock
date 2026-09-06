@@ -6,21 +6,89 @@ function validatorTooltipDangerLine(text) {
   return `${VALIDATOR_TOOLTIP_DANGER_PREFIX}${text}`;
 }
 
+// What each element would say, kept beside it rather than on it. A TON round puts about
+// two thousand of these on the page; as `data-` attributes that was 185 KB of text
+// serialised into the DOM, and a WeakMap lets each one go with the row it belongs to.
+const validatorTooltipContent = new WeakMap();
+
 function setValidatorTooltip(element, content) {
   const tooltip = normalizeValidatorTooltip(content);
   if (!tooltip) {
+    // Clearing matters for the elements that outlive a render - the status widget keeps
+    // its node and only changes what it says - which is how a message that no longer
+    // applies used to stay hoverable.
+    validatorTooltipContent.delete(element);
+    element.classList.remove("has-validator-tooltip");
+    if (validatorHoverTooltipTarget === element) {
+      hideValidatorTooltip();
+    }
     return;
   }
 
   element.removeAttribute("title");
-  element.dataset.validatorTooltip = tooltip;
-  if (!element.classList.contains("has-validator-tooltip")) {
-    element.classList.add("has-validator-tooltip");
-    element.addEventListener("mouseenter", handleValidatorTooltipEnter);
-    element.addEventListener("focus", handleValidatorTooltipEnter);
-    element.addEventListener("pointerdown", handleValidatorTooltipPointerDown);
-    element.addEventListener("mouseleave", hideValidatorTooltip);
-    element.addEventListener("blur", hideValidatorTooltip);
+  validatorTooltipContent.set(element, tooltip);
+  element.classList.add("has-validator-tooltip");
+  wireValidatorTooltips();
+}
+
+// One set of listeners for the page instead of five on every element that carries a
+// tooltip - about nine and a half thousand of them on a TON round, attached again on
+// every render of the tables. The element under the pointer is found by looking upwards
+// from whatever the event landed on.
+let validatorTooltipsWired = false;
+
+function wireValidatorTooltips() {
+  if (validatorTooltipsWired) {
+    return;
+  }
+  validatorTooltipsWired = true;
+  document.addEventListener("pointerover", handleValidatorTooltipPointerOver);
+  document.addEventListener("pointerout", handleValidatorTooltipPointerOut);
+  document.addEventListener("focusin", handleValidatorTooltipFocusIn);
+  document.addEventListener("focusout", handleValidatorTooltipFocusOut);
+  document.addEventListener("pointerdown", handleValidatorTooltipPointerDown, true);
+}
+
+function validatorTooltipTarget(node) {
+  return node instanceof Element ? node.closest(".has-validator-tooltip") : null;
+}
+
+function handleValidatorTooltipPointerOver(event) {
+  // A touch shows a tooltip by tapping, below; pointerover fires for it too, and would
+  // open the tooltip a tap was about to close.
+  if (isTouchLikePointer(event)) {
+    return;
+  }
+  const target = validatorTooltipTarget(event.target);
+  if (target && target !== validatorHoverTooltipTarget) {
+    showValidatorTooltip(target);
+  }
+}
+
+function handleValidatorTooltipPointerOut(event) {
+  if (!validatorHoverTooltipTarget || isTouchLikePointer(event)) {
+    return;
+  }
+  if (validatorTooltipTarget(event.target) !== validatorHoverTooltipTarget) {
+    return;
+  }
+  // Moving between two children of the same element is not leaving it.
+  if (event.relatedTarget && validatorHoverTooltipTarget.contains(event.relatedTarget)) {
+    return;
+  }
+  hideValidatorTooltip();
+}
+
+function handleValidatorTooltipFocusIn(event) {
+  const target = validatorTooltipTarget(event.target);
+  if (target) {
+    showValidatorTooltip(target);
+  }
+}
+
+function handleValidatorTooltipFocusOut(event) {
+  if (validatorTooltipTarget(event.target) === validatorHoverTooltipTarget) {
+    hideValidatorTooltip();
   }
 }
 
@@ -34,24 +102,30 @@ function normalizeValidatorTooltip(content) {
     .join("\n");
 }
 
-function handleValidatorTooltipEnter(event) {
-  showValidatorTooltip(event.currentTarget);
-}
-
+// A press does two jobs: outside an open tooltip it closes it, and on a touch screen it
+// is how a tooltip is opened at all.
 function handleValidatorTooltipPointerDown(event) {
-  if (!isTouchLikePointer(event) || isTooltipButton(event.currentTarget)) {
+  const target = validatorTooltipTarget(event.target);
+  if (!target) {
+    if (validatorHoverTooltipTarget && !validatorHoverTooltipTarget.contains(event.target)) {
+      hideValidatorTooltip();
+    }
+    return;
+  }
+
+  if (!isTouchLikePointer(event) || isTooltipButton(target)) {
     return;
   }
 
   event.preventDefault();
   event.stopPropagation();
 
-  if (validatorHoverTooltipTarget === event.currentTarget) {
+  if (validatorHoverTooltipTarget === target) {
     hideValidatorTooltip();
     return;
   }
 
-  showValidatorTooltip(event.currentTarget);
+  showValidatorTooltip(target);
 }
 
 function isTouchLikePointer(event) {
@@ -63,7 +137,7 @@ function isTooltipButton(target) {
 }
 
 function showValidatorTooltip(target) {
-  const content = target?.dataset?.validatorTooltip || "";
+  const content = validatorTooltipContent.get(target) || "";
   if (!content) {
     return;
   }
@@ -75,7 +149,6 @@ function showValidatorTooltip(target) {
   positionValidatorTooltip();
   window.addEventListener("resize", hideValidatorTooltip);
   window.addEventListener("scroll", hideValidatorTooltip, true);
-  document.addEventListener("pointerdown", handleValidatorTooltipOutsidePointerDown, true);
 }
 
 function buildValidatorTooltip(content) {
@@ -91,7 +164,10 @@ function buildValidatorTooltip(content) {
     if (isDanger) {
       row.classList.add("is-danger");
     }
-    const separatorIndex = displayLine.indexOf(":");
+    // The label is what comes before the first colon - but only when that reads as a
+    // label. A bare "-1:abc..." address is one value, and splitting it put "-1:" in the
+    // label column and the rest beside it.
+    const separatorIndex = validatorTooltipLabelEnd(displayLine);
     if (separatorIndex > 0) {
       const label = document.createElement("span");
       label.className = "validator-hover-tooltip-label";
@@ -110,6 +186,16 @@ function buildValidatorTooltip(content) {
   }
 
   return tooltip;
+}
+
+function validatorTooltipLabelEnd(line) {
+  const separatorIndex = line.indexOf(":");
+  if (separatorIndex <= 0) {
+    return -1;
+  }
+  // A label is words: it starts with a letter. "-1:abc..." and "0:def..." are addresses,
+  // and the workchain in front of the colon is part of the value, not a name for it.
+  return /^[A-Za-z][\w .()\/-]*$/.test(line.slice(0, separatorIndex)) ? separatorIndex : -1;
 }
 
 function positionValidatorTooltip() {
@@ -139,12 +225,5 @@ function hideValidatorTooltip() {
   validatorHoverTooltipTarget = null;
   window.removeEventListener("resize", hideValidatorTooltip);
   window.removeEventListener("scroll", hideValidatorTooltip, true);
-  document.removeEventListener("pointerdown", handleValidatorTooltipOutsidePointerDown, true);
 }
 
-function handleValidatorTooltipOutsidePointerDown(event) {
-  if (validatorHoverTooltipTarget?.contains(event.target)) {
-    return;
-  }
-  hideValidatorTooltip();
-}

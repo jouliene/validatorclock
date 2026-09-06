@@ -1,0 +1,188 @@
+{
+ "version": 1,
+ "chains": {
+  "everscale": {
+   "fetched_at": 1788600000,
+   "snapshot": {
+    "chain": {
+     "id": "everscale",
+     "name": "Everscale",
+     "color": "#6347F5",
+     "token_symbol": "EVER",
+     "rpc_label": "mainnet.evercloud.dev"
+    },
+    "fetched_at": 1788600000,
+    "global_id": 42,
+    "seqno": 61814814,
+    "params15": {
+     "validators_elected_for": 65536,
+     "elections_start_before": 32768,
+     "elections_end_before": 8192,
+     "stake_held_for": 32768
+    },
+    "current_set": {
+     "utime_since": 1788596400,
+     "utime_until": 1788603600,
+     "round_id": 27291,
+     "round_color": "green",
+     "total": 4,
+     "main": 89,
+     "total_weight": "1152921504606846931",
+     "total_stake": "234256003.537996739",
+     "total_reward": "57529.612313253",
+     "validators": [
+      {
+       "public_key": "7bba18b2a09fb10915c14188d8f675235568f8172322bfd3fc87fe5015e6396e",
+       "adnl_addr": "0b7447ccd7c7aa7d124962c310cc1e9e761099a3e40f35dd06f8554ead177202",
+       "wallet": "-1:6f8056b55916a33131feb1a23cb7e86a9a45a439104c27f1b25dcebcf152b687",
+       "source": {
+        "address": "0:9716f7e31478cf0378f2d95f50f6ba07258fd7b0728f1ee84c52068cd72d01be",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3450092.573441501",
+       "reward": "847.288800274",
+       "weight": "16980081025585738",
+       "weight_percent": 1.472787258953596,
+       "history": []
+      },
+      {
+       "public_key": "3e025a7a2fc32248589ef33ff18c68d48662b56dbf8b91ed577ad1944e54c34d",
+       "adnl_addr": "5780780d776060473b9409008612c4a471684e17e3cdf98d2b40bebbed59f180",
+       "wallet": "-1:76267ebdc1d96f233fa70b9731bcb60f25f7f16cdb617d69c2c03fb09ba98982",
+       "source": {
+        "address": "0:2dfcb2c50a27c1e429a302e2063acca0ae84c9a8b74a38fc7cf241b7d996be33",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3449241.221734745",
+       "reward": "847.079721605",
+       "weight": "16975890987013072",
+       "weight_percent": 1.4724238310397333,
+       "history": []
+      },
+      {
+       "public_key": "edb4713cb0dc69f6a6b8c3f585e297d9f6783d350293f0252eeb4bfc4d90a80c",
+       "adnl_addr": "da94bf5625a2b10fd251d65ad852644e8b17e366a39274c2e6c956ed3799a205",
+       "wallet": "-1:5574fbc82142aaaf798f21195e04e5a176a58dd574eb110b97c315a0108be306",
+       "source": {
+        "address": "0:fb77c914e116920490660ebff1d187534b461c67ca4b7f9cb090b42c5db96765",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3449034.89699968",
+       "reward": "847.029051475",
+       "weight": "16974875532892810",
+       "weight_percent": 1.4723357544346736,
+       "history": []
+      },
+      {
+       "public_key": "dbff56007a69965d48db188ae414eb2165b144a506f1cebf62e8e27ba4f07551",
+       "adnl_addr": "43687af6451f07cf6308b4db48187978fc88fd681f4a1e0b2ceba5b45a616eb3",
+       "wallet": "-1:249dfcc94d073bdbb2a99c22df173c06a90381207d924376ad39409497a0ebd5",
+       "source": {
+        "address": "0:5b0cc14a0deeb30cf572f8c256f79b7676acf0ab3c350b777f5268d42a5f18e3",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3447911.393693487",
+       "reward": "846.753136627",
+       "weight": "16969346064692877",
+       "weight_percent": 1.471856149519869,
+       "history": []
+      }
+     ],
+     "recent_absent_validators": []
+    },
+    "previous_set": null,
+    "next_set": {
+     "utime_since": 1788665868,
+     "utime_until": 1788731404,
+     "round_id": 27292,
+     "round_color": "blue",
+     "total": 4,
+     "main": 88,
+     "total_weight": "1152921504606846930",
+     "total_stake": "234291345.894015896",
+     "total_reward": "0",
+     "validators": [
+      {
+       "public_key": "b510609c3659ea40769bbdfb061c13147139556893b7d75349cf88b2a0901db0",
+       "adnl_addr": "41be16b9e20faec108cc66b6fa4a41c37aeed12d74423d0cf680d31e1ebefd5f",
+       "wallet": "-1:79ffe6e2a916136c7448c50d4c53097c149710839c80999fe832f131510a3493",
+       "source": {
+        "address": "0:997994618941f99d0be9b8881ef519833c6d16ae697f9ca48f6d59008c1e6830",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3455593.465100062",
+       "reward": "0",
+       "weight": "17004588888635125",
+       "weight_percent": 1.4749129772224856,
+       "history": []
+      },
+      {
+       "public_key": "c1ac19f13cdd11f20cfbfb7cf1677857d95f93b217ba08351d88c7ada4e76f53",
+       "adnl_addr": "2fb60f4d4df0e572b02b4b40002bf00ff6120362d412511ec45aca1723895f63",
+       "wallet": "-1:2b7dfc8d7b37427b1e12b618f2094004607d6524a9102770d33c9fd74d3943b9",
+       "source": {
+        "address": "0:be69aa1b33dde52c1384c522f79ae0086c25be8e66103c1678046e40fa948517",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3449127.223573418",
+       "reward": "0",
+       "weight": "16972769237415817",
+       "weight_percent": 1.4721530624241093,
+       "history": []
+      },
+      {
+       "public_key": "ab070227082d3ba24736dc61798dff192e7374ad15771e0dc64dca47e5aafc78",
+       "adnl_addr": "83e0dff9cf9abc627258ad399fb2d92025f86e9b7ed945ec7e31969e9099cb9f",
+       "wallet": "-1:148c8664403380d9f7962dbc47fcd3299c275d3a92624b6a8df42ed8cd2459c0",
+       "source": {
+        "address": "0:87389e26b05cee5f993fa4d68e275657dbfa15877cdd523832073f03c06459ac",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3447975.419630142",
+       "reward": "0",
+       "weight": "16967101339055224",
+       "weight_percent": 1.4716614506068308,
+       "history": []
+      },
+      {
+       "public_key": "41fc26bdae2a019f83bcddb4b205703d22b7ea9e711b617ec9293dcebc0ec0a9",
+       "adnl_addr": "2a5f0f2a8148e3714a47cbbc29cdae57c14a773336aabb8709469643d3038e57",
+       "wallet": "-1:a2ed06f958e9b32299f34b0e858b46289b5774daac7040acddf49520965c9b16",
+       "source": {
+        "address": "0:8be29330c6fd82b787b2b2955da08a362e8719f50bca4c4ce7858ff461ca248d",
+        "contract_type_hash": "533adf8a5680849177b9f213f61c48dfd8d730597078670d2367a5eef77251fe"
+       },
+       "contract_type": "StEverDePoolProxy",
+       "contract_type_hash": "435368efa80a95345edaec790c37957cd296fb0021071202fd90854641f5bb10",
+       "stake": "3447969.047348515",
+       "reward": "0",
+       "weight": "16967069981770160",
+       "weight_percent": 1.4716587307959037,
+       "history": []
+      }
+     ],
+     "recent_absent_validators": []
+    },
+    "election": {
+     "candidates": []
+    },
+    "warning": null,
+    "refreshing": false
+   }
+  }
+ }
+}

@@ -62,7 +62,14 @@ function transitionNetworkPortrait(active, standby, src) {
 
   standby.onload = () => {
     standby.onload = null;
+    standby.onerror = null;
     show();
+  };
+  // Without this the handler above is left waiting for a picture that never comes, and
+  // the next rotation writes over the portrait on screen with no cross-fade at all.
+  standby.onerror = () => {
+    standby.onload = null;
+    standby.onerror = null;
   };
   standby.src = src;
 }

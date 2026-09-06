@@ -124,6 +124,7 @@ pub(super) const APP_NETWORK_PORTRAITS_JS: &str =
 pub(super) const APP_RUNTIME_JS: &str = include_str!("../../../public/app/runtime.js");
 pub(super) const APP_ENTRY_JS: &str = include_str!("../../../public/app.js");
 pub(super) const EVERSCALE_LOGO_SVG: &str = include_str!("../../../public/brands/everscale.svg");
+pub(super) const FAVICON_SVG: &str = include_str!("../../../public/brands/favicon.svg");
 pub(super) const TYCHO_LOGO_SVG: &str = include_str!("../../../public/brands/tycho.svg");
 pub(super) const TON_LOGO_SVG: &str = include_str!("../../../public/brands/ton.svg");
 pub(super) const SMOKING_MAN_PNG: &[u8] = include_bytes!("../../../public/brands/smoking-man.png");

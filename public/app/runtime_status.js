@@ -20,7 +20,8 @@ async function loadRuntimeStatus() {
     return;
   }
   state.runtimeStatus = status;
-  renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+  noteServerClock(status);
+  renderRuntimeStatus(nowSeconds());
 }
 
 function renderRuntimeStatus(now) {
@@ -52,9 +53,14 @@ function renderRuntimeStatus(now) {
   }
 
   if (!chain) {
-    container.className = status.status === "degraded" ? "runtime-status is-warn" : "runtime-status is-starting";
-    label.textContent = status.status === "degraded" ? "Degraded" : "Starting";
-    detail.textContent = "warming cache";
+    // A server that says it is fine and does not mention this chain is not warming up -
+    // it does not have this chain. That happens when the page is left open across a
+    // config change, and "Starting / warming cache" was a wait for something that will
+    // never arrive.
+    const warmingUp = status.status !== "ok";
+    container.className = warmingUp ? "runtime-status is-warn" : "runtime-status is-starting";
+    label.textContent = warmingUp ? "Degraded" : "No data";
+    detail.textContent = warmingUp ? "warming cache" : "chain not reported";
     return;
   }
 

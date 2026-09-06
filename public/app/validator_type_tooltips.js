@@ -1,7 +1,7 @@
+// Which validators the server could not find a node for comes from the clock snapshot,
+// not from the map: a chain the server resolves but has no map file for still knows, and
+// the badge was being withheld because the page had nothing to draw the dots on.
 function isFakeMapValidator(validator, options = {}) {
-  if (!mapAvailableForChain(options.chainId)) {
-    return false;
-  }
   if (!(options.fakeValidatorPeers instanceof Set)) {
     return false;
   }

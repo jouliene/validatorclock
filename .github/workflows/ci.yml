@@ -50,3 +50,9 @@ jobs:
 
       - name: Build release binary
         run: cargo build --release --locked
+
+      # The unit tests cover the page's arithmetic; this covers the page. It serves a
+      # fixed snapshot from tests/fixtures, so it needs no network and gives the same
+      # answer every time. Chrome is preinstalled on the runner image.
+      - name: Check the page in a browser
+        run: VALIDATORCLOCK_BINARY=target/release/validatorclock scripts/browser-check.sh

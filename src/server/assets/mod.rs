@@ -9,9 +9,9 @@ mod version;
 
 pub(in crate::server) use embedded::BASEMAP_STYLE_JSON;
 use embedded::{
-    APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, MAPLIBRE_CSS, MAPLIBRE_JS,
-    PMTILES_JS, PORTRAIT_IMAGES, SMOKING_MAN_PNG, STATS_HTML, STATS_JS_PARTS, STYLES_CSS_PARTS,
-    TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    APP_JS_PARTS, EVERSCALE_LOGO_SVG, FAVICON_SVG, INDEX_HTML, JOKES_JSON, MAPLIBRE_CSS,
+    MAPLIBRE_JS, PMTILES_JS, PORTRAIT_IMAGES, SMOKING_MAN_PNG, STATS_HTML, STATS_JS_PARTS,
+    STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(super) use version::asset_version;
@@ -98,6 +98,11 @@ pub(super) async fn pmtiles_js() -> impl IntoResponse {
 
 pub(super) async fn everscale_logo() -> impl IntoResponse {
     svg_response(EVERSCALE_LOGO_SVG)
+}
+
+/// Without one, every browser asks for /favicon.ico and is told there is nothing there.
+pub(super) async fn favicon() -> impl IntoResponse {
+    svg_response(FAVICON_SVG)
 }
 
 pub(super) async fn tycho_logo() -> impl IntoResponse {

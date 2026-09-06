@@ -2,7 +2,9 @@ function validatorSourceTooltipLines(validator, source = null) {
   const role = validatorSourceRole(validator);
   const sourceType = sourceContractDisplayName(source);
   const sourceHash = source?.contract_type_hash || "";
-  const lines = [];
+  // The cell shows a shortened address or an owner's name, and the button copies the
+  // address in full - which was nowhere to be read before it was pasted somewhere.
+  const lines = source?.address ? [`Address: ${source.address}`] : [];
   if (sourceType) {
     lines.push(`Source type: ${sourceType}`);
   }
@@ -22,6 +24,9 @@ function validatorSourceMetadataTooltipLines(validator, meta, source = null) {
   const sourceType = sourceContractDisplayName(source);
   const sourceHash = source?.contract_type_hash || "";
   const lines = role ? [`Source: ${role}`] : [];
+  if (source?.address) {
+    lines.push(`Address: ${source.address}`);
+  }
   lines.push(`Owner: ${meta.name || meta.label}`);
   if (meta.detail) {
     lines.push(`Metadata: ${meta.detail}`);

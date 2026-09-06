@@ -97,12 +97,12 @@
   box-shadow: var(--shadow-control);
 }
 
-.chain-tab[aria-selected="false"] .chain-mark {
+.chain-tab:not([aria-current]) .chain-mark {
   opacity: 0.72;
   filter: grayscale(1) saturate(0.15);
 }
 
-.chain-tab[aria-selected="true"] {
+.chain-tab[aria-current] {
   border-color: rgba(231, 242, 255, 0.15);
   border-left-color: color-mix(in srgb, var(--chain-color, var(--cyan)) 82%, white 10%);
   background:

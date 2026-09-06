@@ -12,7 +12,7 @@ function roundStatsCacheIsFresh(chainId) {
     return false;
   }
 
-  const age = Math.trunc(Date.now() / 1000) - cachedAt;
+  const age = nowSeconds() - cachedAt;
   return age < roundStatsCacheMaxAgeSeconds();
 }
 
@@ -25,7 +25,7 @@ function storeRoundStatsSnapshot(chainId, stats) {
     return;
   }
   state.roundStatsByChain.set(chainId, stats);
-  state.roundStatsCachedAtByChain.set(chainId, Math.trunc(Date.now() / 1000));
+  state.roundStatsCachedAtByChain.set(chainId, nowSeconds());
   if (chainId === state.selectedChainId) {
     renderRoundAprBadges(stats);
   }

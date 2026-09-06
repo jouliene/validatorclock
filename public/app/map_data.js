@@ -11,7 +11,7 @@ async function loadValidatorMapNodes() {
   return refreshValidatorMapNodesForSnapshot(chainId);
 }
 
-async function refreshValidatorMapNodesForSnapshot(chainId = state.selectedChainId) {
+async function refreshValidatorMapNodesForSnapshot(chainId = state.selectedChainId, force = false) {
   const snapshot = validatorMapSnapshotForChain(chainId);
   if (!mapAvailableForChain(chainId)) {
     if (chainId === state.selectedChainId) {
@@ -22,10 +22,32 @@ async function refreshValidatorMapNodesForSnapshot(chainId = state.selectedChain
     return [];
   }
 
+  // Nothing to ask about yet. The nodes are only meaningful next to a validator set - the
+  // answer is filtered down to it - so without one the request was made, thrown away, and
+  // its empty result written into the cache under the key "no-snapshot".
+  if (!snapshot) {
+    return state.validatorMapNodesByChain.get(chainId) || [];
+  }
+
   const cacheKey = validatorMapSnapshotCacheKey(snapshot);
+  // The map file is republished by the resolver every few minutes, so asking again within
+  // a round is right - asking on every poll, four times more often than the file can
+  // change, is not.
+  if (!force && validatorMapNodesAreRecent(chainId, cacheKey)) {
+    return state.validatorMapNodesByChain.get(chainId) || [];
+  }
+
   return dedupedRequest(state.validatorMapFetchesByChain, `${chainId}:${cacheKey}`, () =>
     fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey),
   );
+}
+
+function validatorMapNodesAreRecent(chainId, cacheKey) {
+  if (state.validatorMapNodeCacheKeysByChain.get(chainId) !== cacheKey) {
+    return false;
+  }
+  const fetchedAt = state.validatorMapFetchedAtByChain.get(chainId);
+  return Boolean(fetchedAt) && nowSeconds() - fetchedAt < Math.max(10, state.refreshSeconds || 60);
 }
 
 async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
@@ -34,11 +56,19 @@ async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
     const response = await fetchJson(`/api/chains/${encodeURIComponent(chainId)}/map`);
     nodes = Array.isArray(response) ? response : [];
   } catch (error) {
-    // No stand-in. A map that could not be loaded shows as empty, because a
-    // page quietly drawing an old picture of the network is worse than a page
-    // that admits it has none.
+    // A map that could not be loaded is not a map with nothing on it, and writing this
+    // failure into the cache said it was: every later attempt found an entry, treated it
+    // as an answer, and stopped asking. What was already known for this round stands -
+    // it belongs to the same validator set - and a round nothing is known about still
+    // shows as empty rather than as somebody else's picture.
     console.warn(`Unable to load ${chainId} map nodes`, error);
-    nodes = [];
+    const known = state.validatorMapNodeCacheKeysByChain.get(chainId) === cacheKey
+      ? state.validatorMapNodesByChain.get(chainId)
+      : null;
+    if (chainId === state.selectedChainId) {
+      applyValidatorMapNodesForChain(chainId, known || []);
+    }
+    return known || [];
   }
 
   nodes = enrichValidatorMapNodes(
@@ -100,6 +130,7 @@ function applyValidatorMapNodesForChain(chainId, nodes) {
 function storeValidatorMapNodesForChain(chainId, nodes, cacheKey = validatorMapSnapshotCacheKey(validatorMapSnapshotForChain(chainId))) {
   state.validatorMapNodesByChain.set(chainId, Array.isArray(nodes) ? nodes : []);
   state.validatorMapNodeCacheKeysByChain.set(chainId, cacheKey);
+  state.validatorMapFetchedAtByChain.set(chainId, nowSeconds());
 }
 
 function validatorMapSnapshotForChain(chainId) {
@@ -153,13 +184,13 @@ async function prefetchValidatorMapNodesForChain(chainId, force = false) {
     }
   }
 
-  return refreshValidatorMapNodesForSnapshot(chainId);
+  return refreshValidatorMapNodesForSnapshot(chainId, force);
 }
 
 const MAP_NODE_RESOLUTION_NOTICE_SECONDS = 5 * 60;
 const MAP_NODE_RESOLUTION_NOTICE_TEXT = "The round has just changed. Validator node IP and location data can take up to 5 minutes to resolve. This view will update automatically.";
 
-function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot, now = Math.trunc(Date.now() / 1000)) {
+function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot, now = nowSeconds()) {
   const mapped = Number(mappedNodeCount);
   if (Number.isFinite(mapped) && mapped > 0) {
     return "";
@@ -285,6 +316,6 @@ function validatorMapLastSeenLabel(node, newestSeenAt) {
   // ago is decided against the clock, because that is what "ago" means to a
   // reader.
   const seenAt = Number(node?.last_seen_at) || 0;
-  const minutes = Math.max(1, Math.round((Date.now() / 1000 - seenAt) / 60));
+  const minutes = Math.max(1, Math.round((nowSeconds() - seenAt) / 60));
   return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
 }

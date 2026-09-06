@@ -2,8 +2,8 @@ use crate::etag::Fnv1a64;
 use std::sync::LazyLock;
 
 use super::embedded::{
-    APP_JS_PARTS, EVERSCALE_LOGO_SVG, INDEX_HTML, JOKES_JSON, SMOKING_MAN_PNG, STATS_HTML,
-    STATS_JS, STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    APP_JS_PARTS, EVERSCALE_LOGO_SVG, FAVICON_SVG, INDEX_HTML, JOKES_JSON, SMOKING_MAN_PNG,
+    STATS_HTML, STATS_JS, STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(in crate::server) fn asset_version() -> &'static str {
@@ -25,6 +25,7 @@ fn build_asset_version() -> String {
     hash.update(EVERSCALE_LOGO_SVG.as_bytes());
     hash.update(TYCHO_LOGO_SVG.as_bytes());
     hash.update(TON_LOGO_SVG.as_bytes());
+    hash.update(FAVICON_SVG.as_bytes());
     hash.update(SMOKING_MAN_PNG);
     hash.update(JOKES_JSON.as_bytes());
 
