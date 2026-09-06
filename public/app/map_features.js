@@ -1,11 +1,8 @@
 function validatorMapFeatures() {
   const rawNodes = currentChainMapNodes() || [];
-  const newestSeenAt = validatorMapNewestSeenAt(rawNodes);
   const locationGroups = groupNodesByLocation(rawNodes);
   return locationGroups.map((group) => {
-    const remembered = group.nodes.filter((node) =>
-      validatorMapNodeIsRemembered(node, newestSeenAt),
-    ).length;
+    const remembered = group.nodes.filter(validatorMapNodeIsRemembered).length;
 
     return {
       type: "Feature",
