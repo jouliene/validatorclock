@@ -37,14 +37,39 @@ use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{info, warn};
 
+/// A thread of its own, as the node resolver has.
+///
+/// This cycle reads and writes files the whole way through - the resolver's output, the
+/// geo cache, the manual review directory, the map it publishes - and does it between
+/// calls to a geolocation service. On a shared runtime each of those reads is a worker
+/// thread held for as long as the disk takes, on threads that are also answering
+/// requests. On its own thread it can block as much as it likes: nothing else is waiting
+/// there. It runs every few minutes, so a thread that is idle almost always is the
+/// cheapest way to keep that work away from the readers.
 pub(crate) fn spawn_background_refresh(state: Arc<AppState>) {
     if !state.config.node_locations.enabled {
         return;
     }
 
-    tokio::spawn(async move {
-        background_refresh_loop(state).await;
-    });
+    let spawned = std::thread::Builder::new()
+        .name("node-locations".to_owned())
+        .spawn(move || {
+            let runtime = match tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            {
+                Ok(runtime) => runtime,
+                Err(error) => {
+                    warn!(error = ?error, "node location refresh could not start a runtime");
+                    return;
+                }
+            };
+            runtime.block_on(background_refresh_loop(state));
+        });
+
+    if let Err(error) = spawned {
+        warn!(error = ?error, "node location refresh could not start its thread");
+    }
 }
 
 async fn background_refresh_loop(state: Arc<AppState>) {
