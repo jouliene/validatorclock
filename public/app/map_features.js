@@ -1,5 +1,5 @@
 function validatorMapFeatures() {
-  const rawNodes = validatorMapNodes || [];
+  const rawNodes = currentChainMapNodes() || [];
   const newestSeenAt = validatorMapNewestSeenAt(rawNodes);
   const locationGroups = groupNodesByLocation(rawNodes);
   return locationGroups.map((group) => {

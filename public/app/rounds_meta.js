@@ -37,14 +37,9 @@ function waitingRoundMeta(snapshot) {
   };
 }
 
-function roundMetaItem(label, value, strong = false) {
+function roundMetaItem(label, value) {
   const item = document.createElement("span");
-  item.className = `round-meta-item${strong ? " round-meta-strong" : ""}`;
-  if (value == null) {
-    item.textContent = label;
-    return item;
-  }
-
+  item.className = "round-meta-item";
   const labelNode = document.createElement("span");
   labelNode.className = "round-meta-label";
   labelNode.textContent = label;

@@ -65,6 +65,7 @@ pub(super) fn assemble_snapshot(parts: SnapshotParts<'_>) -> ClockSnapshot {
         }),
         election,
         warning: None,
+        refreshing: false,
     }
 }
 

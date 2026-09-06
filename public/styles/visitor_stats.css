@@ -280,11 +280,6 @@
   font-size: var(--caption-size);
 }
 
-.stats-col-last-seen {
-  padding-left: 16px;
-  color: var(--muted);
-  font-size: var(--caption-size);
-}
 
 .stats-flag {
   display: inline-flex;

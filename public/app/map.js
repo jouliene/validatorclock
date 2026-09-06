@@ -1,5 +1,3 @@
-const BUNDLED_TYCHO_MAP_CHAIN_ID = "tycho-testnet";
-const MAP_CHAIN_IDS = new Set([BUNDLED_TYCHO_MAP_CHAIN_ID, "ton", "everscale"]);
 // Served from here rather than from a CDN. A reader whose network cannot reach
 // the CDN had nothing to go on: a script tag whose connection is black-holed
 // fires neither `load` nor `error`, so the map sat on "Loading map" for as long
@@ -35,3 +33,22 @@ let validatorMapNodes = null;
 let validatorMapNodesChainId = null;
 let validatorMapPopupFocusWired = false;
 const validatorMapPopups = new Set();
+
+// The nodes on screen belong to a chain, and the page can be switched to another chain
+// between the fetch that produced them and the draw that uses them. Every reader has to
+// ask whether they are still the selected chain's; three did, one did not, and the one
+// that did not drew the previous chain's dots under the new chain's title. They are read
+// through here now, so the question is asked once and cannot be forgotten.
+// What was last put on the map, so the same nodes are not put there again. Every
+// setData re-clusters, and the clusters are what a click lands on: pushing identical
+// data three times a minute is why a cluster could vanish between the press and the
+// release (map_events.js works around exactly that).
+let validatorMapNodesDrawn = null;
+
+function validatorMapNodesFingerprint(chainId, nodes) {
+  return `${chainId}|${nodes.map((node) => `${node.peer}@${node.ip}:${node.last_seen_at || ""}`).join(",")}`;
+}
+
+function currentChainMapNodes() {
+  return validatorMapNodes && validatorMapNodesChainId === state.selectedChainId ? validatorMapNodes : null;
+}

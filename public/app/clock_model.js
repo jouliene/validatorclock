@@ -1,41 +1,44 @@
 function buildClockModel(snapshot, now) {
   const timings = snapshot.params15;
   const current = snapshot.current_set;
-  const next = snapshot.next_set;
   const startBefore = timings.elections_start_before;
   const endBefore = timings.elections_end_before;
   const roundDuration = Math.max(1, current.utime_until - current.utime_since);
   const electionsDuration = Math.max(0, startBefore - endBefore);
-  const electionAnchor = next ? next.utime_until : current.utime_until;
-  const rawElectionsStart = electionAnchor - startBefore;
-  const rawElectionsEnd = electionAnchor - endBefore;
-  const electionShift = now > rawElectionsEnd ? roundDuration : 0;
-  const electionsStart = rawElectionsStart + electionShift;
-  const electionsEnd = rawElectionsEnd + electionShift;
+  // The election window belongs to the round it falls in: the next set is elected before
+  // this round ends. This is the arithmetic the chain itself is read with - minik2's
+  // ElectionTimeline::compute, which the server uses - so the page cannot disagree with it
+  // about which phase a round is in. The window used to be anchored on the next round and
+  // pushed forward as soon as it closed, which left "After elections" unreachable: the
+  // hours between the vote and the round change were labelled as being before the vote
+  // that had just happened.
+  const roundElectionsStart = current.utime_until - startBefore;
+  const roundElectionsEnd = current.utime_until - endBefore;
+  const inElections = now >= roundElectionsStart && now < roundElectionsEnd;
+  const beforeElections = now < roundElectionsStart;
+  // Once they are over, the window worth putting in front of the reader is the next
+  // round's - which is where the dial has a half for it.
+  const electionsAhead = beforeElections || inElections ? 0 : roundDuration;
+  const electionsStart = roundElectionsStart + electionsAhead;
+  const electionsEnd = roundElectionsEnd + electionsAhead;
   const activeRoundColor = current.round_color;
   const shift = activeRoundColor === "green" ? 0 : Math.PI;
   const timeToAngle = (timestamp) =>
     -Math.PI / 2 + ((timestamp - current.utime_since) / roundDuration) * Math.PI + shift;
   const angle = timeToAngle(now);
-  const inElections = now >= electionsStart && now < electionsEnd;
-  const beforeElections = now < electionsStart;
 
   let status = "After elections";
   let nextChangeAt = current.utime_until;
   if (beforeElections) {
     status = "Before elections";
-    nextChangeAt = electionsStart;
+    nextChangeAt = roundElectionsStart;
   } else if (inElections) {
     status = "Elections open";
-    nextChangeAt = electionsEnd;
+    nextChangeAt = roundElectionsEnd;
   }
 
   return {
     angle,
-    baseSegments: [
-      { startAngle: Math.PI / 2, sweepAngle: Math.PI, color: "url(#blueRound)", highlight: "rgba(134, 233, 255, 0.42)" },
-      { startAngle: Math.PI * 1.5, sweepAngle: Math.PI, color: "url(#greenRound)", highlight: "rgba(135, 244, 169, 0.4)" },
-    ],
     electionArc: {
       startAngle: timeToAngle(electionsStart),
       sweepAngle: (electionsDuration / roundDuration) * Math.PI,

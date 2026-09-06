@@ -15,3 +15,7 @@ done < <(
   printf '%s\n' "${ROOT_DIR}/public/app.js"
   printf '%s\n' "${ROOT_DIR}/public/stats.js"
 )
+
+# The pages are global-scope scripts, so their pure functions are tested by loading the
+# files into a node context rather than importing them. See tests/frontend/harness.mjs.
+node --test "${ROOT_DIR}"/tests/frontend/*.test.mjs

@@ -23,19 +23,9 @@ async function refreshValidatorMapNodesForSnapshot(chainId = state.selectedChain
   }
 
   const cacheKey = validatorMapSnapshotCacheKey(snapshot);
-  const fetchKey = `${chainId}:${cacheKey}`;
-  const pending = state.validatorMapFetchesByChain.get(fetchKey);
-  if (pending) {
-    return pending;
-  }
-
-  const request = fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey).finally(() => {
-    if (state.validatorMapFetchesByChain.get(fetchKey) === request) {
-      state.validatorMapFetchesByChain.delete(fetchKey);
-    }
-  });
-  state.validatorMapFetchesByChain.set(fetchKey, request);
-  return request;
+  return dedupedRequest(state.validatorMapFetchesByChain, `${chainId}:${cacheKey}`, () =>
+    fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey),
+  );
 }
 
 async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
@@ -88,9 +78,19 @@ function applyValidatorMapNodesForChain(chainId, nodes) {
     return;
   }
 
+  const list = Array.isArray(nodes) ? nodes : [];
+  const fingerprint = validatorMapNodesFingerprint(chainId, list);
+  if (fingerprint === validatorMapNodesDrawn) {
+    return;
+  }
+  validatorMapNodesDrawn = fingerprint;
+
   validatorMapNodesChainId = chainId;
-  validatorMapNodes = Array.isArray(nodes) ? nodes : [];
+  validatorMapNodes = list;
   state.validatorMapNodesByPeer = validatorMapNodeMapByPeer(validatorMapNodes);
+  // The tables show where each validator is and how many are mapped, so they are stale
+  // the moment this changes - and nothing else tells them.
+  state.validatorMapNodesVersion += 1;
   updateValidatorMapTitle();
   updateValidatorMapSummary();
   refreshValidatorMapSource();
@@ -124,27 +124,12 @@ function validatorMapSnapshotCacheKey(snapshot) {
   ].join("|");
 }
 
-async function prefetchValidatorMapNodes() {
-  const chainIds = state.chains
-    .map((chain) => chain.id)
-    .filter((chainId) => chainId && mapAvailableForChain(chainId))
-    .sort((left, right) => {
-      if (left === state.selectedChainId) {
-        return -1;
-      }
-      if (right === state.selectedChainId) {
-        return 1;
-      }
-      return 0;
-    });
-
-  chainIds.forEach((chainId, index) => {
-    window.setTimeout(() => {
-      prefetchValidatorMapNodesForChain(chainId).catch((error) => {
-        console.warn(`Unable to prefetch ${chainId} map nodes`, error);
-      });
-    }, index * 350);
-  });
+function prefetchValidatorMapNodes() {
+  prefetchChainsInTurn(
+    state.chains.map((chain) => chain.id).filter((chainId) => chainId && mapAvailableForChain(chainId)),
+    prefetchValidatorMapNodesForChain,
+    "map nodes",
+  );
 }
 
 async function prefetchValidatorMapNodesForChain(chainId, force = false) {
@@ -189,7 +174,10 @@ function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot,
 }
 
 function mapAvailableForChain(chainId) {
-  return MAP_CHAIN_IDS.has(chainId);
+  // The server knows which chains it has a map file for and says so in the chain list.
+  // This used to be a set of chain ids written into the page, which meant a chain given a
+  // map on the server stayed "not available" here until someone remembered to edit it.
+  return state.chains.some((chain) => chain.id === chainId && chain.has_map);
 }
 
 function currentMapChain() {

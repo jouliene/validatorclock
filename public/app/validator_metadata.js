@@ -63,6 +63,8 @@ const VALIDATOR_TYPE_GLOSSARY = [
   { label: "EVER", name: "Ever Wallet", description: "Default Broxus wallet for Tycho TVM networks. Can be deployed in the masterchain and used directly for validation." },
   { label: "DEPOOL", name: "DePool", description: "Staking pool contract where many users can stake into one shared pool. The pool participates in validation through a proxy contract deployed in the masterchain." },
   { label: "StDEPOOL", name: "Staked EVER DePool", description: "Specialized DePool that uses liquid-staking funds for validation. It validates through a masterchain proxy contract, the same way as a regular DePool." },
+  { label: "PROXY", name: "DePool Proxy", description: "Masterchain proxy through which a staking pool validates. It holds no stake of its own: the pool behind it does. Shown when the pool has not been identified - a proxy whose pool is known is labelled by that pool instead." },
+  { label: "StPROXY", name: "StEverDePool Proxy", description: "Masterchain proxy used by a Staked EVER DePool. Like any proxy it validates on behalf of the pool behind it, and is shown this way while that pool is unidentified." },
   { label: "StEVER", name: "Staked EVER Strategy", description: "Broxus StEver liquid-staking strategy contract used as the masterchain validator wallet. A controller wallet operates validation rounds and sends stake commands to the strategy." },
   { label: "SNOMv1.1", name: "Single Nominator v1.1", description: "TON validator contract with a cold owner and hot validator role." },
   { label: "SNOMv1.0", name: "Single Nominator v1.0", description: "TON validator contract with a cold owner and hot validator role." },

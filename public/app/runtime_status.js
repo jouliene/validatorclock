@@ -4,18 +4,23 @@ function setError(message) {
   banner.textContent = message || "";
 }
 
+// Asked for from five places - boot, the poll, coming back to a hidden tab, a chain
+// switch - so two can easily be in flight at once, and without this the slower one wins
+// whichever it is: a stale "degraded" could land on top of a healthy answer.
 async function loadRuntimeStatus() {
+  const requestSeq = state.runtimeStatusRequestSeq + 1;
+  state.runtimeStatusRequestSeq = requestSeq;
+  let status;
   try {
-    state.runtimeStatus = await fetchJson("/api/status");
-    renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+    status = await fetchJson("/api/status");
   } catch (error) {
-    state.runtimeStatus = {
-      status: "degraded",
-      chains: [],
-      error: error.message,
-    };
-    renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+    status = { status: "degraded", chains: [], error: error.message };
   }
+  if (requestSeq !== state.runtimeStatusRequestSeq) {
+    return;
+  }
+  state.runtimeStatus = status;
+  renderRuntimeStatus(Math.trunc(Date.now() / 1000));
 }
 
 function renderRuntimeStatus(now) {

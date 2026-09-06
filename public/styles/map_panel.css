@@ -412,19 +412,10 @@
 }
 
 .node-stats-col-count,
-.node-stats-col-distance-primary {
-  width: 17%;
-}
 
 .node-stats-col-stake,
-.node-stats-col-distance-secondary {
-  width: 23%;
-}
 
 .node-stats-col-percent,
-.node-stats-col-distance-tertiary {
-  width: 14%;
-}
 
 .node-stats-col-rank {
   width: 7%;

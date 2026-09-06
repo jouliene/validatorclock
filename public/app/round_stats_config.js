@@ -55,7 +55,7 @@ const ROUND_STATS_CHARTS = [
       key: "profitability",
       label: "Profitability",
       value: (round) => roundStatsNumber(round.profitability_percent),
-      tooltip: (round) => formatRoundStatsExactPercent(round.profitability_percent),
+      tooltip: (round) => formatRoundStatsPercent(round.profitability_percent),
     }],
     latest: (round) => formatRoundStatsPercent(round?.profitability_percent),
   },

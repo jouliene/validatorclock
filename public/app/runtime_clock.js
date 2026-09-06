@@ -7,15 +7,14 @@ async function loadClock(force = false) {
   const requestSeq = state.clockRequestSeq + 1;
   state.clockRequestSeq = requestSeq;
   state.clockLoading = true;
-  state.lastClockRefreshAttempt = Math.trunc(Date.now() / 1000);
   try {
     const snapshot = await fetchClockSnapshot(chainId, force);
-    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
       return;
     }
     await applySelectedClockSnapshot(chainId, snapshot, requestSeq);
   } finally {
-    if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
       return;
     }
     state.clockLoading = false;
@@ -28,28 +27,18 @@ function clockSnapshotUrl(chainId, force = false) {
 }
 
 function fetchClockSnapshot(chainId, force = false) {
-  if (!force) {
-    const pending = state.clockFetchesByChain.get(chainId);
-    if (pending) {
-      return pending;
-    }
+  // A forced refresh is a request for new data, so it is not answered from one already in
+  // flight and does not become the answer to anyone else's.
+  if (force) {
+    return fetchJson(clockSnapshotUrl(chainId, true));
   }
-
-  const request = fetchJson(clockSnapshotUrl(chainId, force)).finally(() => {
-    if (state.clockFetchesByChain.get(chainId) === request) {
-      state.clockFetchesByChain.delete(chainId);
-    }
-  });
-
-  if (!force) {
-    state.clockFetchesByChain.set(chainId, request);
-  }
-
-  return request;
+  return dedupedRequest(state.clockFetchesByChain, chainId, () =>
+    fetchJson(clockSnapshotUrl(chainId)),
+  );
 }
 
 async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
-  if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+  if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
     return;
   }
 
@@ -67,10 +56,13 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
   } else {
     state.validatorMapNodesByPeer = null;
   }
-  if (requestSeq !== state.clockRequestSeq || chainId !== state.selectedChainId) {
+  if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
     return;
   }
-  state.roundRenderKey = null;
+  // The key below tracks everything the panels are built from, the map included, so a
+  // poll that brought the same snapshot back - the server refreshes once a minute and
+  // answers the other polls with a 304 - no longer tears the tables down and builds them
+  // again for a page that would come out identical.
   setError(snapshot.warning || "");
   renderChainTabs();
   renderNow();
@@ -105,26 +97,16 @@ async function prefetchChainSnapshot(chainId) {
   }
 }
 
-function refreshStaleSnapshot(now) {
-  if (!state.snapshot || state.clockLoading) {
-    return;
-  }
-
-  const refreshSeconds = Math.max(10, state.refreshSeconds);
-  const age = now - state.snapshot.fetched_at;
-  const attemptAge = now - state.lastClockRefreshAttempt;
-  if (age >= refreshSeconds && attemptAge >= 5) {
-    loadClock(false).catch((error) => setError(error.message));
-  }
-}
-
+// The server answers with the snapshot it has while a refresh of its own is running, and
+// says so. Asking once more shortly after gets the new one sooner than the next poll
+// would - once per snapshot, not once every five seconds: the key below is what stops
+// this from becoming the loop it replaced.
 function updateStaleSnapshotRetry(chainId, snapshot) {
   window.clearTimeout(state.staleRetryTimer);
   state.staleRetryTimer = null;
-  const warning = snapshot.warning || "";
   const retryKey = `${chainId}:${snapshot.fetched_at}`;
-  if (!warning.includes("refresh is running in background") || state.staleRetryKey === retryKey) {
-    if (!warning) {
+  if (!snapshot.refreshing || state.staleRetryKey === retryKey) {
+    if (!snapshot.warning) {
       state.staleRetryKey = null;
     }
     return;

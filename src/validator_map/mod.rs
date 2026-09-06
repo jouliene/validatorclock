@@ -18,6 +18,21 @@ pub(crate) struct MapNodesPayload {
     pub(crate) updated_at: Option<u64>,
 }
 
+/// Whether this chain has a map at all - a file to read, not a list of chain ids. The
+/// page asks so it can offer the button, and asking this way means a chain given a map on
+/// the server does not also need an edit to the page. The file is stat'ed rather than
+/// read: the answer is whether there is one, not what is in it.
+pub(crate) fn chain_has_map(config: &AppConfig, chain_id: &str) -> bool {
+    let configured = config
+        .map_nodes_paths
+        .get(chain_id)
+        .is_some_and(|path| path.exists());
+    configured
+        || config
+            .node_location_output_path(chain_id)
+            .is_some_and(|path| path.exists())
+}
+
 /// The map as a chain's readers see it: the nodes on file, kept to the
 /// validators the chain has now.
 pub(crate) fn active_map_nodes(

@@ -261,7 +261,9 @@ pub(crate) async fn get_chain_snapshot_cached_first(
 
         if let Some(mut snapshot) = state.cached_snapshot(chain_id).await {
             let warning = stale_cache_refresh_warning(snapshot.fetched_at);
-            Arc::make_mut(&mut snapshot).warning = Some(warning);
+            let snapshot_mut = Arc::make_mut(&mut snapshot);
+            snapshot_mut.warning = Some(warning);
+            snapshot_mut.refreshing = true;
             spawn_stale_snapshot_refresh(Arc::clone(&state), chain_id.to_owned(), now).await;
             return Ok(snapshot);
         }

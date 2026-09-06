@@ -1,5 +1,5 @@
 function isFakeMapValidator(validator, options = {}) {
-  if (!validatorMapAvailableForChain(options.chainId)) {
+  if (!mapAvailableForChain(options.chainId)) {
     return false;
   }
   if (!(options.fakeValidatorPeers instanceof Set)) {

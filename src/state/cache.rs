@@ -127,6 +127,26 @@ fn save_chain_cache(base_path: &Path, chain_id: &str, entry: &CacheEntry) -> Res
     write_file_atomic(&path, &data, 0o600)
 }
 
+/// The DHT addresses a chain names its validators by are how the node resolver finds
+/// them, and nothing on the page reads them - 779 of them in a TON snapshot, sixty-four
+/// hex characters each, a fifth of what that snapshot weighs once compressed. They stay
+/// in the cache the resolver works from, and are left out of what is served.
+fn take_out_resolver_addresses(snapshot: &mut ClockSnapshot) {
+    for set in [
+        Some(&mut snapshot.current_set),
+        snapshot.previous_set.as_mut(),
+        snapshot.next_set.as_mut(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        for validator in &mut set.validators {
+            validator.adnl_addr = None;
+        }
+    }
+    snapshot.election.forget_candidate_adnl_addresses();
+}
+
 /// A chain's answer to its readers, worked out once.
 #[derive(Clone)]
 pub(super) struct ReadySnapshot {
@@ -206,6 +226,17 @@ impl AppState {
         }
     }
 
+    /// The snapshot as the chain gave it, before the map, the history and the validator
+    /// types were worked into it and before the resolver's own addresses were taken out
+    /// of it. Only the resolver needs this; everything else wants the page.
+    pub(crate) async fn chain_snapshot_as_fetched(
+        &self,
+        chain_id: &str,
+    ) -> Option<Arc<ClockSnapshot>> {
+        self.with_cached_snapshot(chain_id, |snapshot| Arc::new(snapshot.clone()))
+            .await
+    }
+
     /// Read the snapshot a chain is cached with, without copying it.
     pub(crate) async fn with_cached_snapshot<R>(
         &self,
@@ -274,6 +305,7 @@ impl AppState {
         // history and the map, and holding the readers' lock while waiting on
         // those is how two locks become a deadlock.
         let observed_at = now_sec().unwrap_or_else(|| snapshot.fetched_at());
+        take_out_resolver_addresses(&mut snapshot);
         self.annotate_map_fake_validators(&mut snapshot, observed_at)
             .await;
         self.annotate_snapshot(chain_id, &mut snapshot).await;

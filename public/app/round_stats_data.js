@@ -1,5 +1,9 @@
+// How long a prefetched set of round statistics is worth reusing. It used to be the poll
+// interval exactly - refreshSeconds / 2 - so at every tick the age was equal to it and
+// never below it, and both the timer and the clock's own handler refetched every time.
+// The server produces new figures once per refreshSeconds, so that is the window.
 function roundStatsCacheMaxAgeSeconds() {
-  return Math.max(10, Math.floor(Math.max(10, state.refreshSeconds) / 2));
+  return Math.max(10, state.refreshSeconds || 60);
 }
 
 function roundStatsCacheIsFresh(chainId) {
@@ -13,6 +17,13 @@ function roundStatsCacheIsFresh(chainId) {
 }
 
 function storeRoundStatsSnapshot(chainId, stats) {
+  // Two requests for one chain can be in flight - the panel asks preferring the cache and
+  // then asks again for live figures - and they answer in whichever order they answer.
+  // The older of the two is not an update.
+  const known = state.roundStatsByChain.get(chainId);
+  if (known?.fetched_at && stats?.fetched_at && known.fetched_at > stats.fetched_at) {
+    return;
+  }
   state.roundStatsByChain.set(chainId, stats);
   state.roundStatsCachedAtByChain.set(chainId, Math.trunc(Date.now() / 1000));
   if (chainId === state.selectedChainId) {
@@ -21,26 +32,11 @@ function storeRoundStatsSnapshot(chainId, stats) {
 }
 
 function prefetchRoundStatsSnapshots() {
-  const chainIds = state.chains
-    .map((chain) => chain.id)
-    .filter(Boolean)
-    .sort((left, right) => {
-      if (left === state.selectedChainId) {
-        return -1;
-      }
-      if (right === state.selectedChainId) {
-        return 1;
-      }
-      return 0;
-    });
-
-  chainIds.forEach((chainId, index) => {
-    window.setTimeout(() => {
-      prefetchRoundStatsForChain(chainId).catch((error) => {
-        console.warn(`Unable to prefetch ${chainId} round statistics`, error);
-      });
-    }, index * 350);
-  });
+  prefetchChainsInTurn(
+    state.chains.map((chain) => chain.id).filter(Boolean),
+    prefetchRoundStatsForChain,
+    "round statistics",
+  );
 }
 
 async function prefetchRoundStatsForChain(chainId, force = false) {
@@ -76,18 +72,9 @@ function roundStatsSnapshotUrl(chainId, preferCache = false) {
 
 function fetchRoundStatsSnapshot(chainId, preferCache = false) {
   const fetchKey = `${chainId}:${preferCache ? "cache" : "live"}`;
-  const pending = state.roundStatsFetchesByChain.get(fetchKey);
-  if (pending) {
-    return pending;
-  }
-
-  const request = fetchJson(roundStatsSnapshotUrl(chainId, preferCache)).finally(() => {
-    if (state.roundStatsFetchesByChain.get(fetchKey) === request) {
-      state.roundStatsFetchesByChain.delete(fetchKey);
-    }
-  });
-  state.roundStatsFetchesByChain.set(fetchKey, request);
-  return request;
+  return dedupedRequest(state.roundStatsFetchesByChain, fetchKey, () =>
+    fetchJson(roundStatsSnapshotUrl(chainId, preferCache)),
+  );
 }
 
 async function loadSelectedRoundStats(force = false) {
@@ -108,7 +95,7 @@ async function loadSelectedRoundStats(force = false) {
 
   try {
     const stats = await fetchRoundStatsSnapshot(chainId, !force);
-    if (requestSeq !== state.roundStatsRequestSeq || chainId !== state.selectedChainId) {
+    if (!requestIsCurrent(requestSeq, state.roundStatsRequestSeq, chainId)) {
       return;
     }
     storeRoundStatsSnapshot(chainId, stats);
@@ -125,17 +112,21 @@ async function loadSelectedRoundStats(force = false) {
     }
     console.warn(`Unable to refresh ${chainId} round statistics`, error);
   } finally {
-    clearRoundStatsLoadingTimer();
+    // Only the request still being waited for may cancel the timer: a superseded one
+    // clearing it here would cancel the "loading" paint its successor had just scheduled.
+    if (requestSeq === state.roundStatsRequestSeq) {
+      clearRoundStatsLoadingTimer();
+    }
   }
 }
 
 function scheduleRoundStatsLoading(requestSeq, chainId) {
   clearRoundStatsLoadingTimer();
   state.roundStatsLoadingTimer = window.setTimeout(() => {
-    if (requestSeq === state.roundStatsRequestSeq && chainId === state.selectedChainId) {
+    if (requestIsCurrent(requestSeq, state.roundStatsRequestSeq, chainId)) {
       renderRoundStatsLoading();
     }
-  }, 180);
+  }, PANEL_LOADING_DELAY_MS);
 }
 
 function clearRoundStatsLoadingTimer() {

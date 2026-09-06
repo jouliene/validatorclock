@@ -1,6 +1,7 @@
 use super::*;
 use crate::chain::RoundColor;
 use axum::http::{StatusCode, header};
+use std::fs;
 
 /// A request hands back the answer that was worked out when the data behind it
 /// arrived, and writes nothing down of its own.
@@ -71,6 +72,30 @@ async fn app_router_lists_configured_chains() {
     assert_eq!(body["chains"][0]["color"], "#38bdf8");
     assert_eq!(body["chains"][0]["token_symbol"], "TEST");
     assert_eq!(body["chains"][0]["rpc_label"], "example.com");
+    assert_eq!(
+        body["chains"][0]["has_map"], false,
+        "this chain has no map file, and the page asks here rather than carrying its own list"
+    );
+}
+
+/// A chain given a map on the server is offered one by the page, without the page being
+/// edited to know about it.
+#[tokio::test]
+async fn a_chain_with_a_map_file_is_listed_as_having_one() {
+    let map_path = temp_map_path("chain_listing");
+    fs::write(&map_path, "[]").unwrap();
+    let mut config = test_config(Vec::new());
+    config
+        .map_nodes_paths
+        .insert("test".to_owned(), map_path.clone());
+
+    let response = app_response(state_from_config(config), "/api/chains").await;
+
+    let body = response_json(response).await;
+    assert_eq!(body["chains"][0]["id"], "test");
+    assert_eq!(body["chains"][0]["has_map"], true);
+
+    let _ = fs::remove_file(map_path);
 }
 
 #[tokio::test]

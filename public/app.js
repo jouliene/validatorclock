@@ -30,7 +30,7 @@ async function startDashboard() {
     setError(error.message);
     // Only the chain list leaves the page with nothing to work from. A clock
     // that failed is picked up by the timers below on their next tick.
-    if (!state.chains.length) {
+    if (!Array.isArray(state.chains) || state.chains.length === 0) {
       scheduleDashboardRetry();
     }
   } finally {

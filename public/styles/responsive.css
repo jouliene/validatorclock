@@ -1028,17 +1028,8 @@
     width: auto;
   }
 
-  .node-stats-ranking-table .node-stats-col-distance-primary {
-    width: 116px;
-  }
 
-  .node-stats-ranking-table .node-stats-col-distance-secondary {
-    width: 112px;
-  }
 
-  .node-stats-ranking-table .node-stats-col-distance-tertiary {
-    width: 90px;
-  }
 }
 
 @media (max-width: 340px) {

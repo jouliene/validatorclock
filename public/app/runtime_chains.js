@@ -1,5 +1,11 @@
 async function loadChains() {
   const data = await fetchJson("/api/chains");
+  // An answer with no list is one this page cannot work from, and saying so here leaves
+  // the boot retry something to catch - the next line used to throw a TypeError instead,
+  // which the retry in app.js could not tell from a page that had already started.
+  if (!Array.isArray(data.chains) || data.chains.length === 0) {
+    throw new Error("The server did not list any chains");
+  }
   state.chains = data.chains;
   state.refreshSeconds = data.refresh_seconds || 60;
   state.selectedChainId = state.selectedChainId || state.chains[0]?.id;
@@ -70,6 +76,11 @@ function chainNetworkKind(chain) {
 
 async function selectChain(chainId) {
   const previousChainId = state.selectedChainId;
+  // Clicking the tab that is already active used to reset the render key, rebuild the
+  // tabs twice and fetch the whole clock again for a page that would come out identical.
+  if (chainId === previousChainId && state.snapshot) {
+    return;
+  }
   state.selectedChainId = chainId;
   state.roundRenderKey = null;
   if (previousChainId !== chainId) {
@@ -78,8 +89,12 @@ async function selectChain(chainId) {
   resetValidatorMapForChainChange(previousChainId, chainId);
   renderChainTabs();
   const cachedSnapshot = state.snapshotsByChain.get(chainId);
+  // Whatever this chain's map was last known to be, before anything is drawn from it -
+  // the summary and the tables read it, and the snapshot above is what it is counted
+  // against.
   if (cachedSnapshot) {
     state.snapshot = cachedSnapshot;
+    applyCachedValidatorMapNodesForChain(chainId);
     setError(cachedSnapshot.warning || "");
     renderChainTabs();
     renderNow();
