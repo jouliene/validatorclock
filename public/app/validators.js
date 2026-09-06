@@ -106,7 +106,7 @@ function handleValidatorSelectionPointerDown(event) {
   }
 
   const selectionKey = row.dataset.validatorSelectionKey;
-  if (isValidatorSelectionInteractiveTarget(target)) {
+  if (isValidatorSelectionInteractiveTarget(target, event)) {
     if (selectionKey !== state.selectedValidatorKey) {
       startValidatorSelectionClear(event, target);
     }
@@ -168,7 +168,7 @@ function handleValidatorSelectionPointerUp(event) {
     return;
   }
 
-  if (target && isValidatorSelectionInteractiveTarget(target)) {
+  if (target && isValidatorSelectionInteractiveTarget(target, event)) {
     return;
   }
 
@@ -179,20 +179,24 @@ function validatorSelectionCanTrack(event) {
   return event.isPrimary !== false && (event.pointerType !== "mouse" || event.button === 0);
 }
 
+// A click on a row selects that validator, which is how it is found on the map. With a
+// mouse this used to work only on a row that was already selected - so the table could
+// clear a selection and never make one, and the only way to pick a validator was to find
+// its dot on the map first.
 function validatorSelectionCanStart(event, selectionKey) {
-  if (event.pointerType === "touch" || event.pointerType === "pen") {
-    return true;
-  }
-  if (window.matchMedia?.("(max-width: 760px)").matches) {
-    return true;
-  }
-  return event.pointerType === "mouse" && state.selectedValidatorKey === selectionKey;
+  return event.isPrimary !== false;
 }
 
-function isValidatorSelectionInteractiveTarget(target) {
-  return Boolean(target?.closest(
-    "button, a, input, select, textarea, summary, [role='button'], .has-validator-tooltip"
-  ));
+// Controls take the press: a copy button copies rather than selects. A tooltip is not a
+// control for a mouse - it opens on hover and the click underneath it belongs to the row.
+// On a touch screen it is: tapping is the only way to read a tooltip there, and almost
+// every cell in a row carries one.
+function isValidatorSelectionInteractiveTarget(target, event) {
+  if (target?.closest("button, a, input, select, textarea, summary, [role='button']")) {
+    return true;
+  }
+  const touchLike = event?.pointerType === "touch" || event?.pointerType === "pen";
+  return touchLike && Boolean(target?.closest(".has-validator-tooltip"));
 }
 
 function validatorSelectionDistance(start, event) {

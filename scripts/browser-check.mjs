@@ -64,6 +64,20 @@ async function main() {
 
   await check(
     session,
+    "clicking a row selects that validator",
+    `(() => {
+       const row = document.querySelector(".validator-row[data-validator-selection-key]");
+       if (!row) return "no selectable row";
+       const cell = row.querySelector(".validator-history") || row;
+       const press = (type) => cell.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerType: "mouse", button: 0, isPrimary: true, clientX: 10, clientY: 10 }));
+       press("pointerdown");
+       press("pointerup");
+       return row.classList.contains("is-validator-selected") ? true : "the row did not take the selection";
+     })()`,
+  );
+
+  await check(
+    session,
     "switching chain redraws without leaving the previous chain's rows",
     `(() => {
        const tabs = [...document.querySelectorAll("#chainTabs button")];
