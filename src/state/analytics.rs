@@ -71,6 +71,28 @@ struct AnalyticsDay {
     unique_visitors: u64,
 }
 
+/// The windows this file is read for are today, seven days and thirty; the totals that
+/// outlive them are kept separately in `all_time`. A day older than the longest window is
+/// therefore read by nothing, and every day added one more line to a file that was never
+/// shortened - slowly, but with no reason to stop.
+const DAY_RETENTION_DAYS: i64 = 45;
+
+fn prune_days(disk: &mut AnalyticsDisk, today_index: i64) {
+    let floor = today_index.saturating_sub(DAY_RETENTION_DAYS);
+    // A clock that has jumped forward would put the floor above everything on file, and
+    // the pruned store is what gets written; the visitor store guards the same way.
+    let would_empty_the_store = !disk.days.is_empty()
+        && disk
+            .days
+            .keys()
+            .all(|day| parse_day_index(day).is_none_or(|index| index < floor));
+    if would_empty_the_store {
+        return;
+    }
+    disk.days
+        .retain(|day, _| parse_day_index(day).is_none_or(|index| index >= floor));
+}
+
 pub(super) fn load_initial_runtime(path: &Path) -> AnalyticsRuntime {
     AnalyticsRuntime {
         store: JsonStore::load(path.to_path_buf(), "analytics"),
@@ -120,6 +142,8 @@ impl AppState {
                     day.pageviews = day.pageviews.saturating_add(1);
                 }
             }
+
+            prune_days(runtime.store.get_mut(), day_index(now));
 
             {
                 let all_time = &mut runtime.store.get_mut().all_time;
@@ -249,6 +273,51 @@ mod tests {
     }
 
     #[test]
+    /// The file is written on every event, so a map of days that is never shortened is a
+    /// file that grows for as long as the site runs.
+    #[test]
+    fn days_nothing_reads_any_more_are_dropped() {
+        let mut disk = AnalyticsDisk::default();
+        let today = day_index(now_sec());
+        for offset in [0, 1, 30, 44, 45, 46, 400] {
+            disk.days.insert(
+                day_string(today - offset),
+                AnalyticsDay {
+                    pageviews: 1,
+                    visits: 1,
+                    unique_visitors: 1,
+                },
+            );
+        }
+
+        prune_days(&mut disk, today);
+
+        let kept = disk.days.len();
+        assert_eq!(
+            kept,
+            5,
+            "today and the forty-five days behind it: {:?}",
+            disk.days.keys()
+        );
+        assert!(disk.days.contains_key(&day_string(today)));
+        assert!(disk.days.contains_key(&day_string(today - 45)));
+        assert!(!disk.days.contains_key(&day_string(today - 46)));
+        assert!(!disk.days.contains_key(&day_string(today - 400)));
+    }
+
+    /// A clock that jumps forward would put every day on file below the floor, and the
+    /// emptied store is what gets written.
+    #[test]
+    fn a_clock_that_has_jumped_does_not_empty_the_file() {
+        let mut disk = AnalyticsDisk::default();
+        let today = day_index(now_sec());
+        disk.days.insert(day_string(today), AnalyticsDay::default());
+
+        prune_days(&mut disk, today + 4000);
+
+        assert_eq!(disk.days.len(), 1);
+    }
+
     fn windows_add_up_the_days_they_cover() {
         let mut disk = AnalyticsDisk::default();
         let today = day_index(now_sec());
