@@ -194,7 +194,10 @@ async fn the_served_clock_carries_no_dht_addresses_but_the_cache_still_does() {
     let response = app_response(Arc::clone(&state), "/api/chains/test/clock").await;
     let body = response_json(response).await;
 
-    assert_eq!(body["current_set"]["validators"][0]["public_key"], "validator-key");
+    assert_eq!(
+        body["current_set"]["validators"][0]["public_key"],
+        "validator-key"
+    );
     assert_eq!(
         body["current_set"]["validators"][0]["adnl_addr"],
         Value::Null,
