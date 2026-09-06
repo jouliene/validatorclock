@@ -47,7 +47,7 @@ function validatorMapNodesAreRecent(chainId, cacheKey) {
     return false;
   }
   const fetchedAt = state.validatorMapFetchedAtByChain.get(chainId);
-  return Boolean(fetchedAt) && Math.trunc(Date.now() / 1000) - fetchedAt < Math.max(10, state.refreshSeconds || 60);
+  return Boolean(fetchedAt) && nowSeconds() - fetchedAt < Math.max(10, state.refreshSeconds || 60);
 }
 
 async function fetchValidatorMapNodesForChain(chainId, snapshot, cacheKey) {
@@ -130,7 +130,7 @@ function applyValidatorMapNodesForChain(chainId, nodes) {
 function storeValidatorMapNodesForChain(chainId, nodes, cacheKey = validatorMapSnapshotCacheKey(validatorMapSnapshotForChain(chainId))) {
   state.validatorMapNodesByChain.set(chainId, Array.isArray(nodes) ? nodes : []);
   state.validatorMapNodeCacheKeysByChain.set(chainId, cacheKey);
-  state.validatorMapFetchedAtByChain.set(chainId, Math.trunc(Date.now() / 1000));
+  state.validatorMapFetchedAtByChain.set(chainId, nowSeconds());
 }
 
 function validatorMapSnapshotForChain(chainId) {
@@ -190,7 +190,7 @@ async function prefetchValidatorMapNodesForChain(chainId, force = false) {
 const MAP_NODE_RESOLUTION_NOTICE_SECONDS = 5 * 60;
 const MAP_NODE_RESOLUTION_NOTICE_TEXT = "The round has just changed. Validator node IP and location data can take up to 5 minutes to resolve. This view will update automatically.";
 
-function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot, now = Math.trunc(Date.now() / 1000)) {
+function mapNodeResolutionNotice(mappedNodeCount = 0, snapshot = state.snapshot, now = nowSeconds()) {
   const mapped = Number(mappedNodeCount);
   if (Number.isFinite(mapped) && mapped > 0) {
     return "";
@@ -316,6 +316,6 @@ function validatorMapLastSeenLabel(node, newestSeenAt) {
   // ago is decided against the clock, because that is what "ago" means to a
   // reader.
   const seenAt = Number(node?.last_seen_at) || 0;
-  const minutes = Math.max(1, Math.round((Date.now() / 1000 - seenAt) / 60));
+  const minutes = Math.max(1, Math.round((nowSeconds() - seenAt) / 60));
   return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
 }

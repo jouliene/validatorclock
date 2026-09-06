@@ -105,7 +105,7 @@ async function selectChain(chainId) {
   }
   handleNodeStatsChainChange(previousChainId, chainId);
   handleRoundStatsChainChange(previousChainId, chainId);
-  renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+  renderRuntimeStatus(nowSeconds());
   // A chain whose clock will not load leaves the rest of the switch to finish
   // and says why, rather than rejecting out of a click handler and leaving a
   // blank clock with no explanation.

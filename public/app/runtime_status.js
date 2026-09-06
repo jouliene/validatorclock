@@ -20,7 +20,8 @@ async function loadRuntimeStatus() {
     return;
   }
   state.runtimeStatus = status;
-  renderRuntimeStatus(Math.trunc(Date.now() / 1000));
+  noteServerClock(status);
+  renderRuntimeStatus(nowSeconds());
 }
 
 function renderRuntimeStatus(now) {

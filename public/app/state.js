@@ -153,6 +153,27 @@ function prefetchChainsInTurn(chainIds, prefetchOne, what) {
   });
 }
 
+// Everything on this page is an age or a countdown measured against a timestamp the
+// server produced - when the data was fetched, when a round ends, when a node was last
+// seen - and a browser clock that is wrong makes all of them wrong together: a page on a
+// machine five minutes fast reports data five minutes old and draws the needle five
+// minutes further round the dial. The status endpoint says when the server started and
+// how long it has been up, which is the server's own clock, so the difference is known
+// without asking for anything new.
+let serverClockOffsetSeconds = 0;
+
+function noteServerClock(status) {
+  const serverNow = Number(status?.started_at) + Number(status?.uptime_seconds);
+  if (!Number.isFinite(serverNow) || serverNow <= 0) {
+    return;
+  }
+  serverClockOffsetSeconds = serverNow - Math.trunc(Date.now() / 1000);
+}
+
+function nowSeconds() {
+  return Math.trunc(Date.now() / 1000) + serverClockOffsetSeconds;
+}
+
 // A request is still worth acting on only while nothing has superseded it and the reader
 // has not moved to another chain. Both halves matter, and the pair was written out eight
 // times across three files.

@@ -59,7 +59,7 @@ function refreshPollSeconds() {
 }
 
 function renderNow() {
-  const now = Math.trunc(Date.now() / 1000);
+  const now = nowSeconds();
   renderRuntimeStatus(now);
 
   if (!state.snapshot) {
