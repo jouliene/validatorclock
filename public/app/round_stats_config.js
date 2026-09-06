@@ -45,7 +45,7 @@ const ROUND_STATS_CHARTS = [
       value: (round) => roundStatsNumber(round.validator_count),
       tooltip: (round) => formatWeight(round.validator_count || 0),
     }],
-    latest: (round) => round?.validator_count ? formatWeight(round.validator_count) : "-",
+    latest: (round) => (Number.isFinite(round?.validator_count) ? formatWeight(round.validator_count) : "-"),
   },
   {
     key: "profitability",

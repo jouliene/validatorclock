@@ -61,6 +61,27 @@ function roundStatsStatus(message) {
   return status;
 }
 
+// Points that follow one another round by round; a missing round starts a new run.
+function consecutiveRuns(points) {
+  const runs = [];
+  let run = [];
+  for (const point of points) {
+    if (run.length && point.index !== run[run.length - 1].index + 1) {
+      runs.push(run);
+      run = [];
+    }
+    run.push(point);
+  }
+  if (run.length) {
+    runs.push(run);
+  }
+  return runs;
+}
+
+function roundStatsChartHasPoints(chart, rounds) {
+  return chart.series.some((series) => rounds.some((round) => roundStatsFinite(series.value(round))));
+}
+
 function roundStatsChartCard(chart, rounds, tokenSymbol) {
   const card = document.createElement("section");
   card.className = `round-stats-chart-card is-${chart.key}`;
@@ -76,7 +97,13 @@ function roundStatsChartCard(chart, rounds, tokenSymbol) {
 
   const body = document.createElement("div");
   body.className = "round-stats-chart-body";
-  body.appendChild(roundStatsSvg(chart, rounds));
+  // An axis drawn over an empty scale reads as data: it labels 1.00 / 0.50 / 0.00 and
+  // shows a chart with a flat nothing in it. Saying so is shorter and truer.
+  body.appendChild(
+    roundStatsChartHasPoints(chart, rounds)
+      ? roundStatsSvg(chart, rounds)
+      : roundStatsStatus("No data for these rounds yet."),
+  );
 
   card.append(header, body);
   return card;
@@ -132,17 +159,25 @@ function roundStatsSvg(chart, rounds) {
         if (!roundStatsFinite(value)) {
           return null;
         }
-        return { x: xFor(index), y: yFor(value), value, round };
+        return { x: xFor(index), y: yFor(value), value, round, index };
       })
       .filter(Boolean);
     if (!points.length) {
       return;
     }
 
-    const line = createSvg("polyline");
-    line.setAttribute("points", points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" "));
-    line.classList.add("round-stats-line", `series-${seriesIndex + 1}`);
-    svg.appendChild(line);
+    // Rounds without a value are dropped from the points, and joining what is left drew
+    // a straight line across the hole as though the numbers had simply been flat there.
+    // The line is broken where the data is.
+    for (const run of consecutiveRuns(points)) {
+      if (run.length < 2) {
+        continue;
+      }
+      const line = createSvg("polyline");
+      line.setAttribute("points", run.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" "));
+      line.classList.add("round-stats-line", `series-${seriesIndex + 1}`);
+      svg.appendChild(line);
+    }
 
     for (const point of points) {
       const dot = createSvg("circle");

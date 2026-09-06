@@ -164,7 +164,10 @@ function buildValidatorTooltip(content) {
     if (isDanger) {
       row.classList.add("is-danger");
     }
-    const separatorIndex = displayLine.indexOf(":");
+    // The label is what comes before the first colon - but only when that reads as a
+    // label. A bare "-1:abc..." address is one value, and splitting it put "-1:" in the
+    // label column and the rest beside it.
+    const separatorIndex = validatorTooltipLabelEnd(displayLine);
     if (separatorIndex > 0) {
       const label = document.createElement("span");
       label.className = "validator-hover-tooltip-label";
@@ -183,6 +186,16 @@ function buildValidatorTooltip(content) {
   }
 
   return tooltip;
+}
+
+function validatorTooltipLabelEnd(line) {
+  const separatorIndex = line.indexOf(":");
+  if (separatorIndex <= 0) {
+    return -1;
+  }
+  // A label is words: it starts with a letter. "-1:abc..." and "0:def..." are addresses,
+  // and the workchain in front of the colon is part of the value, not a name for it.
+  return /^[A-Za-z][\w .()\/-]*$/.test(line.slice(0, separatorIndex)) ? separatorIndex : -1;
 }
 
 function positionValidatorTooltip() {

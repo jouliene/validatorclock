@@ -24,9 +24,9 @@ function renderValidators(container, validators, options = {}) {
       validatorSourceCell(validator, options),
       validatorIdentityCell(validator, options),
       validatorHistoryCell(validator.history),
-      validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number validator-stake", validator.stake || ""),
-      validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number validator-rewards", validator.reward || ""),
-      validatorCell(validator.weight_percent == null ? "-" : `${formatPercent(validator.weight_percent)}`, "validator-number validator-weight", validator.weight || "")
+      validatorCell(formatStakeAmount(validator.stake || "0"), "validator-number validator-stake", exactValueTooltip("Stake", validator.stake)),
+      validatorCell(options.rewards && validator.reward ? formatRewardCellAmount(validator.reward) : "-", "validator-number validator-rewards", exactValueTooltip("Rewards", validator.reward)),
+      validatorCell(validator.weight_percent == null ? "-" : `${formatPercent(validator.weight_percent)}`, "validator-number validator-weight", exactValueTooltip("Weight", validator.weight))
     );
     table.appendChild(row);
   });
@@ -225,6 +225,13 @@ function syncValidatorSelectionForRow(row) {
     "is-validator-selected",
     Boolean(state.selectedValidatorKey && row.dataset.validatorSelectionKey === state.selectedValidatorKey)
   );
+}
+
+// The cells round what they show; the tooltip is where the number itself belongs. It
+// used to be handed the bare string - eighteen digits of weight with nothing to say what
+// they were.
+function exactValueTooltip(label, value) {
+  return value ? `${label}: ${formatWeight(value)}` : "";
 }
 
 function validatorCell(text, className = "", title = text) {

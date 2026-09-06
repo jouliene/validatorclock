@@ -55,7 +55,10 @@ function validatorTypeGlossaryEntry(label) {
 function validatorContractDisplayName(validator) {
   const typeName = validator?.contract_type || "";
   if (typeName && typeName !== "Unknown") {
-    return VALIDATOR_CONTRACT_TYPE_NAMES[typeName] || typeName;
+    // A type this page has no name for is a type the server learned about after this
+    // page was written. Showing the identifier verbatim put "StEverDePoolProxyV2" in
+    // front of a reader; saying it is unrecognised is at least true.
+    return VALIDATOR_CONTRACT_TYPE_NAMES[typeName] || `Unrecognised contract (${typeName})`;
   }
 
   const displayed = displayedValidatorType(validator);
