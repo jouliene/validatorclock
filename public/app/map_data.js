@@ -287,34 +287,32 @@ function enrichValidatorMapNodes(nodes, snapshot = state.snapshot) {
 // not called remembered for being a few seconds out of step; it is well inside
 // one refresh, which is five minutes. Reading the file's own age instead would
 // only ever tell us when it was written.
-const VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS = 120;
+// How long ago a node must have been reached before the page says so.
+//
+// One number for every chain, and it has to clear the slowest of them. A resolver cycle
+// is a sweep plus the pause after it: seconds plus five minutes for Tycho and Everscale,
+// but eight or nine minutes plus five for TON's four hundred validators. So a node that
+// is answering perfectly well is a quarter of an hour old just before its next turn, and
+// half an hour is the first round number that leaves room for that. It is also well
+// inside the hour the resolver keeps an unreachable address for, which is what this line
+// is about: past this, what is drawn is a memory rather than a sighting.
+//
+// It used to be measured against the freshest node in the same file, which meant
+// something different on every chain - on TON almost every row could be "behind" the few
+// the second asks reached and claim it had not been seen for five minutes, and on a chain
+// resolved in one second nothing was ever behind anything and the line never appeared.
+const VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS = 1800;
 
-function validatorMapNewestSeenAt(nodes) {
-  let newest = 0;
-  for (const node of nodes || []) {
-    const seenAt = Number(node?.last_seen_at) || 0;
-    if (seenAt > newest) {
-      newest = seenAt;
-    }
-  }
-  return newest;
-}
 
-function validatorMapNodeIsRemembered(node, newestSeenAt) {
+function validatorMapNodeIsRemembered(node) {
   const seenAt = Number(node?.last_seen_at) || 0;
-  if (!seenAt || !newestSeenAt) {
-    return false;
-  }
-  return newestSeenAt - seenAt >= VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS;
+  return Boolean(seenAt) && nowSeconds() - seenAt >= VALIDATOR_MAP_REMEMBERED_AFTER_SECONDS;
 }
 
-function validatorMapLastSeenLabel(node, newestSeenAt) {
-  if (!validatorMapNodeIsRemembered(node, newestSeenAt)) {
+function validatorMapLastSeenLabel(node) {
+  if (!validatorMapNodeIsRemembered(node)) {
     return null;
   }
-  // Whether it is remembered is decided against the rest of the file; how long
-  // ago is decided against the clock, because that is what "ago" means to a
-  // reader.
   const seenAt = Number(node?.last_seen_at) || 0;
   const minutes = Math.max(1, Math.round((nowSeconds() - seenAt) / 60));
   return minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;

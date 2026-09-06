@@ -236,10 +236,15 @@ where
 {
     resolver.warmup(chain_id).await;
 
-    let now = crate::timeutil::now_sec();
     let validators = &snapshot.current_set.validators;
     let resolved = stream::iter(validators.iter())
         .map(|validator| async move {
+            // Dated when this lookup answered, as the second asks already were. One stamp
+            // taken before the sweep dated four hundred lookups with the moment the first
+            // of them started - eight minutes earlier for TON - so every node in the file
+            // was published as older than it is, and the handful the second asks reached
+            // stood out as fresher than the rest by exactly the length of the sweep.
+            let now = crate::timeutil::now_sec();
             let resolution = match address_to_look_up(validator) {
                 Ok(adnl_addr) => resolver.resolve(adnl_addr, now).await,
                 Err(resolution) => resolution,
@@ -266,7 +271,9 @@ where
     let mut resolved = resolved;
     let recovered_total = recover_misses(chain_id, &mut resolved, open_recovery_round).await;
 
-    apply_remembered_addresses(&mut resolved, memory, now);
+    // Read once, after the asking is done: what the memory offers is judged against the
+    // moment the pass ends, which is when its answers are written.
+    apply_remembered_addresses(&mut resolved, memory, crate::timeutil::now_sec());
     memory.retain_only(
         &validators
             .iter()

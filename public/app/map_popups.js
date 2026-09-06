@@ -58,11 +58,6 @@ function nodeTableElement(nodes) {
     return null;
   }
 
-  // Measured against the whole file, not against the nodes in this popup: a
-  // location where every node is remembered would otherwise judge itself
-  // fresh, which is exactly the case worth marking.
-  const newestSeenAt = validatorMapNewestSeenAt(validatorMapNodes);
-
   return el("div", "popup-node-list", [
     el("table", "popup-node-table", [
       el(
@@ -82,14 +77,14 @@ function nodeTableElement(nodes) {
       el(
         "tbody",
         {},
-        safeNodes.map((node) => nodeTableRow(node, newestSeenAt)),
+        safeNodes.map((node) => nodeTableRow(node)),
       ),
     ]),
   ]);
 }
 
-function nodeTableRow(node, newestSeenAt) {
-  const lastSeen = validatorMapLastSeenLabel(node, newestSeenAt);
+function nodeTableRow(node) {
+  const lastSeen = validatorMapLastSeenLabel(node);
   const address = lastSeen
     ? [
         el("span", { className: "popup-ip-value", text: node.ip }),
