@@ -15,6 +15,9 @@ function locationPopupContent(properties) {
       className: "popup-muted",
       text: `${nodeCount} validator${nodeCount === 1 ? "" : "s"} at this location`,
     }),
+    el("div", { className: "popup-muted", text: nodes.some((node) => node.geo_confidence === "disputed")
+      ? "Approximate IP locations; some locations are disputed"
+      : "Approximate IP locations, not exact server addresses" }),
     nodeTableElement(nodes),
   ]);
 }

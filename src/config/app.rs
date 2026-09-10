@@ -282,6 +282,9 @@ impl AppConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub(crate) struct NodeLocationsConfig {
+    /// Experimental, keyless resolver. False preserves the previous algorithm.
+    #[serde(default)]
+    pub(crate) research: crate::node_locations::research::ResearchConfig,
     #[serde(default)]
     pub(crate) enabled: bool,
     #[serde(default = "default_node_locations_refresh_seconds")]
@@ -317,6 +320,7 @@ impl Default for NodeLocationsConfig {
         Self {
             enabled: false,
             refresh_seconds: default_node_locations_refresh_seconds(),
+            research: crate::node_locations::research::ResearchConfig::default(),
             startup_delay_seconds: default_node_locations_startup_delay_seconds(),
             geo_cache_path: default_node_locations_geo_cache_path(),
             geo_cache_ttl_seconds: default_node_locations_geo_cache_ttl_seconds(),

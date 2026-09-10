@@ -82,6 +82,7 @@ fn stored_round(set: &ValidatorSetDto, observed_at: u64, complete: bool) -> Stor
 
 fn map_node(ip: &str, isp: &str, city: &str, country: &str) -> ValidatorMapNodeDto {
     ValidatorMapNodeDto {
+        geo_confidence: None,
         ip: Some(ip.to_owned()),
         isp: Some(isp.to_owned()),
         city: Some(city.to_owned()),

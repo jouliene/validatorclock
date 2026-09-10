@@ -7,6 +7,7 @@ mod geo_cache;
 mod ipinfo;
 mod manual_review;
 mod map_nodes;
+pub(crate) mod research;
 mod tiebreak;
 
 #[cfg(test)]
@@ -85,15 +86,27 @@ async fn background_refresh_loop(state: Arc<AppState>) {
         sleep(startup_delay).await;
     }
 
-    refresh_all_chains(Arc::clone(&state)).await;
+    let mut researcher = if state.config.node_locations.research.enabled {
+        match research::Engine::open(&state.config.node_locations) {
+            Ok(engine) => Some(engine),
+            Err(error) => {
+                warn!(error = %error, "geolocation research disabled after state error; no external queries will be made");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
+    refresh_all_chains(Arc::clone(&state), researcher.as_mut()).await;
 
     loop {
         sleep(Duration::from_secs(refresh_seconds)).await;
-        refresh_all_chains(Arc::clone(&state)).await;
+        refresh_all_chains(Arc::clone(&state), researcher.as_mut()).await;
     }
 }
 
-async fn refresh_all_chains(state: Arc<AppState>) {
+async fn refresh_all_chains(state: Arc<AppState>, mut researcher: Option<&mut research::Engine>) {
     let http = crate::http::shared_client();
     let now = now_sec();
     let ttl = Duration::from_secs(state.config.node_locations.geo_cache_ttl_seconds);
@@ -105,7 +118,8 @@ async fn refresh_all_chains(state: Arc<AppState>) {
                 error = ?error,
                 "failed to load node location geo cache"
             );
-            GeoCache::default()
+            // A corrupt cache must not turn a restart into a full network rescan.
+            return;
         }
     };
     let mut cache_changed = false;
@@ -129,6 +143,7 @@ async fn refresh_all_chains(state: Arc<AppState>) {
             },
             &mut geo_cache,
             &mut seen_ips,
+            researcher.as_deref_mut(),
         )
         .await
         {
@@ -153,6 +168,11 @@ async fn refresh_all_chains(state: Arc<AppState>) {
     // Only when every chain reported in: a chain that failed contributed no
     // addresses, and dropping its entries would mean paying for them again.
     if !any_chain_failed {
+        if let Some(engine) = researcher
+            && let Err(error) = engine.checkpoint(&seen_ips, now)
+        {
+            warn!(error = %error, "failed to checkpoint research state");
+        }
         cache_changed |= prune_geo_cache(&mut geo_cache, &seen_ips, now);
     }
 
@@ -182,6 +202,7 @@ async fn refresh_chain_locations(
     refresh: &ChainRefresh<'_>,
     geo_cache: &mut GeoCache,
     seen_ips: &mut BTreeSet<std::net::IpAddr>,
+    researcher: Option<&mut research::Engine>,
 ) -> Result<bool> {
     let ChainRefresh {
         http,
@@ -202,60 +223,28 @@ async fn refresh_chain_locations(
         .into_iter()
         .collect::<Vec<_>>();
     seen_ips.extend(ips.iter().copied());
-    let lookup_ips = ips
-        .iter()
-        .copied()
-        .filter(|ip| !manual_resolved.contains_key(ip))
-        .filter(|ip| !geo_cache.has_fresh_location(*ip, now, ttl))
-        .collect::<Vec<_>>();
-
-    let fetched =
-        lookup_ip_api_locations(&node_config.ip_api_batch_endpoint, &lookup_ips, now).await;
-    let mut cache_changed = false;
-    let requested = lookup_ips.iter().copied().collect::<BTreeSet<_>>();
-    for (ip, mut location) in fetched {
-        // The answer says which address each row is for, and the answer is a
-        // stranger's. A row for an address nobody asked about is dropped
-        // rather than cached: otherwise one reply can seed the map with
-        // locations for addresses that were never looked up.
-        if !requested.contains(&ip) {
-            warn!(ip = %ip, "geo answer names an address that was not asked about");
-            continue;
-        }
-        if let Some(existing) = geo_cache.location(ip) {
-            location.ipinfo = existing.ipinfo.clone();
-            location.ipinfo_checked_at = existing.ipinfo_checked_at;
-            location.ipinfo_conflict = existing.ipinfo_conflict;
-            location.ipinfo_conflict_reason = existing.ipinfo_conflict_reason.clone();
-            // A third source's answer outlives a routine ip-api refresh, so it
-            // is not thrown away and asked for again.
-            location.tiebreak = existing.tiebreak.clone();
-            // A settled disagreement stays settled unless ip-api has changed
-            // its mind about the country.
-            location.ipinfo_conflict_settled = existing.ipinfo_conflict_settled
-                && normalized_code(&existing.country_code)
-                    == normalized_code(&location.country_code);
-        }
-        geo_cache.locations.insert(ip.to_string(), location);
-        cache_changed = true;
-    }
-
-    let ipinfo_lookup_count = refresh_ipinfo_verification(
-        http,
-        node_config,
-        &ips,
-        &manual_resolved,
-        geo_cache,
-        now,
-        ttl,
-    )
-    .await;
-    cache_changed |= ipinfo_lookup_count > 0;
-    cache_changed |= refresh_ipinfo_conflicts(&ips, geo_cache);
-
-    let auto_resolved_count =
-        tiebreak::resolve_conflicts(node_config, &ips, geo_cache, now, ttl).await;
-    cache_changed |= auto_resolved_count > 0;
+    let (cache_changed, lookup_count, ipinfo_lookup_count, auto_resolved_count) =
+        if node_config.research.enabled {
+            let changed = if let Some(engine) = researcher {
+                engine
+                    .refresh(node_config, &ips, &manual_resolved, geo_cache, now)
+                    .await?
+            } else {
+                false
+            };
+            (changed, 0, 0, 0)
+        } else {
+            legacy_refresh(
+                http,
+                node_config,
+                &ips,
+                &manual_resolved,
+                geo_cache,
+                now,
+                ttl,
+            )
+            .await
+        };
 
     // Bookkeeping for a person to read. It runs after every external lookup
     // is already paid for, so a filesystem error here must not throw the map
@@ -304,7 +293,7 @@ async fn refresh_chain_locations(
         chain_id,
         seed_node_count = candidates.len(),
         unique_ip_count = ips.len(),
-        ip_api_lookup_count = lookup_ips.len(),
+        ip_api_lookup_count = lookup_count,
         ipinfo_lookup_count,
         manual_resolved_count = manual_resolved.len(),
         auto_resolved_count,
@@ -316,6 +305,71 @@ async fn refresh_chain_locations(
     );
 
     Ok(cache_changed)
+}
+
+async fn legacy_refresh(
+    http: &reqwest::Client,
+    node_config: &NodeLocationsConfig,
+    ips: &[std::net::IpAddr],
+    manual_resolved: &std::collections::BTreeMap<std::net::IpAddr, manual_review::ManualResolvedIp>,
+    geo_cache: &mut GeoCache,
+    now: u64,
+    ttl: Duration,
+) -> (bool, usize, usize, usize) {
+    let lookup_ips = ips
+        .iter()
+        .copied()
+        .filter(|ip| !manual_resolved.contains_key(ip))
+        .filter(|ip| !geo_cache.has_fresh_location(*ip, now, ttl))
+        .collect::<Vec<_>>();
+
+    let fetched =
+        lookup_ip_api_locations(&node_config.ip_api_batch_endpoint, &lookup_ips, now).await;
+    let mut cache_changed = false;
+    let requested = lookup_ips.iter().copied().collect::<BTreeSet<_>>();
+    for (ip, mut location) in fetched {
+        // The answer says which address each row is for, and the answer is a
+        // stranger's. A row for an address nobody asked about is dropped
+        // rather than cached: otherwise one reply can seed the map with
+        // locations for addresses that were never looked up.
+        if !requested.contains(&ip) {
+            warn!(ip = %ip, "geo answer names an address that was not asked about");
+            continue;
+        }
+        if let Some(existing) = geo_cache.location(ip) {
+            location.ipinfo = existing.ipinfo.clone();
+            location.ipinfo_checked_at = existing.ipinfo_checked_at;
+            location.ipinfo_conflict = existing.ipinfo_conflict;
+            location.ipinfo_conflict_reason = existing.ipinfo_conflict_reason.clone();
+            // A third source's answer outlives a routine ip-api refresh, so it
+            // is not thrown away and asked for again.
+            location.tiebreak = existing.tiebreak.clone();
+            // A settled disagreement stays settled unless ip-api has changed
+            // its mind about the country.
+            location.ipinfo_conflict_settled = existing.ipinfo_conflict_settled
+                && normalized_code(&existing.country_code)
+                    == normalized_code(&location.country_code);
+        }
+        geo_cache.locations.insert(ip.to_string(), location);
+        cache_changed = true;
+    }
+
+    let ipinfo_lookup_count =
+        refresh_ipinfo_verification(http, node_config, ips, manual_resolved, geo_cache, now, ttl)
+            .await;
+    cache_changed |= ipinfo_lookup_count > 0;
+    cache_changed |= refresh_ipinfo_conflicts(ips, geo_cache);
+
+    let auto_resolved_count =
+        tiebreak::resolve_conflicts(node_config, ips, geo_cache, now, ttl).await;
+    cache_changed |= auto_resolved_count > 0;
+
+    (
+        cache_changed,
+        lookup_ips.len(),
+        ipinfo_lookup_count,
+        auto_resolved_count,
+    )
 }
 
 /// Entries for addresses no chain names any more, and that nothing has

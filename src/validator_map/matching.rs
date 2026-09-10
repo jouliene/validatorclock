@@ -34,6 +34,7 @@ pub(crate) fn map_nodes_by_peer(value: &Value) -> Result<HashMap<String, Validat
                 (
                     peer,
                     ValidatorMapNodeDto {
+                        geo_confidence: string_field(node, "geo_confidence"),
                         ip: string_field(node, "ip"),
                         isp: string_field(node, "isp"),
                         city: string_field(node, "city"),

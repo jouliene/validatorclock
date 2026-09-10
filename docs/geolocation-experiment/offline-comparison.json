@@ -1,0 +1,1367 @@
+{
+  "method": "Current Rust decision functions; fresh ip-api for all IPs, free DB-IP, two operator feeds, seven saved secondary lookups and saved direct target pings. No general ground truth; data-date changes are not algorithm accuracy gains.",
+  "rows": [
+    {
+      "confidence": "disputed",
+      "ip": "137.74.4.103",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS16276",
+        "at": 1789001000,
+        "city": "Warsaw",
+        "country": "Poland",
+        "country_code": "PL",
+        "isp": "OVH SAS",
+        "lat": 52.2299,
+        "lon": 21.0093,
+        "region": "Mazovia",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Warsaw",
+        "country": "Poland",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "137.74.4.103",
+        "isp": "OVH SAS",
+        "last_seen_at": 1789001971,
+        "lat": 52.2299,
+        "lon": 21.0093,
+        "peer": "30fe1dbfb198cf5349e734567303858e2ef91c400e23162be31f874c730c0dfc"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "137.74.4.116",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS16276",
+        "at": 1789001000,
+        "city": "Warsaw",
+        "country": "Poland",
+        "country_code": "PL",
+        "isp": "OVH SAS",
+        "lat": 52.2299,
+        "lon": 21.0093,
+        "region": "Mazovia",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Warsaw",
+        "country": "Poland",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788407600,
+        "ip": "137.74.4.116",
+        "isp": "OVH SAS",
+        "last_seen_at": 1789001977,
+        "lat": 52.2299,
+        "lon": 21.0093,
+        "peer": "6fc423d711f1f95b6aed8bac4f6b07ae16396cc3a1264883fe3728f883223a32"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.16",
+      "moved_km": 8075.775426771187,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788825843,
+        "ip": "155.2.223.16",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001968,
+        "lat": 19.2865942,
+        "lon": -81.3743566,
+        "peer": "6b4518e2c4b41adbae1b0bb8c528d9647541a6bce551fc40547c355c55468835"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.19",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788935660,
+        "ip": "155.2.223.19",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001962,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "779e755a85cdb5c20b419879b2fc1c775bf6752140cc5b5ab4c0b9fa520f76f6"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.23",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788956972,
+        "ip": "155.2.223.23",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001972,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "53380f6d422cfa3a0771192676e3182e9cf4b988e04f5d9c3a981e1f2b9f0184"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.25",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788935660,
+        "ip": "155.2.223.25",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001967,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "1059e6dcc16dd58630ca9bf7dc34f436df35713ec3ae8dbecc273a803783f116"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.26",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788935660,
+        "ip": "155.2.223.26",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001975,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "171d66632780f99ebce2ceb164b332f91d36808ec0feecc8218382b0d2a260a7"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.28",
+      "moved_km": 8075.775426771187,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788825843,
+        "ip": "155.2.223.28",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001972,
+        "lat": 19.2865942,
+        "lon": -81.3743566,
+        "peer": "a8ebdb3bf58cfe0616e55cc0bad47ded7f72ee615a8376981ecc475c185c1825"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.31",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788935660,
+        "ip": "155.2.223.31",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001964,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "54f19e175170deff0b3922d30053f7f5e3dac3c90dd3c3d4f2450a1f7138107f"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.41",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788935660,
+        "ip": "155.2.223.41",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001971,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "eefad538a8d6beb15e4ca94ee1fc3102c4abeb3875628f7558e9bdb801804b5e"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.42",
+      "moved_km": 8075.777864455037,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788935660,
+        "ip": "155.2.223.42",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001971,
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "peer": "1961365fb01545360198b37b697fe534225fc25293a8a6cd1963ace2597dc792"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.43",
+      "moved_km": 8071.761007271137,
+      "new": {
+        "asn": "AS214434",
+        "at": 1789001000,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "isp": "Twinstake Limited",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "region": "North Holland",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "geo_confidence": "medium",
+        "geo_source": "ipwho.is",
+        "geo_updated_at": 1788563628,
+        "ip": "155.2.223.43",
+        "isp": "Twinstake Limited",
+        "last_seen_at": 1789001971,
+        "lat": 19.3666677,
+        "lon": -81.4166728,
+        "peer": "c49c2334a76e838ae4a32dc2e053cf359477ef714c757e25b83fa3bfbf24867a"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "161.97.123.32",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788602035,
+        "ip": "161.97.123.32",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789002078,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "e53689104aa6dface26b0815cc18a664faf422162e9ee685817d313f7849d8ca"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "161.97.174.72",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788441467,
+        "ip": "161.97.174.72",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "5df08ca6a6fdd5001f86b93b6a75289b14d4ebccc686bfb43910749e0c7c1bc3"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "167.86.119.67",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935967,
+        "ip": "167.86.119.67",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "3adf67db9372bf5c516a357139e4d1c016d0d9d379bda31d38894970c9d7d99e"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "178.63.165.86",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS24940",
+        "at": 1789001000,
+        "city": "Falkenstein",
+        "country": "Germany",
+        "country_code": "DE",
+        "isp": "Hetzner Online GmbH",
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "region": "Saxony",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Falkenstein",
+        "country": "Germany",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "178.63.165.86",
+        "isp": "Hetzner Online GmbH",
+        "last_seen_at": 1789002021,
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "peer": "92aa9a2c641b700bc1a4c9e15e43c0467870aeb88aa04e4015503f8b23c89bf9"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "194.163.140.58",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935967,
+        "ip": "194.163.140.58",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "1af40a7d16d18e850f6ff1eaef60d978dbfa34451c75054d02649f2693766b95"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "194.87.209.129",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS203493",
+        "at": 1789001000,
+        "city": "Moscow",
+        "country": "Russia",
+        "country_code": "RU",
+        "isp": "Yacolo",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "region": "Moscow",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Moscow",
+        "country": "Russia",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788981877,
+        "ip": "194.87.209.129",
+        "isp": "Yacolo",
+        "last_seen_at": 1789002093,
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "peer": "0ec9d4cf6b325967936611bf140ce4b93eb61d61481a1825f03e9fd3a6163c84"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "194.87.209.239",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS203493",
+        "at": 1789001000,
+        "city": "Moscow",
+        "country": "Russia",
+        "country_code": "RU",
+        "isp": "Yacolo",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "region": "Moscow",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Moscow",
+        "country": "Russia",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788977676,
+        "ip": "194.87.209.239",
+        "isp": "Yacolo",
+        "last_seen_at": 1789002074,
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "peer": "f73898a9f81a99a32fe7dff88132b11ff19aff1fdd023387743df3fb0acd6633"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.68.105",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788457687,
+        "ip": "213.136.68.105",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "16678925fd0ae0052a3c12c61d7405ae67f8f3eb1efacfab3d600d3338807047"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.142",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788987278,
+        "ip": "213.136.69.142",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "8484851e2b4c266a3f541559aa9bbc42a46bb8e1124611892c18523d81e92a6b"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.176",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "213.136.69.176",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "4b7653793cc305a001a1ad6ce456beb8f672a3be8d1fa77c11afd1cff66a8f33"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.230",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788942269,
+        "ip": "213.136.69.230",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "b5b1fd14c3d350aeda17d005e83f1d2ad2f37ac2856ef5f2670e13945f6661c9"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.55",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "213.136.69.55",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001964,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "d30b30e1917dba6ad469bed560278086a49650cd4766e9f7e3c2a12c2c606450"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.83.246",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788644393,
+        "ip": "213.136.83.246",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "509f00b29413733f2fa5e98f7e6567dd64417f1bfa38f48be76bd0af2463880c"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.84.243",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788607859,
+        "ip": "213.136.84.243",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "896630bc1b1b74489bc58718edd0716d640710478637895624d4d23f32a48c46"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "216.18.202.242",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS18450",
+        "at": 1789001000,
+        "city": "Los Angeles",
+        "country": "United States",
+        "country_code": "US",
+        "isp": "WebNX, Inc.",
+        "lat": 33.9214,
+        "lon": -118.413,
+        "region": "California",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Los Angeles",
+        "country": "United States",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788997180,
+        "ip": "216.18.202.242",
+        "isp": "WebNX, Inc.",
+        "last_seen_at": 1789001974,
+        "lat": 33.9214,
+        "lon": -118.413,
+        "peer": "a79cff38f6ace90cf3e5013388e6bc34c477c4ce5ed26f8657ffd97403290947"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip",
+        "coordinates differ by over 100 km: ip-api / ipwho.is"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "38.242.157.212",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "38.242.157.212",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789002078,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "f7035599d968204670188b3cb63c636ad23f117fb54866f442c88150fce8c8ab"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "45.139.24.8",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS34959",
+        "at": 1789001000,
+        "city": "Moscow",
+        "country": "Russia",
+        "country_code": "RU",
+        "isp": "Kviktel LLC",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "region": "Moscow",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Moscow",
+        "country": "Russia",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "45.139.24.8",
+        "isp": "Kviktel LLC",
+        "last_seen_at": 1789002078,
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "peer": "c9021a0e57588286eb091f8db5a2e667cbcf392d476fd1f1face22fe4c0fe22d"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "5.189.141.228",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788689779,
+        "ip": "5.189.141.228",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001977,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "74c2198ba8595fcd3ca7da636dff7b833a7f6e9e0ae597831f11cbf24765151c"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "57.129.147.75",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS16276",
+        "at": 1789001000,
+        "city": "Bexley",
+        "country": "United Kingdom",
+        "country_code": "GB",
+        "isp": "OVH SAS",
+        "lat": 51.4409,
+        "lon": 0.0985,
+        "region": "England",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Bexley",
+        "country": "United Kingdom",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "57.129.147.75",
+        "isp": "OVH SAS",
+        "last_seen_at": 1789001947,
+        "lat": 51.4409,
+        "lon": 0.0985,
+        "peer": "7f1c14f111baa8998689ed58ba7064ae2cbd9f3c270d9d6ab3c99708b0ecd700"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "57.129.147.91",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS16276",
+        "at": 1789001000,
+        "city": "Bexley",
+        "country": "United Kingdom",
+        "country_code": "GB",
+        "isp": "OVH SAS",
+        "lat": 51.4409,
+        "lon": 0.0985,
+        "region": "England",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Bexley",
+        "country": "United Kingdom",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "57.129.147.91",
+        "isp": "OVH SAS",
+        "last_seen_at": 1789001947,
+        "lat": 51.4409,
+        "lon": 0.0985,
+        "peer": "e22e204f40dfcf18666d59806e981b6f6fecab1dbeaf9cfc8d1f509324bbcdc5"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "measured_metro",
+      "ip": "64.34.88.165",
+      "moved_km": 3935.6972186499215,
+      "new": {
+        "asn": "AS396356",
+        "at": 1789001000,
+        "city": "Los Angeles",
+        "country": "United States",
+        "country_code": "US",
+        "isp": "Latitude.sh",
+        "lat": 34.0522,
+        "lon": -118.2437,
+        "region": "",
+        "source": "latitude-ping"
+      },
+      "old": {
+        "city": "New York",
+        "country": "United States",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788825843,
+        "ip": "64.34.88.165",
+        "isp": "Latitude.sh",
+        "last_seen_at": 1789001948,
+        "lat": 40.7126,
+        "lon": -74.0066,
+        "peer": "bbe1a9ab8ff48b312506cec5eef3b291e4e5fc8b4e277e4c378c6758ef820233"
+      },
+      "proposed_measurement_vantages": [
+        {
+          "city": "Los Angeles",
+          "code": "US",
+          "country": "United States",
+          "id": "los_angeles",
+          "lat": 34.0522,
+          "lon": -118.2437
+        },
+        {
+          "city": "New York",
+          "code": "US",
+          "country": "United States",
+          "id": "new_york",
+          "lat": 40.7128,
+          "lon": -74.006
+        }
+      ],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip",
+        "direct target RTT <=3ms from operator los_angeles (approximate metro, not a facility)"
+      ]
+    },
+    {
+      "confidence": "measured_metro",
+      "ip": "67.213.125.125",
+      "moved_km": 496.0020449632339,
+      "new": {
+        "asn": "AS396356",
+        "at": 1789001000,
+        "city": "Sydney",
+        "country": "Australia",
+        "country_code": "AU",
+        "isp": "Latitude.sh",
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "region": "",
+        "source": "latitude-ping"
+      },
+      "old": {
+        "city": "Nyngan",
+        "country": "Australia",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788825843,
+        "ip": "67.213.125.125",
+        "isp": "Latitude.sh",
+        "last_seen_at": 1789001962,
+        "lat": -31.2532,
+        "lon": 146.921,
+        "peer": "979c2ff7e33561a5491d6f7b5e4b09dfed0512f6ac3e11c5fd927a59ca188076"
+      },
+      "proposed_measurement_vantages": [
+        {
+          "city": "Sydney",
+          "code": "AU",
+          "country": "Australia",
+          "id": "sydney",
+          "lat": -33.8688,
+          "lon": 151.2093
+        }
+      ],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / ipwho.is",
+        "direct target RTT <=3ms from operator sydney (approximate metro, not a facility)"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "75.119.147.73",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Forte Interactive",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788977076,
+        "ip": "75.119.147.73",
+        "isp": "Forte Interactive",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "0e77ac44a858453eb59dff4ebe874023c7ce4a52a023ebfd3bd3b827cbe10d0a"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "80.241.215.197",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "80.241.215.197",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789001947,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "a7f991881d6232097073ba98b44ee65126648fd3b9693aa5390deaf32bd5de4b"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "89.117.59.119",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "89.117.59.119",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789002078,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "a18086feff3c0d68c2a21b66954319fdcfb490e4149af81a8c4e465ad0e04504"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "89.117.59.125",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS51167",
+        "at": 1789001000,
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "region": "Grand Est",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788935660,
+        "ip": "89.117.59.125",
+        "isp": "Contabo GmbH",
+        "last_seen_at": 1789002078,
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "peer": "447c5c873e6b6b1b8a7c3c7d5cb4d6fe15091d4fed7dcf3f03366eb11dbc7ac0"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "country disagreement: ip-api / dbip"
+      ]
+    },
+    {
+      "confidence": "disputed",
+      "ip": "95.105.75.205",
+      "moved_km": 0.0,
+      "new": {
+        "asn": "AS57128",
+        "at": 1789001000,
+        "city": "Kazan'",
+        "country": "Russia",
+        "country_code": "RU",
+        "isp": "JSC \"Ufanet\"",
+        "lat": 55.7852,
+        "lon": 49.1174,
+        "region": "Tatarstan Republic",
+        "source": "ip-api"
+      },
+      "old": {
+        "city": "Kazan'",
+        "country": "Russia",
+        "geo_confidence": "medium",
+        "geo_source": "ip-api",
+        "geo_updated_at": 1788940468,
+        "ip": "95.105.75.205",
+        "isp": "JSC \"Ufanet\"",
+        "last_seen_at": 1789001964,
+        "lat": 55.7852,
+        "lon": 49.1174,
+        "peer": "2e120195d262d8f4875155f9b53a4786c97cd73e2c43e99a4a38aca6c6754236"
+      },
+      "proposed_measurement_vantages": [],
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip"
+      ]
+    }
+  ],
+  "summary": {
+    "disputed": 37,
+    "ips": 416,
+    "measured_metros": 2,
+    "moved_over_100km": 12
+  },
+  "attribution": "IP Geolocation by DB-IP, https://db-ip.com, CC BY 4.0."
+}

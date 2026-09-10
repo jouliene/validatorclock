@@ -1,0 +1,769 @@
+{
+  "method": "Actual new resolver observations from the local trial. Entries selected for measured metro or a >100 km move; no IP-specific overrides in runtime code.",
+  "attribution": "IP Geolocation by DB-IP, https://db-ip.com, CC BY 4.0.",
+  "budget": {
+    "day": 20706,
+    "used": 12,
+    "measurements": 2,
+    "not_before": {
+      "ip-api": 1789004881,
+      "ipwho.is": 1789004904,
+      "latitude-ping": 1789004887
+    },
+    "total_requests": 12
+  },
+  "entries": {
+    "64.34.88.165": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Los Angeles",
+          "country": "United States",
+          "country_code": "US",
+          "region": "California",
+          "lat": 34.0549,
+          "lon": -118.243,
+          "asn": "AS396356",
+          "isp": "Latitude.sh"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1788825843,
+          "city": "New York",
+          "country": "United States",
+          "country_code": "US",
+          "region": "",
+          "lat": 40.7126,
+          "lon": -74.0066,
+          "asn": "AS396356",
+          "isp": "Latitude.sh"
+        }
+      },
+      "measurements": [
+        {
+          "target": "64.34.88.165",
+          "vantage": "los_angeles",
+          "at": 1789004878,
+          "min_ms": 2.097,
+          "output": "PING 64.34.88.165 (64.34.88.165): 56 data bytes\n64 bytes from 64.34.88.165: icmp_seq=0 ttl=60 time=2.310 ms\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=60 time=2.097 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=60 time=2.108 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=60 time=2.183 ms\n64 bytes from 64.34.88.165: icmp_seq=4 ttl=60 time=2.116 ms\n\n--- 64.34.88.165 ping statistics ---\n5 packets transmitted, 5 packets received, 0% packet loss\nround-trip min/avg/max/stddev = 2.097/2.163/2.310/0.079 ms"
+        }
+      ],
+      "decision": {
+        "source": "latitude-ping",
+        "at": 1789004878,
+        "city": "Los Angeles",
+        "country": "United States",
+        "country_code": "US",
+        "region": "",
+        "lat": 34.0522,
+        "lon": -118.2437,
+        "asn": "AS396356",
+        "isp": "Latitude.sh"
+      },
+      "confidence": "measured_metro",
+      "reasons": [
+        "coordinates differ by over 100 km: ip-api / dbip",
+        "direct target RTT <=3ms from operator los_angeles (approximate metro, not a facility)",
+        "direct target RTT <=3ms from operator los_angeles (approximate metro, not a facility)"
+      ],
+      "next_attempt_at": 1796780876,
+      "attempts": 0,
+      "last_seen_at": 1789004876,
+      "completed_at": 1789004876,
+      "generation_started_at": 1789004876,
+      "secondary_checked": false
+    },
+    "67.213.125.125": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Nyngan",
+          "country": "Australia",
+          "country_code": "AU",
+          "region": "New South Wales",
+          "lat": -31.2532,
+          "lon": 146.921,
+          "asn": "AS396356",
+          "isp": "Latitude.sh"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1788825843,
+          "city": "Nyngan",
+          "country": "Australia",
+          "country_code": "AU",
+          "region": "",
+          "lat": -31.2532,
+          "lon": 146.921,
+          "asn": "AS396356",
+          "isp": "Latitude.sh"
+        }
+      },
+      "measurements": [
+        {
+          "target": "67.213.125.125",
+          "vantage": "sydney",
+          "at": 1789004886,
+          "min_ms": 0.543,
+          "output": "PING 67.213.125.125 (67.213.125.125): 56 data bytes\n64 bytes from 67.213.125.125: icmp_seq=0 ttl=61 time=0.589 ms\n64 bytes from 67.213.125.125: icmp_seq=1 ttl=61 time=0.543 ms\n64 bytes from 67.213.125.125: icmp_seq=2 ttl=61 time=0.554 ms\n64 bytes from 67.213.125.125: icmp_seq=3 ttl=61 time=0.563 ms\n64 bytes from 67.213.125.125: icmp_seq=4 ttl=61 time=0.563 ms\n\n--- 67.213.125.125 ping statistics ---\n5 packets transmitted, 5 packets received, 0% packet loss\nround-trip min/avg/max/stddev = 0.543/0.562/0.589/0.015 ms"
+        }
+      ],
+      "decision": {
+        "source": "latitude-ping",
+        "at": 1789004886,
+        "city": "Sydney",
+        "country": "Australia",
+        "country_code": "AU",
+        "region": "",
+        "lat": -33.8688,
+        "lon": 151.2093,
+        "asn": "AS396356",
+        "isp": "Latitude.sh"
+      },
+      "confidence": "measured_metro",
+      "reasons": [
+        "operator metro needs measurement",
+        "direct target RTT <=3ms from operator sydney (approximate metro, not a facility)",
+        "direct target RTT <=3ms from operator sydney (approximate metro, not a facility)"
+      ],
+      "next_attempt_at": 1796780876,
+      "attempts": 0,
+      "last_seen_at": 1789004876,
+      "completed_at": 1789004876,
+      "generation_started_at": 1789004876,
+      "secondary_checked": false
+    },
+    "155.2.223.16": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788825843,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.2865942,
+          "lon": -81.3743566,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.19": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788935660,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.23": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788956972,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.25": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788935660,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.26": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788935660,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.28": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788825843,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.2865942,
+          "lon": -81.3743566,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.31": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788935660,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.41": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788935660,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.42": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788935660,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.286569,
+          "lon": -81.3743608,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    },
+    "155.2.223.43": {
+      "observations": {
+        "dbip": {
+          "source": "dbip",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "North Holland",
+          "lat": 52.3676,
+          "lon": 4.90414,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ip-api": {
+          "source": "ip-api",
+          "at": 1789004876,
+          "city": "Amsterdam",
+          "country": "The Netherlands",
+          "country_code": "NL",
+          "region": "",
+          "lat": 52.352,
+          "lon": 4.9392,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        },
+        "ipwho.is": {
+          "source": "ipwho.is",
+          "at": 1788563628,
+          "city": "George Town",
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "region": "",
+          "lat": 19.3666677,
+          "lon": -81.4166728,
+          "asn": "AS214434",
+          "isp": "Twinstake Limited"
+        }
+      },
+      "measurements": [],
+      "decision": {
+        "source": "ip-api",
+        "at": 1789004876,
+        "city": "Amsterdam",
+        "country": "The Netherlands",
+        "country_code": "NL",
+        "region": "",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "asn": "AS214434",
+        "isp": "Twinstake Limited"
+      },
+      "confidence": "disputed",
+      "reasons": [
+        "country disagreement: ip-api / ipwho.is"
+      ],
+      "next_attempt_at": 1789609676,
+      "attempts": 5,
+      "last_seen_at": 1789004876,
+      "completed_at": 0,
+      "generation_started_at": 1789004876,
+      "secondary_checked": true
+    }
+  }
+}

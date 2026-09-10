@@ -47,6 +47,19 @@ function mapNodeTooltipLines(node, heading = "Location:") {
     lines.push(`Place: ${place}`);
   }
 
+  const confidence = String(node.geo_confidence || "");
+  if (confidence === "stale") {
+    lines.push("Accuracy: old location; refresh pending");
+  } else if (confidence === "disputed") {
+    lines.push("Accuracy: location disputed; sources disagree");
+  } else if (confidence === "measured_metro") {
+    lines.push("Accuracy: approximate metro, supported by network measurement");
+  } else if (confidence === "operator_city") {
+    lines.push("Accuracy: approximate; operator confirms city name");
+  } else if (confidence === "approximate") {
+    lines.push("Accuracy: approximate IP location");
+  }
+
   // Say so when nobody has reached this node lately. The address is real - it
   // is the last one the resolver confirmed - but it is a memory, and a
   // location line that reads the same either way hides that.

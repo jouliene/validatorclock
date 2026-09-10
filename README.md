@@ -148,18 +148,55 @@ vanish with the labels; a missing glyph range is therefore answered with no
 glyphs instead of 404, and a test fails the build if a layer names a font
 inline.
 
-Node locations come from ip-api and are double-checked against ipinfo. When the
-two disagree about the country, a third source (`ipwho.is` by default) settles
-it: the side it agrees with wins, and when it backs ipinfo its own city and
-coordinates are used, since ipinfo lite has neither. Only a three-way
-disagreement waits for a person in `manual_review/`. To review every conflict by
-hand instead:
+This experimental branch uses a persistent, keyless geolocation researcher. The
+five-minute loop only checks locally resolved IPs; completed locations are reused
+for 90 days, across validator-set changes and restarts. New and late-arriving IPs
+enter a bounded queue. Failed lookups back off (1h, 6h, 1d, 3d, then weekly), and
+fully researched disagreements are checked weekly rather than treated as facts.
+
+The primary source is ip-api's free batch endpoint. DB-IP City Lite is downloaded
+automatically into a local MMDB (about 122 MiB unpacked for September 2026), with
+at most one successful update per month and only when there is research to do.
+The resolver also uses reviewed operator geofeeds and bounded, direct-target
+Latitude.sh Looking Glass checks for eligible discrepancies. No accounts, API
+keys, paid plans, Python runtime or extra setup are required for this component.
+DB-IP data is [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the footer
+includes the required [DB-IP attribution](https://db-ip.com).
+
+Answers and decisions live separately in `geo_cache.research.json` alongside the
+configured geo cache; downloaded files live in `geo_cache.research-data/`. Keep
+these paths writable and persistent. Corrupt research state stops new queries
+instead of resetting quotas. Existing map points remain available during service
+failures, and uncertainty is shown in map/validator tooltips.
+
+Defaults (these need not be added to an existing enabled node-location config):
 
 ```json
 "node_locations": {
-  "auto_resolve_conflicts": false
+  "research": {
+    "enabled": true,
+    "reuse_days": 90,
+    "max_ips_per_cycle": 100,
+    "daily_requests": 128,
+    "daily_measurements": 6,
+    "download_database": true,
+    "operator_measurements": true
+  }
 }
 ```
+
+Limits are shared across chains and persisted before sending requests. The
+request limit counts HTTP calls, not the number of IPs in a batch. Research only
+starts after the existing DHT/external resolver supplies an IP; configuring that
+resolver is unchanged. `geo_cache_ttl_seconds`, IPinfo credentials and
+`auto_resolve_conflicts` apply to the old strategy; select it explicitly with
+`"research": {"enabled": false}`. Existing manual location files retain priority.
+
+See the [implementation comparison](docs/geolocation-experiment/README.md) for
+measured results, limits, and reproduction commands. These are improvements to
+specific cases and request scheduling, not a claim of universally accurate IP
+geolocation. ip-api's free endpoint permits non-commercial use; see its
+[terms and limits](https://ip-api.com/docs/api:batch).
 
 ## Visitor Stats
 

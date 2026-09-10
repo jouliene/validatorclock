@@ -122,6 +122,7 @@ mod tests {
 
     fn map_node(ip: &str) -> ValidatorMapNodeDto {
         ValidatorMapNodeDto {
+            geo_confidence: None,
             ip: Some(ip.to_owned()),
             isp: Some("Example ISP".to_owned()),
             city: Some("Example City".to_owned()),

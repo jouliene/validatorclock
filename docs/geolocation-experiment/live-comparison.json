@@ -1,0 +1,3773 @@
+{
+  "notes": "Actual async engine on a COPY of production node cache; official database/feed files preseeded from this audit. Their download cost is not included. Manual overrides preserved. No production changes.",
+  "observed_at": 1789004876,
+  "rows": [
+    {
+      "confidence": "approximate",
+      "ip": "2.59.171.136",
+      "moved_km": 0.0,
+      "new_city": "Naaldwijk",
+      "new_country": "The Netherlands",
+      "old_city": "Naaldwijk",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "3.219.120.193",
+      "moved_km": 0.0,
+      "new_city": "Ashburn",
+      "new_country": "United States",
+      "old_city": "Ashburn",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "5.9.83.110",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "5.9.136.111",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "5.189.141.228",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "5.196.193.83",
+      "moved_km": 0.0,
+      "new_city": "Wattrelos",
+      "new_country": "France",
+      "old_city": "Wattrelos",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "5.196.193.127",
+      "moved_km": 0.0,
+      "new_city": "Wattrelos",
+      "new_country": "France",
+      "old_city": "Wattrelos",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "13.217.36.154",
+      "moved_km": 0.0,
+      "new_city": "Ashburn",
+      "new_country": "United States",
+      "old_city": "Ashburn",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "15.235.51.39",
+      "moved_km": 0.0,
+      "new_city": "Montreal",
+      "new_country": "Canada",
+      "old_city": "Montreal",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "15.235.54.121",
+      "moved_km": 0.0,
+      "new_city": "Montreal",
+      "new_country": "Canada",
+      "old_city": "Montreal",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "15.235.83.168",
+      "moved_km": 0.0,
+      "new_city": "Montreal",
+      "new_country": "Canada",
+      "old_city": "Montreal",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "15.235.85.142",
+      "moved_km": 0.0,
+      "new_city": "Montreal",
+      "new_country": "Canada",
+      "old_city": "Montreal",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "15.235.114.213",
+      "moved_km": 0.0,
+      "new_city": "Montreal",
+      "new_country": "Canada",
+      "old_city": "Montreal",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "23.109.63.180",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "23.109.63.188",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "23.109.63.196",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "23.109.63.236",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "35.206.181.90",
+      "moved_km": 0.0,
+      "new_city": "Brussels",
+      "new_country": "Belgium",
+      "old_city": "Brussels",
+      "old_country": "Belgium"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "37.48.125.242",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "37.187.82.103",
+      "moved_km": 0.0,
+      "new_city": "Wattrelos",
+      "new_country": "France",
+      "old_city": "Wattrelos",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "38.242.157.212",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "43.153.37.128",
+      "moved_km": 0.0,
+      "new_city": "Santa Clara",
+      "new_country": "United States",
+      "old_city": "Santa Clara",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.32.183.230",
+      "moved_km": 0.0,
+      "new_city": "Canary Wharf",
+      "new_country": "United Kingdom",
+      "old_city": "Canary Wharf",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.32.236.110",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.63.1.62",
+      "moved_km": 0.0,
+      "new_city": "Piscataway",
+      "new_country": "United States",
+      "old_city": "Piscataway",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.76.36.171",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.76.148.129",
+      "moved_km": 0.0,
+      "new_city": "Singapore",
+      "new_country": "Singapore",
+      "old_city": "Singapore",
+      "old_country": "Singapore"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.92.128.227",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.92.128.241",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.92.128.245",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.92.128.247",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.92.128.248",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "45.92.128.251",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "45.139.24.8",
+      "moved_km": 0.0,
+      "new_city": "Moscow",
+      "new_country": "Russia",
+      "old_city": "Moscow",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "45.250.254.61",
+      "moved_km": 0.0,
+      "new_city": "Ashburn",
+      "new_country": "United States",
+      "old_city": "Ashburn",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "46.62.189.248",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "47.238.111.0",
+      "moved_km": 0.0,
+      "new_city": "Hong Kong",
+      "new_country": "Hong Kong",
+      "old_city": "Hong Kong",
+      "old_country": "Hong Kong"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "47.243.206.252",
+      "moved_km": 0.0,
+      "new_city": "Hong Kong",
+      "new_country": "Hong Kong",
+      "old_city": "Hong Kong",
+      "old_country": "Hong Kong"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "49.12.149.201",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "49.12.150.8",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "49.12.150.137",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.68.21.41",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.68.25.14",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.68.54.30",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.77.56.35",
+      "moved_km": 0.0,
+      "new_city": "Warsaw",
+      "new_country": "Poland",
+      "old_city": "Warsaw",
+      "old_country": "Poland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.77.165.63",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.77.165.111",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.91.50.48",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.91.196.254",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.158.248.92",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.178.106.245",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "51.222.42.108",
+      "moved_km": 0.0,
+      "new_city": "Beauharnois",
+      "new_country": "Canada",
+      "old_city": "Beauharnois",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "medium",
+      "ip": "54.36.131.208",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "54.86.186.112",
+      "moved_km": 0.0,
+      "new_city": "Ashburn",
+      "new_country": "United States",
+      "old_city": "Ashburn",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.128.141.93",
+      "moved_km": 0.0,
+      "new_city": "Erith",
+      "new_country": "United Kingdom",
+      "old_city": "Erith",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.128.187.19",
+      "moved_km": 0.0,
+      "new_city": "Erith",
+      "new_country": "United Kingdom",
+      "old_city": "Erith",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.128.187.21",
+      "moved_km": 0.0,
+      "new_city": "Erith",
+      "new_country": "United Kingdom",
+      "old_city": "Erith",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.57",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.58",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.59",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.60",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.61",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.62",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.53.63",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.146.62",
+      "moved_km": 0.0,
+      "new_city": "Bexley",
+      "new_country": "United Kingdom",
+      "old_city": "Bexley",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "57.129.146.66",
+      "moved_km": 0.0,
+      "new_city": "Bexley",
+      "new_country": "United Kingdom",
+      "old_city": "Bexley",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "57.129.147.75",
+      "moved_km": 0.0,
+      "new_city": "Bexley",
+      "new_country": "United Kingdom",
+      "old_city": "Bexley",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "57.129.147.91",
+      "moved_km": 0.0,
+      "new_city": "Bexley",
+      "new_country": "United Kingdom",
+      "old_city": "Bexley",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "62.122.168.226",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "62.122.168.228",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "62.149.6.2",
+      "moved_km": 0.0,
+      "new_city": "Kyiv",
+      "new_country": "Ukraine",
+      "old_city": "Kyiv",
+      "old_country": "Ukraine"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.34.84.79",
+      "moved_km": 0.0,
+      "new_city": "Ashburn",
+      "new_country": "United States",
+      "old_city": "Ashburn",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.34.86.91",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.34.86.113",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "measured_metro",
+      "ip": "64.34.88.165",
+      "moved_km": 3935.6972186499215,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "New York",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.120.114.237",
+      "moved_km": 0.0,
+      "new_city": "Wan Chai",
+      "new_country": "Hong Kong",
+      "old_city": "Wan Chai",
+      "old_country": "Hong Kong"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.33.174",
+      "moved_km": 0.0,
+      "new_city": "Bluffdale",
+      "new_country": "United States",
+      "old_city": "Bluffdale",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.41.220",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.41.223",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.41.227",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.114",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.119",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.121",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.122",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.123",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.124",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.125",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.43.147",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.47.100",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.47.102",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.47.179",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.47.181",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.55.21",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.56.37",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.56.82",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.165",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.166",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.167",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.168",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.169",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.172",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.58.173",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.59.75",
+      "moved_km": 0.0,
+      "new_city": "Newark",
+      "new_country": "United States",
+      "old_city": "Newark",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.61.132",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.61.133",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.61.134",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.61.170",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.130.61.182",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.176.174.243",
+      "moved_km": 0.0,
+      "new_city": "Rosh Ha‘Ayin",
+      "new_country": "Israel",
+      "old_city": "Rosh Ha‘Ayin",
+      "old_country": "Israel"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.177.65.207",
+      "moved_km": 0.0,
+      "new_city": "Rosh Ha‘Ayin",
+      "new_country": "Israel",
+      "old_city": "Rosh Ha‘Ayin",
+      "old_country": "Israel"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.177.67.30",
+      "moved_km": 0.0,
+      "new_city": "Kiryat Tiv'on",
+      "new_country": "Israel",
+      "old_city": "Kiryat Tiv'on",
+      "old_country": "Israel"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "64.177.67.116",
+      "moved_km": 0.0,
+      "new_city": "Kiryat Tiv'on",
+      "new_country": "Israel",
+      "old_city": "Kiryat Tiv'on",
+      "old_country": "Israel"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "65.20.114.104",
+      "moved_km": 0.0,
+      "new_city": "Spånga",
+      "new_country": "Sweden",
+      "old_city": "Spånga",
+      "old_country": "Sweden"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.21.95.117",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.21.97.112",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.21.97.164",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.108.79.120",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.108.100.182",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.108.133.185",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.108.195.19",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.108.225.40",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.108.226.141",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "65.109.75.244",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "66.42.50.225",
+      "moved_km": 0.0,
+      "new_city": "Singapore",
+      "new_country": "Singapore",
+      "old_city": "Singapore",
+      "old_country": "Singapore"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "67.213.120.195",
+      "moved_km": 0.0,
+      "new_city": "New York",
+      "new_country": "United States",
+      "old_city": "New York",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "measured_metro",
+      "ip": "67.213.125.125",
+      "moved_km": 496.0020449632339,
+      "new_city": "Sydney",
+      "new_country": "Australia",
+      "old_city": "Nyngan",
+      "old_country": "Australia"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "70.34.212.4",
+      "moved_km": 0.0,
+      "new_city": "Spånga",
+      "new_country": "Sweden",
+      "old_city": "Spånga",
+      "old_country": "Sweden"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "72.46.84.223",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "74.118.136.137",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "74.118.140.147",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "75.119.147.73",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "78.46.75.82",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.127.207.206",
+      "moved_km": 0.0,
+      "new_city": "Zurich",
+      "new_country": "Switzerland",
+      "old_city": "Zurich",
+      "old_country": "Switzerland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.100.30",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.100.31",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.100.33",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.100.34",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.100.38",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.100.39",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "79.137.101.230",
+      "moved_km": 0.0,
+      "new_city": "Wattrelos",
+      "new_country": "France",
+      "old_city": "Wattrelos",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "80.241.215.197",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "83.149.93.197",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "84.32.189.93",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "84.207.214.228",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "84.207.214.245",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "84.207.214.246",
+      "moved_km": 0.0,
+      "new_city": "Dublin",
+      "new_country": "Ireland",
+      "old_city": "Dublin",
+      "old_country": "Ireland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.17.70.134",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.17.70.135",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.17.70.136",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.130",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.131",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.132",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.134",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.135",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.136",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.137",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.138",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.139",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.140",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.141",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.142",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.143",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.144",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.145",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.146",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.147",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.148",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.149",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.150",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.151",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.152",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.153",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.154",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.155",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.156",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "85.90.235.157",
+      "moved_km": 0.0,
+      "new_city": "City of London",
+      "new_country": "United Kingdom",
+      "old_city": "City of London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "87.117.19.226",
+      "moved_km": 0.0,
+      "new_city": "Azov",
+      "new_country": "Russia",
+      "old_city": "Azov",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "88.99.90.116",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "88.99.147.161",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "88.99.243.158",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "88.211.220.60",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "88.211.220.236",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "88.216.198.160",
+      "moved_km": 0.0,
+      "new_city": "Chicago",
+      "new_country": "United States",
+      "old_city": "Chicago",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "88.216.198.175",
+      "moved_km": 0.0,
+      "new_city": "Chicago",
+      "new_country": "United States",
+      "old_city": "Chicago",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "89.117.59.119",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "89.117.59.125",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.92.144.177",
+      "moved_km": 0.0,
+      "new_city": "Sofia",
+      "new_country": "Bulgaria",
+      "old_city": "Sofia",
+      "old_country": "Bulgaria"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.6",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.7",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.8",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.9",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.10",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.11",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.12",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.13",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.22",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.23",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.24",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.25",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.26",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.27",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.28",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.29",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.38",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.39",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.40",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.41",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.42",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.43",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.44",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.45",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.54",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.10.55",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.6",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.7",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.8",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.9",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.10",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.11",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.12",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.13",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.22",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.23",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.24",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.25",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.26",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.27",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.28",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.29",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.38",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.39",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.40",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.41",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.42",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.43",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.44",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.45",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.54",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.108.14.55",
+      "moved_km": 0.0,
+      "new_city": "Virginia Gardens",
+      "new_country": "United States",
+      "old_city": "Virginia Gardens",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.134.9.14",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.134.9.17",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.134.22.6",
+      "moved_km": 0.0,
+      "new_city": "Strasbourg",
+      "new_country": "France",
+      "old_city": "Strasbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "91.134.22.58",
+      "moved_km": 0.0,
+      "new_city": "Strasbourg",
+      "new_country": "France",
+      "old_city": "Strasbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "94.130.9.146",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "94.156.128.209",
+      "moved_km": 0.0,
+      "new_city": "Sofia",
+      "new_country": "Bulgaria",
+      "old_city": "Sofia",
+      "old_country": "Bulgaria"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "95.105.75.205",
+      "moved_km": 0.0,
+      "new_city": "Kazan'",
+      "new_country": "Russia",
+      "old_city": "Kazan'",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "95.165.68.62",
+      "moved_km": 0.0,
+      "new_city": "Moscow",
+      "new_country": "Russia",
+      "old_city": "Moscow",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "95.179.148.233",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "95.179.191.253",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "95.179.199.115",
+      "moved_km": 0.0,
+      "new_city": "Canary Wharf",
+      "new_country": "United Kingdom",
+      "old_city": "Canary Wharf",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "95.179.200.89",
+      "moved_km": 0.0,
+      "new_city": "Canary Wharf",
+      "new_country": "United Kingdom",
+      "old_city": "Canary Wharf",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "95.211.240.129",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "95.216.46.49",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "98.90.99.112",
+      "moved_km": 0.0,
+      "new_city": "Ashburn",
+      "new_country": "United States",
+      "old_city": "Ashburn",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "103.67.203.89",
+      "moved_km": 0.0,
+      "new_city": "Haarlem",
+      "new_country": "The Netherlands",
+      "old_city": "Haarlem",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "103.109.101.168",
+      "moved_km": 0.0,
+      "new_city": "Quarry Bay",
+      "new_country": "Hong Kong",
+      "old_city": "Quarry Bay",
+      "old_country": "Hong Kong"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "104.192.1.90",
+      "moved_km": 0.0,
+      "new_city": "Buffalo",
+      "new_country": "United States",
+      "old_city": "Buffalo",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "104.238.222.200",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "108.61.99.132",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "116.202.196.14",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "116.202.242.42",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "131.153.158.183",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "131.153.243.189",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "135.181.229.140",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "135.181.244.18",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "135.181.244.24",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.4.95",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.9.23",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.18.184",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.38.125",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.62.108",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.62.245",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.67.187",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.70.235",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.72.172",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "136.243.124.152",
+      "moved_km": 0.0,
+      "new_city": "Nuremberg",
+      "new_country": "Germany",
+      "old_city": "Nuremberg",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "136.244.91.156",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "136.244.100.170",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "137.74.4.103",
+      "moved_km": 0.0,
+      "new_city": "Warsaw",
+      "new_country": "Poland",
+      "old_city": "Warsaw",
+      "old_country": "Poland"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "137.74.4.116",
+      "moved_km": 0.0,
+      "new_city": "Warsaw",
+      "new_country": "Poland",
+      "old_city": "Warsaw",
+      "old_country": "Poland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "139.180.136.165",
+      "moved_km": 0.0,
+      "new_city": "Singapore",
+      "new_country": "Singapore",
+      "old_city": "Singapore",
+      "old_country": "Singapore"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "139.180.214.180",
+      "moved_km": 0.0,
+      "new_city": "Singapore",
+      "new_country": "Singapore",
+      "old_city": "Singapore",
+      "old_country": "Singapore"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.94.3.10",
+      "moved_km": 0.0,
+      "new_city": "Wattrelos",
+      "new_country": "France",
+      "old_city": "Wattrelos",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.94.141.16",
+      "moved_km": 0.0,
+      "new_city": "Strasbourg",
+      "new_country": "France",
+      "old_city": "Strasbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.84.84",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.85.230",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.85.234",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.85.235",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.85.239",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.156.198",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.95.204.122",
+      "moved_km": 0.0,
+      "new_city": "Gravelines",
+      "new_country": "France",
+      "old_city": "Gravelines",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "141.227.165.68",
+      "moved_km": 0.0,
+      "new_city": "Vienna",
+      "new_country": "Austria",
+      "old_city": "Vienna",
+      "old_country": "Austria"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "144.76.165.207",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "146.59.54.70",
+      "moved_km": 0.0,
+      "new_city": "Warsaw",
+      "new_country": "Poland",
+      "old_city": "Warsaw",
+      "old_country": "Poland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "146.59.84.19",
+      "moved_km": 0.0,
+      "new_city": "Warsaw",
+      "new_country": "Poland",
+      "old_city": "Warsaw",
+      "old_country": "Poland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "146.59.138.197",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "146.59.177.20",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "148.113.180.6",
+      "moved_km": 0.0,
+      "new_city": "Beauharnois",
+      "new_country": "Canada",
+      "old_city": "Beauharnois",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "149.28.150.2",
+      "moved_km": 0.0,
+      "new_city": "Singapore",
+      "new_country": "Singapore",
+      "old_city": "Singapore",
+      "old_country": "Singapore"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "149.202.64.90",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.16",
+      "moved_km": 8075.775426771187,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.19",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.23",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.25",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.26",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.28",
+      "moved_km": 8075.775426771187,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.31",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.41",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.42",
+      "moved_km": 8075.777864455037,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "155.2.223.43",
+      "moved_km": 8071.761007271137,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "George Town",
+      "old_country": "Cayman Islands"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "157.90.131.81",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "157.180.50.133",
+      "moved_km": 0.0,
+      "new_city": "Helsinki",
+      "new_country": "Finland",
+      "old_city": "Helsinki",
+      "old_country": "Finland"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "159.69.58.44",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "160.202.130.199",
+      "moved_km": 0.0,
+      "new_city": "São Paulo",
+      "new_country": "Brazil",
+      "old_city": "São Paulo",
+      "old_country": "Brazil"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "161.97.123.32",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "161.97.174.72",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "162.19.37.38",
+      "moved_km": 0.0,
+      "new_city": "Wattrelos",
+      "new_country": "France",
+      "old_city": "Wattrelos",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "162.19.103.123",
+      "moved_km": 0.0,
+      "new_city": "Strasbourg",
+      "new_country": "France",
+      "old_city": "Strasbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "162.19.136.209",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "162.19.168.6",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "162.19.222.179",
+      "moved_km": 0.0,
+      "new_city": "Limburg an der Lahn",
+      "new_country": "Germany",
+      "old_city": "Limburg an der Lahn",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "162.43.189.13",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "165.22.95.158",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "167.86.119.67",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "167.235.118.237",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "168.119.38.209",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "168.119.197.21",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.155.72",
+      "moved_km": 0.0,
+      "new_city": "Woerden",
+      "new_country": "The Netherlands",
+      "old_city": "Woerden",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.155.74",
+      "moved_km": 0.0,
+      "new_city": "Woerden",
+      "new_country": "The Netherlands",
+      "old_city": "Woerden",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.155.76",
+      "moved_km": 0.0,
+      "new_city": "Woerden",
+      "new_country": "The Netherlands",
+      "old_city": "Woerden",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.182",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.184",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.197",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.198",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.250",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.251",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.252",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.253",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.176.254",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.181.17",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.23.181.24",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt am Main",
+      "new_country": "Germany",
+      "old_city": "Frankfurt am Main",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "170.106.146.67",
+      "moved_km": 0.0,
+      "new_city": "Santa Clara",
+      "new_country": "United States",
+      "old_city": "Santa Clara",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "172.81.129.82",
+      "moved_km": 0.0,
+      "new_city": "Chicago",
+      "new_country": "United States",
+      "old_city": "Chicago",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "172.241.167.225",
+      "moved_km": 0.0,
+      "new_city": "Parsippany",
+      "new_country": "United States",
+      "old_city": "Parsippany",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "173.208.97.107",
+      "moved_km": 0.0,
+      "new_city": "Edison",
+      "new_country": "United States",
+      "old_city": "Edison",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "173.208.97.108",
+      "moved_km": 0.0,
+      "new_city": "Edison",
+      "new_country": "United States",
+      "old_city": "Edison",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "173.208.97.109",
+      "moved_km": 0.0,
+      "new_city": "Edison",
+      "new_country": "United States",
+      "old_city": "Edison",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "176.9.122.147",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "176.37.117.178",
+      "moved_km": 0.0,
+      "new_city": "Kyiv",
+      "new_country": "Ukraine",
+      "old_city": "Kyiv",
+      "old_country": "Ukraine"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "178.63.25.155",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "178.63.165.86",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "185.177.125.45",
+      "moved_km": 0.0,
+      "new_city": "Naaldwijk",
+      "new_country": "The Netherlands",
+      "old_city": "Naaldwijk",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "185.189.44.203",
+      "moved_km": 0.0,
+      "new_city": "Stockholm",
+      "new_country": "Sweden",
+      "old_city": "Stockholm",
+      "old_country": "Sweden"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "185.216.192.123",
+      "moved_km": 0.0,
+      "new_city": "Rostov-on-Don",
+      "new_country": "Russia",
+      "old_city": "Rostov-on-Don",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "188.42.190.20",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "188.165.46.205",
+      "moved_km": 0.0,
+      "new_city": "Roubaix",
+      "new_country": "France",
+      "old_city": "Roubaix",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "188.241.27.209",
+      "moved_km": 0.0,
+      "new_city": "Andorra la Vella",
+      "new_country": "Andorra",
+      "old_city": "Andorra la Vella",
+      "old_country": "Andorra"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "188.244.38.159",
+      "moved_km": 0.0,
+      "new_city": "Moscow",
+      "new_country": "Russia",
+      "old_city": "Moscow",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.4",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.7",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.9",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.23",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.25",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.51",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.53",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.88",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.96",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.110",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.116",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "194.0.104.125",
+      "moved_km": 0.0,
+      "new_city": "Schieren",
+      "new_country": "Luxembourg",
+      "old_city": "Schieren",
+      "old_country": "Luxembourg"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "194.87.209.129",
+      "moved_km": 0.0,
+      "new_city": "Moscow",
+      "new_country": "Russia",
+      "old_city": "Moscow",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "194.87.209.239",
+      "moved_km": 0.0,
+      "new_city": "Moscow",
+      "new_country": "Russia",
+      "old_city": "Moscow",
+      "old_country": "Russia"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "194.163.140.58",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "195.3.223.158",
+      "moved_km": 0.0,
+      "new_city": "Warsaw",
+      "new_country": "Poland",
+      "old_city": "Warsaw",
+      "old_country": "Poland"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "195.154.91.103",
+      "moved_km": 0.0,
+      "new_city": "Paris",
+      "new_country": "France",
+      "old_city": "Paris",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "195.154.103.160",
+      "moved_km": 0.0,
+      "new_city": "Paris",
+      "new_country": "France",
+      "old_city": "Paris",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "195.154.103.186",
+      "moved_km": 0.0,
+      "new_city": "Paris",
+      "new_country": "France",
+      "old_city": "Paris",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "195.154.103.188",
+      "moved_km": 0.0,
+      "new_city": "Paris",
+      "new_country": "France",
+      "old_city": "Paris",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "195.154.212.44",
+      "moved_km": 0.0,
+      "new_city": "Paris",
+      "new_country": "France",
+      "old_city": "Paris",
+      "old_country": "France"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.13.134.210",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.13.134.211",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.13.137.131",
+      "moved_km": 0.0,
+      "new_city": "Frankfurt",
+      "new_country": "Germany",
+      "old_city": "Frankfurt",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.244.200.11",
+      "moved_km": 0.0,
+      "new_city": "London",
+      "new_country": "United Kingdom",
+      "old_city": "London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.244.200.12",
+      "moved_km": 0.0,
+      "new_city": "London",
+      "new_country": "United Kingdom",
+      "old_city": "London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.244.200.13",
+      "moved_km": 0.0,
+      "new_city": "London",
+      "new_country": "United Kingdom",
+      "old_city": "London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "198.244.200.18",
+      "moved_km": 0.0,
+      "new_city": "London",
+      "new_country": "United Kingdom",
+      "old_city": "London",
+      "old_country": "United Kingdom"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "204.16.242.101",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "204.16.244.77",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "204.16.245.5",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "204.16.245.164",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "204.16.247.106",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "206.223.227.171",
+      "moved_km": 0.0,
+      "new_city": "Dallas",
+      "new_country": "United States",
+      "old_city": "Dallas",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "206.223.233.49",
+      "moved_km": 0.0,
+      "new_city": "New York",
+      "new_country": "United States",
+      "old_city": "New York",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "206.223.236.201",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "206.223.236.207",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.104.163",
+      "moved_km": 0.0,
+      "new_city": "Vancouver",
+      "new_country": "Canada",
+      "old_city": "Vancouver",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.104.167",
+      "moved_km": 0.0,
+      "new_city": "Vancouver",
+      "new_country": "Canada",
+      "old_city": "Vancouver",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.104.168",
+      "moved_km": 0.0,
+      "new_city": "Vancouver",
+      "new_country": "Canada",
+      "old_city": "Vancouver",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.104.169",
+      "moved_km": 0.0,
+      "new_city": "Vancouver",
+      "new_country": "Canada",
+      "old_city": "Vancouver",
+      "old_country": "Canada"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.111.239",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.111.250",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.111.251",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.111.252",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.111.253",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "208.91.111.254",
+      "moved_km": 0.0,
+      "new_city": "Pittsburgh",
+      "new_country": "United States",
+      "old_city": "Pittsburgh",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "209.192.185.33",
+      "moved_km": 0.0,
+      "new_city": "Miami",
+      "new_country": "United States",
+      "old_city": "Miami",
+      "old_country": "United States"
+    },
+    {
+      "confidence": "approximate",
+      "ip": "209.250.255.171",
+      "moved_km": 0.0,
+      "new_city": "Amsterdam",
+      "new_country": "The Netherlands",
+      "old_city": "Amsterdam",
+      "old_country": "The Netherlands"
+    },
+    {
+      "confidence": "operator_city",
+      "ip": "213.133.97.201",
+      "moved_km": 0.0,
+      "new_city": "Falkenstein",
+      "new_country": "Germany",
+      "old_city": "Falkenstein",
+      "old_country": "Germany"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.68.105",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.55",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.142",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.176",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.69.230",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.83.246",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "213.136.84.243",
+      "moved_km": 0.0,
+      "new_city": "Lauterbourg",
+      "new_country": "France",
+      "old_city": "Lauterbourg",
+      "old_country": "France"
+    },
+    {
+      "confidence": "disputed",
+      "ip": "216.18.202.242",
+      "moved_km": 0.0,
+      "new_city": "Los Angeles",
+      "new_country": "United States",
+      "old_city": "Los Angeles",
+      "old_country": "United States"
+    }
+  ],
+  "summary": {
+    "after_restart_http_requests": 0,
+    "disputed": 37,
+    "first_pass_http_requests": 12,
+    "ips": 416,
+    "measured_metros": 2,
+    "moved_over_100km": 12,
+    "same_set_after_five_minutes_http_requests": 0
+  },
+  "trial_options": {
+    "max_ips_per_cycle": 500,
+    "daily_requests": 128,
+    "daily_measurements": 6,
+    "official_assets_preseeded": true,
+    "legacy_cache_reused": true
+  },
+  "attribution": "IP Geolocation by DB-IP, https://db-ip.com, CC BY 4.0.",
+  "input_sha256": {
+    "geo_cache.json": "c905cb0dc24b503550e9c5341aced1657a9f50e140c2793293251995d3c5561c",
+    "ton_map/ton_nodes.json": "5f169bc4671e7eb8b3e9839a38b7d0ac6a275fd47148ec5239ee80e5a5e5a25b",
+    "everscale_map/everscale_nodes.json": "d0e1a41cea6d789ebff49b02cd5fe5767ec98b8224a49b3802b2c28da743b9f2",
+    "tycho_map/tycho_nodes_native.json": "c105a640b24a46e7f825e314050b9ab6692f07c9ddd587d9fc2f976781d9a372"
+  }
+}

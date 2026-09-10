@@ -20,6 +20,8 @@ instant-acme = { version = "0.8", default-features = false, features = ["hyper-r
 # place on the map. See the `quic-address` branch of each.
 adnl = { version = "0.11", features = ["node"], git = "https://github.com/jouliene/ever-adnl.git", branch = "quic-address" }
 flate2 = "1"
+ipnet = "2"
+maxminddb = "0.31"
 ever_block = { git = "https://github.com/everx-labs/ever-block.git", tag = "1.11.20", features = ["export_key"] }
 ton_api = { git = "https://github.com/jouliene/ever-tl.git", package = "ton_api", branch = "quic-address" }
 minik2 = { git = "https://github.com/jouliene/minik2", rev = "3cf2fc733805343c918525ec080b189e2cccfe42" }
@@ -62,4 +64,3 @@ codegen-units = 1
 panic = "unwind"
 strip = true
 debug = false
-
