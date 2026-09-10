@@ -148,12 +148,12 @@ vanish with the labels; a missing glyph range is therefore answered with no
 glyphs instead of 404, and a test fails the build if a layer names a font
 inline.
 
-Full all-network comparison and known issues: [10 September 2026 report](docs/geolocation-full-comparison-2026-09-10/README.md). The experimental resolver has not been promoted to main.
+Final all-network comparison, checks and remaining uncertainty: [geolocation readiness report](docs/geolocation-readiness/README.md). Main and production have not been switched.
 
 This experimental branch uses a persistent, keyless geolocation researcher. The
 five-minute loop only checks locally resolved IPs; completed locations are reused
 for 2 days, across validator-set changes and restarts. New and late-arriving IPs
-enter a bounded queue. Failed lookups back off (1h, 6h, 1d, 3d, then weekly), and
+enter the due queue. Failed lookups back off (1h, 6h, 1d, 3d, then weekly), and
 fully researched disagreements are checked weekly rather than treated as facts.
 
 The primary source is ip-api's free batch endpoint. DB-IP City Lite is downloaded
@@ -164,6 +164,11 @@ Globalping checks independent of the target operator. Candidates come from the
 current probe catalogue and conflicting database locations, not an ASN allowlist.
 A location over 100 km from the nearest available probe city in its country also
 triggers research; this distance is not proof that the database is wrong.
+Previous published points survive expiry as historical evidence. A country change
+or move over 100 km requires an independent check even if the current databases
+agree; the previous point remains disputed until the move is supported.
+Probe selection prefers datacenter networks. When exactly one network supports
+a metro, one additional previously untested network may be queried.
 A metro is accepted only with <=3 ms RTT (>=3 replies) from at least two distinct
 probe ASNs within 100 km, with no incompatible low-RTT alternative. No accounts, API
 keys, paid plans, Python runtime or extra setup are required for this component.
@@ -183,7 +188,7 @@ Defaults (these need not be added to an existing enabled node-location config):
   "research": {
     "enabled": true,
     "reuse_days": 2,
-    "max_ips_per_cycle": 100,
+    "max_ips_per_cycle": 0,
     "daily_requests": 0,
     "daily_measurements": 0,
     "download_database": true,
@@ -196,14 +201,21 @@ Globalping uses no API key. There is no application-imposed daily ceiling by
 default: `daily_requests: 0` and `daily_measurements: 0` disable optional local
 caps. Positive values enable an administrator-selected cap on HTTP calls or
 measurement jobs respectively; existing explicit values remain effective.
-Provider throttling and Retry-After still apply. Each job uses at most 6 probe
-tests to compare its candidate cities; that is not a daily quota. Catalogue reads
-(once/day while work exists), job creation and result reads remain accounted for. Job IDs survive restarts; results are collected on later retry
-cycles (first normally after one hour), without submitting duplicate jobs. No
+`max_ips_per_cycle: 0` processes the whole due queue; a positive value sets an
+optional per-cycle cap. ip-api requests remain batched in groups of at most 100.
+Provider throttling and Retry-After still apply. Short pacing waits are handled
+inside the pass, rather than counting as failed IP lookups. Each initial measurement
+job uses at most 6 probes to compare candidate cities; a conditional extra check
+uses one more independent network. These are not daily quotas. Catalogue reads
+(once/day while work exists), job creation and result reads remain accounted for.
+Job IDs survive restarts; results are collected on the next worker cycle, normally
+five minutes later. Failed submissions and result reads back off independently
+(1h, 6h, 1d, 3d, then weekly), including across restarts. No
 answer or insufficient independent probes leaves the location uncertain. The old
 `operator_measurements` setting remains a deserialization alias. Operator geofeeds
 currently cover only Hetzner/Latitude; they are optional extra evidence and do not
-limit the universal measurement engine. See the [universal measurement report](docs/geolocation-experiment/universal-measurements.md).
+limit the universal measurement engine. Journal policy v2 re-evaluates v1 decisions
+once while retaining observations, measurement IDs and provider quotas.
 
 Limits are shared across chains and persisted before sending requests. The
 request limit counts HTTP calls, not the number of IPs in a batch. Research only
@@ -212,8 +224,8 @@ resolver is unchanged. `geo_cache_ttl_seconds`, IPinfo credentials and
 `auto_resolve_conflicts` apply to the old strategy; select it explicitly with
 `"research": {"enabled": false}`. Existing manual location files retain priority.
 
-See the [implementation comparison](docs/geolocation-experiment/README.md) for
-measured results, limits, and reproduction commands. These are improvements to
+See the [final comparison](docs/geolocation-readiness/README.md) for measured
+results, limits, and reproduction commands. Earlier audits remain as historical records. These are improvements to
 specific cases and request scheduling, not a claim of universally accurate IP
 geolocation. ip-api's free endpoint permits non-commercial use; see its
 [terms and limits](https://ip-api.com/docs/api:batch).

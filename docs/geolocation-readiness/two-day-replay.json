@@ -1,0 +1,14 @@
+{
+  "all_calls": {
+    "ip-api": 5
+  },
+  "cycles_before_expiry": 575,
+  "external_http_requests": 0,
+  "ips": 415,
+  "non_completed": [],
+  "note": "Actual Engine against local recorded successful primary points; DB downloads and measurements disabled for isolated scheduler verification. Simulated time, not a 48-hour real-world soak.",
+  "per_ip_queries_after_48_hours": 1,
+  "per_ip_queries_before_48_hours": 0,
+  "primary_batch_calls_at_expiry": 5,
+  "restart_at_hours": 24
+}

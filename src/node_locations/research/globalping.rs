@@ -14,6 +14,10 @@ pub struct Job {
     pub started_at: u64,
     pub finished: bool,
     pub polls: u32,
+    #[serde(default)]
+    pub failures: u32,
+    #[serde(default)]
+    pub retry_at: u64,
     pub response: Option<Value>,
 }
 
@@ -56,7 +60,12 @@ pub fn locations(entry: &Entry, probes: &[Value]) -> Vec<Value> {
         return vec![];
     }
     let mut cities = Vec::new();
-    for p in entry.observations.values().chain(std::iter::once(base)) {
+    for p in entry
+        .observations
+        .values()
+        .chain(entry.previous_location.iter())
+        .chain(std::iter::once(base))
+    {
         if let Some(q) = nearest(p)
             && !cities
                 .iter()
@@ -66,72 +75,151 @@ pub fn locations(entry: &Entry, probes: &[Value]) -> Vec<Value> {
         }
     }
     cities.truncate(3);
-    let mut result = Vec::new();
-    for city in cities {
-        let asns = probes
-            .iter()
-            .filter_map(|v| {
-                let p = &v["location"];
-                (p["city"] == city.city && p["country"] == city.country_code)
-                    .then(|| p["asn"].as_u64())
-                    .flatten()
-                    .filter(|n| *n > 0)
-            })
-            .collect::<BTreeSet<_>>();
-        for asn in asns.into_iter().take(2) {
-            result.push(json!({"country":city.country_code,"city":city.city,"asn":asn,"limit":1}));
+    cities
+        .into_iter()
+        .flat_map(|city| city_probes(&city, probes, &BTreeSet::new(), 2))
+        .collect()
+}
+
+fn city_probes(
+    city: &Observation,
+    probes: &[Value],
+    excluded: &BTreeSet<u64>,
+    limit: usize,
+) -> Vec<Value> {
+    // Access-network delay can dominate a short metro RTT. Prefer DC probes, but
+    // retain other networks when there is insufficient coverage. No target-ASN rule.
+    let mut networks = std::collections::BTreeMap::new();
+    for v in probes {
+        let p = &v["location"];
+        if p["city"] != city.city || p["country"] != city.country_code {
+            continue;
+        }
+        let Some(asn) = p["asn"]
+            .as_u64()
+            .filter(|n| *n > 0 && !excluded.contains(n))
+        else {
+            continue;
+        };
+        let dc = v["tags"]
+            .as_array()
+            .is_some_and(|tags| tags.iter().any(|t| t == "datacenter-network"));
+        *networks.entry(asn).or_insert(false) |= dc;
+    }
+    let mut networks = networks.into_iter().collect::<Vec<_>>();
+    networks.sort_by_key(|(asn, dc)| (!*dc, *asn));
+    networks
+        .into_iter()
+        .take(limit)
+        .map(|(asn, dc)| {
+            let mut v = json!({"country":city.country_code,"city":city.city,"asn":asn,"limit":1});
+            if dc {
+                v["tags"] = json!(["datacenter-network"]);
+            }
+            v
+        })
+        .collect()
+}
+
+fn valid_responses(entry: &Entry, ip: IpAddr, now: u64, max_age: u64) -> Vec<(&Value, u64)> {
+    entry
+        .measurement_history
+        .iter()
+        .chain(entry.globalping.iter())
+        .filter_map(|job| {
+            if job.id.is_none()
+                || !job.finished
+                || now < job.started_at
+                || now - job.started_at >= max_age
+            {
+                return None;
+            }
+            let body = job.response.as_ref()?;
+            (body["target"]
+                .as_str()
+                .and_then(|s| s.parse::<IpAddr>().ok())
+                == Some(ip)
+                && body["type"] == "ping"
+                && body["status"] == "finished"
+                && body["id"].as_str() == job.id.as_deref())
+            .then_some((body, job.started_at))
+        })
+        .collect()
+}
+
+fn short_replies(
+    entry: &Entry,
+    ip: IpAddr,
+    now: u64,
+    max_age: u64,
+) -> Vec<(Observation, u64, f64)> {
+    let mut good = Vec::new();
+    for (body, at) in valid_responses(entry, ip, now, max_age) {
+        for row in body["results"].as_array().into_iter().flatten() {
+            let r = &row["result"];
+            if r["status"] != "finished"
+                || r["resolvedAddress"]
+                    .as_str()
+                    .and_then(|s| s.parse::<IpAddr>().ok())
+                    != Some(ip)
+                || r["stats"]["rcv"].as_u64().unwrap_or(0) < 3
+            {
+                continue;
+            }
+            let Some(ms) = r["stats"]["min"]
+                .as_f64()
+                .filter(|n| n.is_finite() && *n > 0.0 && *n <= 3.0)
+            else {
+                continue;
+            };
+            if let (Some(p), Some(asn)) = (
+                probe_point(&row["probe"], at),
+                row["probe"]["asn"].as_u64().filter(|n| *n > 0),
+            ) {
+                good.push((p, asn, ms));
+            }
         }
     }
-    result
+    good
+}
+
+/// One additional independent network when exactly one network supports a metro.
+/// Never retry an already measured ASN or keep adding probes until an answer fits.
+pub fn followup(entry: &Entry, probes: &[Value], ip: IpAddr, now: u64, max_age: u64) -> Vec<Value> {
+    if !entry.measurement_history.is_empty()
+        || !entry.globalping.as_ref().is_some_and(|j| j.finished)
+    {
+        return vec![];
+    }
+    let good = short_replies(entry, ip, now, max_age);
+    if good
+        .iter()
+        .map(|(_, a, _)| *a)
+        .collect::<BTreeSet<_>>()
+        .len()
+        != 1
+    {
+        return vec![];
+    }
+    let city = &good[0].0;
+    if good
+        .iter()
+        .any(|(p, _, _)| p.country_code != city.country_code || distance(p, city) > 100.0)
+    {
+        return vec![];
+    }
+    let excluded = valid_responses(entry, ip, now, max_age)
+        .into_iter()
+        .flat_map(|(b, _)| b["results"].as_array().into_iter().flatten())
+        .filter_map(|r| r["probe"]["asn"].as_u64())
+        .collect();
+    city_probes(city, probes, &excluded, 1)
 }
 
 /// Require two independent probe networks agreeing within 100 km at <=3 ms.
 /// Reject remote low-RTT alternatives rather than collapsing an anycast target to one city.
 pub fn apply(ip: IpAddr, entry: &mut Entry, now: u64, max_age: u64) -> bool {
-    let Some(job) = &entry.globalping else {
-        return false;
-    };
-    if !job.finished || now < job.started_at || now - job.started_at >= max_age {
-        return false;
-    }
-    let Some(body) = &job.response else {
-        return false;
-    };
-    if body["target"]
-        .as_str()
-        .and_then(|s| s.parse::<IpAddr>().ok())
-        != Some(ip)
-        || body["type"] != "ping"
-        || body["status"] != "finished"
-        || body["id"].as_str() != job.id.as_deref()
-    {
-        return false;
-    }
-    let mut good = Vec::new();
-    for row in body["results"].as_array().into_iter().flatten() {
-        let r = &row["result"];
-        if r["status"] != "finished"
-            || r["resolvedAddress"]
-                .as_str()
-                .and_then(|s| s.parse::<IpAddr>().ok())
-                != Some(ip)
-            || r["stats"]["rcv"].as_u64().unwrap_or(0) < 3
-        {
-            continue;
-        }
-        let Some(ms) = r["stats"]["min"]
-            .as_f64()
-            .filter(|x| x.is_finite() && *x > 0.0 && *x <= 3.0)
-        else {
-            continue;
-        };
-        if let (Some(p), Some(asn)) = (
-            probe_point(&row["probe"], job.started_at),
-            row["probe"]["asn"].as_u64().filter(|x| *x > 0),
-        ) {
-            good.push((p, asn, ms));
-        }
-    }
+    let mut good = short_replies(entry, ip, now, max_age);
     if good.iter().enumerate().any(|(i, (a, _, _))| {
         good.iter()
             .skip(i + 1)
@@ -202,7 +290,7 @@ impl Engine {
             .unwrap_or_default())
     }
 
-    /// Persist the remote ID and poll on a later cycle; never block the worker waiting.
+    /// Persist remote IDs and source failures; fetching a result is not exempt from backoff.
     pub(super) async fn global_measure(
         &mut self,
         ip: IpAddr,
@@ -215,23 +303,42 @@ impl Engine {
             .measurement_base_url
             .trim_end_matches('/')
             .to_string();
-        if entry.globalping.is_none() {
-            if !self.reserve("globalping-create", now)? {
+        let mut previous_failures = 0;
+        if let Some(job) = &entry.globalping {
+            if job.finished && job.response.is_some() {
+                return Ok(false);
+            }
+            if now < job.retry_at {
                 return Ok(true);
             }
-            // A lost POST response must not immediately duplicate a remote measurement.
+            // Retry an ambiguous submission only after its recorded failure delay.
+            // Expired remote jobs are replaced, without resetting their failure count.
+            if job.id.is_none() || now.saturating_sub(job.started_at) >= DAY || job.finished {
+                previous_failures = job.failures;
+                entry.globalping = None;
+            }
+        }
+        if entry.globalping.is_none() {
+            let Some(sent_at) = self.reserve_ready("globalping-create", now).await? else {
+                return Ok(true);
+            };
             entry.globalping = Some(Job {
-                started_at: now,
+                started_at: sent_at,
+                failures: previous_failures,
+                retry_at: sent_at.saturating_add(3600),
                 ..Job::default()
             });
             self.persist_entry(ip, entry.clone())?;
             let response = crate::http::shared_client().post(format!("{base}/measurements"))
-                .header("User-Agent","validatorclock-geolocation/1")
-                .timeout(Duration::from_secs(20))
-                .json(&json!({"type":"ping","target":ip.to_string(),"locations":locations,"measurementOptions":{"packets":3}}))
-                .send().await;
+                .header("User-Agent","validatorclock-geolocation/1").timeout(Duration::from_secs(20))
+                .json(&json!({"type":"ping","target":ip.to_string(),"locations":locations,"measurementOptions":{"packets":3}})).send().await;
             if let Ok(response) = response {
-                self.rate_headers("globalping-create", &response, now)?;
+                self.rate_headers("globalping-create", &response, sent_at)?;
+                if response.status().as_u16() == 429 {
+                    entry.globalping = None;
+                    self.persist_entry(ip, entry.clone())?;
+                    return Ok(true);
+                }
                 if response.status().is_success()
                     && let Ok(v) = crate::http::json_within::<Value>(response, 64 * 1024).await
                     && let Some(id) = v["id"].as_str().filter(|s| {
@@ -241,22 +348,28 @@ impl Engine {
                                 .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
                     })
                 {
-                    entry.globalping.as_mut().unwrap().id = Some(id.into());
+                    let job = entry.globalping.as_mut().unwrap();
+                    job.id = Some(id.into());
+                    job.failures = 0;
+                    job.retry_at = 0;
                 }
+            }
+            let job = entry.globalping.as_mut().unwrap();
+            if job.id.is_none() {
+                job.failures = job.failures.saturating_add(1);
+                job.retry_at = sent_at.saturating_add(super::model::retry_delay(job.failures));
             }
             self.persist_entry(ip, entry.clone())?;
             return Ok(true);
         }
-        let job = entry.globalping.as_ref().unwrap();
-        if job.finished {
-            return Ok(false);
-        }
-        if now.saturating_sub(job.started_at) > DAY || job.polls >= 3 || job.id.is_none() {
-            entry.globalping.as_mut().unwrap().finished = true;
-            return Ok(false);
-        }
-        let id = job.id.clone().unwrap();
-        if let Some(bytes) = self
+        let id = entry.globalping.as_ref().unwrap().id.clone().unwrap();
+        let before = *self
+            .store
+            .budget
+            .requests_by_source
+            .get("globalping-read")
+            .unwrap_or(&0);
+        let bytes = self
             .get_bytes(
                 "globalping-read",
                 &format!("{base}/measurements/{id}"),
@@ -264,17 +377,50 @@ impl Engine {
                 512 * 1024,
                 20,
             )
-            .await?
+            .await?;
+        let sent = *self
+            .store
+            .budget
+            .requests_by_source
+            .get("globalping-read")
+            .unwrap_or(&0)
+            > before;
+        let response = bytes
+            .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
+            .filter(|v| {
+                v["id"] == id
+                    && v["type"] == "ping"
+                    && v["target"].as_str().and_then(|s| s.parse::<IpAddr>().ok()) == Some(ip)
+            });
+        let job = entry.globalping.as_mut().unwrap();
+        if let Some(v) =
+            response.filter(|v| v["status"] == "finished" || v["status"] == "in-progress")
         {
-            let job = entry.globalping.as_mut().unwrap();
-            job.polls += 1;
-            if let Ok(v) = serde_json::from_slice::<Value>(&bytes)
-                && v["id"] == id
-                && v["status"] == "finished"
-            {
+            job.polls = job.polls.saturating_add(1);
+            job.failures = 0;
+            if v["status"] == "finished" {
                 job.finished = true;
                 job.response = Some(v);
+                job.retry_at = 0;
+            } else {
+                job.retry_at = now.saturating_add(if job.polls == 1 {
+                    30
+                } else {
+                    super::model::retry_delay(job.polls - 1)
+                });
             }
+        } else if sent {
+            job.failures = job.failures.saturating_add(1);
+            job.retry_at = now.saturating_add(super::model::retry_delay(job.failures));
+        } else {
+            job.retry_at = self
+                .store
+                .budget
+                .not_before
+                .get("globalping-read")
+                .copied()
+                .unwrap_or(0)
+                .max(now.saturating_add(30));
         }
         self.persist_entry(ip, entry.clone())?;
         Ok(!entry.globalping.as_ref().unwrap().finished)
@@ -308,6 +454,7 @@ mod tests {
             finished: true,
             response: Some(body),
             polls: 1,
+            ..Job::default()
         });
         e
     }
@@ -374,5 +521,33 @@ mod tests {
         let mut e = with_response(body);
         assert!(!apply(ip, &mut e, 101, DAY));
         assert_eq!(e.confidence, "disputed");
+    }
+    #[test]
+    fn prefers_datacenter_probes_without_target_operator_allowlist() {
+        let p = |asn, dc| json!({"location":probe("Amsterdam",4.9,asn),"tags":if dc {vec!["datacenter-network"]} else {vec!["eyeball-network"]}});
+        let selected = locations(&entry(), &[p(1, false), p(20, true), p(30, true)]);
+        assert_eq!(selected.len(), 2);
+        assert_eq!(selected[0]["asn"], 20);
+        assert_eq!(selected[1]["asn"], 30);
+        assert_eq!(selected[0]["tags"], json!(["datacenter-network"]));
+    }
+    #[test]
+    fn one_additional_independent_probe_can_resolve_a_partial_measurement() {
+        let ip = "1.1.1.1".parse().unwrap();
+        let mut body = response(&[10, 20], 4.9);
+        body["results"][1]["result"]["stats"]["min"] = json!(12.0);
+        let mut e = with_response(body);
+        let probes = (10..=30)
+            .step_by(10)
+            .map(|a| json!({"location":probe("Amsterdam",4.9,a),"tags":["datacenter-network"]}))
+            .collect::<Vec<_>>();
+        let extra = followup(&e, &probes, ip, 101, DAY);
+        assert_eq!(extra.len(), 1);
+        assert_eq!(extra[0]["asn"], 30);
+        e.measurement_history.push(e.globalping.take().unwrap());
+        e.globalping = with_response(response(&[30], 4.9)).globalping;
+        assert!(apply(ip, &mut e, 102, DAY));
+        assert!(followup(&e, &probes, ip, 102, DAY).is_empty());
+        assert!(!apply(ip, &mut e, 100 + DAY, DAY));
     }
 }

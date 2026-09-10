@@ -1,0 +1,122 @@
+{
+  "snapshot_at": 1789018446,
+  "finished_at": 1789019800,
+  "normal_scheduler": true,
+  "cycles": [
+    {
+      "at": 1789019184,
+      "cycle": 0,
+      "pending": 9,
+      "requests_since_start": 6
+    },
+    {
+      "at": 1789019494,
+      "cycle": 1,
+      "pending": 6,
+      "requests_since_start": 15
+    },
+    {
+      "at": 1789019800,
+      "cycle": 2,
+      "pending": 0,
+      "requests_since_start": 21
+    }
+  ],
+  "http_requests_this_run": 21,
+  "requests_this_run": {
+    "globalping-create": 9,
+    "globalping-read": 9,
+    "ip-api": 0,
+    "ipwho.is": 3
+  },
+  "chains": {
+    "everscale": {
+      "completed": 53,
+      "disputed": 5,
+      "manual": 1,
+      "map_rows": 87,
+      "measured_metros": 1,
+      "moved_over_100km": 0,
+      "remembered_total": 0,
+      "resolved_total": 87,
+      "unique_ips": 59,
+      "validators_total": 88
+    },
+    "ton": {
+      "completed": 319,
+      "disputed": 24,
+      "manual": 0,
+      "map_rows": 393,
+      "measured_metros": 9,
+      "moved_over_100km": 3,
+      "remembered_total": 2,
+      "resolved_total": 391,
+      "unique_ips": 343,
+      "validators_total": 393
+    },
+    "tycho-testnet": {
+      "completed": 16,
+      "disputed": 1,
+      "manual": 0,
+      "map_rows": 17,
+      "measured_metros": 0,
+      "moved_over_100km": 0,
+      "remembered_total": 0,
+      "resolved_total": 17,
+      "unique_ips": 17,
+      "validators_total": 17
+    }
+  },
+  "unique_ips": 416,
+  "confidence": {
+    "approximate": 328,
+    "disputed": 29,
+    "measured_metro": 10,
+    "operator_city": 48
+  },
+  "completed": 386,
+  "manual": 1,
+  "moved_over_100km": 3,
+  "measured_moves": [
+    "64.34.88.165",
+    "67.213.125.125",
+    "216.18.202.242"
+  ],
+  "unmeasured_moves": [],
+  "unmeasured_moves_without_disputed_flag": [],
+  "same_primary_algorithm_differences_over_100km": 3,
+  "requests": {
+    "globalping-create": 45,
+    "globalping-read": 46,
+    "ip-api": 5,
+    "ipwho.is": 31
+  },
+  "total_http_requests": 127,
+  "globalping_jobs": 45,
+  "finished_jobs": 45,
+  "globalping_probes_reported": 120,
+  "measurement_target_asns": [
+    "AS16276",
+    "AS18450",
+    "AS203493",
+    "AS214434",
+    "AS24940",
+    "AS34959",
+    "AS396356",
+    "AS51167",
+    "AS57128"
+  ],
+  "warm_http_requests": 0,
+  "restart_http_requests": 0,
+  "post_completion_reopen_http_requests": [
+    0,
+    0
+  ],
+  "failed_primary": [],
+  "failed_secondary": [],
+  "method": "Actual Engine, all production chains, configured due-queue size and real 300-second worker intervals. No retry deadline overrides. Existing valid observations and completed remote measurements reused across policy migration; previous displayed points from fresh production cache. Shared files reused. This is a real scheduler run, not a real-time 48-hour soak.",
+  "replay_method": "Actual legacy_refresh against LOCAL replay of experiment primary answers; original cached IPinfo/tiebreak evidence retained with original ages. Primary TTL intentionally bypassed. No new IPinfo answers, unavailable third answers fail. Counterfactual refresh comparison, not a fresh independent provider census; zero external requests.",
+  "input_sha256": {
+    "snapshot.json": "eed9b7c6466a3addddec47d7c5b8ba7066c0dc00564b35913719d5c7a67f2c5e"
+  }
+}

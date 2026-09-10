@@ -224,9 +224,9 @@ impl Engine {
         limit: usize,
         timeout: u64,
     ) -> Result<Option<Vec<u8>>> {
-        if !self.reserve(source, now)? {
+        let Some(now) = self.reserve_ready(source, now).await? else {
             return Ok(None);
-        }
+        };
         let response = crate::http::shared_client()
             .get(url)
             .header("User-Agent", "validatorclock-geolocation/1")

@@ -10,6 +10,7 @@ pub const DAY: u64 = 86_400;
 pub(crate) struct ResearchConfig {
     pub enabled: bool,
     pub reuse_days: u64,
+    /// Optional local work cap; zero processes the entire due queue.
     pub max_ips_per_cycle: usize,
     /// Optional local ceiling; zero disables it. Provider throttling still applies.
     pub daily_requests: u32,
@@ -24,7 +25,7 @@ impl Default for ResearchConfig {
         Self {
             enabled: true,
             reuse_days: 2,
-            max_ips_per_cycle: 100,
+            max_ips_per_cycle: 0,
             daily_requests: 0,
             daily_measurements: 0,
             download_database: true,
@@ -110,6 +111,15 @@ pub struct OperatorEvidence {
 }
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Entry {
+    /// Historical published point: expiry removes freshness, not evidence of a move.
+    #[serde(default)]
+    pub previous_location: Option<Observation>,
+    #[serde(default)]
+    pub measurement_history: Vec<super::globalping::Job>,
+    #[serde(default)]
+    pub followup_locations: Vec<serde_json::Value>,
+    #[serde(default)]
+    pub proposed_location: Option<Observation>,
     #[serde(default)]
     pub globalping: Option<super::globalping::Job>,
     #[serde(default)]
@@ -127,6 +137,19 @@ pub struct Entry {
     pub secondary_checked: bool,
 }
 impl Entry {
+    pub fn retain_previous_if_unverified(&mut self) {
+        if self.confidence != "measured_metro"
+            && let (Some(previous), Some(proposed)) =
+                (&self.previous_location, &self.proposed_location)
+            && materially_different(previous, proposed)
+        {
+            let mut held = previous.clone();
+            held.asn = proposed.asn.clone();
+            held.isp = proposed.isp.clone();
+            self.decision = Some(held);
+            self.confidence = "disputed".into();
+        }
+    }
     pub fn due(&self, now: u64, reuse_days: u64) -> bool {
         if self.completed_at > 0 {
             now >= self
@@ -139,16 +162,20 @@ impl Entry {
     pub fn retry(&mut self, now: u64) {
         self.attempts = self.attempts.saturating_add(1);
         // Unavailable data: 1h, 6h, 1d, 3d, then once per week. Survives restarts.
-        let delay = match self.attempts {
-            1 => 3600,
-            2 => 21600,
-            3 => DAY,
-            4 => 3 * DAY,
-            _ => 7 * DAY,
-        };
+        let delay = retry_delay(self.attempts);
         self.next_attempt_at = now.saturating_add(delay);
     }
 }
+pub fn retry_delay(attempt: u32) -> u64 {
+    match attempt {
+        0 | 1 => 3600,
+        2 => 21600,
+        3 => DAY,
+        4 => 3 * DAY,
+        _ => 7 * DAY,
+    }
+}
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Budget {
     pub day: u64,
@@ -202,6 +229,10 @@ pub fn distance(a: &Observation, b: &Observation) -> f64 {
     12742.0 * h.clamp(0.0, 1.0).sqrt().asin()
 }
 
+pub fn materially_different(a: &Observation, b: &Observation) -> bool {
+    a.country_code != b.country_code || distance(a, b) > 100.0
+}
+
 /// DB agreement is evidence, never physical verification. No majority voting.
 pub fn decide(entry: &mut Entry) {
     entry.reasons.clear();
@@ -224,6 +255,16 @@ pub fn decide(entry: &mut Entry) {
             ));
         }
     }
+    if entry
+        .previous_location
+        .as_ref()
+        .is_some_and(|old| materially_different(old, &base))
+    {
+        entry.reasons.push(
+            "large change from previously published location; independent check required".into(),
+        );
+    }
+    entry.proposed_location = Some(base.clone());
     entry.confidence = if entry.reasons.is_empty() {
         "approximate"
     } else {

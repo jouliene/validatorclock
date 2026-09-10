@@ -30,27 +30,41 @@ impl Engine {
     pub(crate) fn open(config: &NodeLocationsConfig) -> Result<Self> {
         let path = config.geo_cache_path.with_extension("research.json");
         let directory = config.geo_cache_path.with_extension("research-data");
-        let store = if path.exists() {
+        let mut store = if path.exists() {
             serde_json::from_slice::<Store>(&std::fs::read(&path)?)
                 .context("research state is unreadable; refusing to restart network research")?
         } else {
             Store {
-                version: 1,
+                version: 2,
                 ..Store::default()
             }
         };
-        if store.version != 1 {
+        let migrated = store.version == 1;
+        if migrated {
+            // Re-evaluate old policy decisions once. Keep original observations, remote
+            // measurement IDs and provider quotas; this is not a fresh network census.
+            for entry in store.entries.values_mut() {
+                entry.completed_at = 0;
+                entry.next_attempt_at = 0;
+            }
+            store.version = 2;
+        }
+        if store.version != 2 {
             bail!("unsupported research state version");
         }
         std::fs::create_dir_all(&directory)?;
-        Ok(Self {
+        let engine = Self {
             config: config.research.clone(),
             store,
             directory,
             path,
             database: None,
             feeds: BTreeMap::new(),
-        })
+        };
+        if migrated {
+            engine.save()?;
+        }
+        Ok(engine)
     }
     fn database_path(&self) -> PathBuf {
         self.directory.join("dbip-city-lite.mmdb")
@@ -65,6 +79,23 @@ impl Engine {
         // Write before sending, including failed calls. Crash/restart cannot reset the quota.
         self.save()?;
         Ok(true)
+    }
+    /// Wait only for short source pacing, never turn it into an IP lookup failure.
+    async fn reserve_ready(&mut self, source: &str, now: u64) -> Result<Option<u64>> {
+        let mut sent_at = now.max(crate::timeutil::now_sec());
+        let delay = self
+            .store
+            .budget
+            .not_before
+            .get(source)
+            .copied()
+            .unwrap_or(0)
+            .saturating_sub(sent_at);
+        if delay > 0 && delay <= 5 {
+            tokio::time::sleep(Duration::from_secs(delay)).await;
+            sent_at = (sent_at + delay).max(crate::timeutil::now_sec());
+        }
+        Ok(self.reserve(source, sent_at)?.then_some(sent_at))
     }
     fn rate_headers(&mut self, source: &str, response: &reqwest::Response, now: u64) -> Result<()> {
         let now = now.max(crate::timeutil::now_sec());
@@ -146,15 +177,20 @@ impl Engine {
             let e = &self.store.entries[&ip.to_string()];
             (e.attempts, e.next_attempt_at, *ip)
         });
-        pending.truncate(self.config.max_ips_per_cycle.clamp(1, 500));
+        if self.config.max_ips_per_cycle > 0 {
+            pending.truncate(self.config.max_ips_per_cycle);
+        }
         if pending.is_empty() {
             return Ok(changed);
         }
         let max_age = self.config.reuse_days.clamp(1, 3650) * DAY;
+        let mut renewing = std::collections::BTreeSet::new();
         for ip in &pending {
             let entry = self.store.entries.get_mut(&ip.to_string()).unwrap();
             if entry.completed_at > 0 {
+                renewing.insert(*ip);
                 *entry = Entry {
+                    previous_location: entry.decision.clone(),
                     last_seen_at: now,
                     ..Entry::default()
                 };
@@ -167,14 +203,23 @@ impl Engine {
                 entry.secondary_checked = false;
                 entry.measurements.clear();
                 entry.globalping = None;
+                entry.measurement_history.clear();
+                entry.followup_locations.clear();
                 entry.generation_started_at = now;
+            }
+            if entry.previous_location.is_none()
+                && let Some(old) = cache.location(*ip)
+                && Observation::from_cached(old).valid()
+            {
+                entry.previous_location = Some(Observation::from_cached(old));
             }
             if entry.generation_started_at == 0 {
                 entry.generation_started_at = now;
             }
             // Migration uses an existing recent PRIMARY observation once. Old majority-vote
             // decisions aren't original ip-api observations and must be looked up afresh.
-            if entry.observations.is_empty()
+            if !renewing.contains(ip)
+                && entry.observations.is_empty()
                 && let Some(old) = cache.location(*ip)
                 && old.source == "ip-api"
                 && Observation::from_cached(old).valid()
@@ -189,7 +234,8 @@ impl Engine {
         // This also prevents a migration from erasing known country disagreements.
         for ip in &pending {
             let entry = self.store.entries.get_mut(&ip.to_string()).unwrap();
-            if entry.attempts == 0
+            if !renewing.contains(ip)
+                && entry.attempts == 0
                 && !entry.observations.contains_key("ipwho.is")
                 && let Some(old) = cache.location(*ip)
                 && old.source == "ipwho.is"
@@ -212,11 +258,12 @@ impl Engine {
                     .contains_key("ip-api")
             })
             .collect::<Vec<_>>();
-        for chunk in primary.chunks(100) {
-            let sent_at = crate::timeutil::now_sec().max(now);
-            if !self.reserve("ip-api", sent_at)? {
+        let mut deferred_primary = std::collections::BTreeSet::new();
+        for (index, chunk) in primary.chunks(100).enumerate() {
+            let Some(sent_at) = self.reserve_ready("ip-api", now).await? else {
+                deferred_primary.extend(primary[index * 100..].iter().copied());
                 break;
-            }
+            };
             let response = crate::http::shared_client()
                 .post(&config.ip_api_batch_endpoint)
                 .timeout(Duration::from_secs(20))
@@ -288,10 +335,18 @@ impl Engine {
             }
             decide(&mut entry);
             self.apply_feed(ip, &mut entry);
+            let mut deferred_secondary = false;
+            let mut failed_secondary = false;
             // One additional database lookup only for disagreements or a missing primary.
             if (!entry.reasons.is_empty() || !entry.observations.contains_key("ip-api"))
                 && !entry.secondary_checked
             {
+                let calls_before = *self
+                    .store
+                    .budget
+                    .requests_by_source
+                    .get("ipwho.is")
+                    .unwrap_or(&0);
                 let url = format!("{}/{ip}", config.tiebreak_base_url.trim_end_matches('/'));
                 if let Some(body) = self
                     .get_bytes(
@@ -313,10 +368,24 @@ impl Engine {
                     entry.observations.insert("ipwho.is".into(), point);
                     entry.secondary_checked = true;
                 }
+                if !entry.secondary_checked {
+                    deferred_secondary = *self
+                        .store
+                        .budget
+                        .requests_by_source
+                        .get("ipwho.is")
+                        .unwrap_or(&0)
+                        == calls_before;
+                    failed_secondary = !deferred_secondary;
+                }
                 decide(&mut entry);
             }
             self.apply_feed(ip, &mut entry);
-            let locations = globalping::locations(&entry, &probes);
+            let locations = if entry.followup_locations.is_empty() {
+                globalping::locations(&entry, &probes)
+            } else {
+                entry.followup_locations.clone()
+            };
             let wants_measurement = self.config.network_measurements
                 && (!locations.is_empty() || entry.globalping.is_some());
             let mut measurement_pending = false;
@@ -338,6 +407,23 @@ impl Engine {
             }
             let measured =
                 globalping::apply(ip, &mut entry, now.max(crate::timeutil::now_sec()), max_age);
+            if !measured && self.config.network_measurements {
+                let extra = globalping::followup(
+                    &entry,
+                    &probes,
+                    ip,
+                    now.max(crate::timeutil::now_sec()),
+                    max_age,
+                );
+                if !extra.is_empty() {
+                    entry
+                        .measurement_history
+                        .push(entry.globalping.take().unwrap());
+                    entry.followup_locations = extra;
+                    measurement_pending = true;
+                }
+            }
+            entry.retain_previous_if_unverified();
             let needs_secondary = !entry.reasons.is_empty() && !entry.secondary_checked;
             let complete = measured
                 || (entry.confidence != "disputed"
@@ -349,6 +435,21 @@ impl Engine {
             if complete {
                 entry.completed_at = now;
                 entry.next_attempt_at = now.saturating_add(max_age);
+            } else if (entry.observations.contains_key("ip-api") || deferred_primary.contains(&ip))
+                && !failed_secondary
+                && (deferred_primary.contains(&ip)
+                    || deferred_secondary
+                    || (measurement_pending
+                        && entry
+                            .globalping
+                            .as_ref()
+                            .is_none_or(|job| job.id.is_some() || job.retry_at > now)))
+            {
+                // Waiting for source capacity or a submitted async job is not a failed IP.
+                // Resume next worker cycle; each actual request still checks source not_before.
+                entry.next_attempt_at = now
+                    .saturating_add(30)
+                    .max(entry.globalping.as_ref().map(|j| j.retry_at).unwrap_or(0));
             } else {
                 // A fully researched disagreement needs new data, not the same calls hourly.
                 if entry.confidence == "disputed" && entry.secondary_checked && !measurement_pending

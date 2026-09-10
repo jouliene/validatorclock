@@ -929,3 +929,344 @@ fn default_budget_has_no_daily_ceiling_but_preserves_provider_cooldown() {
     assert!(resumed.reserve("globalping-create", now + 4002, &explicit));
     assert!(!resumed.reserve("globalping-create", now + 4004, &explicit));
 }
+
+#[tokio::test]
+async fn expired_third_source_remains_history_and_blocks_unverified_country_move() {
+    let f = fixture(false).await;
+    let now = 2_000_000_000;
+    let ip: IpAddr = "1.1.1.1".parse().unwrap();
+    let mut old = point("George Town", "KY", 19.28, -81.37).cached("medium");
+    old.source = "ipwho.is".into();
+    old.updated_at = now - 3 * DAY;
+    let mut cache = GeoCache::default();
+    cache.locations.insert(ip.to_string(), old);
+    let mut engine = Engine::open(&f.config).unwrap();
+    engine
+        .refresh(&f.config, &[ip], &BTreeMap::new(), &mut cache, now)
+        .await
+        .unwrap();
+    assert_eq!(
+        cache.location(ip).unwrap().country_code.as_deref(),
+        Some("KY")
+    );
+    assert_eq!(cache.location(ip).unwrap().confidence, "disputed");
+    let e = &engine.store.entries[&ip.to_string()];
+    assert_eq!(e.previous_location.as_ref().unwrap().at, now - 3 * DAY);
+    assert_eq!(e.proposed_location.as_ref().unwrap().country_code, "NL");
+    assert!(e.reasons.iter().any(|r| r.contains("previously published")));
+    let calls = f.calls.load(Ordering::SeqCst);
+    drop(engine);
+    let mut engine = Engine::open(&f.config).unwrap();
+    engine
+        .refresh(&f.config, &[ip], &BTreeMap::new(), &mut cache, now + 300)
+        .await
+        .unwrap();
+    assert_eq!(f.calls.load(Ordering::SeqCst), calls);
+    assert_eq!(
+        engine.store.entries[&ip.to_string()]
+            .previous_location
+            .as_ref()
+            .unwrap()
+            .country_code,
+        "KY"
+    );
+}
+
+#[tokio::test]
+async fn two_day_refresh_keeps_previous_completed_point_until_move_verified() {
+    let f = fixture(false).await;
+    let now = 2_000_000_000;
+    let ip: IpAddr = "1.1.1.1".parse().unwrap();
+    let mut engine = Engine::open(&f.config).unwrap();
+    let old = point("New York", "US", 40.7, -74.0);
+    engine.store.entries.insert(
+        ip.to_string(),
+        Entry {
+            decision: Some(old.clone()),
+            completed_at: now - 2 * DAY,
+            ..Entry::default()
+        },
+    );
+    let mut cache = GeoCache::default();
+    cache
+        .locations
+        .insert(ip.to_string(), old.cached("approximate"));
+    engine
+        .refresh(&f.config, &[ip], &BTreeMap::new(), &mut cache, now)
+        .await
+        .unwrap();
+    let e = &engine.store.entries[&ip.to_string()];
+    assert_eq!(e.previous_location.as_ref().unwrap().city, "New York");
+    assert_eq!(e.proposed_location.as_ref().unwrap().city, "Amsterdam");
+    assert_eq!(e.decision.as_ref().unwrap().city, "New York");
+    assert_eq!(e.completed_at, 0);
+}
+
+#[tokio::test]
+async fn source_pacing_is_waited_without_turning_into_an_ip_failure() {
+    let f = fixture(false).await;
+    let mut engine = Engine::open(&f.config).unwrap();
+    let now = 2_000_000_000;
+    engine
+        .store
+        .budget
+        .not_before
+        .insert("ip-api".into(), now + 1);
+    let mut cache = GeoCache::default();
+    let ip: IpAddr = "1.1.1.1".parse().unwrap();
+    engine
+        .refresh(&f.config, &[ip], &BTreeMap::new(), &mut cache, now)
+        .await
+        .unwrap();
+    let e = &engine.store.entries[&ip.to_string()];
+    assert!(e.completed_at > 0);
+    assert_eq!(e.attempts, 0);
+    assert_eq!(f.calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn old_policy_migration_rechecks_decisions_without_resetting_source_budget() {
+    let f = fixture(false).await;
+    let mut engine = Engine::open(&f.config).unwrap();
+    engine.store.version = 1;
+    engine.store.budget.total_requests = 77;
+    engine
+        .store
+        .budget
+        .not_before
+        .insert("globalping-create".into(), 2_000_001_000);
+    engine.store.entries.insert(
+        "1.1.1.1".into(),
+        Entry {
+            completed_at: 2_000_000_000,
+            next_attempt_at: 2_000_000_000 + 2 * DAY,
+            globalping: Some(globalping::Job {
+                id: Some("keep-me".into()),
+                ..globalping::Job::default()
+            }),
+            ..Entry::default()
+        },
+    );
+    engine.save().unwrap();
+    drop(engine);
+    let engine = Engine::open(&f.config).unwrap();
+    let e = &engine.store.entries["1.1.1.1"];
+    assert_eq!(engine.store.version, 2);
+    assert_eq!(e.completed_at, 0);
+    assert_eq!(e.next_attempt_at, 0);
+    assert_eq!(engine.store.budget.total_requests, 77);
+    assert_eq!(
+        engine.store.budget.not_before["globalping-create"],
+        2_000_001_000
+    );
+    assert_eq!(
+        e.globalping.as_ref().unwrap().id.as_deref(),
+        Some("keep-me")
+    );
+    assert_eq!(f.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn measurement_result_failures_back_off_across_restart_without_resubmitting() {
+    let f = fixture(false).await;
+    let calls = Arc::new(AtomicUsize::new(0));
+    let c = calls.clone();
+    let app = axum::Router::new().route(
+        "/measurements/{id}",
+        axum::routing::get(move || {
+            let c = c.clone();
+            async move {
+                c.fetch_add(1, Ordering::SeqCst);
+                axum::http::StatusCode::SERVICE_UNAVAILABLE
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    let mut cfg = f.config.clone();
+    cfg.research.measurement_base_url = format!("http://{addr}");
+    let now = 2_000_000_000;
+    let ip = "1.1.1.1".parse().unwrap();
+    let mut engine = Engine::open(&cfg).unwrap();
+    let mut entry = Entry {
+        globalping: Some(globalping::Job {
+            id: Some("existing-job".into()),
+            started_at: now - 30,
+            ..globalping::Job::default()
+        }),
+        ..Entry::default()
+    };
+    engine
+        .global_measure(ip, &mut entry, vec![], now)
+        .await
+        .unwrap();
+    assert_eq!(entry.globalping.as_ref().unwrap().retry_at, now + 3600);
+    drop(engine);
+    let mut engine = Engine::open(&cfg).unwrap();
+    let mut entry = engine.store.entries["1.1.1.1"].clone();
+    for tick in 1..12 {
+        engine
+            .global_measure(ip, &mut entry, vec![], now + tick * 300)
+            .await
+            .unwrap();
+    }
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    engine
+        .global_measure(ip, &mut entry, vec![], now + 3600)
+        .await
+        .unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    assert_eq!(
+        entry.globalping.as_ref().unwrap().retry_at,
+        now + 3600 + 21600
+    );
+    assert_eq!(
+        entry.globalping.as_ref().unwrap().id.as_deref(),
+        Some("existing-job")
+    );
+    assert_eq!(engine.store.budget.measurements, 0);
+    server.abort();
+}
+
+#[tokio::test]
+async fn ambiguous_measurement_submission_waits_before_retrying() {
+    let f = fixture(false).await;
+    let calls = Arc::new(AtomicUsize::new(0));
+    let c = calls.clone();
+    let app = axum::Router::new().route(
+        "/measurements",
+        axum::routing::post(move || {
+            let c = c.clone();
+            async move {
+                c.fetch_add(1, Ordering::SeqCst);
+                axum::http::StatusCode::SERVICE_UNAVAILABLE
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    let mut cfg = f.config.clone();
+    cfg.research.measurement_base_url = format!("http://{addr}");
+    let now = 2_000_000_000;
+    let ip = "1.1.1.1".parse().unwrap();
+    let locations = vec![json!({"country":"NL","limit":1})];
+    let mut engine = Engine::open(&cfg).unwrap();
+    let mut entry = Entry::default();
+    engine
+        .global_measure(ip, &mut entry, locations.clone(), now)
+        .await
+        .unwrap();
+    assert_eq!(entry.globalping.as_ref().unwrap().retry_at, now + 3600);
+    drop(engine);
+    let mut engine = Engine::open(&cfg).unwrap();
+    let mut entry = engine.store.entries["1.1.1.1"].clone();
+    engine
+        .global_measure(ip, &mut entry, locations.clone(), now + 300)
+        .await
+        .unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    engine
+        .global_measure(ip, &mut entry, locations, now + 3600)
+        .await
+        .unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    assert_eq!(
+        entry.globalping.as_ref().unwrap().retry_at,
+        now + 3600 + 21600
+    );
+    server.abort();
+}
+
+#[tokio::test]
+async fn engine_preserves_measurement_failure_deadline_instead_of_polling_each_cycle() {
+    let f = fixture(false).await;
+    let calls = Arc::new(AtomicUsize::new(0));
+    let c = calls.clone();
+    let app = axum::Router::new().route(
+        "/measurements/{id}",
+        axum::routing::get(move || {
+            let c = c.clone();
+            async move {
+                c.fetch_add(1, Ordering::SeqCst);
+                axum::http::StatusCode::SERVICE_UNAVAILABLE
+            }
+        }),
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    let mut cfg = f.config.clone();
+    cfg.research.network_measurements = true;
+    cfg.research.measurement_base_url = format!("http://{addr}");
+    let now = 2_000_000_000;
+    let ip: IpAddr = "1.1.1.1".parse().unwrap();
+    let primary = point("Amsterdam", "NL", 52.36, 4.9);
+    let mut entry = Entry {
+        secondary_checked: true,
+        globalping: Some(globalping::Job {
+            id: Some("existing-job".into()),
+            started_at: now - 30,
+            ..globalping::Job::default()
+        }),
+        ..Entry::default()
+    };
+    entry.observations.insert("ip-api".into(), primary.clone());
+    entry
+        .observations
+        .insert("dbip".into(), point("New York", "US", 40.7, -74.0));
+    let mut engine = Engine::open(&cfg).unwrap();
+    engine
+        .store
+        .assets
+        .insert("globalping-probes-next".into(), now + DAY);
+    engine.store.entries.insert(ip.to_string(), entry);
+    let mut cache = GeoCache::default();
+    cache
+        .locations
+        .insert(ip.to_string(), primary.cached("disputed"));
+    engine
+        .refresh(&cfg, &[ip], &BTreeMap::new(), &mut cache, now)
+        .await
+        .unwrap();
+    assert_eq!(
+        engine.store.entries[&ip.to_string()].next_attempt_at,
+        now + 3600
+    );
+    drop(engine);
+    let mut engine = Engine::open(&cfg).unwrap();
+    engine
+        .refresh(&cfg, &[ip], &BTreeMap::new(), &mut cache, now + 300)
+        .await
+        .unwrap();
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert_eq!(engine.store.budget.measurements, 0);
+    server.abort();
+}
+
+#[test]
+fn existing_enabled_map_config_needs_no_research_keys_or_new_manual_settings() {
+    let cfg:NodeLocationsConfig=serde_json::from_value(json!({"enabled":true,"refresh_seconds":300,"geo_cache_path":"/tmp/existing-geo-cache.json"})).unwrap();
+    assert!(cfg.research.enabled);
+    assert_eq!(cfg.research.reuse_days, 2);
+    assert!(cfg.research.network_measurements);
+    assert!(cfg.research.download_database);
+    assert_eq!(cfg.research.max_ips_per_cycle, 0);
+    assert_eq!(cfg.research.daily_requests, 0);
+    assert_eq!(cfg.research.daily_measurements, 0);
+    assert_eq!(
+        cfg.research.measurement_base_url,
+        "https://api.globalping.io/v1"
+    );
+    assert!(cfg.ipinfo_token.is_none());
+    let old: ResearchConfig =
+        serde_json::from_value(json!({"operator_measurements":false})).unwrap();
+    assert!(!old.network_measurements);
+}

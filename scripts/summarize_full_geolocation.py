@@ -18,11 +18,16 @@ def main():
     replay = json.loads((args.snapshot_dir / "legacy-replay.json").read_text())
     unique = {row["ip"]: row for row in report["rows"]}
     entries = [r["entry"] for r in unique.values() if r["entry"]]
-    jobs = [e["globalping"] for e in entries if e["globalping"]]
+    jobs = [j for e in entries for j in [*e.get("measurement_history", []), e.get("globalping")] if j]
     moved = [r for r in unique.values() if not r["manual"] and (r["distance_km"] or 0) > 100]
     same_primary = {r["ip"]: r for r in replay["rows"]}
     summary = {
         "snapshot_at": report["snapshot_at"], "finished_at": report["finished_at"],
+        "normal_scheduler": report.get("normal_scheduler", False),
+        "cycles": report.get("cycles", []),
+        "http_requests_this_run": report["total_budget"]["total_requests"] - report.get("starting_budget", {}).get("total_requests", 0),
+        "requests_this_run": {name: value - report.get("starting_budget", {}).get("requests_by_source", {}).get(name, 0)
+                              for name, value in report["total_budget"]["requests_by_source"].items()},
         "chains": report["chains"], "unique_ips": len(unique),
         "confidence": dict(collections.Counter(e["confidence"] for e in entries)),
         "completed": sum(e["completed_at"] > 0 for e in entries),
@@ -43,7 +48,7 @@ def main():
         "failed_primary": report["failed_primary"], "failed_secondary": report["failed_secondary"],
         "method": report["method"], "replay_method": replay["method"],
         "input_sha256": {name: hashlib.sha256((args.snapshot_dir / name).read_bytes()).hexdigest()
-                         for name in ["snapshot.json", "geo_cache.json", "inventory.json"]},
+                         for name in ["snapshot.json", "geo_cache.json", "inventory.json"] if (args.snapshot_dir / name).exists()},
     }
     (args.output_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     (args.output_dir / "evidence.json").write_text(json.dumps(report, indent=2) + "\n")
