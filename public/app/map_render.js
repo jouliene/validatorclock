@@ -11,9 +11,8 @@ function loadValidatorMap() {
 }
 
 async function buildValidatorMap() {
-  await loadValidatorMapNodes();
-
   if (validatorMapLoaded) {
+    loadValidatorMapNodes().catch((error) => console.warn("Unable to refresh map nodes", error));
     if (validatorMap) {
       validatorMap.resize();
     }
@@ -21,13 +20,15 @@ async function buildValidatorMap() {
   }
 
   showValidatorMapStatus("Loading map", "loading");
-  await ensureMapLibre();
+  const [, , style] = await Promise.all([
+    loadValidatorMapNodes(), ensureMapLibre(), loadValidatorMapStyle()
+  ]);
   // The map is not loaded because its two scripts are: the style, the tiles and the fonts
   // are still to come. "Loading map" used to be cleared here, so a basemap that failed
   // looked like a map with nothing on it; it is cleared by the style's own load event now.
   // And the flag is set only if a map was actually built - it used to be set even when
   // there was no canvas or no maplibre, which meant the session never tried again.
-  validatorMapLoaded = renderValidatorMap();
+  validatorMapLoaded = renderValidatorMap(style);
 }
 
 function ensureMapLibre() {
@@ -53,8 +54,10 @@ function ensureMapLibre() {
       document.head.appendChild(link);
     }
 
-    loadMapScript("maplibreJs", MAPLIBRE_JS_URL)
-      .then(() => loadMapScript("pmtilesJs", PMTILES_JS_URL))
+    Promise.all([
+      loadMapScript("maplibreJs", MAPLIBRE_JS_URL),
+      loadMapScript("pmtilesJs", PMTILES_JS_URL)
+    ])
       .then(() => {
         // The basemap is a pmtiles archive this app serves, so MapLibre needs
         // the protocol that reads it over byte ranges.
@@ -126,7 +129,7 @@ function loadMapScript(id, url) {
   });
 }
 
-function renderValidatorMap() {
+function renderValidatorMap(style) {
   const container = $("validatorMapCanvas");
   if (!container || !window.maplibregl) {
     return false;
@@ -134,7 +137,7 @@ function renderValidatorMap() {
 
   validatorMap = new maplibregl.Map({
     container,
-    style: validatorMapBaseStyle(),
+    style,
     center: [5, 23],
     zoom: 1.75,
     minZoom: 1.35,
@@ -212,4 +215,25 @@ function showValidatorMapEmptyStatus(features = validatorMapFeatures()) {
     notice || `No mapped ${currentMapChainName()} validators in the current set`,
     notice ? "notice" : "empty",
   );
+}
+
+let validatorMapWarmupScheduled = false;
+function scheduleValidatorMapWarmup() {
+  if (validatorMapWarmupScheduled) return;
+  validatorMapWarmupScheduled = true;
+  const warmup = () => {
+    if (document.visibilityState === "hidden" || navigator.connection?.saveData) {
+      validatorMapWarmupScheduled = false;
+      return;
+    }
+    // Reuses the very same promises as opening the map, including retry after failure.
+    Promise.all([ensureMapLibre(), loadValidatorMapStyle()])
+      .then(() => maplibregl.prewarm())
+      .catch(() => { validatorMapWarmupScheduled = false; });
+  };
+  if (window.requestIdleCallback) {
+    window.requestIdleCallback(warmup, { timeout: 2000 });
+  } else {
+    window.setTimeout(warmup, 500);
+  }
 }

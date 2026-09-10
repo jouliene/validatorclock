@@ -24,6 +24,7 @@ async function startDashboard() {
     window.setTimeout(prefetchChainSnapshots, 0);
     window.setTimeout(prefetchValidatorMapNodes, 250);
     await loadClock(false);
+    scheduleValidatorMapWarmup();
     loadRuntimeStatus();
     bootRetryDelayMs = BOOT_RETRY_MIN_MS;
   } catch (error) {

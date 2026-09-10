@@ -15,8 +15,8 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio_util::io::ReaderStream;
 use tracing::debug;
 
-// Tiles, fonts and the sprite never change under the same name; the style is
-// edited by hand, so it is revalidated instead of pinned for a day.
+// The frontend versions the style URL with the application asset version.
+// Keep it fresh across reloads; after an hour normal ETag revalidation applies.
 const STATIC_CACHE_CONTROL: HeaderValue = HeaderValue::from_static("public, max-age=86400");
 const STYLE_CACHE_CONTROL: HeaderValue = HeaderValue::from_static("no-cache");
 const MAX_RANGE_BYTES: u64 = 8 * 1024 * 1024;
@@ -108,7 +108,10 @@ fn basemap_style(base_dir: &std::path::Path) -> Response {
                 header::CONTENT_TYPE,
                 HeaderValue::from_static("application/json; charset=utf-8"),
             ),
-            (header::CACHE_CONTROL, STYLE_CACHE_CONTROL),
+            (
+                header::CACHE_CONTROL,
+                HeaderValue::from_static("public, max-age=3600"),
+            ),
         ],
         style.clone(),
     )

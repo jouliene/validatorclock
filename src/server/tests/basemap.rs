@@ -217,3 +217,28 @@ fn temp_basemap_dir(name: &str) -> PathBuf {
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
+
+#[tokio::test]
+async fn style_stays_fresh_across_reload_and_can_be_revalidated() {
+    let dir = temp_basemap_dir("style-cache");
+    let state = state_with_basemap(&dir);
+    let response = app_response(std::sync::Arc::clone(&state), "/basemap/style.json?v=test").await;
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()[header::CACHE_CONTROL],
+        "public, max-age=3600"
+    );
+    let tag = response.headers()[header::ETAG]
+        .to_str()
+        .unwrap()
+        .to_owned();
+    let response = conditional_response(state, "/basemap/style.json?v=test", &tag).await;
+    assert_eq!(response.status(), StatusCode::NOT_MODIFIED);
+    assert!(
+        to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .is_empty()
+    );
+    std::fs::remove_dir_all(&dir).ok();
+}

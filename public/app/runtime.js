@@ -48,6 +48,7 @@ function handleRuntimeVisibility() {
   if (!isPageVisible()) {
     return;
   }
+  scheduleValidatorMapWarmup();
   loadRuntimeStatus();
   loadClock(false).catch((error) => setError(error.message));
 }
