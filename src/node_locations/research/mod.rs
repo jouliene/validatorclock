@@ -1,5 +1,7 @@
 //! Persistent, demand-driven geolocation. Polling seed files does not imply network I/O.
+mod globalping;
 mod model;
+#[cfg(test)]
 mod operators;
 mod sources;
 #[cfg(test)]
@@ -81,6 +83,12 @@ impl Engine {
             0
         };
         if delay > 0 {
+            if source.starts_with("globalping-") {
+                for name in ["globalping-read", "globalping-create"] {
+                    let until = self.store.budget.not_before.entry(name.into()).or_default();
+                    *until = (*until).max(now.saturating_add(delay));
+                }
+            }
             let until = self
                 .store
                 .budget
@@ -156,6 +164,7 @@ impl Engine {
                 entry.observations.remove("ipwho.is");
                 entry.secondary_checked = false;
                 entry.measurements.clear();
+                entry.globalping = None;
                 entry.generation_started_at = now;
             }
             if entry.generation_started_at == 0 {
@@ -259,6 +268,11 @@ impl Engine {
         {
             warn!(error=%error,"research assets unavailable; keeping existing locations");
         }
+        let probes = if self.config.network_measurements {
+            self.global_probes(now).await?
+        } else {
+            vec![]
+        };
         for ip in pending {
             let mut entry = self.store.entries[&ip.to_string()].clone();
             if let Some(reader) = &self.database
@@ -300,69 +314,28 @@ impl Engine {
                 decide(&mut entry);
             }
             self.apply_feed(ip, &mut entry);
-            let metros = operators::candidates(&entry);
-            if !metros.is_empty() && entry.confidence == "approximate" {
-                entry.confidence = "disputed".into();
-                entry
-                    .reasons
-                    .push("operator metro needs measurement".into());
-            }
+            let locations = globalping::locations(&entry, &probes);
+            let wants_measurement = self.config.network_measurements
+                && (!locations.is_empty() || entry.globalping.is_some());
             let mut measurement_pending = false;
-            if self.config.operator_measurements {
-                for metro in &metros {
-                    if entry
-                        .measurements
-                        .iter()
-                        .any(|m| m.vantage == metro.id && m.min_ms.is_some())
-                    {
-                        continue;
-                    }
-                    // A failed individual vantage waits with the IP's exponential backoff.
-                    let sent_at = crate::timeutil::now_sec().max(now);
-                    if !self.reserve("latitude-ping", sent_at)? {
-                        measurement_pending = true;
-                        break;
-                    }
-                    let query = serde_json::json!({"query_location":metro.id,"query_type":"ping","query_vrf":"global","query_target":ip.to_string()});
-                    let response = crate::http::shared_client()
-                        .post("https://lg.latitude.sh/api/query/")
-                        .timeout(Duration::from_secs(30))
-                        .json(&query)
-                        .send()
-                        .await;
-                    let mut success = false;
-                    if let Ok(response) = response {
-                        self.rate_headers("latitude-ping", &response, sent_at)?;
-                        if response.status().is_success()
-                            && let Ok(raw) = crate::http::json_within::<operators::PingResponse>(
-                                response,
-                                64 * 1024,
-                            )
-                            .await
-                        {
-                            let measured =
-                                operators::parse_ping(&ip.to_string(), metro.id, sent_at, raw);
-                            success = measured.min_ms.is_some();
-                            entry.measurements.retain(|m| m.vantage != metro.id);
-                            entry.measurements.push(measured);
-                        }
-                    }
-                    self.persist_entry(ip, entry.clone())?;
-                    if operators::apply_measurements(&ip.to_string(), &mut entry, sent_at, max_age)
-                    {
-                        break;
-                    }
-                    if !success {
-                        measurement_pending = true;
-                    }
+            if wants_measurement {
+                if entry.confidence != "disputed" {
+                    entry.confidence = "disputed".into();
+                    entry
+                        .reasons
+                        .push("network measurement requested; metro uncertain".into());
                 }
+                measurement_pending = self
+                    .global_measure(
+                        ip,
+                        &mut entry,
+                        locations,
+                        now.max(crate::timeutil::now_sec()),
+                    )
+                    .await?;
             }
-            let measured = operators::apply_measurements(
-                &ip.to_string(),
-                &mut entry,
-                now.max(crate::timeutil::now_sec()),
-                max_age,
-            );
+            let measured =
+                globalping::apply(ip, &mut entry, now.max(crate::timeutil::now_sec()), max_age);
             let needs_secondary = !entry.reasons.is_empty() && !entry.secondary_checked;
             let complete = measured
                 || (entry.confidence != "disputed"

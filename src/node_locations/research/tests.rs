@@ -144,9 +144,9 @@ fn quota_backoff_and_clock_rollback_survive_serialization() {
     };
     let mut b = Budget::default();
     let now = 2_000_000_000;
-    assert!(b.reserve("latitude-ping", now, &cfg));
+    assert!(b.reserve("globalping-create", now, &cfg));
     b = serde_json::from_str(&serde_json::to_string(&b).unwrap()).unwrap();
-    assert!(!b.reserve("latitude-ping", now + 5, &cfg));
+    assert!(!b.reserve("globalping-create", now + 5, &cfg));
     assert!(b.reserve("ip-api", now + 5, &cfg));
     assert!(!b.reserve("ip-api", now + 10, &cfg));
     assert!(!b.reserve("ip-api", now - DAY, &cfg));
@@ -220,7 +220,7 @@ async fn fixture(fail: bool) -> Fixture {
         ipinfo_token: Some("local-test-fixture".into()),
         research: ResearchConfig {
             download_database: false,
-            operator_measurements: false,
+            network_measurements: false,
             ..ResearchConfig::default()
         },
         ..NodeLocationsConfig::default()
@@ -483,7 +483,7 @@ fn compare_saved_production_snapshot() {
         }
         rows.push(json!({"ip":ip,"old":node,"new":selected,"confidence":e.confidence,"reasons":e.reasons,"moved_km":km,"proposed_measurement_vantages":proposed}));
     }
-    let report = json!({"method":"Current Rust decision functions; fresh ip-api for all IPs, free DB-IP, two operator feeds, seven saved secondary lookups and saved direct target pings. No general ground truth; data-date changes are not algorithm accuracy gains.","summary":{"ips":rows.len(),"moved_over_100km":moved,"disputed":disputed,"measured_metros":measured},"rows":rows});
+    let report = json!({"method":"Historical Latitude adapter replay (test-only, no longer runtime); fresh ip-api for all IPs, free DB-IP, two operator feeds, seven saved secondary lookups and saved direct target pings. No general ground truth; data-date changes are not algorithm accuracy gains.","summary":{"ips":rows.len(),"moved_over_100km":moved,"disputed":disputed,"measured_metros":measured},"rows":rows});
     std::fs::write(
         root.join("rust-comparison.json"),
         serde_json::to_vec_pretty(&report).unwrap(),
@@ -760,4 +760,144 @@ async fn migration_does_not_treat_an_old_cache_without_iso_code_as_verified() {
         .unwrap();
     assert_eq!(cache.location(ip).unwrap().country, "Netherlands");
     assert_eq!(f.calls.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn global_measurement_job_survives_restart_without_duplicate_submission() {
+    let f = fixture(false).await;
+    let posts = Arc::new(AtomicUsize::new(0));
+    let count = posts.clone();
+    let app=axum::Router::new()
+        .route("/measurements",axum::routing::post(move || {let count=count.clone(); async move {count.fetch_add(1,Ordering::SeqCst);axum::Json(json!({"id":"persisted"}))}}))
+        .route("/measurements/{id}",axum::routing::get(|| async {axum::Json(json!({"id":"persisted","type":"ping","target":"1.1.1.1","status":"finished","results":[]}))}));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let server = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    let mut cfg = f.config.clone();
+    cfg.research.measurement_base_url = format!("http://{addr}");
+    let ip = "1.1.1.1".parse().unwrap();
+    let now = 2_000_000_000;
+    let mut e = Engine::open(&cfg).unwrap();
+    let mut entry = Entry::default();
+    assert!(
+        e.global_measure(ip, &mut entry, vec![json!({"country":"NL","limit":1})], now)
+            .await
+            .unwrap()
+    );
+    drop(e);
+    let mut e = Engine::open(&cfg).unwrap();
+    let mut entry = e.store.entries["1.1.1.1"].clone();
+    assert!(
+        !e.global_measure(ip, &mut entry, vec![], now + 300)
+            .await
+            .unwrap()
+    );
+    assert!(
+        !e.global_measure(ip, &mut entry, vec![], now + 600)
+            .await
+            .unwrap()
+    );
+    assert_eq!(posts.load(Ordering::SeqCst), 1);
+    assert_eq!(e.store.budget.total_requests, 2);
+    server.abort();
+}
+
+#[tokio::test]
+#[ignore = "explicit limited Globalping live trial on public node IPs"]
+async fn globalping_multi_operator_trial() {
+    crate::tls::install_rustls_crypto_provider();
+    let root = PathBuf::from(
+        std::env::var("VALIDATORCLOCK_GEO_AUDIT_DIR").expect("set snapshot directory"),
+    );
+    let cfg = NodeLocationsConfig {
+        geo_cache_path: root.join("globalping-trial/cache.json"),
+        ..NodeLocationsConfig::default()
+    };
+    let mut engine = Engine::open(&cfg).unwrap();
+    let old = super::super::geo_cache::load_geo_cache(&root.join("geo_cache.json")).unwrap();
+    let reader = maxminddb::Reader::open_readfile(root.join("dbip-city-lite.mmdb")).unwrap();
+    let probes = engine
+        .global_probes(crate::timeutil::now_sec())
+        .await
+        .unwrap();
+    let targets = [
+        "67.213.125.125",
+        "64.34.88.165",
+        "178.63.165.86",
+        "155.2.223.1",
+    ];
+    let mut rows = vec![];
+    for s in targets {
+        let ip: IpAddr = s.parse().unwrap();
+        let Some(cached) = old.location(ip) else {
+            continue;
+        };
+        let mut entry = engine.store.entries.get(s).cloned().unwrap_or_default();
+        if entry.observations.is_empty() {
+            entry
+                .observations
+                .insert("ip-api".into(), Observation::from_cached(cached));
+            if let Some(p) = sources::database_observation(&reader, ip, crate::timeutil::now_sec())
+            {
+                entry.observations.insert("dbip".into(), p);
+            }
+        }
+        decide(&mut entry);
+        let locations = globalping::locations(&entry, &probes);
+        if !locations.is_empty() || entry.globalping.is_some() {
+            engine
+                .global_measure(
+                    ip,
+                    &mut entry,
+                    locations.clone(),
+                    crate::timeutil::now_sec(),
+                )
+                .await
+                .unwrap();
+            tokio::time::sleep(Duration::from_secs(5)).await;
+            engine
+                .global_measure(
+                    ip,
+                    &mut entry,
+                    locations.clone(),
+                    crate::timeutil::now_sec(),
+                )
+                .await
+                .unwrap();
+        }
+        let accepted = globalping::apply(ip, &mut entry, crate::timeutil::now_sec(), 2 * DAY);
+        rows.push(json!({"ip":s,"old":cached,"selected_locations":locations,"accepted":accepted,"decision":entry.decision,"job":entry.globalping}));
+        engine.persist_entry(ip, entry).unwrap();
+    }
+    let fresh: Vec<Value> =
+        serde_json::from_slice(&std::fs::read(root.join("fresh-all-ip-api.json")).unwrap())
+            .unwrap();
+    let mut candidates = vec![];
+    for raw in &fresh {
+        let ip: IpAddr = raw["query"].as_str().unwrap().parse().unwrap();
+        let mut e = Entry::default();
+        if let Some(p) = sources::observation(raw, "ip-api", crate::timeutil::now_sec()) {
+            e.observations.insert("ip-api".into(), p);
+        }
+        if let Some(p) = sources::database_observation(&reader, ip, crate::timeutil::now_sec()) {
+            e.observations.insert("dbip".into(), p);
+        }
+        decide(&mut e);
+        let selected = globalping::locations(&e, &probes);
+        if !selected.is_empty() {
+            candidates.push(json!({"ip":ip.to_string(),"asn":raw["as"],"locations":selected}));
+        }
+    }
+    let report = json!({"observed_at":crate::timeutil::now_sec(),"probe_count":probes.len(),"total_persisted_http_requests":engine.store.budget.total_requests,"rows":rows,"offline_selection":{"input_ips":fresh.len(),"candidates":candidates,"note":"Selection only, using saved fresh ip-api and DB-IP plus current probe catalogue. No measurements for this full list; no manual overrides/geofeeds/third-source included."}});
+    std::fs::write(
+        root.join("globalping-trial-report.json"),
+        serde_json::to_vec_pretty(&report).unwrap(),
+    )
+    .unwrap();
+    println!(
+        "{}",
+        json!({"probes":probes.len(),"http_requests":engine.store.budget.total_requests,"results":report["rows"].as_array().unwrap().iter().map(|r|json!({"ip":r["ip"],"accepted":r["accepted"],"locations":r["selected_locations"],"job":r["job"]["id"]})).collect::<Vec<_>>()})
+    );
 }

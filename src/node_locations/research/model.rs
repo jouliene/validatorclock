@@ -14,7 +14,9 @@ pub(crate) struct ResearchConfig {
     pub daily_requests: u32,
     pub daily_measurements: u32,
     pub download_database: bool,
-    pub operator_measurements: bool,
+    #[serde(alias = "operator_measurements")]
+    pub network_measurements: bool,
+    pub measurement_base_url: String,
 }
 impl Default for ResearchConfig {
     fn default() -> Self {
@@ -25,7 +27,8 @@ impl Default for ResearchConfig {
             daily_requests: 128,
             daily_measurements: 6,
             download_database: true,
-            operator_measurements: true,
+            network_measurements: true,
+            measurement_base_url: "https://api.globalping.io/v1".into(),
         }
     }
 }
@@ -107,6 +110,8 @@ pub struct OperatorEvidence {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Entry {
     #[serde(default)]
+    pub globalping: Option<super::globalping::Job>,
+    #[serde(default)]
     pub operator_evidence: Option<OperatorEvidence>,
     pub observations: BTreeMap<String, Observation>,
     pub measurements: Vec<Measurement>,
@@ -160,13 +165,14 @@ impl Budget {
         }
         if self.used >= config.daily_requests.min(500)
             || now < *self.not_before.get(source).unwrap_or(&0)
-            || (source == "latitude-ping" && self.measurements >= config.daily_measurements.min(20))
+            || (source == "globalping-create"
+                && self.measurements >= config.daily_measurements.min(20))
         {
             return false;
         }
         self.used += 1;
         self.total_requests += 1;
-        if source == "latitude-ping" {
+        if source == "globalping-create" {
             self.measurements += 1;
         }
         // Bounds requests across chains and cycles, without blocking the worker.

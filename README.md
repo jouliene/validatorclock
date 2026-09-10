@@ -158,7 +158,12 @@ The primary source is ip-api's free batch endpoint. DB-IP City Lite is downloade
 automatically into a local MMDB (about 122 MiB unpacked for September 2026), with
 at most one successful update per month and only when there is research to do.
 The resolver also uses reviewed operator geofeeds and bounded, direct-target
-Latitude.sh Looking Glass checks for eligible discrepancies. No accounts, API
+Globalping checks independent of the target operator. Candidates come from the
+current probe catalogue and conflicting database locations, not an ASN allowlist.
+A location over 100 km from the nearest available probe city in its country also
+triggers research; this distance is not proof that the database is wrong.
+A metro is accepted only with <=3 ms RTT (>=3 replies) from at least two distinct
+probe ASNs within 100 km, with no incompatible low-RTT alternative. No accounts, API
 keys, paid plans, Python runtime or extra setup are required for this component.
 DB-IP data is [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); the footer
 includes the required [DB-IP attribution](https://db-ip.com).
@@ -180,10 +185,20 @@ Defaults (these need not be added to an existing enabled node-location config):
     "daily_requests": 128,
     "daily_measurements": 6,
     "download_database": true,
-    "operator_measurements": true
+    "network_measurements": true
   }
 }
 ```
+
+Globalping uses no API key. `daily_measurements` limits creation of jobs (6/day),
+with at most 6 probe tests/job, so at most 36 probe tests/day. Catalogue reads
+(once/day while work exists), job creation and result reads all consume the 128
+HTTP/day budget. Job IDs survive restarts; results are collected on later retry
+cycles (first normally after one hour), without submitting duplicate jobs. No
+answer or insufficient independent probes leaves the location uncertain. The old
+`operator_measurements` setting remains a deserialization alias. Operator geofeeds
+currently cover only Hetzner/Latitude; they are optional extra evidence and do not
+limit the universal measurement engine. See the [universal measurement report](docs/geolocation-experiment/universal-measurements.md).
 
 Limits are shared across chains and persisted before sending requests. The
 request limit counts HTTP calls, not the number of IPs in a batch. Research only

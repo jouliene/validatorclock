@@ -1,0 +1,1414 @@
+{
+  "observed_at": 1789007480,
+  "offline_selection": {
+    "candidates": [
+      {
+        "asn": "AS16276 OVH SAS",
+        "ip": "137.74.4.103",
+        "locations": [
+          {
+            "asn": 9141,
+            "city": "Wroclaw",
+            "country": "PL",
+            "limit": 1
+          },
+          {
+            "asn": 12741,
+            "city": "Wroclaw",
+            "country": "PL",
+            "limit": 1
+          },
+          {
+            "asn": 5617,
+            "city": "Warsaw",
+            "country": "PL",
+            "limit": 1
+          },
+          {
+            "asn": 8075,
+            "city": "Warsaw",
+            "country": "PL",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS16276 OVH SAS",
+        "ip": "137.74.4.116",
+        "locations": [
+          {
+            "asn": 9141,
+            "city": "Wroclaw",
+            "country": "PL",
+            "limit": 1
+          },
+          {
+            "asn": 12741,
+            "city": "Wroclaw",
+            "country": "PL",
+            "limit": 1
+          },
+          {
+            "asn": 5617,
+            "city": "Warsaw",
+            "country": "PL",
+            "limit": 1
+          },
+          {
+            "asn": 8075,
+            "city": "Warsaw",
+            "country": "PL",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "161.97.123.32",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3209,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "161.97.174.72",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3209,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "167.86.119.67",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3209,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS24940 Hetzner Online GmbH",
+        "ip": "178.63.165.86",
+        "locations": [
+          {
+            "asn": 215365,
+            "city": "Deggendorf",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 24940,
+            "city": "Falkenstein",
+            "country": "DE",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "194.163.140.58",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3209,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS203493 Egor Timoshenko",
+        "ip": "194.87.209.129",
+        "locations": [
+          {
+            "asn": 207713,
+            "city": "Kemerovo",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 3216,
+            "city": "Moscow",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 8595,
+            "city": "Moscow",
+            "country": "RU",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS203493 Egor Timoshenko",
+        "ip": "194.87.209.239",
+        "locations": [
+          {
+            "asn": 207713,
+            "city": "Kemerovo",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 3216,
+            "city": "Moscow",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 8595,
+            "city": "Moscow",
+            "country": "RU",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.68.105",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3209,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.69.142",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.69.176",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.69.230",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.69.55",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.83.246",
+        "locations": [
+          {
+            "asn": 3209,
+            "city": "Munich",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3320,
+            "city": "Munich",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "213.136.84.243",
+        "locations": [
+          {
+            "asn": 3209,
+            "city": "Munich",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3320,
+            "city": "Munich",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS18450 WebNX, Inc.",
+        "ip": "216.18.202.242",
+        "locations": [
+          {
+            "asn": 7922,
+            "city": "Salt Lake City",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 20326,
+            "city": "Salt Lake City",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 174,
+            "city": "Los Angeles",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 906,
+            "city": "Los Angeles",
+            "country": "US",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "38.242.157.212",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS34959 PROCLOUD MSK",
+        "ip": "45.139.24.8",
+        "locations": [
+          {
+            "asn": 8359,
+            "city": "Smolensk",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 44265,
+            "city": "Smolensk",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 3216,
+            "city": "Moscow",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 8595,
+            "city": "Moscow",
+            "country": "RU",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "5.189.141.228",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 3209,
+            "city": "Frankfurt",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS16276 OVH SAS",
+        "ip": "54.36.131.208",
+        "locations": [
+          {
+            "asn": 16276,
+            "city": "Roubaix",
+            "country": "FR",
+            "limit": 1
+          },
+          {
+            "asn": 16276,
+            "city": "Limburg an der Lahn",
+            "country": "DE",
+            "limit": 1
+          },
+          {
+            "asn": 197996,
+            "city": "Limburg an der Lahn",
+            "country": "DE",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS16276 OVH SAS",
+        "ip": "57.129.147.75",
+        "locations": [
+          {
+            "asn": 57099,
+            "city": "York",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS16276 OVH SAS",
+        "ip": "57.129.147.91",
+        "locations": [
+          {
+            "asn": 57099,
+            "city": "York",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS396356 Latitude.sh",
+        "ip": "64.34.88.165",
+        "locations": [
+          {
+            "asn": 174,
+            "city": "Los Angeles",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 906,
+            "city": "Los Angeles",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 701,
+            "city": "New York",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 931,
+            "city": "New York",
+            "country": "US",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS396356 Latitude.sh",
+        "ip": "67.213.125.125",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "Sydney",
+            "country": "AU",
+            "limit": 1
+          },
+          {
+            "asn": 1221,
+            "city": "Sydney",
+            "country": "AU",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "75.119.147.73",
+        "locations": [
+          {
+            "asn": 7922,
+            "city": "Fort Lauderdale",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 33724,
+            "city": "Fort Lauderdale",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "80.241.215.197",
+        "locations": [
+          {
+            "asn": 931,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 2856,
+            "city": "London",
+            "country": "GB",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "89.117.59.119",
+        "locations": [
+          {
+            "asn": 1201,
+            "city": "Norfolk",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 21928,
+            "city": "Norfolk",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS51167 Contabo GmbH",
+        "ip": "89.117.59.125",
+        "locations": [
+          {
+            "asn": 1201,
+            "city": "Norfolk",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 21928,
+            "city": "Norfolk",
+            "country": "US",
+            "limit": 1
+          },
+          {
+            "asn": 51167,
+            "city": "Lauterbourg",
+            "country": "FR",
+            "limit": 1
+          }
+        ]
+      },
+      {
+        "asn": "AS57128 JSC Ufanet",
+        "ip": "95.105.75.205",
+        "locations": [
+          {
+            "asn": 216334,
+            "city": "Ufa",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 51659,
+            "city": "Kazan",
+            "country": "RU",
+            "limit": 1
+          },
+          {
+            "asn": 212165,
+            "city": "Kazan",
+            "country": "RU",
+            "limit": 1
+          }
+        ]
+      }
+    ],
+    "input_ips": 416,
+    "note": "Selection only, using saved fresh ip-api and DB-IP plus current probe catalogue. No measurements for this full list; no manual overrides/geofeeds/third-source included."
+  },
+  "probe_count": 5035,
+  "rows": [
+    {
+      "accepted": false,
+      "decision": {
+        "asn": "AS396356",
+        "at": 1788825843,
+        "city": "Nyngan",
+        "country": "Australia",
+        "country_code": "AU",
+        "isp": "Latitude.sh",
+        "lat": -31.2532,
+        "lon": 146.921,
+        "region": "",
+        "source": "ip-api"
+      },
+      "ip": "67.213.125.125",
+      "job": {
+        "finished": true,
+        "id": "2PJQOB91nile2HkE5000216hx",
+        "polls": 1,
+        "response": {
+          "createdAt": "2026-09-10T02:29:23.040Z",
+          "id": "2PJQOB91nile2HkE5000216hx",
+          "locations": [
+            {
+              "asn": 931,
+              "city": "Sydney",
+              "country": "AU"
+            },
+            {
+              "asn": 1221,
+              "city": "Sydney",
+              "country": "AU"
+            }
+          ],
+          "probesCount": 2,
+          "results": [
+            {
+              "probe": {
+                "asn": 931,
+                "city": "Sydney",
+                "continent": "OC",
+                "country": "AU",
+                "latitude": -33.9,
+                "longitude": 151.2,
+                "network": "Hyonix",
+                "region": "Australia and New Zealand",
+                "resolvers": [
+                  "8.8.8.8",
+                  "1.1.1.1"
+                ],
+                "state": null,
+                "tags": [
+                  "datacenter-network",
+                  "u-as931",
+                  "u-as931:syd1"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING 67.213.125.125 (67.213.125.125) 56(84) bytes of data.\n64 bytes from 67.213.125.125: icmp_seq=1 ttl=56 time=0.740 ms\n64 bytes from 67.213.125.125: icmp_seq=2 ttl=56 time=0.703 ms\n64 bytes from 67.213.125.125: icmp_seq=3 ttl=56 time=0.553 ms\n\n--- 67.213.125.125 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1044ms\nrtt min/avg/max/mdev = 0.553/0.665/0.740/0.080 ms",
+                "resolvedAddress": "67.213.125.125",
+                "resolvedHostname": "67.213.125.125",
+                "stats": {
+                  "avg": 0.665,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 0.74,
+                  "min": 0.553,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 0.74,
+                    "ttl": 56
+                  },
+                  {
+                    "rtt": 0.703,
+                    "ttl": 56
+                  },
+                  {
+                    "rtt": 0.553,
+                    "ttl": 56
+                  }
+                ]
+              }
+            },
+            {
+              "probe": {
+                "asn": 1221,
+                "city": "Sydney",
+                "continent": "OC",
+                "country": "AU",
+                "latitude": -33.87,
+                "longitude": 151.21,
+                "network": "Telstra",
+                "region": "Australia and New Zealand",
+                "resolvers": [
+                  "private"
+                ],
+                "state": null,
+                "tags": [
+                  "eyeball-network"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING 67.213.125.125 (67.213.125.125) 56(84) bytes of data.\n64 bytes from 67.213.125.125: icmp_seq=1 ttl=54 time=12.2 ms\n64 bytes from 67.213.125.125: icmp_seq=2 ttl=54 time=14.3 ms\n64 bytes from 67.213.125.125: icmp_seq=3 ttl=54 time=15.4 ms\n\n--- 67.213.125.125 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1002ms\nrtt min/avg/max/mdev = 12.197/13.976/15.445/1.343 ms",
+                "resolvedAddress": "67.213.125.125",
+                "resolvedHostname": "67.213.125.125",
+                "stats": {
+                  "avg": 13.976,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 15.445,
+                  "min": 12.197,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 12.2,
+                    "ttl": 54
+                  },
+                  {
+                    "rtt": 14.3,
+                    "ttl": 54
+                  },
+                  {
+                    "rtt": 15.4,
+                    "ttl": 54
+                  }
+                ]
+              }
+            }
+          ],
+          "status": "finished",
+          "target": "67.213.125.125",
+          "type": "ping",
+          "updatedAt": "2026-09-10T02:29:25.020Z"
+        },
+        "started_at": 1789007362
+      },
+      "old": {
+        "as_name": "Latitude.sh",
+        "asn": "AS396356",
+        "city": "Nyngan",
+        "confidence": "medium",
+        "country": "Australia",
+        "country_code": "AU",
+        "ipinfo": {
+          "as_domain": "latitude.sh",
+          "as_name": "Latitude.sh",
+          "asn": "AS396356",
+          "continent": "Oceania",
+          "continent_code": "OC",
+          "country": "Australia",
+          "country_code": "AU",
+          "updated_at": 1788825843
+        },
+        "ipinfo_checked_at": 1788825843,
+        "isp": "Latitude.sh",
+        "lat": -31.2532,
+        "lon": 146.921,
+        "source": "ip-api",
+        "updated_at": 1788825843
+      },
+      "selected_locations": [
+        {
+          "asn": 931,
+          "city": "Sydney",
+          "country": "AU",
+          "limit": 1
+        },
+        {
+          "asn": 1221,
+          "city": "Sydney",
+          "country": "AU",
+          "limit": 1
+        }
+      ]
+    },
+    {
+      "accepted": true,
+      "decision": {
+        "asn": "AS396356",
+        "at": 1789007368,
+        "city": "Los Angeles",
+        "country": "United States",
+        "country_code": "US",
+        "isp": "Latitude.sh",
+        "lat": 34.05,
+        "lon": -118.24,
+        "region": "CA",
+        "source": "globalping"
+      },
+      "ip": "64.34.88.165",
+      "job": {
+        "finished": true,
+        "id": "2zhl5YNzxNjwKCshj000216hx",
+        "polls": 1,
+        "response": {
+          "createdAt": "2026-09-10T02:29:29.325Z",
+          "id": "2zhl5YNzxNjwKCshj000216hx",
+          "locations": [
+            {
+              "asn": 174,
+              "city": "Los Angeles",
+              "country": "US"
+            },
+            {
+              "asn": 906,
+              "city": "Los Angeles",
+              "country": "US"
+            },
+            {
+              "asn": 701,
+              "city": "New York",
+              "country": "US"
+            },
+            {
+              "asn": 931,
+              "city": "New York",
+              "country": "US"
+            }
+          ],
+          "probesCount": 4,
+          "results": [
+            {
+              "probe": {
+                "asn": 174,
+                "city": "Los Angeles",
+                "continent": "NA",
+                "country": "US",
+                "latitude": 34.05,
+                "longitude": -118.24,
+                "network": "Cogent Communications",
+                "region": "Northern America",
+                "resolvers": [
+                  "private"
+                ],
+                "state": "CA",
+                "tags": [
+                  "datacenter-network"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING 64.34.88.165 (64.34.88.165) 56(84) bytes of data.\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=53 time=1.61 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=53 time=1.60 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=53 time=1.48 ms\n\n--- 64.34.88.165 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1002ms\nrtt min/avg/max/mdev = 1.484/1.563/1.607/0.055 ms",
+                "resolvedAddress": "64.34.88.165",
+                "resolvedHostname": "64.34.88.165",
+                "stats": {
+                  "avg": 1.563,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 1.607,
+                  "min": 1.484,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 1.61,
+                    "ttl": 53
+                  },
+                  {
+                    "rtt": 1.6,
+                    "ttl": 53
+                  },
+                  {
+                    "rtt": 1.48,
+                    "ttl": 53
+                  }
+                ]
+              }
+            },
+            {
+              "probe": {
+                "asn": 906,
+                "city": "Los Angeles",
+                "continent": "NA",
+                "country": "US",
+                "latitude": 34.06,
+                "longitude": -118.27,
+                "network": "DMIT Cloud Services",
+                "region": "Northern America",
+                "resolvers": [
+                  "1.1.1.1",
+                  "1.0.0.1"
+                ],
+                "state": "CA",
+                "tags": [
+                  "eyeball-network"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING 64.34.88.165 (64.34.88.165) 56(84) bytes of data.\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=51 time=1.76 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=51 time=1.83 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=51 time=1.78 ms\n\n--- 64.34.88.165 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1003ms\nrtt min/avg/max/mdev = 1.758/1.789/1.828/0.029 ms",
+                "resolvedAddress": "64.34.88.165",
+                "resolvedHostname": "64.34.88.165",
+                "stats": {
+                  "avg": 1.789,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 1.828,
+                  "min": 1.758,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 1.76,
+                    "ttl": 51
+                  },
+                  {
+                    "rtt": 1.83,
+                    "ttl": 51
+                  },
+                  {
+                    "rtt": 1.78,
+                    "ttl": 51
+                  }
+                ]
+              }
+            },
+            {
+              "probe": {
+                "asn": 701,
+                "city": "New York",
+                "continent": "NA",
+                "country": "US",
+                "latitude": 40.77,
+                "longitude": -74.2,
+                "network": "Verizon",
+                "region": "Northern America",
+                "resolvers": [
+                  "private"
+                ],
+                "state": "NY",
+                "tags": [
+                  "eyeball-network",
+                  "u-jimaek"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING 64.34.88.165 (64.34.88.165) 56(84) bytes of data.\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=53 time=61.5 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=53 time=60.5 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=53 time=70.8 ms\n\n--- 64.34.88.165 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1002ms\nrtt min/avg/max/mdev = 60.494/64.286/70.816/4.637 ms",
+                "resolvedAddress": "64.34.88.165",
+                "resolvedHostname": "64.34.88.165",
+                "stats": {
+                  "avg": 64.286,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 70.816,
+                  "min": 60.494,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 61.5,
+                    "ttl": 53
+                  },
+                  {
+                    "rtt": 60.5,
+                    "ttl": 53
+                  },
+                  {
+                    "rtt": 70.8,
+                    "ttl": 53
+                  }
+                ]
+              }
+            },
+            {
+              "probe": {
+                "asn": 931,
+                "city": "New York",
+                "continent": "NA",
+                "country": "US",
+                "latitude": 40.71,
+                "longitude": -74.01,
+                "network": "Hyonix",
+                "region": "Northern America",
+                "resolvers": [
+                  "8.8.8.8",
+                  "1.1.1.1"
+                ],
+                "state": "NY",
+                "tags": [
+                  "datacenter-network",
+                  "u-as931",
+                  "u-as931:nyc2"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING 64.34.88.165 (64.34.88.165) 56(84) bytes of data.\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=49 time=56.8 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=49 time=56.7 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=49 time=56.7 ms\n\n--- 64.34.88.165 ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1002ms\nrtt min/avg/max/mdev = 56.660/56.714/56.781/0.050 ms",
+                "resolvedAddress": "64.34.88.165",
+                "resolvedHostname": "64.34.88.165",
+                "stats": {
+                  "avg": 56.714,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 56.781,
+                  "min": 56.66,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 56.8,
+                    "ttl": 49
+                  },
+                  {
+                    "rtt": 56.7,
+                    "ttl": 49
+                  },
+                  {
+                    "rtt": 56.7,
+                    "ttl": 49
+                  }
+                ]
+              }
+            }
+          ],
+          "status": "finished",
+          "target": "64.34.88.165",
+          "type": "ping",
+          "updatedAt": "2026-09-10T02:29:30.820Z"
+        },
+        "started_at": 1789007368
+      },
+      "old": {
+        "as_name": "Latitude.sh",
+        "asn": "AS396356",
+        "city": "New York",
+        "confidence": "medium",
+        "country": "United States",
+        "country_code": "US",
+        "ipinfo": {
+          "as_domain": "latitude.sh",
+          "as_name": "Latitude.sh",
+          "asn": "AS396356",
+          "continent": "North America",
+          "continent_code": "NA",
+          "country": "United States",
+          "country_code": "US",
+          "updated_at": 1788825843
+        },
+        "ipinfo_checked_at": 1788825843,
+        "isp": "Latitude.sh",
+        "lat": 40.7126,
+        "lon": -74.0066,
+        "source": "ip-api",
+        "updated_at": 1788825843
+      },
+      "selected_locations": [
+        {
+          "asn": 174,
+          "city": "Los Angeles",
+          "country": "US",
+          "limit": 1
+        },
+        {
+          "asn": 906,
+          "city": "Los Angeles",
+          "country": "US",
+          "limit": 1
+        },
+        {
+          "asn": 701,
+          "city": "New York",
+          "country": "US",
+          "limit": 1
+        },
+        {
+          "asn": 931,
+          "city": "New York",
+          "country": "US",
+          "limit": 1
+        }
+      ]
+    },
+    {
+      "accepted": false,
+      "decision": {
+        "asn": "AS24940",
+        "at": 1788935660,
+        "city": "Falkenstein",
+        "country": "Germany",
+        "country_code": "DE",
+        "isp": "Hetzner Online GmbH",
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "region": "",
+        "source": "ip-api"
+      },
+      "ip": "178.63.165.86",
+      "job": {
+        "finished": true,
+        "id": "2R2eFFlKO9stL7JO5000216hx",
+        "polls": 1,
+        "response": {
+          "createdAt": "2026-09-10T02:29:35.596Z",
+          "id": "2R2eFFlKO9stL7JO5000216hx",
+          "locations": [
+            {
+              "asn": 215365,
+              "city": "Deggendorf",
+              "country": "DE"
+            },
+            {
+              "asn": 24940,
+              "city": "Falkenstein",
+              "country": "DE"
+            }
+          ],
+          "probesCount": 2,
+          "results": [
+            {
+              "probe": {
+                "asn": 215365,
+                "city": "Deggendorf",
+                "continent": "EU",
+                "country": "DE",
+                "latitude": 48.9,
+                "longitude": 13.18,
+                "network": "Tom Gewiese",
+                "region": "Western Europe",
+                "resolvers": [
+                  "private"
+                ],
+                "state": null,
+                "tags": [
+                  "datacenter-network"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING static.86.165.63.178.clients.your-server.de (178.63.165.86) 56(84) bytes of data.\n64 bytes from static.86.165.63.178.clients.your-server.de (178.63.165.86): icmp_seq=1 ttl=57 time=13.6 ms\n64 bytes from static.86.165.63.178.clients.your-server.de (178.63.165.86): icmp_seq=2 ttl=57 time=14.0 ms\n64 bytes from static.86.165.63.178.clients.your-server.de (178.63.165.86): icmp_seq=3 ttl=57 time=13.6 ms\n\n--- static.86.165.63.178.clients.your-server.de ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1002ms\nrtt min/avg/max/mdev = 13.627/13.743/13.962/0.154 ms",
+                "resolvedAddress": "178.63.165.86",
+                "resolvedHostname": "static.86.165.63.178.clients.your-server.de",
+                "stats": {
+                  "avg": 13.743,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 13.962,
+                  "min": 13.627,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 13.6,
+                    "ttl": 57
+                  },
+                  {
+                    "rtt": 14,
+                    "ttl": 57
+                  },
+                  {
+                    "rtt": 13.6,
+                    "ttl": 57
+                  }
+                ]
+              }
+            },
+            {
+              "probe": {
+                "asn": 24940,
+                "city": "Falkenstein",
+                "continent": "EU",
+                "country": "DE",
+                "latitude": 50.48,
+                "longitude": 12.37,
+                "network": "Hetzner Online",
+                "region": "Western Europe",
+                "resolvers": [
+                  "private"
+                ],
+                "state": null,
+                "tags": [
+                  "datacenter-network"
+                ]
+              },
+              "result": {
+                "rawOutput": "PING static.86.165.63.178.clients.your-server.de (178.63.165.86) 56(84) bytes of data.\n64 bytes from static.86.165.63.178.clients.your-server.de (178.63.165.86): icmp_seq=1 ttl=58 time=0.700 ms\n64 bytes from static.86.165.63.178.clients.your-server.de (178.63.165.86): icmp_seq=2 ttl=58 time=0.400 ms\n64 bytes from static.86.165.63.178.clients.your-server.de (178.63.165.86): icmp_seq=3 ttl=58 time=0.317 ms\n\n--- static.86.165.63.178.clients.your-server.de ping statistics ---\n3 packets transmitted, 3 received, 0% packet loss, time 1035ms\nrtt min/avg/max/mdev = 0.317/0.472/0.700/0.164 ms",
+                "resolvedAddress": "178.63.165.86",
+                "resolvedHostname": "static.86.165.63.178.clients.your-server.de",
+                "stats": {
+                  "avg": 0.472,
+                  "drop": 0,
+                  "loss": 0,
+                  "max": 0.7,
+                  "min": 0.317,
+                  "rcv": 3,
+                  "total": 3
+                },
+                "status": "finished",
+                "timings": [
+                  {
+                    "rtt": 0.7,
+                    "ttl": 58
+                  },
+                  {
+                    "rtt": 0.4,
+                    "ttl": 58
+                  },
+                  {
+                    "rtt": 0.317,
+                    "ttl": 58
+                  }
+                ]
+              }
+            }
+          ],
+          "status": "finished",
+          "target": "178.63.165.86",
+          "type": "ping",
+          "updatedAt": "2026-09-10T02:29:37.136Z"
+        },
+        "started_at": 1789007375
+      },
+      "old": {
+        "as_name": "Hetzner Online GmbH",
+        "asn": "AS24940",
+        "city": "Falkenstein",
+        "confidence": "medium",
+        "country": "Germany",
+        "country_code": "DE",
+        "ipinfo": {
+          "as_domain": "hetzner.de",
+          "as_name": "Hetzner Online GmbH",
+          "asn": "AS24940",
+          "continent": "Europe",
+          "continent_code": "EU",
+          "country": "Germany",
+          "country_code": "DE",
+          "updated_at": 1788935660
+        },
+        "ipinfo_checked_at": 1788935660,
+        "isp": "Hetzner Online GmbH",
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "source": "ip-api",
+        "updated_at": 1788935660
+      },
+      "selected_locations": [
+        {
+          "asn": 215365,
+          "city": "Deggendorf",
+          "country": "DE",
+          "limit": 1
+        },
+        {
+          "asn": 24940,
+          "city": "Falkenstein",
+          "country": "DE",
+          "limit": 1
+        }
+      ]
+    }
+  ],
+  "total_persisted_http_requests": 7
+}

@@ -229,6 +229,7 @@ impl Engine {
         }
         let response = crate::http::shared_client()
             .get(url)
+            .header("User-Agent", "validatorclock-geolocation/1")
             .timeout(std::time::Duration::from_secs(timeout))
             .send()
             .await;
