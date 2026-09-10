@@ -50,3 +50,16 @@ test("map resources start while node lookup is still pending", async () => {
   await built;
   assert.equal(calls.at(-1), "render");
 });
+
+test("a site without maps does not schedule background map requests", () => {
+  state.chains = [{ id: "everscale", has_map: false }, { id: "tycho-testnet", has_map: false }];
+  let scheduled = 0;
+  window.requestIdleCallback = () => { scheduled++; };
+  scheduleValidatorMapWarmup();
+  assert.equal(scheduled, 0);
+  state.chains.push({ id: "ton", has_map: true });
+  scheduleValidatorMapWarmup();
+  assert.equal(scheduled, 1, "a later configuration with a map can still prepare its resources");
+  scheduleValidatorMapWarmup();
+  assert.equal(scheduled, 1, "warmup is only scheduled once");
+});

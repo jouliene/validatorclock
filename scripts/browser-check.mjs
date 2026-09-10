@@ -30,7 +30,7 @@ async function main() {
   });
   session.on("Log.entryAdded", (params) => {
     if (params.entry?.level === "error") {
-      problems.push(`console error: ${params.entry.text}`);
+      problems.push(`console error: ${params.entry.text}${params.entry.url ? ` (${params.entry.url})` : ""}`);
     }
   });
   await session.send("Runtime.enable");

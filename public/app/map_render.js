@@ -219,7 +219,7 @@ function showValidatorMapEmptyStatus(features = validatorMapFeatures()) {
 
 let validatorMapWarmupScheduled = false;
 function scheduleValidatorMapWarmup() {
-  if (validatorMapWarmupScheduled) return;
+  if (validatorMapWarmupScheduled || !state.chains.some((chain) => chain.has_map)) return;
   validatorMapWarmupScheduled = true;
   const warmup = () => {
     if (document.visibilityState === "hidden" || navigator.connection?.saveData) {

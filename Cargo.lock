@@ -3965,7 +3965,7 @@ dependencies = [
 
 [[package]]
 name = "validatorclock"
-version = "2.5.3"
+version = "2.5.4"
 dependencies = [
  "adnl",
  "anyhow",
