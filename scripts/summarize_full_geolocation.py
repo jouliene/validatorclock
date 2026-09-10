@@ -55,7 +55,7 @@ def main():
     (args.output_dir / "legacy-replay.json").write_text(json.dumps(replay, indent=2) + "\n")
     fields = ["chain", "ip", "manual", "old_city", "old_country", "new_city", "new_country", "confidence", "distance_km", "completed", "globalping_id", "reasons"]
     with (args.output_dir / "all-networks.csv").open("w", newline="") as out:
-        writer = csv.DictWriter(out, fieldnames=fields)
+        writer = csv.DictWriter(out, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for r in report["rows"]:
             old, new, e = r["old_map"] or {}, r["new_cache"] or {}, r["entry"] or {}
