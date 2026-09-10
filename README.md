@@ -182,18 +182,21 @@ Defaults (these need not be added to an existing enabled node-location config):
     "enabled": true,
     "reuse_days": 2,
     "max_ips_per_cycle": 100,
-    "daily_requests": 128,
-    "daily_measurements": 6,
+    "daily_requests": 0,
+    "daily_measurements": 0,
     "download_database": true,
     "network_measurements": true
   }
 }
 ```
 
-Globalping uses no API key. `daily_measurements` limits creation of jobs (6/day),
-with at most 6 probe tests/job, so at most 36 probe tests/day. Catalogue reads
-(once/day while work exists), job creation and result reads all consume the 128
-HTTP/day budget. Job IDs survive restarts; results are collected on later retry
+Globalping uses no API key. There is no application-imposed daily ceiling by
+default: `daily_requests: 0` and `daily_measurements: 0` disable optional local
+caps. Positive values enable an administrator-selected cap on HTTP calls or
+measurement jobs respectively; existing explicit values remain effective.
+Provider throttling and Retry-After still apply. Each job uses at most 6 probe
+tests to compare its candidate cities; that is not a daily quota. Catalogue reads
+(once/day while work exists), job creation and result reads remain accounted for. Job IDs survive restarts; results are collected on later retry
 cycles (first normally after one hour), without submitting duplicate jobs. No
 answer or insufficient independent probes leaves the location uncertain. The old
 `operator_measurements` setting remains a deserialization alias. Operator geofeeds

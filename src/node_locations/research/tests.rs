@@ -901,3 +901,31 @@ async fn globalping_multi_operator_trial() {
         json!({"probes":probes.len(),"http_requests":engine.store.budget.total_requests,"results":report["rows"].as_array().unwrap().iter().map(|r|json!({"ip":r["ip"],"accepted":r["accepted"],"locations":r["selected_locations"],"job":r["job"]["id"]})).collect::<Vec<_>>()})
     );
 }
+
+#[test]
+fn default_budget_has_no_daily_ceiling_but_preserves_provider_cooldown() {
+    let cfg = ResearchConfig::default();
+    assert_eq!(cfg.daily_requests, 0);
+    assert_eq!(cfg.daily_measurements, 0);
+    let now = 2_000_000_000;
+    let mut budget = model::Budget::default();
+    for i in 0..1000 {
+        assert!(budget.reserve("globalping-create", now + i * 2, &cfg));
+    }
+    assert_eq!(budget.used, 1000);
+    assert_eq!(budget.measurements, 1000);
+    let mut resumed: model::Budget =
+        serde_json::from_slice(&serde_json::to_vec(&budget).unwrap()).unwrap();
+    resumed
+        .not_before
+        .insert("globalping-create".into(), now + 4000);
+    assert!(!resumed.reserve("globalping-create", now + 3000, &cfg));
+    assert!(resumed.reserve("globalping-create", now + 4000, &cfg));
+    let explicit = ResearchConfig {
+        daily_requests: 1002,
+        daily_measurements: 1002,
+        ..cfg
+    };
+    assert!(resumed.reserve("globalping-create", now + 4002, &explicit));
+    assert!(!resumed.reserve("globalping-create", now + 4004, &explicit));
+}

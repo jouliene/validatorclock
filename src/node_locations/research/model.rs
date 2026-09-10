@@ -11,6 +11,7 @@ pub(crate) struct ResearchConfig {
     pub enabled: bool,
     pub reuse_days: u64,
     pub max_ips_per_cycle: usize,
+    /// Optional local ceiling; zero disables it. Provider throttling still applies.
     pub daily_requests: u32,
     pub daily_measurements: u32,
     pub download_database: bool,
@@ -24,8 +25,8 @@ impl Default for ResearchConfig {
             enabled: true,
             reuse_days: 2,
             max_ips_per_cycle: 100,
-            daily_requests: 128,
-            daily_measurements: 6,
+            daily_requests: 0,
+            daily_measurements: 0,
             download_database: true,
             network_measurements: true,
             measurement_base_url: "https://api.globalping.io/v1".into(),
@@ -163,17 +164,18 @@ impl Budget {
             self.used = 0;
             self.measurements = 0;
         }
-        if self.used >= config.daily_requests.min(500)
+        if (config.daily_requests > 0 && self.used >= config.daily_requests)
             || now < *self.not_before.get(source).unwrap_or(&0)
             || (source == "globalping-create"
-                && self.measurements >= config.daily_measurements.min(20))
+                && config.daily_measurements > 0
+                && self.measurements >= config.daily_measurements)
         {
             return false;
         }
-        self.used += 1;
-        self.total_requests += 1;
+        self.used = self.used.saturating_add(1);
+        self.total_requests = self.total_requests.saturating_add(1);
         if source == "globalping-create" {
-            self.measurements += 1;
+            self.measurements = self.measurements.saturating_add(1);
         }
         // Bounds requests across chains and cycles, without blocking the worker.
         self.not_before
