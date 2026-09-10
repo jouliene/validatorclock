@@ -1,0 +1,450 @@
+{
+  "observed_date": "2026-09-10",
+  "production_checkout": "5cea791dea634b59cdea8959b34bbdad649e8c9c",
+  "local_base": "592a6f23e3921a3e41924253874fa7830bb211a2",
+  "ip_api_url": "http://ip-api.com/batch",
+  "ipwho_url": "https://ipwho.is/{ip}",
+  "lookups": [
+    {
+      "ip": "67.213.125.125",
+      "production_cache": {
+        "city": "Nyngan",
+        "country": "Australia",
+        "country_code": "AU",
+        "isp": "Latitude.sh",
+        "asn": "AS396356",
+        "as_name": "Latitude.sh",
+        "lat": -31.2532,
+        "lon": 146.921,
+        "source": "ip-api",
+        "confidence": "medium",
+        "updated_at": 1788825843,
+        "ipinfo": {
+          "asn": "AS396356",
+          "as_name": "Latitude.sh",
+          "as_domain": "latitude.sh",
+          "country_code": "AU",
+          "country": "Australia",
+          "continent_code": "OC",
+          "continent": "Oceania",
+          "updated_at": 1788825843
+        },
+        "ipinfo_checked_at": 1788825843
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "Australia",
+        "countryCode": "AU",
+        "regionName": "New South Wales",
+        "city": "Nyngan",
+        "lat": -31.2532,
+        "lon": 146.921,
+        "isp": "Latitude.sh",
+        "as": "AS396356 Latitude.sh",
+        "query": "67.213.125.125"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "Australia",
+        "country_code": "AU",
+        "region": "New South Wales",
+        "city": "Bogan",
+        "latitude": -32.0483333,
+        "longitude": 147.4677778
+      }
+    },
+    {
+      "ip": "155.2.223.16",
+      "production_cache": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "country_code": "KY",
+        "isp": "Twinstake Limited",
+        "asn": "AS214434",
+        "as_name": "Twinstake Limited",
+        "lat": 19.2865942,
+        "lon": -81.3743566,
+        "source": "ipwho.is",
+        "confidence": "medium",
+        "updated_at": 1788825843,
+        "ipinfo": {
+          "asn": "AS214434",
+          "as_name": "Twinstake Limited",
+          "as_domain": "twinstake.io",
+          "country_code": "KY",
+          "country": "Cayman Islands",
+          "continent_code": "NA",
+          "continent": "North America",
+          "updated_at": 1788825843
+        },
+        "ipinfo_checked_at": 1788825843,
+        "ipinfo_conflict_settled": true,
+        "tiebreak": {
+          "country": "Cayman Islands",
+          "country_code": "KY",
+          "city": "George Town",
+          "isp": "Twinstake Limited",
+          "lat": 19.2865942,
+          "lon": -81.3743566,
+          "updated_at": 1788825843
+        }
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "The Netherlands",
+        "countryCode": "NL",
+        "regionName": "North Holland",
+        "city": "Amsterdam",
+        "lat": 52.352,
+        "lon": 4.9392,
+        "isp": "Twinstake Limited",
+        "as": "AS214434 Twinstake Limited",
+        "query": "155.2.223.16"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "Cayman Islands",
+        "country_code": "KY",
+        "region": "West Bay",
+        "city": "George Town",
+        "latitude": 19.286569,
+        "longitude": -81.3743608
+      }
+    },
+    {
+      "ip": "64.34.88.165",
+      "production_cache": {
+        "city": "New York",
+        "country": "United States",
+        "country_code": "US",
+        "isp": "Latitude.sh",
+        "asn": "AS396356",
+        "as_name": "Latitude.sh",
+        "lat": 40.7126,
+        "lon": -74.0066,
+        "source": "ip-api",
+        "confidence": "medium",
+        "updated_at": 1788825843,
+        "ipinfo": {
+          "asn": "AS396356",
+          "as_name": "Latitude.sh",
+          "as_domain": "latitude.sh",
+          "country_code": "US",
+          "country": "United States",
+          "continent_code": "NA",
+          "continent": "North America",
+          "updated_at": 1788825843
+        },
+        "ipinfo_checked_at": 1788825843
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "United States",
+        "countryCode": "US",
+        "regionName": "New York",
+        "city": "New York",
+        "lat": 40.7126,
+        "lon": -74.0066,
+        "isp": "Latitude.sh",
+        "as": "AS396356 Latitude.sh",
+        "query": "64.34.88.165"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "United States",
+        "country_code": "US",
+        "region": "New York",
+        "city": "New York City",
+        "latitude": 40.7142726,
+        "longitude": -74.0059654
+      }
+    },
+    {
+      "ip": "178.63.165.86",
+      "production_cache": {
+        "city": "Falkenstein",
+        "country": "Germany",
+        "country_code": "DE",
+        "isp": "Hetzner Online GmbH",
+        "asn": "AS24940",
+        "as_name": "Hetzner Online GmbH",
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "source": "ip-api",
+        "confidence": "medium",
+        "updated_at": 1788935660,
+        "ipinfo": {
+          "asn": "AS24940",
+          "as_name": "Hetzner Online GmbH",
+          "as_domain": "hetzner.de",
+          "country_code": "DE",
+          "country": "Germany",
+          "continent_code": "EU",
+          "continent": "Europe",
+          "updated_at": 1788935660
+        },
+        "ipinfo_checked_at": 1788935660
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "Germany",
+        "countryCode": "DE",
+        "regionName": "Saxony",
+        "city": "Falkenstein",
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "isp": "Hetzner Online GmbH",
+        "as": "AS24940 Hetzner Online GmbH",
+        "query": "178.63.165.86"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "Germany",
+        "country_code": "DE",
+        "region": "Saxony",
+        "city": "Falkenstein/Vogtl.",
+        "latitude": 50.4773298,
+        "longitude": 12.3691588
+      }
+    },
+    {
+      "ip": "75.119.147.73",
+      "production_cache": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "country_code": "FR",
+        "isp": "Forte Interactive",
+        "asn": "AS51167",
+        "as_name": "Contabo GmbH",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "source": "ip-api",
+        "confidence": "medium",
+        "updated_at": 1788977076,
+        "ipinfo": {
+          "asn": "AS51167",
+          "as_name": "Contabo GmbH",
+          "as_domain": "contabo.com",
+          "country_code": "FR",
+          "country": "France",
+          "continent_code": "EU",
+          "continent": "Europe",
+          "updated_at": 1788977076
+        },
+        "ipinfo_checked_at": 1788977076
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "France",
+        "countryCode": "FR",
+        "regionName": "Grand Est",
+        "city": "Lauterbourg",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "isp": "Forte Interactive",
+        "as": "AS51167 Contabo GmbH",
+        "query": "75.119.147.73"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "France",
+        "country_code": "FR",
+        "region": "Grand Est",
+        "city": "Lauterbourg",
+        "latitude": 48.9751523,
+        "longitude": 8.1784569
+      }
+    },
+    {
+      "ip": "194.87.209.129",
+      "production_cache": {
+        "city": "Moscow",
+        "country": "Russia",
+        "country_code": "RU",
+        "isp": "Yacolo",
+        "asn": "AS203493",
+        "as_name": "Egor Timoshenko",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "source": "ip-api",
+        "confidence": "medium",
+        "updated_at": 1788981877,
+        "ipinfo": {
+          "asn": "AS203493",
+          "as_name": "Egor Timoshenko",
+          "as_domain": "yacolo.com",
+          "country_code": "RU",
+          "country": "Russia",
+          "continent_code": "EU",
+          "continent": "Europe",
+          "updated_at": 1788981877
+        },
+        "ipinfo_checked_at": 1788981877
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "Russia",
+        "countryCode": "RU",
+        "regionName": "Moscow",
+        "city": "Moscow",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "isp": "Yacolo",
+        "as": "AS203493 Egor Timoshenko",
+        "query": "194.87.209.129"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "Russian Federation",
+        "country_code": "RU",
+        "region": "Moskva",
+        "city": "Moscow",
+        "latitude": 55.7520384,
+        "longitude": 37.6178147
+      }
+    },
+    {
+      "ip": "216.18.202.242",
+      "production_cache": {
+        "city": "Los Angeles",
+        "country": "United States",
+        "country_code": "US",
+        "isp": "WebNX, Inc.",
+        "asn": "AS18450",
+        "as_name": "WebNX, Inc.",
+        "lat": 33.9214,
+        "lon": -118.413,
+        "source": "ip-api",
+        "confidence": "medium",
+        "updated_at": 1788997180,
+        "ipinfo": {
+          "asn": "AS18450",
+          "as_name": "WebNX, Inc.",
+          "as_domain": "webnx.com",
+          "country_code": "US",
+          "country": "United States",
+          "continent_code": "NA",
+          "continent": "North America",
+          "updated_at": 1788997180
+        },
+        "ipinfo_checked_at": 1788997180
+      },
+      "fresh_ip_api": {
+        "status": "success",
+        "country": "United States",
+        "countryCode": "US",
+        "regionName": "California",
+        "city": "Los Angeles",
+        "lat": 33.9214,
+        "lon": -118.413,
+        "isp": "WebNX, Inc.",
+        "as": "AS18450 WebNX, Inc.",
+        "query": "216.18.202.242"
+      },
+      "fresh_ipwho": {
+        "success": true,
+        "country": "United States",
+        "country_code": "US",
+        "region": "Utah",
+        "city": "Ogden",
+        "latitude": 41.2232781,
+        "longitude": -111.9738294
+      }
+    }
+  ],
+  "looking_glass": [
+    {
+      "requested_at": "2026-09-10T01:14:16.088637+00:00",
+      "request": {
+        "query_location": "amsterdam",
+        "query_type": "ping",
+        "query_vrf": "global",
+        "query_target": "155.2.223.16"
+      },
+      "status": 200,
+      "response": {
+        "output": "PING 155.2.223.16 (155.2.223.16): 56 data bytes\n\n--- 155.2.223.16 ping statistics ---\n5 packets transmitted, 0 packets received, 100% packet loss",
+        "level": "success",
+        "random": "7f3b18e047069b51ecc6ee36557cc78dc344beb5b42f8fcfed9b4d564c709f7c",
+        "cached": false,
+        "runtime": 18,
+        "keywords": [],
+        "timestamp": "2026-09-10 01:13:58",
+        "format": "text/plain"
+      }
+    },
+    {
+      "requested_at": "2026-09-10T01:16:16.182334+00:00",
+      "request": {
+        "query_location": "los_angeles",
+        "query_type": "ping",
+        "query_vrf": "global",
+        "query_target": "64.34.88.165"
+      },
+      "status": 200,
+      "response": {
+        "output": "PING 64.34.88.165 (64.34.88.165): 56 data bytes\n64 bytes from 64.34.88.165: icmp_seq=0 ttl=60 time=2.115 ms\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=60 time=2.181 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=60 time=2.221 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=60 time=2.285 ms\n64 bytes from 64.34.88.165: icmp_seq=4 ttl=60 time=2.087 ms\n\n--- 64.34.88.165 ping statistics ---\n5 packets transmitted, 5 packets received, 0% packet loss\nround-trip min/avg/max/stddev = 2.087/2.178/2.285/0.071 ms",
+        "level": "success",
+        "random": "94113dcce3b278a203bdcf80bcbe81f82e60f13dcf257b5b3f72201b5f4532f6",
+        "cached": false,
+        "runtime": 6,
+        "keywords": [],
+        "timestamp": "2026-09-10 01:16:10",
+        "format": "text/plain"
+      }
+    },
+    {
+      "requested_at": "2026-09-10T01:13:58.221016+00:00",
+      "request": {
+        "query_location": "new_york",
+        "query_type": "ping",
+        "query_vrf": "global",
+        "query_target": "64.34.88.165"
+      },
+      "status": 200,
+      "response": {
+        "output": "PING 64.34.88.165 (64.34.88.165): 56 data bytes\n64 bytes from 64.34.88.165: icmp_seq=0 ttl=58 time=68.576 ms\n64 bytes from 64.34.88.165: icmp_seq=1 ttl=58 time=68.620 ms\n64 bytes from 64.34.88.165: icmp_seq=2 ttl=58 time=68.609 ms\n64 bytes from 64.34.88.165: icmp_seq=3 ttl=58 time=68.735 ms\n64 bytes from 64.34.88.165: icmp_seq=4 ttl=58 time=75.890 ms\n\n--- 64.34.88.165 ping statistics ---\n5 packets transmitted, 5 packets received, 0% packet loss\nround-trip min/avg/max/stddev = 68.576/70.086/75.890/2.902 ms",
+        "level": "success",
+        "random": "98d19aa83ddec1bbe579710f5bae8af6f5e22bdf83cdf7a719296309287d51f9",
+        "cached": false,
+        "runtime": 6,
+        "keywords": [],
+        "timestamp": "2026-09-10 01:13:52",
+        "format": "text/plain"
+      }
+    },
+    {
+      "requested_at": "2026-09-10T01:14:03.506058+00:00",
+      "request": {
+        "query_location": "sydney",
+        "query_type": "ping",
+        "query_vrf": "global",
+        "query_target": "67.213.125.125"
+      },
+      "status": 200,
+      "response": {
+        "output": "PING 67.213.125.125 (67.213.125.125): 56 data bytes\n64 bytes from 67.213.125.125: icmp_seq=0 ttl=61 time=0.651 ms\n64 bytes from 67.213.125.125: icmp_seq=1 ttl=61 time=0.526 ms\n64 bytes from 67.213.125.125: icmp_seq=2 ttl=61 time=0.523 ms\n64 bytes from 67.213.125.125: icmp_seq=3 ttl=61 time=0.521 ms\n64 bytes from 67.213.125.125: icmp_seq=4 ttl=61 time=0.626 ms\n\n--- 67.213.125.125 ping statistics ---\n5 packets transmitted, 5 packets received, 0% packet loss\nround-trip min/avg/max/stddev = 0.521/0.569/0.651/0.057 ms",
+        "level": "success",
+        "random": "c0078a8a237f9c143d63f05adbf0e8261589c526ffd6608dc1ebc2ca317c7a20",
+        "cached": false,
+        "runtime": 11,
+        "keywords": [],
+        "timestamp": "2026-09-10 01:13:52",
+        "format": "text/plain"
+      }
+    }
+  ],
+  "looking_glass_api": "https://lg.latitude.sh/api/query/",
+  "looking_glass_schema": "https://lg.latitude.sh/openapi.json",
+  "unsuccessful_measurements": [
+    {
+      "request": {
+        "query_location": "amsterdam",
+        "query_type": "traceroute",
+        "query_vrf": "global",
+        "query_target": "155.2.223.16"
+      },
+      "result": "Client ReadTimeout after 55 seconds; no route output received."
+    }
+  ]
+}

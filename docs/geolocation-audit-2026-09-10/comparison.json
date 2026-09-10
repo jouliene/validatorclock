@@ -1,0 +1,1325 @@
+{
+  "notice": "Disagreement audit only. Neither source is ground truth. No locations were changed.",
+  "coordinate_threshold_km": 100,
+  "summary": {
+    "node_rows": 497,
+    "unique_ips": 416,
+    "coordinates_compared": 416,
+    "countries_compared": 416,
+    "review_candidates": 38,
+    "reasons": {
+      "country_disagreement": 27,
+      "coordinate_disagreement": 38
+    },
+    "multiple_published_variants": 0
+  },
+  "rows": [
+    {
+      "ip": "5.189.141.228",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788689779
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Frankfurt am Main",
+        "country_code": "DE",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 131.38,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "38.242.157.212",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "London",
+        "country_code": "GB",
+        "lat": 51.5072,
+        "lon": -0.127586,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 654.33,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "everscale_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "45.139.24.8",
+      "asn": "AS34959",
+      "published": {
+        "city": "Moscow",
+        "country": "Russia",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "RU",
+      "comparison": {
+        "city": "Obruchevo",
+        "country_code": "RU",
+        "lat": 54.9486,
+        "lon": 21.7283,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 1006.27,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "everscale_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "57.129.147.75",
+      "asn": "AS16276",
+      "published": {
+        "city": "Bexley",
+        "country": "United Kingdom",
+        "lat": 51.4409,
+        "lon": 0.0985,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "GB",
+      "comparison": {
+        "city": "Dunswell",
+        "country_code": "GB",
+        "lat": 53.8011,
+        "lon": -0.37139000000000005,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 264.35,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "57.129.147.91",
+      "asn": "AS16276",
+      "published": {
+        "city": "Bexley",
+        "country": "United Kingdom",
+        "lat": 51.4409,
+        "lon": 0.0985,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "GB",
+      "comparison": {
+        "city": "Dunswell",
+        "country_code": "GB",
+        "lat": 53.8011,
+        "lon": -0.37139000000000005,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 264.35,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "64.34.88.165",
+      "asn": "AS396356",
+      "published": {
+        "city": "New York",
+        "country": "United States",
+        "lat": 40.7126,
+        "lon": -74.0066,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788825843
+      },
+      "published_country_code": "US",
+      "comparison": {
+        "city": "Los Angeles",
+        "country_code": "US",
+        "lat": 34.0549,
+        "lon": -118.243,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 3935.52,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "67.213.125.125",
+      "asn": "AS396356",
+      "published": {
+        "city": "Nyngan",
+        "country": "Australia",
+        "lat": -31.2532,
+        "lon": 146.921,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788825843
+      },
+      "published_country_code": "AU",
+      "comparison": {
+        "city": "Nyngan",
+        "country_code": "AU",
+        "lat": -31.2532,
+        "lon": 146.921,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 0.0,
+      "country_comparable": true,
+      "review_reasons": [],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "75.119.147.73",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788977076
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Boca Raton",
+        "country_code": "US",
+        "lat": 26.3818,
+        "lon": -80.0845,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 7709.17,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "80.241.215.197",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "London",
+        "country_code": "GB",
+        "lat": 51.5072,
+        "lon": -0.127586,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 654.33,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "89.117.59.119",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Norfolk",
+        "country_code": "US",
+        "lat": 36.8508,
+        "lon": -76.2859,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 6649.2,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "everscale_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "89.117.59.125",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Norfolk",
+        "country_code": "US",
+        "lat": 36.8508,
+        "lon": -76.2859,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 6649.2,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "everscale_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "95.105.75.205",
+      "asn": "AS57128",
+      "published": {
+        "city": "Kazan'",
+        "country": "Russia",
+        "lat": 55.7852,
+        "lon": 49.1174,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788940468
+      },
+      "published_country_code": "RU",
+      "comparison": {
+        "city": "Ufa",
+        "country_code": "RU",
+        "lat": 54.741,
+        "lon": 55.9891,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 450.39,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "137.74.4.103",
+      "asn": "AS16276",
+      "published": {
+        "city": "Warsaw",
+        "country": "Poland",
+        "lat": 52.2299,
+        "lon": 21.0093,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "PL",
+      "comparison": {
+        "city": "Wroclaw (Krzyki)",
+        "country_code": "PL",
+        "lat": 51.098,
+        "lon": 17.0321,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 301.75,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "137.74.4.116",
+      "asn": "AS16276",
+      "published": {
+        "city": "Warsaw",
+        "country": "Poland",
+        "lat": 52.2299,
+        "lon": 21.0093,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788407600
+      },
+      "published_country_code": "PL",
+      "comparison": {
+        "city": "Wroclaw (Krzyki)",
+        "country_code": "PL",
+        "lat": 51.098,
+        "lon": 17.0321,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 301.75,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.16",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.2865942,
+        "lon": -81.3743566,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788825843
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.19",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.23",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788956972
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.25",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.26",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.28",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.2865942,
+        "lon": -81.3743566,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788825843
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.31",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.41",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.42",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.286569,
+        "lon": -81.3743608,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8073.15,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "155.2.223.43",
+      "asn": "AS214434",
+      "published": {
+        "city": "George Town",
+        "country": "Cayman Islands",
+        "lat": 19.3666677,
+        "lon": -81.4166728,
+        "geo_source": "ipwho.is",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788563628
+      },
+      "published_country_code": "KY",
+      "comparison": {
+        "city": "Amsterdam",
+        "country_code": "NL",
+        "lat": 52.3676,
+        "lon": 4.90414,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 8069.13,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "161.97.123.32",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788602035
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Frankfurt am Main",
+        "country_code": "DE",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 131.38,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "everscale_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "161.97.174.72",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788441467
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Frankfurt am Main",
+        "country_code": "DE",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 131.38,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "167.86.119.67",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935967
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Frankfurt am Main",
+        "country_code": "DE",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 131.38,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "178.63.165.86",
+      "asn": "AS24940",
+      "published": {
+        "city": "Falkenstein",
+        "country": "Germany",
+        "lat": 50.4777,
+        "lon": 12.3649,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "DE",
+      "comparison": {
+        "city": "Falkenstein",
+        "country_code": "DE",
+        "lat": 49.0976,
+        "lon": 12.4869,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 153.71,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "everscale_nodes.json",
+        "tycho_nodes_native.json"
+      ],
+      "node_rows": 4,
+      "published_variants": 1
+    },
+    {
+      "ip": "194.87.209.129",
+      "asn": "AS203493",
+      "published": {
+        "city": "Moscow",
+        "country": "Russia",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788981877
+      },
+      "published_country_code": "RU",
+      "comparison": {
+        "city": "Kemerovo",
+        "country_code": "RU",
+        "lat": 55.3352,
+        "lon": 86.0992,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 2987.62,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "194.87.209.239",
+      "asn": "AS203493",
+      "published": {
+        "city": "Moscow",
+        "country": "Russia",
+        "lat": 55.7484,
+        "lon": 37.6175,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788977676
+      },
+      "published_country_code": "RU",
+      "comparison": {
+        "city": "Kemerovo",
+        "country_code": "RU",
+        "lat": 55.3352,
+        "lon": 86.0992,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 2987.62,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "194.163.140.58",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935967
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Frankfurt am Main",
+        "country_code": "DE",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 131.38,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.68.105",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788457687
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Frankfurt am Main",
+        "country_code": "DE",
+        "lat": 50.1109,
+        "lon": 8.68213,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 131.38,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.69.55",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "London",
+        "country_code": "GB",
+        "lat": 51.5072,
+        "lon": -0.127586,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 654.33,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.69.142",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788987278
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "London",
+        "country_code": "GB",
+        "lat": 51.5072,
+        "lon": -0.127586,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 654.33,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.69.176",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788935660
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "London",
+        "country_code": "GB",
+        "lat": 51.5072,
+        "lon": -0.127586,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 654.33,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.69.230",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788942269
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "London",
+        "country_code": "GB",
+        "lat": 51.5072,
+        "lon": -0.127586,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 654.33,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.83.246",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788644393
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Munich (Ramersdorf-Perlach)",
+        "country_code": "DE",
+        "lat": 48.1046,
+        "lon": 11.600200000000001,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 269.35,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "213.136.84.243",
+      "asn": "AS51167",
+      "published": {
+        "city": "Lauterbourg",
+        "country": "France",
+        "lat": 48.9742,
+        "lon": 8.1851,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788607859
+      },
+      "published_country_code": "FR",
+      "comparison": {
+        "city": "Munich (Ramersdorf-Perlach)",
+        "country_code": "DE",
+        "lat": 48.1046,
+        "lon": 11.600200000000001,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 269.35,
+      "country_comparable": true,
+      "review_reasons": [
+        "country_disagreement",
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    },
+    {
+      "ip": "216.18.202.242",
+      "asn": "AS18450",
+      "published": {
+        "city": "Los Angeles",
+        "country": "United States",
+        "lat": 33.9214,
+        "lon": -118.413,
+        "geo_source": "ip-api",
+        "geo_confidence": "medium",
+        "geo_updated_at": 1788997180
+      },
+      "published_country_code": "US",
+      "comparison": {
+        "city": "Salt Lake City (Downtown)",
+        "country_code": "US",
+        "lat": 40.7687,
+        "lon": -111.886,
+        "accuracy_radius_km": null
+      },
+      "distance_km": 954.67,
+      "country_comparable": true,
+      "review_reasons": [
+        "coordinate_disagreement"
+      ],
+      "manual": false,
+      "maps": [
+        "ton_nodes.json"
+      ],
+      "node_rows": 1,
+      "published_variants": 1
+    }
+  ],
+  "database": {
+    "type": "DBIP-City-Lite",
+    "build_epoch": 1788226681,
+    "description": {
+      "en": "DB-IP.com - IP to City",
+      "fr": "DB-IP.com - IP vers Ville"
+    }
+  },
+  "generated_at": "2026-09-10T01:15:44.412238+00:00",
+  "inputs": [
+    {
+      "file": "geo_cache.json",
+      "sha256": "c905cb0dc24b503550e9c5341aced1657a9f50e140c2793293251995d3c5561c"
+    },
+    {
+      "file": "ton_nodes.json",
+      "sha256": "5f169bc4671e7eb8b3e9839a38b7d0ac6a275fd47148ec5239ee80e5a5e5a25b"
+    },
+    {
+      "file": "everscale_nodes.json",
+      "sha256": "d0e1a41cea6d789ebff49b02cd5fe5767ec98b8224a49b3802b2c28da743b9f2"
+    },
+    {
+      "file": "tycho_nodes_native.json",
+      "sha256": "c105a640b24a46e7f825e314050b9ab6692f07c9ddd587d9fc2f976781d9a372"
+    },
+    {
+      "file": "dbip-city-lite.mmdb",
+      "sha256": "05a10861259c7966cb54d7181ef8c360de8c8829d182098c0e62a9b7d54cd50d"
+    }
+  ],
+  "rows_scope": "38 review candidates plus the Sydney/Nyngan control; summary covers all 416 IPs.",
+  "attribution": "Contains IP Geolocation by DB-IP (https://db-ip.com), CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)."
+}
