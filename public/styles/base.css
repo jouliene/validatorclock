@@ -36,28 +36,6 @@ button {
   text-align: center;
 }
 
-.public-stats {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 6px 11px;
-  max-width: 980px;
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.public-stats strong {
-  flex-basis: 100%;
-  color: rgba(231, 244, 255, 0.76);
-  font-weight: 700;
-}
-
-.public-stats-label {
-  color: rgba(231, 244, 255, 0.72);
-  font-weight: 700;
-}
-
 .site-version {
   color: rgba(171, 196, 217, 0.46);
   font-size: 11px;

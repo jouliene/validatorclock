@@ -145,6 +145,11 @@ function renderValidatorMap() {
     attributionControl: false
   });
 
+  validatorMap.addControl(new maplibregl.AttributionControl({
+    compact: true,
+    customAttribution: 'IP Geolocation by <a href="https://db-ip.com">DB-IP</a>'
+  }), "bottom-left");
+
   validatorMap.addControl(new maplibregl.NavigationControl({
     showCompass: false,
     visualizePitch: false

@@ -314,7 +314,7 @@ async fn index_no_longer_claims_that_addresses_are_not_stored() {
 
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let body = String::from_utf8(body.to_vec()).unwrap();
-    assert!(body.contains("Public Stats"));
+    assert!(!body.contains("Public Stats"));
     assert!(!body.contains("IP addresses are not stored"));
     assert!(!body.contains("No analytics cookies"));
 }
