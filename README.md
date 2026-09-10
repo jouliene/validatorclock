@@ -148,6 +148,8 @@ vanish with the labels; a missing glyph range is therefore answered with no
 glyphs instead of 404, and a test fails the build if a layer names a font
 inline.
 
+Full all-network comparison and known issues: [10 September 2026 report](docs/geolocation-full-comparison-2026-09-10/README.md). The experimental resolver has not been promoted to main.
+
 This experimental branch uses a persistent, keyless geolocation researcher. The
 five-minute loop only checks locally resolved IPs; completed locations are reused
 for 2 days, across validator-set changes and restarts. New and late-arriving IPs

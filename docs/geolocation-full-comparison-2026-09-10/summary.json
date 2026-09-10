@@ -1,0 +1,109 @@
+{
+  "snapshot_at": 1789008172,
+  "finished_at": 1789008620,
+  "chains": {
+    "everscale": {
+      "completed": 53,
+      "disputed": 5,
+      "manual": 1,
+      "map_rows": 87,
+      "measured_metros": 1,
+      "moved_over_100km": 0,
+      "remembered_total": 0,
+      "resolved_total": 87,
+      "unique_ips": 59,
+      "validators_total": 88
+    },
+    "ton": {
+      "completed": 316,
+      "disputed": 27,
+      "manual": 0,
+      "map_rows": 393,
+      "measured_metros": 3,
+      "moved_over_100km": 11,
+      "remembered_total": 2,
+      "resolved_total": 391,
+      "unique_ips": 343,
+      "validators_total": 393
+    },
+    "tycho-testnet": {
+      "completed": 16,
+      "disputed": 1,
+      "manual": 0,
+      "map_rows": 17,
+      "measured_metros": 0,
+      "moved_over_100km": 0,
+      "remembered_total": 0,
+      "resolved_total": 17,
+      "unique_ips": 17,
+      "validators_total": 17
+    }
+  },
+  "unique_ips": 416,
+  "confidence": {
+    "approximate": 331,
+    "disputed": 32,
+    "measured_metro": 4,
+    "operator_city": 48
+  },
+  "completed": 383,
+  "manual": 1,
+  "moved_over_100km": 11,
+  "measured_moves": [
+    "64.34.88.165"
+  ],
+  "unmeasured_moves": [
+    "155.2.223.16",
+    "155.2.223.19",
+    "155.2.223.23",
+    "155.2.223.25",
+    "155.2.223.26",
+    "155.2.223.28",
+    "155.2.223.31",
+    "155.2.223.41",
+    "155.2.223.42",
+    "155.2.223.43"
+  ],
+  "unmeasured_moves_without_disputed_flag": [
+    "155.2.223.16",
+    "155.2.223.28",
+    "155.2.223.43"
+  ],
+  "same_primary_algorithm_differences_over_100km": 11,
+  "requests": {
+    "globalping-create": 36,
+    "globalping-read": 37,
+    "ip-api": 5,
+    "ipwho.is": 28
+  },
+  "total_http_requests": 106,
+  "globalping_jobs": 36,
+  "finished_jobs": 36,
+  "globalping_probes_reported": 108,
+  "measurement_target_asns": [
+    "AS16276",
+    "AS18450",
+    "AS203493",
+    "AS214434",
+    "AS24940",
+    "AS34959",
+    "AS396356",
+    "AS51167",
+    "AS57128"
+  ],
+  "warm_http_requests": 0,
+  "restart_http_requests": 0,
+  "post_completion_reopen_http_requests": [
+    0,
+    0
+  ],
+  "failed_primary": [],
+  "failed_secondary": [],
+  "method": "Production map baseline versus actual Engine on copied node data. Shared official assets preseeded, excluded from HTTP totals. Queue drain shortens only per-IP backoff deadlines, NOT source throttles or timestamps. Not a real-time 48-hour soak. Failed and disputed results are retained, not counted as fixes.",
+  "replay_method": "Actual legacy_refresh against LOCAL replay of experiment primary answers; original cached IPinfo/tiebreak evidence retained with original ages. Primary TTL intentionally bypassed. No new IPinfo answers, unavailable third answers fail. Counterfactual refresh comparison, not a fresh independent provider census; zero external requests.",
+  "input_sha256": {
+    "snapshot.json": "a0ead906a08b45bdc4933fd13edcd7d1d33ea287ee883762540dee5c49ef097a",
+    "geo_cache.json": "b40dd3cd8295719e144dc2e92fa825fbb401545e1647e23fe14e1aea2ebc3909",
+    "inventory.json": "863237679bc66ae9b350c77b776c075b5be3dba51129dfacbd4df974b2edac2e"
+  }
+}

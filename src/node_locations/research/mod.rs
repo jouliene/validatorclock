@@ -1,4 +1,6 @@
 //! Persistent, demand-driven geolocation. Polling seed files does not imply network I/O.
+#[cfg(test)]
+mod full_trial;
 mod globalping;
 mod model;
 #[cfg(test)]

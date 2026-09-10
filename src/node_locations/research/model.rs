@@ -156,6 +156,8 @@ pub struct Budget {
     pub measurements: u32,
     pub not_before: BTreeMap<String, u64>,
     pub total_requests: u64,
+    #[serde(default)]
+    pub requests_by_source: BTreeMap<String, u64>,
 }
 impl Budget {
     pub fn reserve(&mut self, source: &str, now: u64, config: &ResearchConfig) -> bool {
@@ -172,6 +174,8 @@ impl Budget {
         {
             return false;
         }
+        let count = self.requests_by_source.entry(source.into()).or_default();
+        *count = count.saturating_add(1);
         self.used = self.used.saturating_add(1);
         self.total_requests = self.total_requests.saturating_add(1);
         if source == "globalping-create" {
