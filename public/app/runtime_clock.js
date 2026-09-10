@@ -6,7 +6,9 @@ async function loadClock(force = false) {
 
   const requestSeq = state.clockRequestSeq + 1;
   state.clockRequestSeq = requestSeq;
+  window.clearTimeout(state.pollTimer);
   state.clockLoading = true;
+  renderNow();
   try {
     const snapshot = await fetchClockSnapshot(chainId, force);
     if (!requestIsCurrent(requestSeq, state.clockRequestSeq, chainId)) {
@@ -18,6 +20,8 @@ async function loadClock(force = false) {
       return;
     }
     state.clockLoading = false;
+    scheduleClockRefresh(60_000);
+    renderNow();
   }
 }
 
@@ -44,15 +48,15 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
 
   state.snapshot = snapshot;
   state.snapshotsByChain.set(chainId, snapshot);
+  state.clockReceivedAtByChain.set(chainId, performance.now());
+  window.clearTimeout(state.clockUpdatedFlashTimer);
+  state.clockUpdatedFlashTimer = window.setTimeout(() => whenVisible(renderNow), 250);
   if (mapAvailableForChain(chainId)) {
-    const cachedNodes = applyCachedValidatorMapNodesForChain(chainId);
-    if (!cachedNodes) {
-      await refreshValidatorMapNodesForSnapshot(chainId);
-    } else {
-      refreshValidatorMapNodesForSnapshot(chainId).catch((error) => {
-        console.warn(`Unable to refresh ${chainId} map nodes`, error);
-      });
-    }
+    applyCachedValidatorMapNodesForChain(chainId);
+    // The clock response is ready: an independent map request must not delay it.
+    refreshValidatorMapNodesForSnapshot(chainId).catch((error) => {
+      console.warn(`Unable to refresh ${chainId} map nodes`, error);
+    });
   } else {
     state.validatorMapNodesByPeer = null;
   }
@@ -66,7 +70,6 @@ async function applySelectedClockSnapshot(chainId, snapshot, requestSeq) {
   setError(snapshot.warning || "");
   renderChainTabs();
   renderNow();
-  updateStaleSnapshotRetry(chainId, snapshot);
   handleRoundStatsClockSnapshot(chainId, snapshot);
 }
 
@@ -95,27 +98,4 @@ async function prefetchChainSnapshot(chainId) {
     console.warn(`Unable to prefetch ${chainId} clock snapshot`, error);
     return null;
   }
-}
-
-// The server answers with the snapshot it has while a refresh of its own is running, and
-// says so. Asking once more shortly after gets the new one sooner than the next poll
-// would - once per snapshot, not once every five seconds: the key below is what stops
-// this from becoming the loop it replaced.
-function updateStaleSnapshotRetry(chainId, snapshot) {
-  window.clearTimeout(state.staleRetryTimer);
-  state.staleRetryTimer = null;
-  const retryKey = `${chainId}:${snapshot.fetched_at}`;
-  if (!snapshot.refreshing || state.staleRetryKey === retryKey) {
-    if (!snapshot.warning) {
-      state.staleRetryKey = null;
-    }
-    return;
-  }
-
-  state.staleRetryKey = retryKey;
-  state.staleRetryTimer = window.setTimeout(() => {
-    if (state.selectedChainId === chainId) {
-      loadClock(false).catch((error) => setError(error.message));
-    }
-  }, 5000);
 }

@@ -1,5 +1,5 @@
 function startTimers() {
-  window.clearInterval(state.pollTimer);
+  window.clearTimeout(state.pollTimer);
   window.clearInterval(state.statusTimer);
   window.clearInterval(state.drawTimer);
   window.clearInterval(state.roundStatsPrefetchTimer);
@@ -7,9 +7,7 @@ function startTimers() {
 
   const pollSeconds = refreshPollSeconds();
 
-  state.pollTimer = window.setInterval(() => {
-    whenVisible(() => loadClock(false).catch((error) => setError(error.message)));
-  }, pollSeconds * 1000);
+  scheduleClockRefresh();
 
   state.statusTimer = window.setInterval(() => {
     whenVisible(loadRuntimeStatus);
@@ -55,7 +53,22 @@ function handleRuntimeVisibility() {
 }
 
 function refreshPollSeconds() {
-  return Math.max(10, Math.floor(Math.max(10, state.refreshSeconds) / 2));
+  return 60;
+}
+
+// Each successful response starts the next minute. Hidden tabs resume on visibility.
+function scheduleClockRefresh(delayMs = null) {
+  window.clearTimeout(state.pollTimer);
+  const receivedAt = state.clockReceivedAtByChain.get(state.selectedChainId);
+  const elapsed = receivedAt == null ? 0 : performance.now() - receivedAt;
+  const delay = delayMs ?? Math.max(0, 60_000 - elapsed);
+  state.pollTimer = window.setTimeout(() => {
+    if (!isPageVisible()) {
+      scheduleClockRefresh(60_000);
+      return;
+    }
+    loadClock(false).catch((error) => setError(error.message));
+  }, delay);
 }
 
 function renderNow() {

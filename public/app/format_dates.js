@@ -16,7 +16,7 @@ function dateRow(label, unixSeconds) {
   return row;
 }
 
-function renderInfoUpdated(labelContainer, valueContainer, fetchedAt, now, options = {}) {
+function renderInfoUpdated(labelContainer, valueContainer, receivedAt, now, options = {}) {
   if (options.refreshing) {
     labelContainer.textContent = "Updating";
     valueContainer.textContent = "now";
@@ -24,8 +24,12 @@ function renderInfoUpdated(labelContainer, valueContainer, fetchedAt, now, optio
   }
 
   labelContainer.textContent = "Info updated";
-  const ageSeconds = Math.max(0, now - fetchedAt);
-  valueContainer.textContent = `${ageSeconds}s ago`;
+  if (receivedAt == null) {
+    valueContainer.textContent = "waiting";
+    return;
+  }
+  const elapsedMs = Math.max(0, now - receivedAt);
+  valueContainer.textContent = elapsedMs < 250 ? "now" : `${Math.floor(elapsedMs / 1000)}s`;
 }
 
 function formatDateTime(unixSeconds) {

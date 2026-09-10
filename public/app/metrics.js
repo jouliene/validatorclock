@@ -9,18 +9,11 @@ function renderMetrics(snapshot, model, now) {
   $("metricElectionsStartIn").textContent = model.inElections
     ? formatDurationPrecise(Math.max(0, model.electionsEnd - now))
     : formatDurationPrecise(Math.max(0, model.electionsStart - now));
-  renderInfoUpdated($("metricFetchedLabel"), $("metricFetched"), snapshot.fetched_at, now, {
-    refreshing: infoUpdatedRefreshPending(snapshot, now),
+  const receivedAt = state.clockReceivedAtByChain.get(state.selectedChainId);
+  renderInfoUpdated($("metricFetchedLabel"), $("metricFetched"), receivedAt, performance.now(), {
+    refreshing: state.clockLoading,
   });
-}
-
-function infoUpdatedRefreshPending(snapshot, now) {
-  const refreshSeconds = Math.max(10, state.refreshSeconds || 60);
-  const ageSeconds = Math.max(0, now - snapshot.fetched_at);
-  // The snapshot says whether a refresh of it is running; this used to be worked out by
-  // looking for a phrase inside the warning text, which made the wording of a server log
-  // line part of the page.
-  return Boolean(snapshot.refreshing) || (state.clockLoading && ageSeconds >= refreshSeconds);
+  setValidatorTooltip($("metricFetchedLabel"), "Time since this page received the server snapshot. Server data health is shown separately.");
 }
 
 function roundAccentColor(color) {
