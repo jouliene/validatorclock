@@ -150,7 +150,7 @@ inline.
 
 This experimental branch uses a persistent, keyless geolocation researcher. The
 five-minute loop only checks locally resolved IPs; completed locations are reused
-for 90 days, across validator-set changes and restarts. New and late-arriving IPs
+for 2 days, across validator-set changes and restarts. New and late-arriving IPs
 enter a bounded queue. Failed lookups back off (1h, 6h, 1d, 3d, then weekly), and
 fully researched disagreements are checked weekly rather than treated as facts.
 
@@ -175,7 +175,7 @@ Defaults (these need not be added to an existing enabled node-location config):
 "node_locations": {
   "research": {
     "enabled": true,
-    "reuse_days": 90,
+    "reuse_days": 2,
     "max_ips_per_cycle": 100,
     "daily_requests": 128,
     "daily_measurements": 6,

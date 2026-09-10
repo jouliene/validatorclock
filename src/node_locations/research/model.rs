@@ -20,7 +20,7 @@ impl Default for ResearchConfig {
     fn default() -> Self {
         Self {
             enabled: true,
-            reuse_days: 90,
+            reuse_days: 2,
             max_ips_per_cycle: 100,
             daily_requests: 128,
             daily_measurements: 6,

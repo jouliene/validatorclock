@@ -233,7 +233,7 @@ async fn fixture(fail: bool) -> Fixture {
     }
 }
 #[tokio::test]
-async fn same_set_for_thirty_days_restart_set_switch_and_return_do_not_relookup_known_ips() {
+async fn same_set_restart_and_return_reuse_ips_until_two_day_expiry() {
     let f = fixture(false).await;
     let mut engine = Engine::open(&f.config).unwrap();
     let mut cache = GeoCache::default();
@@ -245,7 +245,7 @@ async fn same_set_for_thirty_days_restart_set_switch_and_return_do_not_relookup_
         .await
         .unwrap();
     assert_eq!(f.calls.load(Ordering::SeqCst), 1);
-    for i in 1..=30 * 288 {
+    for i in 1..=288 {
         engine
             .refresh(&f.config, &[a], &BTreeMap::new(), &mut cache, now + i * 300)
             .await
@@ -254,7 +254,7 @@ async fn same_set_for_thirty_days_restart_set_switch_and_return_do_not_relookup_
     assert_eq!(f.calls.load(Ordering::SeqCst), 1);
     drop(engine);
     let mut engine = Engine::open(&f.config).unwrap();
-    let later = now + 31 * DAY;
+    let later = now + DAY + 300;
     engine
         .refresh(&f.config, &[a, b], &BTreeMap::new(), &mut cache, later)
         .await
@@ -272,15 +272,9 @@ async fn same_set_for_thirty_days_restart_set_switch_and_return_do_not_relookup_
         .unwrap();
     assert!(cache.location(a).is_some());
     assert_eq!(f.calls.load(Ordering::SeqCst), 2);
-    // A deliberate 90-day expiry does permit a new observation.
+    // At exactly 48 hours the original IP must be checked again.
     engine
-        .refresh(
-            &f.config,
-            &[a],
-            &BTreeMap::new(),
-            &mut cache,
-            now + 90 * DAY,
-        )
+        .refresh(&f.config, &[a], &BTreeMap::new(), &mut cache, now + 2 * DAY)
         .await
         .unwrap();
     assert_eq!(f.calls.load(Ordering::SeqCst), 3);
@@ -699,9 +693,9 @@ async fn old_and_new_request_counts_for_a_successful_ip_over_thirty_days() {
             .await
             .unwrap();
     }
-    assert_eq!(f.calls.load(Ordering::SeqCst) - legacy_calls, 1);
+    assert_eq!(f.calls.load(Ordering::SeqCst) - legacy_calls, 15);
     println!(
-        "30-day successful IP, per-IP HTTP only: old=10 new=1 (asset downloads disabled in fixture)"
+        "30-day successful IP, per-IP HTTP only: old=10 new=15 (asset downloads disabled in fixture)"
     );
 }
 #[tokio::test]
