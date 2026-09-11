@@ -421,6 +421,27 @@
   width: 7%;
 }
 
+/* Reserve space for full stake amounts; the label uses the remaining width. */
+.node-stats-table:not(.node-stats-ranking-table) .node-stats-col-rank {
+  width: 42px;
+}
+
+.node-stats-table:not(.node-stats-ranking-table) .node-stats-col-name {
+  width: auto;
+}
+
+.node-stats-table:not(.node-stats-ranking-table) .node-stats-col-count {
+  width: 70px;
+}
+
+.node-stats-table:not(.node-stats-ranking-table) .node-stats-col-stake {
+  width: 140px;
+}
+
+.node-stats-table:not(.node-stats-ranking-table) .node-stats-col-percent {
+  width: 80px;
+}
+
 .node-stats-table th,
 .node-stats-table td {
   height: 32px;
