@@ -126,8 +126,8 @@ impl ClockSnapshot {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub(crate) struct ElectionTimingsDto {
     pub(super) validators_elected_for: u32,
-    pub(crate) elections_start_before: u32,
-    pub(crate) elections_end_before: u32,
+    pub(super) elections_start_before: u32,
+    pub(super) elections_end_before: u32,
     pub(super) stake_held_for: u32,
 }
 

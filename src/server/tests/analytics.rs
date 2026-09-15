@@ -285,7 +285,7 @@ async fn traffic_attribution_counts_entries_only_and_is_private() {
     let state = test_state(Vec::new());
     let app = crate::server::routes::app_router(Arc::clone(&state));
     for (event, path) in [
-        ("page_open", "/test/"),
+        ("page_open", "/"),
         ("page_open", "/methodology/"),
         ("heartbeat", "/test/"),
     ] {
@@ -311,7 +311,7 @@ async fn traffic_attribution_counts_entries_only_and_is_private() {
     let traffic =
         response_json(authed_stats_response(Arc::clone(&state), "/stats/traffic").await).await;
     assert_eq!(traffic["sources"]["Google"], 1);
-    assert_eq!(traffic["landing_pages"]["/test/"], 1);
+    assert_eq!(traffic["landing_pages"]["/"], 1);
     assert!(traffic["landing_pages"].get("/methodology/").is_none());
     let stored = std::fs::read_to_string(state.config.analytics_path.as_ref().unwrap()).unwrap();
     assert!(!stored.contains("google.com"));

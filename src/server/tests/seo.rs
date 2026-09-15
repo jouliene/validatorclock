@@ -1,5 +1,6 @@
 use super::*;
 use axum::http::StatusCode;
+use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
 async fn html(response: axum::response::Response) -> String {
@@ -12,30 +13,29 @@ async fn html(response: axum::response::Response) -> String {
     .unwrap()
 }
 
+#[test]
+fn seo_keeps_the_original_dashboard_body() {
+    // Body from d6450f7 (2.5.4), before the SEO work. Metadata may change;
+    // adding body content requires an explicit design decision, not an SEO edit.
+    let template = include_str!("../../../public/index.html");
+    let body = template.split_once("<body>").unwrap().1;
+    assert_eq!(
+        hex::encode(Sha256::digest(body)),
+        "b9ff13a47aec3c13b83587e6b2691b4dc535e948d8ff20270c60adda9b2ef5e8"
+    );
+}
+
 #[tokio::test]
-async fn network_pages_serve_dated_validator_data_without_javascript() {
+async fn metadata_is_in_the_head_without_extra_body_content() {
     let state = test_state(Vec::new());
-    let mut snapshot = test_clock_snapshot("test");
-    snapshot.fetched_at = 1_788_000_000;
-    snapshot.current_set.total_stake = Some("123,456.789".to_owned());
-    snapshot.current_set.validators[0].public_key =
-        "<script>alert('validator')</script>".to_owned();
-    state
-        .store_cached_snapshot("test", snapshot.fetched_at, snapshot)
-        .await;
-    let response = app_response(Arc::clone(&state), "/test/").await;
+    let response = app_response(state, "/").await;
     assert_eq!(response.status(), StatusCode::OK);
-    let body = html(response).await;
-    assert!(body.contains("data-chain-id=\"test\""));
-    assert!(body.contains("https://allowed.example/test/"));
-    assert!(body.contains("123,456.789"));
-    assert!(body.contains("2026-08-29T"));
-    assert!(body.contains("This snapshot is stale"));
-    assert!(body.contains("&lt;script&gt;"));
-    assert!(!body.contains("<script>alert"));
-    assert!(body.contains("<table"));
-    assert!(!body.contains("__NETWORK_SNAPSHOT__"));
-    let graph = body
+    let page = html(response).await;
+    let (head, body) = page.split_once("<body>").unwrap();
+    assert!(head.contains("rel=\"canonical\" href=\"https://allowed.example/\""));
+    assert!(head.contains("name=\"description\""));
+    assert!(head.contains("property=\"og:image\""));
+    let graph = head
         .split("<script type=\"application/ld+json\">")
         .nth(1)
         .unwrap()
@@ -43,59 +43,33 @@ async fn network_pages_serve_dated_validator_data_without_javascript() {
         .next()
         .unwrap();
     let graph: Value = serde_json::from_str(graph).unwrap();
-    assert_eq!(graph["@graph"][1]["url"], "https://allowed.example/test/");
-    // Serving HTML neither starts a refresh nor modifies the snapshot.
-    assert_eq!(
-        state
-            .with_cached_snapshot("test", |snapshot| snapshot.fetched_at)
-            .await,
-        Some(1_788_000_000)
-    );
+    assert_eq!(graph["@graph"][1]["url"], "https://allowed.example/");
+    assert!(body.contains("<h1>VALIDATOR CLOCK</h1>"));
+    for added in [
+        "page-intro",
+        "network-snapshot",
+        "content-nav",
+        "dashboard-live",
+        "__SEO_HEAD__",
+    ] {
+        assert!(!body.contains(added), "{added}");
+    }
 }
 
 #[tokio::test]
-async fn missing_data_is_immediate_and_not_reported_as_zero() {
-    let state = test_state(Vec::new());
-    let response = tokio::time::timeout(Duration::from_secs(1), app_response(state, "/test/"))
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    let body = html(response).await;
-    assert!(body.contains("Network data is not available yet"));
-    assert!(body.contains("href=\"/test/\""));
-}
-
-#[tokio::test]
-async fn sitemap_lists_only_canonical_public_pages_that_resolve() {
+async fn sitemap_contains_only_the_original_dashboard() {
     let state = test_state(Vec::new());
     let response = app_response(Arc::clone(&state), "/sitemap.xml").await;
     assert_eq!(response.status(), StatusCode::OK);
-    assert_header_starts_with(response.headers(), header::CONTENT_TYPE, "application/xml");
     let xml = html(response).await;
-    assert!(!xml.contains("/stats"));
-    assert!(!xml.contains("/api/"));
-    assert!(!xml.contains("index.html"));
-    let urls: Vec<_> = xml
-        .split("<loc>")
-        .skip(1)
-        .map(|part| part.split("</loc>").next().unwrap())
-        .collect();
-    assert_eq!(urls.len(), 5);
-    for url in urls {
-        let path = url.strip_prefix("https://allowed.example").unwrap();
-        let response = app_response(Arc::clone(&state), path).await;
-        assert_eq!(response.status(), StatusCode::OK, "{path}");
-        let page = html(response).await;
-        assert!(page.contains(&format!("rel=\"canonical\" href=\"{url}\"")));
-        assert_eq!(page.matches("<h1>").count(), 1);
-        assert!(!page.contains("__PAGE_"));
-        assert!(!page.contains("__SEO_HEAD__"));
-    }
+    assert_eq!(xml.matches("<loc>").count(), 1);
+    assert!(xml.contains("<loc>https://allowed.example/</loc>"));
     let response = app_response(Arc::clone(&state), "/robots.txt").await;
+    assert_eq!(response.status(), StatusCode::OK);
     let robots = html(response).await;
     assert!(robots.contains("Sitemap: https://allowed.example/sitemap.xml"));
     assert!(!robots.contains("Disallow: /api"));
-    for path in ["/unknown/", "/unknown", "/guides/unknown/"] {
+    for path in ["/unknown/", "/unknown", "/guides/unknown/", "/content.js"] {
         assert_eq!(
             app_response(Arc::clone(&state), path).await.status(),
             StatusCode::NOT_FOUND
@@ -104,29 +78,39 @@ async fn sitemap_lists_only_canonical_public_pages_that_resolve() {
 }
 
 #[tokio::test]
-async fn canonical_redirects_preserve_queries_and_do_not_trust_host() {
+async fn removed_pages_and_mirrors_redirect_without_changing_the_dashboard() {
     let mut config = test_config(vec!["allowed.example".into(), "www.allowed.example".into()]);
     config.tls.enabled = true;
     let state = state_from_config(config);
-    for (path, host, expected) in [
-        (
-            "/index.html?utm_source=test",
-            "allowed.example",
-            "/?utm_source=test",
-        ),
-        ("/test?x=1", "allowed.example", "/test/?x=1"),
-        ("/methodology", "allowed.example", "/methodology/"),
-        (
-            "/test?x=1",
-            "www.allowed.example",
-            "https://allowed.example/test/?x=1",
-        ),
-        ("/", "www.allowed.example", "https://allowed.example/"),
+    for path in [
+        "/index.html",
+        "/test",
+        "/test/",
+        "/methodology",
+        "/methodology/",
+        "/about/",
+        "/guides/validator-elections/",
     ] {
-        let response = app_response_with(Arc::clone(&state), path, &[(header::HOST, host)]).await;
-        assert_eq!(response.status(), StatusCode::PERMANENT_REDIRECT);
-        assert_eq!(response.headers()[header::LOCATION], expected);
+        let response = app_response_with(
+            Arc::clone(&state),
+            &format!("{path}?x=1"),
+            &[(header::HOST, "allowed.example")],
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::PERMANENT_REDIRECT, "{path}");
+        assert_eq!(response.headers()[header::LOCATION], "/?x=1");
     }
+    let response = app_response_with(
+        Arc::clone(&state),
+        "/test/?x=1",
+        &[(header::HOST, "www.allowed.example")],
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::PERMANENT_REDIRECT);
+    assert_eq!(
+        response.headers()[header::LOCATION],
+        "https://allowed.example/?x=1"
+    );
     let bad = app_response_with(state, "/index.html", &[(header::HOST, "attacker.example")]).await;
     assert_eq!(bad.status(), StatusCode::BAD_REQUEST);
 }

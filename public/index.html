@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/styles.css?v=__ASSET_VERSION__">
   <script src="/app.js?v=__ASSET_VERSION__" defer></script>
 </head>
-<body data-chain-id="__CHAIN_ID__">
+<body>
   <div class="app-shell">
     <header class="titlebar">
       <div id="runtimeStatus" class="runtime-status is-starting">
@@ -16,7 +16,7 @@
         <strong id="runtimeState">Starting</strong>
         <span id="runtimeFreshness">checking</span>
       </div>
-      <h1>__PAGE_HEADING__</h1>
+      <h1>VALIDATOR CLOCK</h1>
       <div class="header-updated">
         <svg class="updated-refresh" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <path d="M21 12a9 9 0 0 1-15.74 5.96L3 16"></path>
@@ -29,13 +29,6 @@
       </div>
     </header>
 
-    <section class="page-intro" aria-label="About this dashboard">
-      <p>__PAGE_DESCRIPTION__</p>
-      __PAGE_NAV__
-    </section>
-    <noscript><style>.dashboard-live { display: none; }</style><p class="page-intro">The interactive clock needs JavaScript. <a href="#network-snapshot">Read the recorded network data below</a>.</p></noscript>
-
-    <div class="dashboard-live">
     <main class="top-grid">
       <section class="info-panel election-panel" aria-label="Election details">
         <h2>
@@ -97,7 +90,7 @@
             Network
           </h2>
           <div class="network-selector-layout">
-            <nav id="chainTabs" class="chain-tabs" aria-label="Chains">__CHAIN_LINKS__</nav>
+            <nav id="chainTabs" class="chain-tabs" aria-label="Chains"></nav>
             <figure id="networkPortrait" class="network-portrait" aria-hidden="true">
               <img id="networkPortraitPrimary" class="network-portrait-image" alt="" decoding="async">
               <img id="networkPortraitSecondary" class="network-portrait-image" alt="" decoding="async">
@@ -105,7 +98,7 @@
           </div>
         </section>
         <section class="network-message-card" aria-label="Network message">
-          <p id="networkMessageText" class="network-message-text">Follow validator rounds, election windows and network participation.</p>
+          <p id="networkMessageText" class="network-message-text">We will have some text here soon. Text can be a bit long but highly likely like that long max</p>
         </section>
       </section>
     </main>
@@ -312,13 +305,8 @@
 
     <section id="recentRoundsGrid" class="recent-rounds-grid" aria-label="Recent round history"></section>
 
-    </div>
-
-    __NETWORK_SNAPSHOT__
-
     <p id="errorBanner" class="error-banner" hidden></p>
     <footer class="site-footer" aria-label="Site footer">
-      __FOOTER_LINKS__
       <div class="site-version" aria-label="Application version">version __APP_VERSION__</div>
     </footer>
   </div>

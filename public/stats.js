@@ -45,27 +45,7 @@
   }
 
   async function refresh() {
-    await Promise.all([refreshSummary(), refreshVisitors(), refreshTraffic()]);
-  }
-
-  async function refreshTraffic() {
-    const traffic = await fetchJson("/stats/traffic");
-    if (!traffic) return;
-    for (const [id, values] of [["trafficSources", traffic.sources], ["trafficPages", traffic.landing_pages]]) {
-      const container = document.getElementById(id);
-      if (!container) continue;
-      container.replaceChildren();
-      for (const [label, count] of Object.entries(values || {}).sort((a, b) => b[1] - a[1])) {
-        const row = document.createElement("div");
-        const term = document.createElement("dt");
-        const value = document.createElement("dd");
-        term.textContent = label;
-        value.textContent = formatAnalyticsNumber(count);
-        row.append(term, value);
-        container.append(row);
-      }
-      if (!container.children.length) container.textContent = "No entry visits recorded yet.";
-    }
+    await Promise.all([refreshSummary(), refreshVisitors()]);
   }
 
   async function refreshSummary() {

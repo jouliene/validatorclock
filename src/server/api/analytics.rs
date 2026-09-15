@@ -88,15 +88,8 @@ pub(in crate::server) async fn traffic_report(
     Json(state.traffic_report().await)
 }
 
-fn is_public_page(state: &AppState, path: &str) -> bool {
-    matches!(
-        path,
-        "/" | "/about/" | "/methodology/" | "/guides/validator-elections/"
-    ) || state
-        .config
-        .chains
-        .iter()
-        .any(|chain| path == format!("/{}/", chain.id))
+fn is_public_page(_state: &AppState, path: &str) -> bool {
+    path == "/"
 }
 
 fn traffic_source(origin: Option<&str>, campaign: Option<&str>) -> &'static str {

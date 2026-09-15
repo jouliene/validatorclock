@@ -53,7 +53,6 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         .route("/robots.txt", get(super::seo::robots))
         .route("/sitemap.xml", get(super::seo::sitemap))
         .route("/social-preview.png", get(super::seo::social_preview))
-        .route("/content.js", get(super::seo::content_js))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
         .route("/basemap/{*path}", get(basemap_asset))

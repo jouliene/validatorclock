@@ -3,9 +3,7 @@
 Web dashboard for Everscale, Tycho, and TON validator rounds, elections,
 stakes, rewards, wallet types, and recent validator history.
 
-**[Live dashboard](https://validatorclock.xyz/)** · [TON](https://validatorclock.xyz/ton/) · [Everscale](https://validatorclock.xyz/everscale/) · [Tycho Testnet](https://validatorclock.xyz/tycho-testnet/)
-
-[Data methodology](https://validatorclock.xyz/methodology/) · [Election guide](https://validatorclock.xyz/guides/validator-elections/) · [Search indexing setup](docs/search-indexing.md)
+**[Live dashboard](https://validatorclock.xyz/)** · [Search indexing setup](docs/search-indexing.md)
 
 ![Validator Clock screenshot](docs/validatorclock-screenshot.png)
 
