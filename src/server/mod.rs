@@ -16,6 +16,7 @@ pub(crate) mod connection;
 mod responses;
 mod routes;
 mod security;
+mod seo;
 
 #[cfg(test)]
 mod tests;

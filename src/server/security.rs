@@ -34,6 +34,40 @@ pub(super) async fn enforce_allowed_host(
         return json_error(StatusCode::BAD_REQUEST, "bad_host", "bad host");
     }
 
+    // Canonicalize only GET/HEAD pages and the www mirror. The destination
+    // comes from configuration, never from an untrusted Host header.
+    if matches!(*request.method(), Method::GET | Method::HEAD) {
+        let path = super::seo::canonical_path(&state, request.uri().path());
+        let canonical_host = crate::hostname::public_url_host(&state.config.tls.public_url);
+        let offered_host = request
+            .headers()
+            .get(header::HOST)
+            .and_then(|value| value.to_str().ok())
+            .and_then(normalize_host);
+        let mirror = state.config.tls.enabled
+            && canonical_host
+                .as_ref()
+                .zip(offered_host.as_ref())
+                .is_some_and(|(canonical, offered)| {
+                    offered != canonical
+                        && offered.strip_prefix("www.").unwrap_or(offered)
+                            == canonical.strip_prefix("www.").unwrap_or(canonical)
+                });
+        if path.is_some() || mirror {
+            let path = path.as_deref().unwrap_or(request.uri().path());
+            let query = request
+                .uri()
+                .query()
+                .map(|query| format!("?{query}"))
+                .unwrap_or_default();
+            let destination = if mirror {
+                format!("{}{path}{query}", super::seo::public_base(&state))
+            } else {
+                format!("{path}{query}")
+            };
+            return axum::response::Redirect::permanent(&destination).into_response();
+        }
+    }
     next.run(request).await
 }
 

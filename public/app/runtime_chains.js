@@ -8,7 +8,9 @@ async function loadChains() {
   }
   state.chains = data.chains;
   state.refreshSeconds = data.refresh_seconds || 60;
-  state.selectedChainId = state.selectedChainId || state.chains[0]?.id;
+  const requestedChainId = document.body.dataset.chainId;
+  state.selectedChainId = state.chains.some((chain) => chain.id === requestedChainId)
+    ? requestedChainId : state.selectedChainId || state.chains[0]?.id;
   renderChainTabs();
 }
 
@@ -18,8 +20,8 @@ function renderChainTabs() {
 
   for (const chain of state.chains) {
     const isSelected = chain.id === state.selectedChainId;
-    const button = document.createElement("button");
-    button.type = "button";
+    const button = document.createElement("a");
+    button.href = `/${encodeURIComponent(chain.id)}/`;
     button.className = "chain-tab";
     if (isSelected) {
       button.setAttribute("aria-current", "true");
@@ -57,7 +59,6 @@ function renderChainTabs() {
     main.append(mark, copy);
     button.append(main);
 
-    button.addEventListener("click", () => selectChain(chain.id));
     tabs.appendChild(button);
   }
 

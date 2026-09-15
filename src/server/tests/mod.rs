@@ -15,6 +15,7 @@ mod clock;
 mod connection;
 mod map;
 mod security;
+mod seo;
 mod static_assets;
 mod tls_acme;
 

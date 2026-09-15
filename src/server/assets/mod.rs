@@ -9,9 +9,9 @@ mod version;
 
 pub(in crate::server) use embedded::BASEMAP_STYLE_JSON;
 use embedded::{
-    APP_JS_PARTS, EVERSCALE_LOGO_SVG, FAVICON_SVG, INDEX_HTML, JOKES_JSON, MAPLIBRE_CSS,
-    MAPLIBRE_JS, PMTILES_JS, PORTRAIT_IMAGES, SMOKING_MAN_PNG, STATS_HTML, STATS_JS_PARTS,
-    STYLES_CSS_PARTS, TON_LOGO_SVG, TYCHO_LOGO_SVG,
+    APP_JS_PARTS, EVERSCALE_LOGO_SVG, FAVICON_SVG, JOKES_JSON, MAPLIBRE_CSS, MAPLIBRE_JS,
+    PMTILES_JS, PORTRAIT_IMAGES, SMOKING_MAN_PNG, STATS_HTML, STATS_JS_PARTS, STYLES_CSS_PARTS,
+    TON_LOGO_SVG, TYCHO_LOGO_SVG,
 };
 
 pub(super) use version::asset_version;
@@ -28,15 +28,10 @@ const ASSET_CACHE_CONTROL: HeaderValue =
 const PRIVATE_ASSET_CACHE_CONTROL: HeaderValue =
     HeaderValue::from_static("private, max-age=31536000, immutable");
 
-static INDEX_PAGE: LazyLock<String> = LazyLock::new(|| render_page(INDEX_HTML));
 static STATS_PAGE: LazyLock<String> = LazyLock::new(|| render_page(STATS_HTML));
 static APP_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| APP_JS_PARTS.join("\n\n"));
 static STATS_JS_BUNDLE: LazyLock<String> = LazyLock::new(|| STATS_JS_PARTS.join("\n\n"));
 static STYLES_BUNDLE: LazyLock<String> = LazyLock::new(|| STYLES_CSS_PARTS.join("\n"));
-
-pub(super) async fn index() -> Html<&'static str> {
-    Html(INDEX_PAGE.as_str())
-}
 
 pub(super) async fn stats_page() -> Html<&'static str> {
     Html(STATS_PAGE.as_str())
@@ -55,7 +50,7 @@ pub(super) async fn stats_js() -> impl IntoResponse {
     )
 }
 
-fn render_page(template: &str) -> String {
+pub(super) fn render_page(template: &str) -> String {
     template
         .replace("__ASSET_VERSION__", asset_version())
         .replace("__APP_VERSION__", env!("CARGO_PKG_VERSION"))

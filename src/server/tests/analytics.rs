@@ -279,3 +279,46 @@ fn analytics_request(event: &str, peer_addr: &str, user_agent: &str) -> Request<
         .insert(peer_addr.parse::<SocketAddr>().unwrap());
     request
 }
+
+#[tokio::test]
+async fn traffic_attribution_counts_entries_only_and_is_private() {
+    let state = test_state(Vec::new());
+    let app = crate::server::routes::app_router(Arc::clone(&state));
+    for (event, path) in [
+        ("page_open", "/test/"),
+        ("page_open", "/methodology/"),
+        ("heartbeat", "/test/"),
+    ] {
+        let mut request = analytics_request(event, "203.0.113.80:1200", "Mozilla/5.0");
+        *request.body_mut() = Body::from(
+            serde_json::json!({
+                "event": event, "path": path,
+                "referrer_origin": "https://www.google.com", "utm_source": ""
+            })
+            .to_string(),
+        );
+        assert_eq!(
+            app.clone().oneshot(request).await.unwrap().status(),
+            StatusCode::NO_CONTENT
+        );
+    }
+    assert_eq!(
+        app_response(Arc::clone(&state), "/stats/traffic")
+            .await
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    let traffic =
+        response_json(authed_stats_response(Arc::clone(&state), "/stats/traffic").await).await;
+    assert_eq!(traffic["sources"]["Google"], 1);
+    assert_eq!(traffic["landing_pages"]["/test/"], 1);
+    assert!(traffic["landing_pages"].get("/methodology/").is_none());
+    let stored = std::fs::read_to_string(state.config.analytics_path.as_ref().unwrap()).unwrap();
+    assert!(!stored.contains("google.com"));
+    assert!(!stored.contains("203.0.113.80"));
+    let reloaded = state_from_config((*state.config).clone());
+    let persisted = response_json(authed_stats_response(reloaded, "/stats/traffic").await).await;
+    assert_eq!(persisted, traffic);
+    let public = response_json(app_response(state, "/api/analytics/public").await).await;
+    assert!(public.get("sources").is_none());
+}

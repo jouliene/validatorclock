@@ -254,4 +254,5 @@ pub(super) const STYLES_CSS_PARTS: &[&str] = &[
     STYLES_STATUS_CSS,
     STYLES_RESPONSIVE_CSS,
     STYLES_VISITOR_STATS_CSS,
+    include_str!("../../../public/styles/content.css"),
 ];

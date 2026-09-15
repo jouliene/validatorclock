@@ -1,0 +1,26 @@
+<h2>Where the data comes from</h2>
+<p>Validator Clock reads blockchain configuration, validator sets and elector data through the RPC endpoints configured for each network. The dashboard covers TON mainnet, Everscale mainnet and Tycho Testnet. The collection and calculation code is public in the <a href="https://github.com/jouliene/validatorclock">Validator Clock repository</a>.</p>
+<p>The server collects data in the background and keeps a cache. Page requests read that cache. A recorded snapshot includes the time it was fetched; it is not a promise that every upstream source was updated at that exact moment. RPC failures, indexing delays and incomplete responses can leave some values unavailable.</p>
+<h2>Rounds and election windows</h2>
+<p>The active validator set supplies the round's start and end timestamps. Network election settings supply the offsets before the round ends. For the election window belonging to that round:</p>
+<ul>
+  <li><strong>Opens:</strong> round end minus <code>elections_start_before</code>.</li>
+  <li><strong>Closes:</strong> round end minus <code>elections_end_before</code>.</li>
+</ul>
+<p>The live clock compares those timestamps with its current time. Once that window closes, its upcoming-window display advances by one round duration. This is a projection from the current timing settings; a network configuration change can change a future window. The recorded snapshot keeps the window belonging to its recorded round and labels the election phase at the observation time.</p>
+<p>Snapshot dates use UTC. Dates in the interactive dashboard use your browser's local time. See the <a href="/guides/validator-elections/">election guide</a> for an explanation of the display.</p>
+<h2>Validators, stake and consensus weight</h2>
+<p>The validator count describes entries in the on-chain validator set. A public key identifies a validator entry; it is not a wallet address, a person or a count of independent operators. One operator may control several validators.</p>
+<p>Stake and rewards are displayed in the network's token units. Consensus weight is the validator's share of the set's total weight. It should not be interpreted as the same thing as a share of token supply. Unavailable stake or reward data remains unavailable rather than being replaced with zero.</p>
+<p>Wallet and source-contract labels come from the available records and recognized contract code hashes. Unknown contract types and incomplete attribution are possible. A source contract does not by itself prove the identity of an operator.</p>
+<h2>How APR is calculated</h2>
+<p>Recorded round APR is an annualized calculation from reward, stake and round duration. The implementation uses a 365-day year and accounts for the alternating round cycle:</p>
+<p><code>APR (%) = reward / stake × 31,536,000 / (2 × round duration in seconds) × 100</code></p>
+<p>The average APR in a blue or green history panel is the arithmetic mean of the available completed-round APR values for that colour. Missing reward observations are excluded. The displayed round count tells you how many observations contributed.</p>
+<p>This describes historical validator-set data. It is not a forecast or the net return of a particular staking product, and it does not model future rewards, compounding, token prices or an individual user's fees. The calculation is implemented in <a href="https://github.com/jouliene/validatorclock/blob/main/src/decimal.rs">decimal.rs</a> and <a href="https://github.com/jouliene/validatorclock/blob/main/src/chain/round_stats.rs">round_stats.rs</a>.</p>
+<h2>Node maps and geographic uncertainty</h2>
+<p>The map combines validator identities with resolved network addresses and available geolocation evidence. A mapped IP location is an estimate of infrastructure location, not the residence or jurisdiction of the operator. Missing, stale or disputed locations can occur; the dashboard's location and last-seen indicators provide the available context.</p>
+<p>Several validators can share infrastructure, and some validators cannot be mapped. Geographic statistics describe the available observations, so mapped coverage matters when comparing countries or providers. Consult the <a href="https://github.com/jouliene/validatorclock#node-map">node-map implementation notes</a> for the current resolver and its data sources.</p>
+<h2>Freshness and history</h2>
+<p>The HTML snapshot is captured when the page is opened. The interactive dashboard refreshes independently. A snapshot is marked stale when its recorded round has ended or its age exceeds twice the configured refresh interval. This is a freshness indicator, not a verification of every underlying value.</p>
+<p>Round history depends on records the collector has obtained and retained. It is not a complete archive of every historical round. Changes in coverage can affect comparisons. To report a suspected error, include the network, round ID, observation time and affected metric in a <a href="https://github.com/jouliene/validatorclock/issues">GitHub issue</a>.</p>

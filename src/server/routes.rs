@@ -4,7 +4,7 @@ use super::api::{
     public_analytics, public_visitors, status,
 };
 use super::assets::{
-    app_js, everscale_logo, favicon, index, jokes_json, maplibre_css, maplibre_js, pmtiles_js,
+    app_js, everscale_logo, favicon, jokes_json, maplibre_css, maplibre_js, pmtiles_js,
     portrait_image, smoking_man_png, stats_js, stats_page, styles, ton_logo, tycho_logo,
 };
 use super::basemap::basemap_asset;
@@ -44,8 +44,16 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
 
     Router::new()
         .merge(stats_router(Arc::clone(&state)))
-        .route("/", get(index))
-        .route("/index.html", get(index))
+        .route("/", get(super::seo::page))
+        .route("/index.html", get(super::seo::page))
+        .route("/{chain_id}", get(super::seo::page))
+        .route("/{chain_id}/", get(super::seo::page))
+        .route("/guides/validator-elections", get(super::seo::page))
+        .route("/guides/validator-elections/", get(super::seo::page))
+        .route("/robots.txt", get(super::seo::robots))
+        .route("/sitemap.xml", get(super::seo::sitemap))
+        .route("/social-preview.png", get(super::seo::social_preview))
+        .route("/content.js", get(super::seo::content_js))
         .route("/styles.css", get(styles))
         .route("/app.js", get(app_js))
         .route("/basemap/{*path}", get(basemap_asset))
@@ -86,6 +94,7 @@ fn stats_router(state: Arc<AppState>) -> Router<Arc<AppState>> {
         .route("/stats/", get(stats_page))
         .route("/stats/app.js", get(stats_js))
         .route("/stats/visitors", get(public_visitors))
+        .route("/stats/traffic", get(super::api::traffic_report))
         .layer(middleware::from_fn_with_state(state, require_stats_auth))
 }
 

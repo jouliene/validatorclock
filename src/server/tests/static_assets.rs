@@ -246,7 +246,13 @@ async fn app_router_serves_the_visitor_stats_page_to_authenticated_requests() {
 async fn stats_routes_challenge_requests_without_valid_credentials() {
     let state = test_state(Vec::new());
 
-    for uri in ["/stats", "/stats/", "/stats/app.js", "/stats/visitors"] {
+    for uri in [
+        "/stats",
+        "/stats/",
+        "/stats/app.js",
+        "/stats/visitors",
+        "/stats/traffic",
+    ] {
         let response = stats_response(Arc::clone(&state), uri, None).await;
 
         assert_eq!(
@@ -279,7 +285,7 @@ async fn stats_routes_stay_hidden_when_no_password_is_configured() {
     };
     let state = state_from_config(config);
 
-    for uri in ["/stats", "/stats/visitors"] {
+    for uri in ["/stats", "/stats/visitors", "/stats/traffic"] {
         let response = stats_response(Arc::clone(&state), uri, None).await;
 
         assert_eq!(
@@ -402,7 +408,9 @@ async fn the_page_loads_nothing_from_another_origin() {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let page = String::from_utf8_lossy(&body).to_string();
     for tag in page.split('<').filter(|tag| {
-        tag.starts_with("script") || tag.starts_with("link") || tag.starts_with("img")
+        tag.starts_with("script")
+            || (tag.starts_with("link") && !tag.starts_with("link rel=\"canonical\""))
+            || tag.starts_with("img")
     }) {
         let loaded_from = tag
             .split_once("src=\"")

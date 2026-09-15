@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#060b12"/>
+  <rect x="30" y="30" width="1140" height="570" rx="22" fill="#0b1420" stroke="#223448"/>
+  <g font-family="Arial, sans-serif">
+    <text x="78" y="130" fill="#9bb0c7" font-size="20" letter-spacing="3">VALIDATORCLOCK.XYZ</text>
+    <text x="76" y="248" fill="#e4edf7" font-size="66" font-weight="700">Validator Clock</text>
+    <text x="80" y="322" fill="#b9cadd" font-size="28">Rounds. Elections. Network data.</text>
+    <rect x="78" y="391" width="114" height="45" rx="8" fill="#142d42"/>
+    <text x="105" y="421" fill="#8fd5ff" font-size="22">TON</text>
+    <rect x="207" y="391" width="171" height="45" rx="8" fill="#142d42"/>
+    <text x="230" y="421" fill="#8fd5ff" font-size="22">Everscale</text>
+    <rect x="393" y="391" width="193" height="45" rx="8" fill="#142d42"/>
+    <text x="413" y="421" fill="#8fd5ff" font-size="22">Tycho Testnet</text>
+    <text x="80" y="534" fill="#8eabc5" font-size="21">Validator rounds and network observations</text>
+  </g>
+  <g transform="translate(930 308)">
+    <circle r="167" fill="#080e18" stroke="#273d53" stroke-width="3"/>
+    <path d="M0 -147 A147 147 0 0 0 0 147" fill="none" stroke="#359be0" stroke-width="23"/>
+    <path d="M0 147 A147 147 0 0 0 0 -147" fill="none" stroke="#3abe7b" stroke-width="23"/>
+    <path d="M-153 0 A153 153 0 0 1 -65 -139" fill="none" stroke="#efd078" stroke-width="5"/>
+    <circle r="106" fill="none" stroke="#24384b" stroke-width="2"/>
+    <path d="M0 -91 V-103 M91 0 H103 M0 91 V103 M-91 0 H-103" fill="none" stroke="#89a1b8" stroke-width="3"/>
+    <path d="M-17 13 L87 -63" stroke="#ed6170" stroke-width="5" stroke-linecap="round"/>
+    <circle r="10" fill="#ed6170" stroke="#fac0c6" stroke-width="3"/>
+  </g>
+</svg>

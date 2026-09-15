@@ -14,6 +14,17 @@ pub(crate) enum AnalyticsEventKind {
     Heartbeat,
 }
 
+pub(crate) struct TrafficAttribution {
+    pub(crate) source: &'static str,
+    pub(crate) landing_page: String,
+}
+
+#[derive(Default, Serialize)]
+pub(crate) struct TrafficReport {
+    sources: BTreeMap<String, u64>,
+    landing_pages: BTreeMap<String, u64>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct PublicAnalytics {
     today: PublicAnalyticsToday,
@@ -64,6 +75,10 @@ struct AnalyticsAllTime {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct AnalyticsDay {
     #[serde(default)]
+    sources: BTreeMap<String, u64>,
+    #[serde(default)]
+    landing_pages: BTreeMap<String, u64>,
+    #[serde(default)]
     pageviews: u64,
     #[serde(default)]
     visits: u64,
@@ -105,6 +120,7 @@ impl AppState {
         event: AnalyticsEventKind,
         peer_addr: Option<SocketAddr>,
         headers: &HeaderMap,
+        attribution: Option<TrafficAttribution>,
     ) {
         if is_bot_request(headers) {
             return;
@@ -140,6 +156,20 @@ impl AppState {
                 }
                 if counts_pageview {
                     day.pageviews = day.pageviews.saturating_add(1);
+                    if visit.starts_visit
+                        && let Some(attribution) = &attribution
+                    {
+                        let source = day
+                            .sources
+                            .entry(attribution.source.to_owned())
+                            .or_default();
+                        *source = source.saturating_add(1);
+                        let page = day
+                            .landing_pages
+                            .entry(attribution.landing_page.clone())
+                            .or_default();
+                        *page = page.saturating_add(1);
+                    }
                 }
             }
 
@@ -161,6 +191,25 @@ impl AppState {
         if let Some(snapshot) = snapshot {
             snapshot.write().await;
         }
+    }
+
+    pub(crate) async fn traffic_report(&self) -> TrafficReport {
+        let today = day_index(now_sec());
+        let runtime = self.analytics.lock().await;
+        let mut report = TrafficReport::default();
+        for (date, day) in &runtime.store.get().days {
+            if parse_day_index(date).is_some_and(|index| (today - 29..=today).contains(&index)) {
+                for (name, count) in &day.sources {
+                    let total = report.sources.entry(name.clone()).or_default();
+                    *total = total.saturating_add(*count);
+                }
+                for (path, count) in &day.landing_pages {
+                    let total = report.landing_pages.entry(path.clone()).or_default();
+                    *total = total.saturating_add(*count);
+                }
+            }
+        }
+        report
     }
 
     pub(crate) async fn public_analytics(&self) -> PublicAnalytics {
@@ -285,6 +334,7 @@ mod tests {
                     pageviews: 1,
                     visits: 1,
                     unique_visitors: 1,
+                    ..AnalyticsDay::default()
                 },
             );
         }
@@ -328,6 +378,7 @@ mod tests {
                     pageviews: visits,
                     visits,
                     unique_visitors: 1,
+                    ..AnalyticsDay::default()
                 },
             );
         }

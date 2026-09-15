@@ -5,6 +5,8 @@ function sendAnalyticsEvent(event) {
   try {
     const payload = JSON.stringify({
       event,
+      referrer_origin: event === "page_open" ? analyticsReferrerOrigin() : undefined,
+      utm_source: event === "page_open" ? (new URLSearchParams(window.location.search).get("utm_source") || "").slice(0, 80) : undefined,
       path: window.location.pathname || "/",
       visible: document.visibilityState === "visible",
       ts: Date.now(),
@@ -34,4 +36,13 @@ function formatAnalyticsNumber(value) {
     return "0";
   }
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(number);
+}
+
+// Keep query strings and referrer paths out of analytics payloads.
+function analyticsReferrerOrigin() {
+  try {
+    return document.referrer ? new URL(document.referrer).origin : "";
+  } catch (_) {
+    return "";
+  }
 }

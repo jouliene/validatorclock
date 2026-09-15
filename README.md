@@ -3,6 +3,10 @@
 Web dashboard for Everscale, Tycho, and TON validator rounds, elections,
 stakes, rewards, wallet types, and recent validator history.
 
+**[Live dashboard](https://validatorclock.xyz/)** · [TON](https://validatorclock.xyz/ton/) · [Everscale](https://validatorclock.xyz/everscale/) · [Tycho Testnet](https://validatorclock.xyz/tycho-testnet/)
+
+[Data methodology](https://validatorclock.xyz/methodology/) · [Election guide](https://validatorclock.xyz/guides/validator-elections/) · [Search indexing setup](docs/search-indexing.md)
+
 ![Validator Clock screenshot](docs/validatorclock-screenshot.png)
 
 ## Run Locally
@@ -248,7 +252,7 @@ and days are counted in UTC.
 
 ### Password
 
-`/stats`, `/stats/app.js`, and `/stats/visitors` are behind HTTP Basic auth. Set
+`/stats`, `/stats/app.js`, `/stats/visitors`, and `/stats/traffic` are behind HTTP Basic auth. Set
 the password in the production config, which survives `install.sh` re-runs:
 
 ```json

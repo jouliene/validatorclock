@@ -5,7 +5,7 @@
 // It speaks the DevTools protocol directly - node has a WebSocket client, and the
 // alternative is a browser automation dependency for four assertions.
 import { spawn } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -76,19 +76,59 @@ async function main() {
      })()`,
   );
 
-  await check(
-    session,
-    "switching chain redraws without leaving the previous chain's rows",
-    `(() => {
-       const tabs = [...document.querySelectorAll("#chainTabs button")];
-       if (tabs.length < 2) return "fewer than two chains to switch between";
-       const before = document.querySelector(".validator-row")?.textContent || "";
-       tabs.find((tab) => tab.getAttribute("aria-selected") !== "true")?.click();
-       return { before };
-     })()`,
-  );
-  await sleep(2500);
-  await check(session, "the page survives a chain switch", `Boolean(document.getElementById("metricStatus").textContent.trim())`);
+  await check(session, "network navigation uses real links", `document.querySelectorAll("#chainTabs a[href]").length >= 2`);
+  const nextPath = await evaluate(session, `document.querySelector('#chainTabs a:not([aria-current])')?.getAttribute('href')`);
+  if (typeof nextPath === "string" && nextPath.startsWith("/")) {
+    await evaluate(session, `setTimeout(() => document.querySelector('#chainTabs a:not([aria-current])').click(), 0); true`);
+    await waitFor(session, async () => (await evaluate(session, `location.pathname === ${JSON.stringify(nextPath)} && Boolean(document.querySelector(".validator-row"))`)) === true, "the linked network to load");
+    await check(session, "URL, heading and selected network agree", `state.selectedChainId === document.body.dataset.chainId && location.pathname === '/' + state.selectedChainId + '/' && document.querySelector('h1').textContent.includes(state.chains.find(chain => chain.id === state.selectedChainId).name)`);
+    await check(session, "canonical matches the opened network", `new URL(document.querySelector('link[rel="canonical"]').href).pathname === location.pathname`);
+    await session.send("Page.reload");
+    await waitFor(session, async () => (await evaluate(session, `Boolean(document.querySelector(".validator-row")) && location.pathname === ${JSON.stringify(nextPath)}`)) === true, "the same network after reload");
+    await check(session, "reloading retains the network", `state.selectedChainId === document.body.dataset.chainId`);
+  } else {
+    failures.push("no network link to follow");
+  }
+
+  await session.send("Emulation.setScriptExecutionDisabled", { value: true });
+  await session.send("Page.navigate", { url: new URL("everscale/", BASE_URL).href });
+  await sleep(700);
+  await check(session, "recorded data is readable with JavaScript disabled", `Boolean(document.querySelector('#network-snapshot table tbody tr')) && document.querySelector('#network-snapshot').textContent.includes('UTC')`);
+  if (process.env.VALIDATORCLOCK_SCREENSHOTS) {
+    mkdirSync(process.env.VALIDATORCLOCK_SCREENSHOTS, { recursive: true });
+    await session.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await evaluate(session, `document.querySelector('#network-snapshot details').open = true; document.querySelector('#network-snapshot').scrollIntoView()`);
+    await check(session, "snapshot metrics remain readable on a phone", `[...document.querySelectorAll('.snapshot-metrics dd')].every(value => value.getBoundingClientRect().width > 200 && value.getBoundingClientRect().height < 100)`);
+    await check(session, "recorded table fits a phone without JavaScript", `document.documentElement.scrollWidth <= window.innerWidth + 1`);
+    const capture = await session.send("Page.captureScreenshot", { format: "png" });
+    writeFileSync(join(process.env.VALIDATORCLOCK_SCREENSHOTS, "snapshot-mobile-no-js.png"), Buffer.from(capture.data, "base64"));
+  }
+  await session.send("Emulation.setScriptExecutionDisabled", { value: false });
+
+  await session.send("Page.navigate", { url: new URL("methodology/", BASE_URL).href });
+  await waitFor(session, async () => (await evaluate(session, `Boolean(document.querySelector('.article-content'))`)) === true, "the methodology page");
+  await check(session, "methodology has a readable APR explanation", `document.querySelector('main').textContent.includes('31,536,000')`);
+  await check(session, "structured metadata is valid JSON", `JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent)['@context'] === 'https://schema.org'`);
+
+  // Optional review artifacts; the same run checks overflow on narrow screens.
+  const screenshots = process.env.VALIDATORCLOCK_SCREENSHOTS;
+  if (screenshots) mkdirSync(screenshots, { recursive: true });
+  for (const [name, path, width, height] of [
+    ["methodology-mobile", "methodology/", 390, 844],
+    ["network-mobile", "everscale/", 390, 844],
+    ["network-desktop", "everscale/", 1440, 1000],
+  ]) {
+    await session.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 600 });
+    await session.send("Page.navigate", { url: new URL(path, BASE_URL).href });
+    await waitFor(session, async () => (await evaluate(session, path.startsWith("methodology")
+      ? `Boolean(document.querySelector('.article-content'))`
+      : `Boolean(document.querySelector('.validator-row'))`)) === true, name);
+    await check(session, `${name} fits the viewport`, `document.documentElement.scrollWidth <= window.innerWidth + 1`);
+    if (screenshots) {
+      const screenshot = await session.send("Page.captureScreenshot", { format: "png" });
+      writeFileSync(join(screenshots, `${name}.png`), Buffer.from(screenshot.data, "base64"));
+    }
+  }
 
   if (problems.length) {
     failures.push(...problems);
