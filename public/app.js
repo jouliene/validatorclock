@@ -7,6 +7,7 @@ const BOOT_RETRY_MAX_MS = 60000;
 let bootRetryDelayMs = BOOT_RETRY_MIN_MS;
 
 async function boot() {
+  startEverscaleMemorial();
   startNetworkMessages();
   startNetworkPortraits();
   await startDashboard();

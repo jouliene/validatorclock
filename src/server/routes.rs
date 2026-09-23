@@ -4,8 +4,9 @@ use super::api::{
     public_analytics, public_visitors, status,
 };
 use super::assets::{
-    app_js, everscale_logo, favicon, jokes_json, maplibre_css, maplibre_js, pmtiles_js,
-    portrait_image, smoking_man_png, stats_js, stats_page, styles, ton_logo, tycho_logo,
+    app_js, everscale_logo, everscale_memorial_png, favicon, jokes_json, maplibre_css, maplibre_js,
+    pmtiles_js, portrait_image, smoking_man_png, stats_js, stats_page, styles, ton_logo,
+    tycho_logo,
 };
 use super::basemap::basemap_asset;
 use super::conditional::add_entity_tags;
@@ -67,6 +68,10 @@ pub(super) fn app_router(state: Arc<AppState>) -> Router {
         // than adding a 404 to every visitor's console.
         .route("/favicon.ico", get(favicon))
         .route("/brands/everscale.svg", get(everscale_logo))
+        .route(
+            "/brands/everscale-memorial.png",
+            get(everscale_memorial_png),
+        )
         .route("/brands/tycho.svg", get(tycho_logo))
         .route("/brands/ton.svg", get(ton_logo))
         .route("/brands/smoking-man.png", get(smoking_man_png))

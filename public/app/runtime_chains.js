@@ -21,6 +21,9 @@ function renderChainTabs() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "chain-tab";
+    if (chain.id === "everscale") {
+      button.classList.add("chain-tab-mourning");
+    }
     if (isSelected) {
       button.setAttribute("aria-current", "true");
     }

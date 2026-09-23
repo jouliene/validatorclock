@@ -112,6 +112,10 @@ pub(super) async fn smoking_man_png() -> impl IntoResponse {
     bytes_asset_response("image/png", SMOKING_MAN_PNG)
 }
 
+pub(super) async fn everscale_memorial_png() -> impl IntoResponse {
+    bytes_asset_response("image/png", embedded::EVERSCALE_MEMORIAL_PNG)
+}
+
 pub(super) async fn portrait_image(Path(name): Path<String>) -> Response {
     PORTRAIT_IMAGES
         .iter()

@@ -1,0 +1,70 @@
+html.memorial-open {
+  overflow: hidden;
+}
+
+.memorial-dialog {
+  box-sizing: border-box;
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 38px 24px 22px;
+  overflow: auto;
+  border: 1px solid rgba(190, 205, 218, 0.18);
+  border-radius: 18px;
+  background: radial-gradient(ellipse at 50% 38%, #252a2f, #101419 75%);
+  color: #dfe5eb;
+  box-shadow: 0 24px 100px rgba(0, 0, 0, 0.7), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.memorial-dialog::backdrop {
+  background: rgba(2, 5, 8, 0.8);
+  backdrop-filter: blur(6px);
+}
+
+.memorial-dialog[open] {
+  animation: memorial-appear 300ms ease-out;
+}
+
+.memorial-image {
+  display: block;
+  width: 100%;
+  height: min(510px, calc(100dvh - 108px));
+  object-fit: contain;
+}
+
+.memorial-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: #acb5be;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.memorial-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.memorial-close:focus-visible {
+  outline: 2px solid #a7bdce;
+  outline-offset: -4px;
+}
+
+@keyframes memorial-appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memorial-dialog[open] { animation: none; }
+}

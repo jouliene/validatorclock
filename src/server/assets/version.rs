@@ -27,6 +27,7 @@ fn build_asset_version() -> String {
     hash.update(TON_LOGO_SVG.as_bytes());
     hash.update(FAVICON_SVG.as_bytes());
     hash.update(SMOKING_MAN_PNG);
+    hash.update(super::embedded::EVERSCALE_MEMORIAL_PNG);
     hash.update(JOKES_JSON.as_bytes());
 
     format!("{}-{:016x}", env!("CARGO_PKG_VERSION"), hash.finish())

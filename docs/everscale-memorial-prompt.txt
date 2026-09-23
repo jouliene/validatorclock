@@ -1,0 +1,15 @@
+Tool: built-in image_gen
+Final proportion correction (built-in image_gen):
+undefined
+
+Asset: public/brands/everscale-memorial.png
+Reference: ChatGPT Image Sep 23, 2026, 09_52_03 PM.png
+
+Revision: Everscale (FreeTON) with the Everscale emblem above the title.
+Edit prompt (built-in image_gen):
+Use case: precise-object-edit. Edit the provided tombstone image. Preserve exactly the stone silhouette, base, dark granite texture, lighting, background, dates and Russian inscription. Change ONLY the upper title area: replace the old "FreeTON" and "– Everscale" text with centered "Everscale" in large engraved silver-gray serif lettering and "(FreeTON)" below it in smaller lettering, including parentheses. Above Everscale, centered in the arch, add the actual Everscale symbol, engraved silver-gray into the stone. The symbol is a geometric angular arrow pointing diagonally upper-right, NOT a generic thin arrow. Its precise filled polygon geometry from the official SVG is: in a 40x40 viewBox, path M16.7903 13 L11 18.7903 H21.2097 V29 L27 23.2097 V13 H16.7903 Z. Enlarge that shape to a tasteful emblem roughly 110px wide in the 1024px-wide composition. Do not include a circular badge behind the symbol. Arrange logo, Everscale, (FreeTON) with clear vertical spacing and balanced margins entirely above the existing date line. Preserve verbatim existing date line "07.05.2020 - 29.09.2026" and lower two lines "Наконец-то" / "ты ушел", without changing their placement. All text legible and exact. Keep composition and image dimensions unchanged.
+
+Logo refinement prompt (built-in image_gen; reference geometry from public/brands/everscale.svg):
+undefined
+
+Use case: background-extraction. Asset type: transparent PNG website illustration. Input image is a reference screenshot. Recreate and extract ONLY the dark granite tombstone shown on the right of the screenshot, excluding all website UI and all background. Transparent alpha background. A single upright dark charcoal polished granite headstone with arched top, subtly beveled silver-gray rim, and two stepped rectangular granite base slabs. Frontal view, realistic fine speckled stone texture, restrained lighting matching screenshot. Centered, full object visible, tight framing with a small transparent margin. Preserve exactly the engraved light gray serif text, centered on stone, with these lines: "FreeTON", "– Everscale", "07.05.2020 - 29.09.2026", "Наконец-то", "ты ушел". Text must be clearly legible and spelled exactly as provided. No other elements, no ribbon, no icons, no ground, no shadow backdrop, no UI, no border. Tombstone should fill most of a portrait-oriented canvas.

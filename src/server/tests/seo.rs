@@ -14,14 +14,14 @@ async fn html(response: axum::response::Response) -> String {
 }
 
 #[test]
-fn seo_keeps_the_original_dashboard_body() {
-    // Body from d6450f7 (2.5.4), before the SEO work. Metadata may change;
+fn seo_keeps_the_approved_dashboard_body() {
+    // Original dashboard with the approved Everscale memorial dialog. Metadata may change;
     // adding body content requires an explicit design decision, not an SEO edit.
     let template = include_str!("../../../public/index.html");
     let body = template.split_once("<body>").unwrap().1;
     assert_eq!(
         hex::encode(Sha256::digest(body)),
-        "b9ff13a47aec3c13b83587e6b2691b4dc535e948d8ff20270c60adda9b2ef5e8"
+        "7cb71447f3d520416d03f795760b4da365f48d73512b1c27d94147585166eed9"
     );
 }
 
