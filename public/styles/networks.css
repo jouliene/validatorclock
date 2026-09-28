@@ -102,27 +102,6 @@
   filter: grayscale(1) saturate(0.15);
 }
 
-/* A black mourning ribbon across the upper-left corner, above the logo. */
-.chain-tab-mourning {
-  position: relative;
-  overflow: hidden;
-}
-
-.chain-tab-mourning::after {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  top: 13px;
-  left: -24px;
-  width: 84px;
-  height: 15px;
-  transform: rotate(-45deg);
-  border-block: 1px solid rgba(205, 202, 188, 0.55);
-  background: linear-gradient(180deg, #292929, #080808 48%, #171717);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.65);
-  pointer-events: none;
-}
-
 .chain-tab[aria-current] {
   border-color: rgba(231, 242, 255, 0.15);
   border-left-color: color-mix(in srgb, var(--chain-color, var(--cyan)) 82%, white 10%);

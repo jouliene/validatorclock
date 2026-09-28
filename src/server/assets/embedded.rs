@@ -4,7 +4,6 @@ pub(super) const STYLES_BASE_CSS: &str = include_str!("../../../public/styles/ba
 pub(super) const STYLES_SHELL_CSS: &str = include_str!("../../../public/styles/shell.css");
 pub(super) const STYLES_ELECTION_CSS: &str = include_str!("../../../public/styles/election.css");
 pub(super) const STYLES_NETWORKS_CSS: &str = include_str!("../../../public/styles/networks.css");
-pub(super) const STYLES_MEMORIAL_CSS: &str = include_str!("../../../public/styles/memorial.css");
 pub(super) const STYLES_MAP_CSS: &str = include_str!("../../../public/styles/map.css");
 pub(super) const STYLES_ROUND_STATS_CSS: &str =
     include_str!("../../../public/styles/round_stats.css");
@@ -124,9 +123,6 @@ pub(super) const APP_NETWORK_PORTRAITS_JS: &str =
     include_str!("../../../public/app/network_portraits.js");
 pub(super) const APP_RUNTIME_JS: &str = include_str!("../../../public/app/runtime.js");
 pub(super) const APP_ENTRY_JS: &str = include_str!("../../../public/app.js");
-pub(super) const APP_MEMORIAL_JS: &str = include_str!("../../../public/app/memorial.js");
-pub(super) const EVERSCALE_MEMORIAL_PNG: &[u8] =
-    include_bytes!("../../../public/brands/everscale-memorial.png");
 pub(super) const EVERSCALE_LOGO_SVG: &str = include_str!("../../../public/brands/everscale.svg");
 pub(super) const FAVICON_SVG: &str = include_str!("../../../public/brands/favicon.svg");
 pub(super) const TYCHO_LOGO_SVG: &str = include_str!("../../../public/brands/tycho.svg");
@@ -239,7 +235,6 @@ pub(super) const APP_JS_PARTS: &[&str] = &[
     APP_ANALYTICS_JS,
     APP_NETWORK_PORTRAITS_JS,
     APP_RUNTIME_JS,
-    APP_MEMORIAL_JS,
     APP_ENTRY_JS,
 ];
 
@@ -251,7 +246,6 @@ pub(super) const STYLES_CSS_PARTS: &[&str] = &[
     STYLES_SHELL_CSS,
     STYLES_ELECTION_CSS,
     STYLES_NETWORKS_CSS,
-    STYLES_MEMORIAL_CSS,
     STYLES_MAP_CSS,
     STYLES_ROUND_STATS_CSS,
     STYLES_MAP_PANEL_CSS,
