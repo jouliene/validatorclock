@@ -12,9 +12,10 @@
 //! good as one node's acquaintance, and it tied the map to a machine.
 
 use super::dht::{Resolution, ResolvedAddress};
+use super::tycho_bootstrap::BootstrapSource;
 use anyhow::{Context, Result, anyhow};
-use serde::Deserialize;
 use std::path::Path;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 use tracing::debug;
@@ -49,15 +50,18 @@ pub(super) struct TychoDhtResolver {
     local_addr: String,
     bootstrap_nodes: usize,
     lookup_timeout: Duration,
+    bootstrap_source: BootstrapSource,
 }
 
 impl TychoDhtResolver {
     pub(super) async fn new(
         global_config_path: &Path,
+        global_config_url: Option<&str>,
         local_addr: &str,
         lookup_timeout: Duration,
     ) -> Result<Self> {
-        let bootstrap_peers = read_bootstrap_peers(global_config_path)?;
+        let bootstrap_source = BootstrapSource::new(global_config_path, global_config_url);
+        let bootstrap_peers = bootstrap_source.load().await?;
 
         // A key of its own, made here and kept nowhere: this node's identity
         // matters only for the length of the process, and a key on disk would
@@ -96,6 +100,7 @@ impl TychoDhtResolver {
             local_addr: local_addr.to_owned(),
             bootstrap_nodes,
             lookup_timeout,
+            bootstrap_source,
         })
     }
 
@@ -109,6 +114,15 @@ impl TychoDhtResolver {
 
     /// Let the DHT find its feet before it is asked anything.
     pub(super) async fn warmup_network(&self) {
+        if let Some(peers) = self.bootstrap_source.refresh().await {
+            for peer in peers {
+                // Validation is repeated by the DHT before it updates its
+                // routing table and the transport's known peer addresses.
+                if let Err(error) = self.dht.add_peer(Arc::new(peer)) {
+                    tracing::warn!(error = %error, "could not add refreshed Tycho bootstrap peer");
+                }
+            }
+        }
         sleep(WARMUP).await;
     }
 
@@ -189,28 +203,6 @@ fn parse_peer_id(value: &str) -> Option<PeerId> {
     Some(PeerId(<[u8; 32]>::try_from(bytes.as_slice()).ok()?))
 }
 
-/// The bootstrap half of a Tycho global config. The file also describes the
-/// zerostate and the mempool, which a resolver has no use for.
-#[derive(Debug, Deserialize)]
-struct TychoGlobalConfig {
-    #[serde(default)]
-    bootstrap_peers: Vec<PeerInfo>,
-}
-
-fn read_bootstrap_peers(path: &Path) -> Result<Vec<PeerInfo>> {
-    let body = std::fs::read_to_string(path)
-        .with_context(|| format!("failed to read global config {}", path.display()))?;
-    let config: TychoGlobalConfig = serde_json::from_str(&body)
-        .with_context(|| format!("failed to parse global config {}", path.display()))?;
-    if config.bootstrap_peers.is_empty() {
-        return Err(anyhow!(
-            "global config {} lists no bootstrap peers",
-            path.display()
-        ));
-    }
-    Ok(config.bootstrap_peers)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -221,20 +213,5 @@ mod tests {
         assert!(parse_peer_id(&"ab".repeat(31)).is_none());
         assert!(parse_peer_id("not hex").is_none());
         assert!(parse_peer_id("").is_none());
-    }
-
-    #[test]
-    fn a_config_without_bootstrap_peers_is_not_a_config_to_start_from() {
-        let dir = std::env::temp_dir().join(format!("tycho-config-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("global.json");
-
-        std::fs::write(&path, r#"{"zerostate": {}}"#).unwrap();
-        assert!(read_bootstrap_peers(&path).is_err());
-
-        std::fs::write(&path, "{ not json").unwrap();
-        assert!(read_bootstrap_peers(&path).is_err());
-
-        std::fs::remove_dir_all(&dir).ok();
     }
 }

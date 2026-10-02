@@ -15,6 +15,7 @@
 mod dht;
 mod memory;
 mod tycho;
+mod tycho_bootstrap;
 
 use crate::chain::ClockSnapshot;
 use crate::config::{NodeResolverChainConfig, NodeResolverConfig, ResolverProtocol};
@@ -281,6 +282,15 @@ where
             .collect::<Vec<_>>(),
     );
     let totals = PassTotals::of(&resolved);
+    if totals.with_adnl > 0 && totals.resolved == 0 {
+        warn!(
+            chain_id,
+            validators_total = validators.len(),
+            remembered_total = totals.remembered,
+            lookup_error = resolved.iter().find_map(|v| v.resolution.error.as_deref()),
+            "no validator addresses confirmed; check DHT connectivity and bootstrap configuration"
+        );
+    }
 
     let output_path = chain
         .output_path
@@ -371,7 +381,13 @@ impl ChainResolver {
                 AdnlDhtResolver::new(global_config_path, local_addr, lookup_timeout).await?,
             ),
             ResolverProtocol::Tycho => Self::Tycho(
-                TychoDhtResolver::new(global_config_path, local_addr, lookup_timeout).await?,
+                TychoDhtResolver::new(
+                    global_config_path,
+                    chain.global_config_url.as_deref(),
+                    local_addr,
+                    lookup_timeout,
+                )
+                .await?,
             ),
         })
     }

@@ -48,6 +48,8 @@ pub(crate) struct NodeResolverChainConfig {
     pub(crate) protocol: ResolverProtocol,
     /// The chain's global config, for the DHT bootstrap peers.
     pub(crate) global_config_path: Option<PathBuf>,
+    /// Optional live bootstrap source for Tycho. The local file remains a fallback.
+    pub(crate) global_config_url: Option<String>,
     /// The address this chain's DHT answers on, when it needs one of its own.
     ///
     /// A socket belongs to one chain: two chains sharing an address means the
@@ -103,6 +105,19 @@ impl NodeResolverConfig {
             if chain.output_path.is_none() {
                 bail!("node_resolver chain `{chain_id}` needs an output_path");
             }
+            if let Some(url) = &chain.global_config_url {
+                if chain.protocol != ResolverProtocol::Tycho {
+                    bail!(
+                        "node_resolver chain `{chain_id}`: global_config_url requires protocol tycho"
+                    );
+                }
+                let url = reqwest::Url::parse(url).map_err(|_| {
+                    anyhow::anyhow!("node_resolver chain `{chain_id}`: invalid global_config_url")
+                })?;
+                if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+                    bail!("node_resolver chain `{chain_id}`: global_config_url must use HTTP(S)");
+                }
+            }
         }
 
         // Two chains on one socket is a failure that only shows up as one of
@@ -153,6 +168,7 @@ mod tests {
             enabled: true,
             protocol: ResolverProtocol::default(),
             global_config_path: Some(PathBuf::from("/tmp/global.json")),
+            global_config_url: None,
             output_path: Some(PathBuf::from("/tmp/out.json")),
             local_addr: None,
         }
@@ -188,6 +204,28 @@ mod tests {
             ..NodeResolverConfig::default()
         };
         assert!(separate.validate().is_ok());
+    }
+
+    #[test]
+    fn remote_bootstrap_requires_tycho_and_an_http_url() {
+        let mut chain = enabled_chain();
+        chain.global_config_url = Some("https://example.org/global.json".to_owned());
+        let mut config = NodeResolverConfig {
+            enabled: true,
+            chains: HashMap::from([("tycho-testnet".to_owned(), chain)]),
+            ..Default::default()
+        };
+        assert!(config.validate().is_err());
+        config.chains.get_mut("tycho-testnet").unwrap().protocol = ResolverProtocol::Tycho;
+        assert!(config.validate().is_ok());
+        for url in ["", "not a URL", "file:///tmp/global.json"] {
+            config
+                .chains
+                .get_mut("tycho-testnet")
+                .unwrap()
+                .global_config_url = Some(url.to_owned());
+            assert!(config.validate().is_err());
+        }
     }
 
     /// The chain says which network it is, and a config written before Tycho

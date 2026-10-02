@@ -119,6 +119,51 @@ the server if there are local changes.
 
 ## Node Map
 
+### Tycho bootstrap updates
+
+Tycho's DHT needs reachable bootstrap peers. A signed global config can remain
+valid after every bootstrap peer has moved to another IP. In that case the
+clock still refreshes normally, but address lookups return `value not found`
+and the map becomes empty after remembered addresses expire.
+
+For an existing Tycho resolver, add `global_config_url` to its chain settings:
+
+```json
+"node_resolver": {
+  "enabled": true,
+  "chains": {
+    "tycho-testnet": {
+      "enabled": true,
+      "protocol": "tycho",
+      "global_config_path": "/home/admin/.validatorclock/tycho-global-config.json",
+      "global_config_url": "https://raw.githubusercontent.com/broxus/tycho-testnet/master/global-config.json",
+      "local_addr": "0.0.0.0:4391",
+      "output_path": "/home/admin/.validatorclock/tycho_map/tycho_full.json"
+    }
+  }
+}
+```
+
+Merge this field into the existing settings; keep the other chains and the
+existing `node_locations` paths. The URL is the official
+[Tycho testnet repository](https://github.com/broxus/tycho-testnet) config.
+This setting is opt-in: a binary update alone does not enable remote refresh.
+
+The resolver fetches it at startup and checks again before a lookup pass when
+an hour has elapsed. Failed fetches retry after five minutes. Responses are
+limited to 1 MiB and 15 seconds; every peer's signature and validity period
+are checked before use. The last valid response is saved next to the local
+config with `.bootstrap-cache.json` appended to its name. Keep that directory
+writable. If the source is unavailable at startup, the resolver uses that
+cache, then the original local file; the original file is never overwritten.
+While running, failed refreshes retain known peers. Bootstrap addresses only
+start DHT discovery; map points still require resolved validator records.
+
+When a pass confirms no addresses, a warning now reports the chain and a
+lookup error, even when recent remembered addresses can still be displayed.
+
+### Basemap and geolocation
+
 The basemap is served by this app from disk: a pmtiles archive plus the fonts
 and sprite its style needs. No tile service, no key, no watermark. CARTO, which
 served the basemap before, now stamps "API KEY REQUIRED" across keyless tiles

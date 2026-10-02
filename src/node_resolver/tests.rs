@@ -98,6 +98,7 @@ fn nothing_runs_for_a_chain_that_was_not_asked_for() {
             NodeResolverChainConfig {
                 enabled: false,
                 global_config_path: Some(PathBuf::from("/tmp/global.json")),
+                global_config_url: None,
                 output_path: Some(PathBuf::from("/tmp/out.json")),
                 local_addr: None,
                 protocol: crate::config::ResolverProtocol::Adnl,
@@ -422,6 +423,7 @@ fn chain_config(output_path: PathBuf) -> NodeResolverChainConfig {
         enabled: true,
         protocol: crate::config::ResolverProtocol::Adnl,
         global_config_path: None,
+        global_config_url: None,
         local_addr: None,
         output_path: Some(output_path),
     }
