@@ -10,7 +10,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const BASE_URL = process.argv[2] || "http://127.0.0.1:18787/";
-const BROWSERS = ["chromium", "chromium-browser", "google-chrome", "google-chrome-stable", "brave-browser"];
+// Ubuntu runners can have a Chromium wrapper that spawns successfully but
+// exits without starting a browser. Prefer Chrome and try the next candidate
+// unless the browser actually opens DevTools.
+const BROWSERS = [...new Set([
+  process.env.VALIDATORCLOCK_BROWSER,
+  "google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "brave-browser",
+].filter(Boolean))];
 const DEADLINE_MS = 60000;
 
 const userDataDir = mkdtempSync(join(tmpdir(), "validatorclock-browser-check-"));
@@ -20,8 +26,9 @@ let browser;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function main() {
-  browser = launchBrowser();
-  const wsUrl = await browserWebSocket();
+  const launched = await launchBrowser();
+  browser = launched.child;
+  const wsUrl = launched.wsUrl;
   const session = await attachToPage(wsUrl);
 
   const problems = [];
@@ -137,7 +144,8 @@ async function evaluate(session, expression) {
   return result.result?.value;
 }
 
-function launchBrowser() {
+async function launchBrowser() {
+  const errors = [];
   for (const candidate of BROWSERS) {
     const child = spawn(candidate, [
       "--headless=new",
@@ -147,20 +155,36 @@ function launchBrowser() {
       "--remote-debugging-port=9333",
       `--user-data-dir=${userDataDir}`,
       "about:blank",
-    ], { stdio: "ignore" });
-    child.on("error", () => {});
-    if (child.pid) {
-      return child;
+    ], { stdio: ["ignore", "ignore", "pipe"] });
+    let spawnError = null;
+    let stderr = "";
+    child.on("error", (error) => { spawnError = error; });
+    child.stderr.on("data", (chunk) => { stderr = (stderr + chunk.toString()).slice(-4000); });
+    try {
+      const wsUrl = await browserWebSocket(child, () => spawnError);
+      console.log(`Using browser: ${candidate}`);
+      return { child, wsUrl };
+    } catch (error) {
+      child.kill();
+      const detail = `${candidate}: ${error.message}${stderr.trim() ? `\n${stderr.trim()}` : ""}`;
+      errors.push(detail);
+      console.warn(`Unable to start browser, trying the next candidate: ${detail}`);
     }
   }
-  throw new Error(`no browser found; tried ${BROWSERS.join(", ")}`);
+  throw new Error(`no working browser found:\n${errors.join("\n")}`);
 }
 
-async function browserWebSocket() {
+async function browserWebSocket(child, spawnError) {
   const until = Date.now() + 20000;
   while (Date.now() < until) {
+    if (spawnError()) {
+      throw spawnError();
+    }
+    if (child.exitCode !== null || child.signalCode !== null) {
+      throw new Error(`browser exited before opening DevTools (${child.exitCode ?? child.signalCode})`);
+    }
     try {
-      const response = await fetch("http://127.0.0.1:9333/json/version");
+      const response = await fetch("http://127.0.0.1:9333/json/version", { signal: AbortSignal.timeout(1000) });
       const body = await response.json();
       if (body.webSocketDebuggerUrl) {
         return body.webSocketDebuggerUrl;
